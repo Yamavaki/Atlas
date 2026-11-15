@@ -23,8 +23,8 @@ const BG=[[[150,154,74],[178,170,84]],[[124,138,82],[146,154,92]],[[222,228,234]
 const BF=[[62,78,36],[42,60,40],[150,164,172],[112,120,92],[176,142,92],[140,128,68],[38,70,30],[66,82,50],[82,64,50]];
 const BFOR=[1,1.15,.5,.22,.05,.3,1.45,.8,.35];
 // culturas
-const RACES=["humano","anao","elfo","orc","deserto","norte","halfling","pantano","tribal"];
-const RACE_PT={humano:"Humanos",anao:"Anões",elfo:"Elfos",orc:"Orcs",deserto:"Povo do deserto",norte:"Nórdicos",halfling:"Halflings",pantano:"Povo do pântano",tribal:"Tribais"};
+const RACES=["humano","anao","elfo","orc","deserto","norte","halfling","pantano","tribal","japones","chines","indiano","meso","mongol"];
+const RACE_PT={humano:"Humanos",anao:"Anões",elfo:"Elfos",orc:"Orcs",deserto:"Povo do deserto",norte:"Nórdicos",halfling:"Halflings",pantano:"Povo do pântano",tribal:"Tribais",japones:"Japoneses",chines:"Chineses",indiano:"Indianos",meso:"Mesoamericanos",mongol:"Povos da estepe"};
 const CUL={
   humano:{roof:["tile","tile2","tileb","dark","thatch","slate","moss"],wall:["daub","daub","daub2","daub3","brick","stone"],form:"gable",fence:"stone",st:"stone",rf:"dark"},
   anao:{roof:["slate","dark","slate","tileb"],wall:["darkstone","stone","brick"],form:"gable",low:1,fence:"stone",st:"darkstone",rf:"slate"},
@@ -34,6 +34,11 @@ const CUL={
   norte:{roof:["shingle","old","moss"],wall:["wooddark","wood"],form:"long",fence:"palisade",st:"wooddark",rf:"shingle"},
   halfling:{roof:["leaf"],wall:["daub"],form:"mound",fence:"hedge",st:"daub",rf:"leaf",fields:1.4},
   pantano:{roof:["thatch","old"],wall:["wood","wooddark"],form:"stilt",fence:"palisade",st:"wood",rf:"thatch"},
+  japones:{roof:["jp","jp","jp","thatch"],wall:["jpw","jpw","wood"],form:"asian",fence:"stone",st:"jpw",rf:"jp"},
+  chines:{roof:["cn","jp","jp","cny"],wall:["red","jpw","red"],form:"asian",fence:"stone",st:"stone",rf:"cn"},
+  indiano:{roof:["terra"],wall:["ochre","pink","white","sand"],form:"flat",fence:"sand",st:"sand2",rf:"terra"},
+  meso:{roof:["thatch"],wall:["lime","lime","mud"],form:"flat",fence:"stone",st:"lime",rf:"thatch"},
+  mongol:{roof:["felt"],wall:["felt"],form:"yurt",fence:"palisade",st:"wood",rf:"felt"},
   tribal:{roof:["thatch","old","moss"],wall:["mud","daub"],form:"round",fence:"palisade",st:"mud",rf:"thatch"}};
 
 // ---------- dimensoes ----------
@@ -126,8 +131,8 @@ function makeStamps(rng){
   for(let v=0;v<3;v++)reed.push(mk(16,14,x=>{x.strokeStyle="#6a7a3a";x.lineWidth=.9;for(let i=0;i<7;i++){const sx=3+i*1.6+rng();x.beginPath();x.moveTo(sx,13);x.quadraticCurveTo(sx+(rng()-.5)*3,7,sx+(rng()-.5)*4,2+rng()*3);x.stroke()}x.fillStyle="#5b3d1e";x.fillRect(6,3,1.4,3);x.fillRect(10,4,1.4,3)}));
   return {dec,con,bush,rock,palm,acacia,cactus,snowpine,dead,willow,jungle,reed}}
 function poly(c,pts,fill,stroke){c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.closePath();if(fill){c.fillStyle=fill;c.fill()}if(stroke){c.strokeStyle=stroke;c.stroke()}}
-const ROOF={tile2:["#c9673a","#94482a"],tileb:["#9a4a36","#6e3426"],moss:["#8a8a52","#62633a"],thatch:["#c2a868","#8f7741"],old:["#a8915a","#7b6638"],tile:["#bb573c","#8c3d2a"],dark:["#9c4631","#743222"],slate:["#80828a","#5a5c63"],shingle:["#8d6c46","#654c30"],teal:["#5c9a92","#3c6862"],leaf:["#86a453","#5d7737"],hide:["#8f6c4a","#5e4630"],snow:["#eef1f3","#bfc9d0"],sandtop:["#e8d2a2","#c9ad78"],blue:["#4f72a8","#344e78"],gold:["#d8b45a","#a68436"]};
-const WALL={daub2:["#e6cf9a","#b89d68"],daub3:["#e8c9b4","#b99883"],brick:["#b86a4c","#874a33"],daub:["#e8dec2","#bcae8e"],stone:["#d0c9b7","#9a9484"],wood:["#b38d5c","#86663f"],white:["#f3efe3","#c8c2b0"],sand:["#e6c892","#b8955c"],sand2:["#d8ad78","#a5804c"],wooddark:["#7d5c3b","#553d26"],darkstone:["#aaa59b","#76726a"],mud:["#b99a6a","#8a6e45"]};
+const ROOF={jp:["#5f6a76","#3b434d"],cn:["#4f8a6a","#2e5c45"],cny:["#d6ac46","#a07c2a"],terra:["#b9653e","#83462b"],felt:["#f0e8d6","#c7bca4"],tile2:["#c9673a","#94482a"],tileb:["#9a4a36","#6e3426"],moss:["#8a8a52","#62633a"],thatch:["#c2a868","#8f7741"],old:["#a8915a","#7b6638"],tile:["#bb573c","#8c3d2a"],dark:["#9c4631","#743222"],slate:["#80828a","#5a5c63"],shingle:["#8d6c46","#654c30"],teal:["#5c9a92","#3c6862"],leaf:["#86a453","#5d7737"],hide:["#8f6c4a","#5e4630"],snow:["#eef1f3","#bfc9d0"],sandtop:["#e8d2a2","#c9ad78"],blue:["#4f72a8","#344e78"],gold:["#d8b45a","#a68436"]};
+const WALL={red:["#b8402f","#82291f"],ochre:["#dca552","#a9792f"],pink:["#df917e","#ad6a5c"],felt:["#eee6d2","#c3b8a0"],lime:["#ddd3b8","#a99f86"],jpw:["#f1ece0","#c9c1ad"],daub2:["#e6cf9a","#b89d68"],daub3:["#e8c9b4","#b99883"],brick:["#b86a4c","#874a33"],daub:["#e8dec2","#bcae8e"],stone:["#d0c9b7","#9a9484"],wood:["#b38d5c","#86663f"],white:["#f3efe3","#c8c2b0"],sand:["#e6c892","#b8955c"],sand2:["#d8ad78","#a5804c"],wooddark:["#7d5c3b","#553d26"],darkstone:["#aaa59b","#76726a"],mud:["#b99a6a","#8a6e45"]};
 function drawHouse(c,x,y,o){
   const s=o.flip?-1:1,a=[.87*s,-.43],b=[-.87*s,-.43],L=o.L,D=o.D,H=o.H,R=o.R,roof=ROOF[o.roof],wall=WALL[o.wall];
   const F=[x,y],Rr=[x+a[0]*D,y+a[1]*D],Ll=[x+b[0]*L,y+b[1]*L],Oo=[Rr[0]+b[0]*L,Rr[1]+b[1]*L];
@@ -188,6 +193,8 @@ function drawBuilding(c,x,y,o){
   if(o.tower&&!o.tower.back){const t=o.tower;drawTower(c,x+t.dx,y+t.dy,t.w,t.h,t.r,ROOF[o.roof],WALL[o.wall],false)}
   return r0}
 function drawBuilding0(c,x,y,o){
+  if(o.form==="asian")return drawAsian(c,x,y,o);
+  if(o.form==="yurt")return drawRound(c,x,y,(o.L+o.D)/4,o.H*.75,o.R*.55,Object.assign({},o,{wall:"felt",roof:"felt",yurt:1}));
   if(o.form==="flat")return drawFlat(c,x,y,o);
   if(o.form==="round")return drawRound(c,x,y,(o.L+o.D)/4,o.H,o.R*1.3,o);
   if(o.form==="mound")return drawMound(c,x,y,o);
@@ -195,6 +202,37 @@ function drawBuilding0(c,x,y,o){
     c.strokeStyle="#6a4a2a";c.lineWidth=1.8;c.beginPath();c.moveTo(x-hl*.6,y+1.5);c.lineTo(x+hl*.6,y+1.5);c.stroke();return drawHouseA(c,x,y-4.5,o)}
   if(o.form==="long")return drawHouseA(c,x,y,Object.assign({},o,{R:o.R*1.5,H:o.H*.72}));
   return drawHouseA(c,x,y,o)}
+function drawAsian(c,x,y,o){const ca=Math.cos(o.ang),sa=Math.sin(o.ang),U=[ca,sa*TILT],V=[-sa,ca*TILT],hl=o.L/2,hd=o.D/2,H=o.H,R=Math.max(3,o.R),e=1.5+o.L*.06,tr=o.tr||0,roof=ROOF[o.roof].map(c0=>tint(c0,tr)),wall=WALL[o.wall].map(c0=>tint(c0,o.tw||0));
+  const P=(a,b,h)=>[x+U[0]*a+V[0]*b,y+U[1]*a+V[1]*b-(h||0)],lt=(nx,ny)=>clamp(.5+.62*(-nx*.85+ny*.3),0,1);c.lineJoin="round";c.lineWidth=.75;
+  c.fillStyle="rgba(20,22,6,.28)";c.beginPath();[P(-hl-e,-hd-e),P(hl+e,-hd-e),P(hl+e,hd+e),P(-hl-e,hd+e)].forEach((q,i)=>i?c.lineTo(q[0]+2.6,q[1]+1.2):c.moveTo(q[0]+2.6,q[1]+1.2));c.closePath();c.fill();
+  if(o.base){const b=o.base;for(const s2 of[-1,1]){if(ca*s2>.02)poly(c,[P(-hl-b,s2*(hd+b),-2.5),P(hl+b,s2*(hd+b),-2.5),P(hl+b,s2*(hd+b),0),P(-hl-b,s2*(hd+b),0)],"#aaa392",INK);if(sa*s2>.02)poly(c,[P(s2*(hl+b),-hd-b,-2.5),P(s2*(hl+b),hd+b,-2.5),P(s2*(hl+b),hd+b,0),P(s2*(hl+b),-hd-b,0)],"#8f897a",INK)}poly(c,[P(-hl-b,-hd-b),P(hl+b,-hd-b),P(hl+b,hd+b),P(-hl-b,hd+b)],"#c9c2ae",INK)}
+  for(const s2 of[-1,1]){if(ca*s2>.02){poly(c,[P(-hl,s2*hd),P(hl,s2*hd),P(hl,s2*hd,H),P(-hl,s2*hd,H)],mixc(wall[1],wall[0],lt(-sa*s2,ca*s2)),INK);
+      c.strokeStyle=o.wall==="red"?"#5a1d15":"#4a3424";c.lineWidth=.7;c.beginPath();const n=Math.max(2,Math.round(o.L/3.2));for(let i=0;i<=n;i++){const a=P(-hl+o.L*i/n,s2*hd,0),b=P(-hl+o.L*i/n,s2*hd,H);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1])}c.stroke();c.lineWidth=.75;
+      const d=P(0,s2*hd,0);c.fillStyle="#3a2c1b";c.fillRect(d[0]-1.1,d[1]-H*.62,2.2,H*.62)}
+    if(sa*s2>.02)poly(c,[P(s2*hl,-hd),P(s2*hl,hd),P(s2*hl,hd,H),P(s2*hl,-hd,H)],mixc(wall[1],wall[0],lt(ca*s2,sa*s2)),INK)}
+  const up=1.6,A=P(-hl-e,-hd-e,H-.4+up),B=P(hl+e,-hd-e,H-.4+up),C=P(hl+e,hd+e,H-.4+up),D=P(-hl-e,hd+e,H-.4+up),r1=P(-hl*.42,0,H+R),r2=P(hl*.42,0,H+R);
+  const sag=(p,q,k)=>[(p[0]+q[0])/2,(p[1]+q[1])/2+k];
+  const faces=[{pts:[A,B,r2,r1],cv:[A,B],n:[sa,-ca]},{pts:[D,C,r2,r1],cv:[D,C],n:[-sa,ca]},{pts:[A,D,r1],cv:[A,D],n:[-ca,-sa]},{pts:[B,C,r2],cv:[B,C],n:[ca,sa]}];
+  faces.forEach(f=>f.cy=f.pts.reduce((m,q)=>m+q[1],0)/f.pts.length);faces.sort((a,b)=>a.cy-b.cy);
+  for(const f of faces){const [p,q]=f.cv,m=sag(p,q,up*1.4);c.beginPath();c.moveTo(p[0],p[1]);c.quadraticCurveTo(m[0],m[1],q[0],q[1]);for(const r of f.pts.slice(2))c.lineTo(r[0],r[1]);c.closePath();
+    c.fillStyle=mixc(roof[1],roof[0],lt(f.n[0],f.n[1])*.8+.2);c.fill();c.strokeStyle=INK;c.stroke();
+    c.strokeStyle="rgba(20,20,20,.3)";c.lineWidth=.45;c.beginPath();const tp=f.pts.length===4?[f.pts[3],f.pts[2]]:[f.pts[2],f.pts[2]];for(let i=1;i<6;i++){const t=i/6,a=[lerp(p[0],q[0],t),lerp(p[1],q[1],t)+Math.sin(t*3.1416)*up*.7],b=[lerp(tp[0][0],tp[1][0],t),lerp(tp[0][1],tp[1][1],t)];c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1])}c.stroke();c.lineWidth=.75}
+  c.strokeStyle=INK;c.lineWidth=1.6;c.beginPath();c.moveTo(r1[0],r1[1]);c.lineTo(r2[0],r2[1]);c.stroke();c.lineWidth=1;c.beginPath();c.moveTo(r1[0],r1[1]);c.lineTo(r1[0]-1.4,r1[1]-1.6);c.moveTo(r2[0],r2[1]);c.lineTo(r2[0]+1.4,r2[1]-1.6);c.stroke();c.lineWidth=.75}
+function drawPagoda(c,x,y,n,w,roofK,wallK){for(let i=0;i<n;i++){const s=w*(1-i*.15);drawAsian(c,x,y-i*6.2,{L:s,D:s,H:i?4.2:5,R:2.4+s*.12,ang:.7854,roof:roofK,wall:wallK})}
+  c.strokeStyle=INK;c.lineWidth=1.1;const ty=y-(n-1)*6.2-4.2-2.4-w*.12*(1-(n-1)*.15);c.beginPath();c.moveTo(x,ty);c.lineTo(x,ty-7);c.stroke();c.fillStyle="#c9a24c";for(let k=0;k<3;k++){c.beginPath();c.ellipse(x,ty-1.5-k*1.8,1.3,.6,0,0,7);c.fill()}}
+function drawTorii(c,x,y){c.lineWidth=.7;const r="#c0392b";poly(c,[[x-5.5,y],[x-4.3,y],[x-4.3,y-11],[x-5.5,y-11]],r,INK);poly(c,[[x+4.3,y],[x+5.5,y],[x+5.5,y-11],[x+4.3,y-11]],r,INK);
+  poly(c,[[x-7,y-9],[x+7,y-9],[x+7,y-8],[x-7,y-8]],r,INK);c.fillStyle="#2b2114";c.beginPath();c.moveTo(x-8.5,y-12.6);c.quadraticCurveTo(x,y-11,x+8.5,y-12.6);c.lineTo(x+8,y-11);c.quadraticCurveTo(x,y-9.8,x-8,y-11);c.closePath();c.fill()}
+function drawJpCastle(c,x,y){c.lineWidth=.8;poly(c,[[x-24,y],[x+24,y],[x+19,y-11],[x-19,y-11]],"#a8a190",INK);c.strokeStyle="rgba(60,50,35,.5)";c.lineWidth=.5;c.beginPath();for(let k=1;k<4;k++){c.moveTo(x-24+k*1.3,y-k*2.8);c.lineTo(x+24-k*1.3,y-k*2.8)}c.stroke();
+  poly(c,[[x-19,y-11],[x+19,y-11],[x+19,y-12.5],[x-19,y-12.5]],"#c9c2ae",INK);
+  const t=[[30,8],[22,6.5],[15,6],[9,5]];let yy=y-12.5;for(const [s,h] of t){drawAsian(c,x,yy,{L:s,D:s*.7,H:h,R:3+s*.1,ang:0,roof:"jp",wall:"jpw"});yy-=h+1.6}
+  c.fillStyle="#c9a24c";c.fillRect(x-4,yy-4,1.4,2.4);c.fillRect(x+2.6,yy-4,1.4,2.4)}
+function drawPyramid(c,x,y,w,n){c.lineWidth=.75;for(let i=0;i<n;i++){const s=w*(1-i/(n+1)),h=4.6,yy=y-i*h;poly(c,[[x-s,yy],[x,yy+s*.42],[x,yy+s*.42-h],[x-s,yy-h]],"#c9bb98",INK);poly(c,[[x,yy+s*.42],[x+s,yy],[x+s,yy-h],[x,yy+s*.42-h]],"#a2957a",INK);poly(c,[[x-s,yy-h],[x,yy-h-s*.42],[x+s,yy-h],[x,yy+s*.42-h]],"#ddd2b2",INK)}
+  const top=y-n*4.6,st=w*.16;poly(c,[[x-st*.5,y+w*.42*0+2],[x+st*.5,y+2],[x+st*.25,top+w*.1],[x-st*.25,top+w*.1]],"#b9ab88",INK);c.strokeStyle="rgba(60,50,35,.6)";c.lineWidth=.5;c.beginPath();for(let k=0;k<n*2;k++){const yy=y+2-k*(y+2-top-w*.1)/(n*2),ww=lerp(st*.5,st*.25,k/(n*2));c.moveTo(x-ww,yy);c.lineTo(x+ww,yy)}c.stroke();
+  drawFlat(c,x,top+w*.08,{L:w*.34,D:w*.34,H:5,ang:.7854,wall:"lime"});c.fillStyle="#a8352a";c.fillRect(x-1.2,top+w*.08-8.6,2.4,1.4)}
+function drawShikhara(c,x,y,w){drawFlat(c,x-w*.7,y+1,{L:w*1.2,D:w,H:5,ang:0,wall:"sand",dome:1,domeCol:["#e8c070","#b8873c"],win:1});c.lineWidth=.8;const h=w*2.6,g=c.createLinearGradient(x-w*.6,0,x+w*.6,0);g.addColorStop(0,"#e3b06a");g.addColorStop(1,"#a8743a");c.fillStyle=g;c.strokeStyle=INK;
+  c.beginPath();c.moveTo(x-w*.6,y);c.bezierCurveTo(x-w*.62,y-h*.6,x-w*.25,y-h*.92,x,y-h);c.bezierCurveTo(x+w*.25,y-h*.92,x+w*.62,y-h*.6,x+w*.6,y);c.closePath();c.fill();c.stroke();
+  c.strokeStyle="rgba(90,50,20,.55)";c.lineWidth=.5;c.beginPath();for(let k=1;k<7;k++){const t=k/7,yy=y-h*t,ww=w*.6*Math.sqrt(1-t*t*.85);c.moveTo(x-ww,yy);c.quadraticCurveTo(x,yy+1.2,x+ww,yy)}c.stroke();
+  c.fillStyle="#c9a24c";c.beginPath();c.ellipse(x,y-h-1,1.6,.9,0,0,7);c.fill();c.fillRect(x-.4,y-h-4,.8,3)}
 function drawFlat(c,x,y,o){const ca=Math.cos(o.ang),sa=Math.sin(o.ang),U=[ca,sa*TILT],V=[-sa,ca*TILT],hl=o.L/2,hd=o.D/2,H=o.H*.85,wall=WALL[o.wall];
   const P=(a,b,h)=>[x+U[0]*a+V[0]*b,y+U[1]*a+V[1]*b-(h||0)],lt=(nx,ny)=>clamp(.5+.62*(-nx*.85+ny*.3),0,1);c.lineJoin="round";c.lineWidth=.75;
   c.fillStyle="rgba(20,22,6,.28)";c.beginPath();[P(-hl,-hd),P(hl,-hd),P(hl,hd),P(-hl,hd)].forEach((q,i)=>i?c.lineTo(q[0]+2.6,q[1]+1.2):c.moveTo(q[0]+2.6,q[1]+1.2));c.closePath();c.fill();
@@ -213,6 +251,7 @@ function drawRound(c,x,y,r,H,R,o){const wall=WALL[o.wall],roof=ROOF[o.roof],ry=r
   const rr=r*1.22,gr=c.createLinearGradient(x-rr,0,x+rr,0);gr.addColorStop(0,roof[0]);gr.addColorStop(1,roof[1]);c.fillStyle=gr;
   c.beginPath();c.moveTo(x-rr,y-H+.6);c.ellipse(x,y-H+.6,rr,rr*TILT,0,3.1416,0,true);c.lineTo(x,y-H-R);c.closePath();c.fill();c.stroke();
   c.strokeStyle="rgba(50,30,15,.45)";c.lineWidth=.5;c.beginPath();for(let k=1;k<4;k++){const a=3.1416*k/4;c.moveTo(x,y-H-R);c.lineTo(x-Math.cos(a)*rr,y-H+.6+Math.sin(a)*rr*TILT)}c.stroke();
+  if(o.yurt){c.strokeStyle="rgba(120,80,50,.7)";c.lineWidth=.8;c.beginPath();c.ellipse(x,y-H*.55,r,ry,0,0,3.1416);c.stroke();c.fillStyle="#6b4a2a";c.beginPath();c.arc(x,y-H-R,1.1,0,7);c.fill()}
   if(o.spike){c.strokeStyle=INK;c.lineWidth=.9;c.beginPath();c.moveTo(x,y-H-R);c.lineTo(x-2,y-H-R-3);c.moveTo(x,y-H-R);c.lineTo(x+2,y-H-R-3);c.stroke()}}
 function drawMound(c,x,y,o){const r=(o.L+o.D)/3.2,ry=r*TILT,h=o.H*.9;c.lineWidth=.75;
   c.fillStyle="rgba(20,22,6,.25)";c.beginPath();c.ellipse(x+2.4,y+1,r*1.05,ry,0,0,7);c.fill();
@@ -408,7 +447,14 @@ function generate(P){
       t.core=t.size*2.7+14;t.R=t.core+70+t.size*3;if(t.dens==null)t.dens=.5+rng()*.25;if(t.wall==null&&t.kind==="city")t.wall=true;t.wallR=t.wall?t.core+16:0}}
   // cultura de cada povoado pelo bioma, relevo e floresta em volta
   {const div=P.races==null?.5:P.races;for(const t of towns){if(t.race&&CUL[t.race])continue;const b=bAt(t.x,t.y),e=sampleGrid(elev,t.x,t.y),fo=fbm2(t.x/250+11,t.y/250+5,4),r=rng();
-    let opts;if(b===4)opts=["deserto","deserto","tribal"];else if(b===5)opts=["tribal","deserto","humano"];else if(b===6)opts=["tribal","elfo","elfo"];else if(b===7)opts=["pantano","pantano","orc"];else if(b===8)opts=["orc","orc","humano"];
+    const reg=P.culture||"europa";let opts;
+    if(reg==="leste")opts=b===4||b===5?["mongol","mongol","chines"]:b===2||b===3?["japones","mongol"]:b===6||b===7?["chines","chines","japones"]:b===8?["orc","chines"]:["japones","chines","chines","japones"];
+    else if(reg==="sul")opts=b===4?["indiano","deserto"]:b===2||b===3?["indiano","mongol"]:["indiano","indiano","indiano","tribal"];
+    else if(reg==="meso")opts=b===2||b===3?["norte","meso"]:b===4?["meso","deserto"]:["meso","meso","meso","tribal"];
+    else if(reg==="estepe")opts=b===6||b===7?["chines","tribal"]:b===4?["mongol","deserto"]:["mongol","mongol","mongol","norte"];
+    else if(reg==="misto")opts=b===4?["deserto","mongol","indiano"]:b===5?["tribal","mongol","indiano"]:b===6?["tribal","meso","chines","elfo"]:b===7?["pantano","chines","orc"]:b===8?["orc","orc"]:b===2||b===3?["norte","anao","japones","mongol"]:b===1?["norte","japones","elfo","anao"]:["humano","japones","chines","indiano","meso","elfo","anao","halfling"];
+    if(reg!=="europa"){let race=opts[0];if(reg==="misto"&&e>.3&&rng()<.4)race="anao";else if(rng()<.35+div*.65)race=pick(opts);t.race=race;if(t.wall==null&&(race==="mongol"||race==="halfling"))t.wall=false;continue}
+    if(b===4)opts=["deserto","deserto","tribal"];else if(b===5)opts=["tribal","deserto","humano"];else if(b===6)opts=["tribal","elfo","elfo"];else if(b===7)opts=["pantano","pantano","orc"];else if(b===8)opts=["orc","orc","humano"];
     else if(b===2||b===3)opts=["norte","norte","anao"];else if(b===1)opts=["norte","humano","elfo","anao"];else opts=["humano","humano","humano","halfling","elfo","anao"];
     let race=opts[0];if(e>.3&&b!==4&&b!==6&&rng()<.7)race="anao";else if(fo>.55&&b<=1&&rng()<.55)race="elfo";else if(r<div*.9)race=pick(opts);t.race=race;
     if(t.wall==null&&(race==="halfling"||race==="elfo"&&t.kind!=="city"))t.wall=false}}
@@ -512,7 +558,7 @@ function generate(P){
     if(top){const H=top[0],R=top[1],hd=D/2,ca=Math.cos(a),sa=Math.sin(a);for(const u of[-L*.42,0,L*.42])for(const v of[-hd,-hd/2,0,hd/2,hd]){const hh=(H+R*(1-Math.abs(v)/hd))*.9/TILT,x=cx+ca*u-sa*v,y=cy+sa*u+ca*v;for(const f of[.5,1]){if(occAt(x,y-hh*f)===1)return false}}}return true};
   const takeRect=(cx,cy,a,L,D,v)=>{for(const q of rectPts(cx,cy,a,L,D,2.6))disc(q[0],q[1],1.9,v||2,false)};
   const house=(t,cx,cy,a,type)=>{const sp=SPEC[type],race=(t&&t.race)||"humano",C=CUL[race],cold=snowAt(cx,cy)>.5;let L=R2(sp.L),D=R2(sp.D),H=R2(sp.H)*.72,R=R2(sp.R)*.8,form=C.form;
-    if(form==="round"||form==="mound"){const m=(L+D)/2;L=m*.95;D=m*.95;if(form==="round")H*=.8}if(C.low){L*=1.12;H*=.8}if(C.steep)R*=1.5;if(form==="flat")R=0;if(form==="long"&&type!=="shed"){L*=1.3}
+    if(form==="round"||form==="mound"||form==="yurt"){const m=(L+D)/2;L=m*.95;D=m*.95;if(form!=="mound")H*=.8}if(form==="asian"){H*=.85;R*=1.15}if(C.low){L*=1.12;H*=.8}if(C.steep)R*=1.5;if(form==="flat")R=0;if(form==="long"&&type!=="shed"){L*=1.3}
     if(form==="stilt"&&wet(cx,cy))return false;
     if(!freeRect(cx,cy,a,L,D,[H,R]))return false;takeRect(cx,cy,a,L,D);
     const rural=type==="hut"||type==="shed"||type==="barn"||type==="farm";let roof=rural&&form==="gable"&&race==="humano"?pick(sp.roof):pick(C.roof),wall=rural&&race==="humano"?pick(sp.wall):pick(C.wall);if(cold&&form!=="flat"&&form!=="mound")roof="snow";
@@ -628,7 +674,7 @@ function generate(P){
       else if(rng()<.0045){if(free(x,y,12))o={k:16,x,y,r:12}}
       else if((b===0||b===1||b===3)&&rng()<.003){if(free(x,y,12))o={k:17,x,y,r:12}}
       if(o){lm.push(o);disc(x,y,o.r*.8,2,false);B.push(o)}}}
-  for(const t of towns){const C=CUL[t.race];if((t.race==="orc"||t.race==="tribal")&&t.plaza){B.push({k:18,ti:t.i,x:t.x-6,y:t.y+2})}}
+  for(const t of towns){const C=CUL[t.race];if((t.race==="orc"||t.race==="tribal"||t.race==="mongol")&&t.plaza){B.push({k:18,ti:t.i,x:t.x-6,y:t.y+2})}if(t.race==="japones"){for(let k=0;k<20;k++){const a=rng()*6.28,x=t.x+Math.cos(a)*t.rmax*1.1,y=t.y+Math.sin(a)*t.rmax*1.1;if(!occAt(x,y)&&sampleGrid(land,x,y)>.05&&sampleGrid(rdist,x,y)>16){disc(x,y,6,2,false);B.push({k:19,x,y});break}}}}
   // sitios: casa e celeiro perto das estradas, fora das vilas; os campos nascem em volta deles
   const farms=[];
   if(P.fields>0)for(const t of towns){const fb=bAt(t.x,t.y);if(fb===2||fb===8||(fb===4&&sampleGrid(rdist,t.x,t.y)>90))continue;const want=Math.round(P.fields*(1+t.size/9)*(CUL[t.race].fields||1));let n=0;
@@ -791,7 +837,17 @@ function render(W,canvas,stamps){
       else if(rc==="halfling")drawMound(c,q.x,q.y-3,{L:20*m,D:16*m,H:11*m,door:2,chim:1});
       else if(rc==="orc"||rc==="tribal")drawRound(c,q.x,q.y-3,9*m,6*m,12*m,{wall:rc==="orc"?"wooddark":"mud",roof:rc==="orc"?"hide":"thatch",spike:rc==="orc"});
       else if(rc==="pantano")drawBuilding(c,q.x,q.y-3,{form:"stilt",L:20*m,D:10*m,H:5.5*m,R:6*m,ang:0,roof:"thatch",wall:"wood",door:2,win:1});
+      else if(rc==="japones"){drawAsian(c,q.x-4*m,q.y-2,{L:16*m,D:10*m,H:5*m,R:6*m,ang:0,roof:"jp",wall:"jpw",base:1.5});drawPagoda(c,q.x+12*m,q.y-6*m,q.big?5:3,9*m,"jp","red");drawTorii(c,q.x-4*m,q.y+9*m)}
+      else if(rc==="chines"){drawAsian(c,q.x-3*m,q.y-2,{L:18*m,D:10*m,H:5.5*m,R:6*m,ang:0,roof:"cny",wall:"red",base:2});drawPagoda(c,q.x+13*m,q.y-6*m,q.big?7:5,8*m,"cn","red")}
+      else if(rc==="indiano")drawShikhara(c,q.x+4*m,q.y-2,8*m);
+      else if(rc==="meso")drawPyramid(c,q.x,q.y+2,15*m,q.big?6:4);
+      else if(rc==="mongol"){drawRound(c,q.x,q.y-2,9*m,4.2*m,4*m,{wall:"felt",roof:"felt",yurt:1});drawTotem(c,q.x+11*m,q.y+1)}
       else{drawHouse(c,q.x,q.y,{L:17*m,D:8*m,H:6.5*m,R:5.5*m,roof:sw||"tile",wall:"daub",win:1,door:2});drawTower(c,q.x+13*m,q.y-5*m,4.4*m,15*m,9*m,ROOF[sw||"tile"],WALL.daub)}}
+    else if(q.k===3&&q.race==="japones")drawJpCastle(c,q.x,q.y-6);
+    else if(q.k===3&&q.race==="chines"){drawAsian(c,q.x,q.y-8,{L:34,D:20,H:7,R:9,ang:0,roof:"cny",wall:"red",base:3});drawPagoda(c,q.x+22,q.y-4,3,9,"cn","red")}
+    else if(q.k===3&&q.race==="mongol"){for(const [dx,dy,r] of [[-14,-6,6],[14,-6,6],[0,-12,7],[0,0,11]])drawRound(c,q.x+dx,q.y+dy,r,r*.55,r*.5,{wall:"felt",roof:"felt",yurt:1});drawTotem(c,q.x-20,q.y+4);drawTotem(c,q.x+20,q.y+4)}
+    else if(q.k===3&&q.race==="meso")drawPyramid(c,q.x,q.y-2,24,7);
+    else if(q.k===3&&q.race==="indiano"){drawFlat(c,q.x,q.y-6,{L:34,D:22,H:9,ang:0,wall:"pink",dome:1,domeCol:["#f4f0e4","#bdb4a0"],win:1});drawTower(c,q.x-18,q.y-1,3,20,5,ROOF.gold,WALL.white);drawTower(c,q.x+18,q.y-1,3,20,5,ROOF.gold,WALL.white)}
     else if(q.k===3){c.save();c.translate(q.x,q.y);c.scale(.8,.8);c.translate(-q.x,-q.y);const Cc=CUL[q.race||"humano"],st=WALL[Cc.st==='daub'||Cc.st==='mud'||Cc.st==='wood'||Cc.st==='wooddark'?'stone':Cc.st],rf=ROOF[q.cold?"snow":Cc.rf==='sandtop'?'gold':Cc.rf==='hide'||Cc.rf==='thatch'?'dark':Cc.rf];drawWall(c,[q.x-30,q.y-14],[q.x,q.y-28],8);drawWall(c,[q.x,q.y-28],[q.x+30,q.y-14],8);
       drawTower(c,q.x,q.y-27,5.5,17,7,rf,st);drawTower(c,q.x-30,q.y-13,5.5,15,6,rf,st);drawTower(c,q.x+30,q.y-13,5.5,15,6,rf,st);
       drawHouse(c,q.x+6,q.y-4,{L:27,D:13,H:11,R:7,roof:Object.keys(ROOF).find(k=>ROOF[k]===rf)||"dark",wall:Object.keys(WALL).find(k=>WALL[k]===st)||"stone",win:1,door:2,chim:1});drawTower(c,q.x-13,q.y-9,6.5,23,0,rf,st,true);
@@ -805,7 +861,7 @@ function render(W,canvas,stamps){
     else if(q.k===11){const w=18*q.s,h=14*q.s;c.drawImage(q.st,q.x-w/2,q.y-h*.85,w,h)}
     else if(q.k===12){const w=20*q.s,h=15*q.s;c.drawImage(q.st,q.x-w/2,q.y-h*.85,w,h)}
     else if(q.k===13)drawShip(c,q.x,q.y,q.big,q.flip);
-    else if(q.k===14)drawMesa(c,q.x,q.y,q.w,q.h,q.col,rng);else if(q.k===15)drawVolcano(c,q.x,q.y,q.w,q.h,rng);else if(q.k===16)drawRuin(c,q.x,q.y,rng);else if(q.k===17)drawStones(c,q.x,q.y,rng);else if(q.k===18)drawTotem(c,q.x,q.y);
+    else if(q.k===14)drawMesa(c,q.x,q.y,q.w,q.h,q.col,rng);else if(q.k===15)drawVolcano(c,q.x,q.y,q.w,q.h,rng);else if(q.k===16)drawRuin(c,q.x,q.y,rng);else if(q.k===17)drawStones(c,q.x,q.y,rng);else if(q.k===18)drawTotem(c,q.x,q.y);else if(q.k===19)drawTorii(c,q.x,q.y);
     else if(q.k===8){c.save();c.translate(q.x,q.y);c.scale(.82,.82);c.translate(-q.x,-q.y);drawMill(c,q.x,q.y,q.rot);c.restore()}}
   for(const s of smoke)drawSmoke(c,s[0],s[1],rng);
   // 6. rotulos
@@ -833,5 +889,5 @@ function render(W,canvas,stamps){
 }
 
 
-window.AtlasGen={BIOMES,RACES,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
+window.AtlasGen={CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["misto","Mundo misto"]],BIOMES,RACES,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
 })();
