@@ -140,7 +140,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     for(const pn of o.pins){const p=cur.info.project(pn.x,pn.y);pins.append(h("button",{class:"pin",type:"button",style:pos(p),onclick:()=>openPlace({kind:"pin",id:pn.id})},h("span",{},pn.label),h("i")))}}
   function drag(b,kind,i,j){let st=null,moved=false;b.addEventListener("pointerdown",ev=>{ev.stopPropagation();b.setPointerCapture(ev.pointerId);st=[ev.clientX,ev.clientY];moved=false});
     b.addEventListener("pointermove",ev=>{if(!st)return;if(Math.hypot(ev.clientX-st[0],ev.clientY-st[1])>4)moved=true;if(moved){const r=mc.getBoundingClientRect();b.style.left=((ev.clientX-r.left)/r.width*100)+"%";b.style.top=((ev.clientY-r.top)/r.height*100)+"%"}});
-    b.addEventListener("pointerup",ev=>{if(!st)return;st=null;sel={kind,i,j};if(moved){const w=world(ev);if(w){snap();lineOf(kind,i)[j]=[Math.round(w.x),Math.round(w.y)];regen();return}}drawPins()})}
+    b.addEventListener("pointerup",ev=>{if(!st)return;st=null;sel={kind,i,j};if(moved){const w=world(ev);if(w){snap();const old=lineOf(kind,i)[j],nw=[Math.round(w.x),Math.round(w.y)];if(kind==="d")for(const r of o.vec.roads)for(let k=0;k<r.length;k++){if(Math.abs(r[k][0]-old[0])<1.5&&Math.abs(r[k][1]-old[1])<1.5)r[k]=nw.slice()}lineOf(kind,i)[j]=nw;regen();return}}drawPins()})}
   S.redrawPins=drawPins;S.regen=regen;
   function world(ev){const r=mc.getBoundingClientRect(),cx=(ev.clientX-r.left)*A.CW/r.width,cy=(ev.clientY-r.top)*A.CH/r.height,sx=Math.round(cx-A.MX),sy=Math.round(cy-A.MY);if(!cur||sx<0||sy<0||sx>=A.MW||sy>=A.MH)return null;
     return {x:sx,y:cur.info.YB[sy*A.MW+sx]||sy/A.TILT,cx,cy}}
