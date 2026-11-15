@@ -20,12 +20,12 @@ const TPL={
   item:"---\ntipo: item\ndono: \n---\n\n## Descrição\n\n\n## Efeito\n\n\n## História\n\n",
   sessao:"---\ntipo: sessao\ndata: \n---\n\n## Onde paramos\n\n\n## Cenas previstas\n\n- [ ] \n\n## NPCs em jogo\n\n\n## Anotações\n\n"};
 const FOLD={local:"Locais",personagem:"Personagens",faccao:"Facções",item:"Itens",sessao:"Sessões",livre:""};
-const DEF={form:"regiao",seed:"sasau-1403",sea:.5,islands:0,lakes:0,rivers:1,relief:.65,forest:.5,fields:.65,towns:6,meander:.6,clouds:.38,plan:"mixed"};
-const PARAMS=[["form","Formação","select",[["regiao","Região interior"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["arquipelago","Arquipélago"],["continente","Continente"]]],
+const DEF={size:1,form:"regiao",seed:"sasau-1403",sea:.5,islands:0,lakes:0,rivers:1,relief:.65,forest:.5,fields:.65,towns:6,meander:.6,clouds:.38,plan:"mixed"};
+const PARAMS=[["size","Tamanho do mapa","select",[[1,"Região (normal)"],[1.5,"Grande (2× a área)"],[2,"Continente (4× a área)"]]],["form","Formação","select",[["regiao","Região interior"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["arquipelago","Arquipélago"],["continente","Continente"]]],
   ["seed","Semente","text"],["sea","Nível do mar","pct"],["islands","Ilhas extras","int",0,6],["lakes","Lagos","int",0,4],["rivers","Rios","int",0,3],
-  ["relief","Relevo","pct"],["forest","Floresta","pct"],["fields","Campos cultivados","pct"],["towns","Povoados","int",2,9],["meander","Meandros do rio principal","pct"],
+  ["relief","Relevo","pct"],["forest","Floresta","pct"],["fields","Campos cultivados","pct"],["towns","Povoados (por área de região)","int",2,9],["meander","Meandros do rio principal","pct"],
   ["clouds","Nuvens na borda","pct"],["plan","Traçado das ruas","select",[["mixed","Misto"],["organic","Orgânico"],["planned","Planejado"]]]];
-const STRUCT=new Set(["form","seed","towns","plan","rivers","meander","islands","lakes"]);
+const STRUCT=new Set(["size","form","seed","towns","plan","rivers","meander","islands","lakes"]);
 const TOOLS=[["move","Navegar"],["land","Terra"],["sea","Mar"],["up","Elevar"],["down","Rebaixar"],["forest","Floresta"],["clear","Clareira"],["town","Povoado"],["untown","Remover povoado"],["pin","Pino"],["lines","Editar linhas"],["road","Nova estrada"],["river","Novo rio"],["city","Editar cidade"],["street","Nova rua"]];
 
 // ---------- armazenamento ----------
@@ -126,7 +126,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   S.snap=snap;
   function regen(){busy.hidden=false;setTimeout(()=>{const t0=performance.now();try{
       const P=Object.assign({},o.params,{edits:o.edits,lock:o.lock,vec:o.vec,title:o.name}),W=A.generate(P),info=A.render(W,mc,A.makeStamps(A.mulberry(W.seed^77)));
-      o.lock=W.towns.map(t=>{const z={x:t.x,y:t.y,size:t.size,kind:t.kind,planned:t.planned,name:t.name,dens:Math.round(t.dens*100)/100,wall:!!t.wall};if(t.lockOutline)z.outline=t.lockOutline;if(t.lockSt)z.st=t.lockSt;return z});o.vec=W.vec;cur={W,info};drawPins();Store.save("maps",o);
+      o.lock=W.towns.map(t=>{const z={x:t.x,y:t.y,size:t.size,kind:t.kind,planned:t.planned,name:t.name,dens:Math.round(t.dens*100)/100,wall:!!t.wall};if(t.lockOutline)z.outline=t.lockOutline;if(t.lockSt)z.st=t.lockSt;return z});o.vec=W.vec;cur={W,info};if(mo.width!==mc.width||mo.height!==mc.height){mo.width=mc.width;mo.height=mc.height}view.style.aspectRatio=mc.width+"/"+mc.height;applyZ();drawPins();Store.save("maps",o);
       status.textContent=W.towns.length+" povoados, "+info.b+" construções, "+W.fieldsP.length+" lotes de campo, "+W.vec.roads.length+" estradas, "+W.vec.rivers.length+" rios, "+Math.round(performance.now()-t0)+" ms"}
     catch(e){console.error(e);status.textContent="Não foi possível gerar este mapa. Tente outra semente ou desfaça a última edição. ("+e.message+")"}
     busy.hidden=true;octx.clearRect(0,0,A.CW,A.CH);if(S.place)drawPlace()},30)}
@@ -201,7 +201,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   function fill(){par.replaceChildren(h("h2",{},"Parâmetros"));
     for(const [k,label,kind,a,b] of PARAMS){const id="p_"+k;let inp,val=h("span",{});
       const ch=v=>{snap();o.params[k]=v;if(STRUCT.has(k)){o.lock=null;o.vec=null}if(k==="form")o.edits=[];regen()};
-      if(kind==="select"){inp=h("select",{id,onchange:e=>ch(e.target.value)},a.map(([v,t])=>h("option",{value:v},t)));inp.value=o.params[k]}
+      if(kind==="select"){inp=h("select",{id,onchange:e=>ch(typeof a[0][0]==="number"?+e.target.value:e.target.value)},a.map(([v,t])=>h("option",{value:v},t)));inp.value=String(o.params[k])}
       else if(kind==="text")inp=h("input",{id,type:"text",value:o.params[k],autocomplete:"off",onchange:e=>ch(e.target.value.trim()||"atlas")});
       else if(kind==="pct"){inp=h("input",{id,type:"range",min:0,max:100,value:Math.round(o.params[k]*100),oninput:e=>val.textContent=e.target.value+"%",onchange:e=>ch(e.target.value/100)});val.textContent=Math.round(o.params[k]*100)+"%"}
       else{inp=h("input",{id,type:"range",min:a,max:b,value:o.params[k],oninput:e=>val.textContent=e.target.value,onchange:e=>ch(+e.target.value)});val.textContent=o.params[k]}

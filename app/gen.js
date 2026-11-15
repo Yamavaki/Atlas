@@ -19,10 +19,11 @@ const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
 const INK="#2b2114";
 
 // ---------- dimensoes ----------
-const CW=1532,CH=1110,MX=46,MY=64,MW=1440,MH=1000;
-const TILT=0.7,K=112,WX=MW,WY=Math.ceil((MH+K)/TILT)+2,G=8,GW=Math.ceil(WX/G)+2,GH=Math.ceil(WY/G)+2;
-const O=4,OW=Math.ceil(WX/O)+1,OH=Math.ceil(WY/O)+1;
-const NAMES=["Vrbice","Lesnov","Kamenitz","Borek","Sedletz","Dubrava","Olshany","Hradek","Zlatnik","Mokrina","Trnava","Radim","Skalna","Brezov","Jelenov","Vysoka","Lipany","Podoli","Rybnik","Chlum"];
+const MX=46,MY=64,TILT=0.7,K=112,G=8,O=4;
+let SC=1,CW,CH,MW,MH,WX,WY,GW,GH,OW,OH;
+function setScale(k){SC=k;MW=Math.round(1440*k/8)*8;MH=Math.round(1000*k/8)*8;CW=MW+92;CH=MH+110;WX=MW;WY=Math.ceil((MH+K)/TILT)+2;GW=Math.ceil(WX/G)+2;GH=Math.ceil(WY/G)+2;OW=Math.ceil(WX/O)+1;OH=Math.ceil(WY/O)+1}
+setScale(1);
+const NAMES=["Vrbice","Lesnov","Kamenitz","Borek","Sedletz","Dubrava","Olshany","Hradek","Zlatnik","Mokrina","Trnava","Radim","Skalna","Brezov","Jelenov","Vysoka","Lipany","Podoli","Rybnik","Chlum","Kladno","Pisek","Tabor","Velim","Kourim","Ledec","Hostin","Mlada","Ronov","Zbirov","Krivo","Strakov","Libice","Vlasim","Sobotka","Dolany","Lomnice","Ostrov","Bechyn","Pacov","Nymburk","Hlinsko","Rokyce","Svitava","Jaromer","Polna","Ujezd","Vranov","Lhota","Bystrice","Cerhov","Doubrava","Hrusov","Kamyk","Lazne","Medlov","Nedvez","Orlik","Prosec","Stary Brod"];
 
 function sampleGrid(g,x,y){const gx=clamp(x/G,0,GW-1.001),gy=clamp(y/G,0,GH-1.001),xi=gx|0,yi=gy|0,fx=gx-xi,fy=gy-yi,i=yi*GW+xi;
   const a=g[i],b=g[i+1],c=g[i+GW],d=g[i+GW+1];return (a+(b-a)*fx)+((c+(d-c)*fx)-(a+(b-a)*fx))*fy}
@@ -205,6 +206,7 @@ function banner(c,x,y,text,major,rng){
 
 // ---------- geracao ----------
 function generate(P){
+  setScale(P.size||1);
   const seed=hashStr(P.seed),rng=mulberry(seed),fbm=makeNoise(seed^0x9e37),fbm2=makeNoise(seed^0x51f1);
   const pick=a=>a[(rng()*a.length)|0];
   const heap=()=>{const hf=[],hi=[];return {size:()=>hf.length,
@@ -259,7 +261,7 @@ function generate(P){
   for(let j=1;j<GH-1;j++)for(let i=1;i<GW-1;i++){const k=j*GW+i;slope[k]=Math.hypot(elev[k+1]-elev[k-1],elev[k+GW]-elev[k-GW])}
   const dry=!anyWater&&!rivers.length;
   // povoados
-  const towns=[];{let tries=P.lock?1e9:0;if(P.lock)for(const l of P.lock){if(sampleGrid(land,l.x,l.y)>.03&&sampleGrid(rdist,l.x,l.y)>14)towns.push({x:l.x,y:l.y,size:l.size,kind:l.kind,planned:!!l.planned,ang:0,name:l.name||"",streets:[],dens:l.dens,wall:l.wall,lockOutline:l.outline&&l.outline.length>2?l.outline:null,lockSt:Array.isArray(l.st)?l.st:null})}while(towns.length<P.towns&&tries<5000){tries++;const c0=towns.length===0,x=c0?330+rng()*(WX-660):110+rng()*(WX-220),y=c0?430+rng()*(WY-900):190+rng()*(WY-420),d=sampleGrid(dist,x,y),e=sampleGrid(elev,x,y),sl=sampleGrid(slope,x,y);
+  const towns=[];{let tries=P.lock?1e9:0;if(P.lock)for(const l of P.lock){if(sampleGrid(land,l.x,l.y)>.03&&sampleGrid(rdist,l.x,l.y)>14)towns.push({x:l.x,y:l.y,size:l.size,kind:l.kind,planned:!!l.planned,ang:0,name:l.name||"",streets:[],dens:l.dens,wall:l.wall,lockOutline:l.outline&&l.outline.length>2?l.outline:null,lockSt:Array.isArray(l.st)?l.st:null})}while(towns.length<Math.round(P.towns*SC*SC)&&tries<5000){tries++;const c0=towns.length===0,x=c0?330+rng()*(WX-660):110+rng()*(WX-220),y=c0?430+rng()*(WY-900):190+rng()*(WY-420),d=sampleGrid(dist,x,y),e=sampleGrid(elev,x,y),sl=sampleGrid(slope,x,y);
       const lim=tries>3000?2.2:1;if((!dry&&(c0?(d<36||d>118*lim):(d<60||d>250*lim)))||sampleGrid(land,x,y)<.12||e>.34*lim||sl>.035*lim)continue;
       if(tries<4200&&[130,200,280].some(o=>sampleGrid(elev,x,y+o)>e+.16))continue;
       if(towns.some(t=>Math.hypot(t.x-x,t.y-y)<(towns.length?260:0)))continue;
@@ -369,9 +371,9 @@ function generate(P){
   // casa de frente para a rua: x,y no eixo da rua, ang = direcao da rua, sd = lado
   const front=(t,x,y,ang,sd,type,half)=>{const sp=SPEC[type],gable=type==="row"||(type==="town"&&rng()<.4),a=gable?ang+1.5708:ang,dp=gable?(sp.L[0]+sp.L[1])/2:(sp.D[0]+sp.D[1])/2,nx=-Math.sin(ang)*sd,ny=Math.cos(ang)*sd;
     for(const ex of[0,2.5,5.5,9,13]){const off=half+1+dp/2+ex;if(house(t,x+nx*off,y+ny*off,a+(rng()-.5)*.06,type))return gable?(sp.D[0]+sp.D[1])/2:(sp.L[0]+sp.L[1])/2}return 0};
-  const lineFront=(t,pts,half,m,suburb)=>{let acc=0,next=2+rng()*4;const gap=lerp(6.5,.6,t.dens);for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);if(len<.01)continue;const ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
+  const lineFront=(t,pts,half,m,suburb)=>{let acc=0,next=2+rng()*4;const gap=lerp(16,.4,t.dens);for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]);if(len<.01)continue;const ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
       while(next<=acc+len){const q=(next-acc)/len,x=lerp(a[0],b[0],q),y=lerp(a[1],b[1],q),rl=t.rel(x,y);let adv=4;
-        if(rl<m&&(!suburb||rl>.95)){for(const sd of[-1,1]){if(rng()<(suburb?.55:.28-t.dens*.26))continue;const w=front(t,x,y,ang,sd,suburb?(rng()<.6?"hut":"farm"):typeFor(t,x,y),half);if(w)adv=Math.max(adv,w+gap+(suburb?8+rng()*14:0))}}
+        if(rl<m&&(!suburb||rl>.95)){for(const sd of[-1,1]){if(rng()<(suburb?.75-t.dens*.4:.55-t.dens*.53))continue;const w=front(t,x,y,ang,sd,suburb?(rng()<.6?"hut":"farm"):typeFor(t,x,y),half);if(w)adv=Math.max(adv,w+gap+(suburb?8+rng()*14:0))}}
         next+=adv}acc+=len}};
   const grow=(t,x,y,h,len,opt)=>{const pts=[[x,y]];let ang=h,cv=opt.straight?0:(rng()-.5)*.03,tr=0;
     for(let q=0;q<len;q+=4){const e0=sampleGrid(elev,x,y),sl=(da)=>Math.abs(sampleGrid(elev,x+Math.cos(ang+da)*8,y+Math.sin(ang+da)*8)-e0)*K/8,gr=sl(0);
@@ -379,7 +381,7 @@ function generate(P){
       if(!opt.straight){cv=clamp(cv+(rng()-.5)*.014,-.045,.045);ang+=cv*4}
       x+=Math.cos(ang)*4;y+=Math.sin(ang)*4;tr+=4;
       if(!t.inside(x,y,opt.m||.98)||wet(x,y)||occAt(x,y)===2)break;
-      if(tr>9){const n=nearSt(x,y,7,-1);if(n){pts.push([n.q[0],n.q[1]]);return {pts,join:true}}}
+      if(tr>9&&!opt.through){const n=nearSt(x,y,7,-1);if(n){pts.push([n.q[0],n.q[1]]);return {pts,join:true}}}
       pts.push([x,y])}
     return {pts,join:false}};
   const walls=[],brAdd=[];
@@ -409,22 +411,25 @@ function generate(P){
       const segs=[];pts.forEach((a,k)=>{const b=pts[(k+1)%pts.length];let gate=false,water=false,sea=false;for(let q=0;q<=8;q++){const x=lerp(a[0],b[0],q/8),y=lerp(a[1],b[1],q/8);if(x>0&&y>0&&x<WX&&y<WY&&roadG[cellOf(x,y)])gate=true;if(sampleGrid(rdist,x,y)<12)water=true;if(sampleGrid(land,x,y)<.02)sea=true}segs.push({a,b,gate:gate&&!water&&!sea,water:water&&!sea,sea})});
       for(let k=0;k<segs.length;k++)if(segs[k].gate&&segs[(k+1)%segs.length].gate)segs[(k+1)%segs.length].gate=false;
       for(const z of segs)if(!z.sea)line([z.a,z.b],4,2);walls.push({pts,segs})}
+    if(t.planned&&!t.lockSt&&t.kind!=="village"){let ax=rng()*3.14;const nr=nearSt(t.x,t.y,t.rmax,-1);if(nr)ax=tang(allSt[nr.s].pts,nr.i);
+      t.axes=[];for(const a of[ax,ax+1.5708])for(const da of[0,3.1416]){const g=grow(t,t.x+Math.cos(a+da)*4,t.y+Math.sin(a+da)*4,a+da,t.rmax*1.3,{straight:true,through:true,m:1.02});if(g.pts.length>3){g.pts.unshift([t.x,t.y]);t.axes.push(g.pts)}}
+      for(const g of t.axes){regSt(g,ti,true);t.streets.push(g);mains.add(g);line(g,3,1)}}
     // castelo e igreja
     if(big){let bd=null,be=-1;for(let k=0;k<60;k++){const a=rng()*6.2832,r=(.3+rng()*.35),x=t.x+Math.cos(a)*t.rmax*r,y=t.y+Math.sin(a)*t.rmax*r;if(!t.inside(x,y,.7)||!t.inside(x,y-34,.75)||wet(x,y)||wet(x,y-30))continue;let free=true;for(const q of rectPts(x,y-14,0,52,40,6))if(occAt(q[0],q[1])===1||wet(q[0],q[1])){free=false;break}if(!free)continue;const e=sampleGrid(elev,x,y)+rng()*.02;if(e>be){be=e;bd=[x,y]}}
       if(bd){t.castle=bd;takeRect(bd[0],bd[1]-15,0,54,40,2);B.push({k:3,x:bd[0],y:bd[1],ti})}}
     if(t.kind!=="village"||t.size>8){const cm=big?1.3:1,L=26*cm,D=12*cm;for(let k=0;k<24;k++){const a=rng()*6.2832,r=(t.plaza?20:8)+rng()*14,x=t.x+Math.cos(a)*r,y=t.y+Math.sin(a)*r;if(freeRect(x,y-4,0,L,D,0)){takeRect(x,y-4,0,L,D+6);B.push({k:2,ti,x:x+L*.18,y:y+D*.32,big});break}}}
     // ruas secundarias: nascem das principais, curvam, acompanham o relevo e se fundem ao encontrar outra rua
-    const planned=t.planned,maxDepth=big?3:t.kind==="town"?2:1,cap=big?30:t.kind==="town"?12:4,sp0=lerp(70,44,t.dens)*(t.kind==="village"?1.5:t.planned?1.3:1);
-    let queue=t.lockSt?[]:inRoads.map(z=>({pts:z.pts,d:0})).concat(t.streets.map(p=>({pts:p,d:0})));
+    const planned=t.planned,maxDepth=planned?3:big?3:t.kind==="town"?2:1,cap=Math.round((big?30:t.kind==="town"?12:4)*(.45+t.dens*.9)*(planned?1.6:1)),sp0=lerp(70,44,t.dens)*(t.kind==="village"?1.5:t.planned?.62:1);
+    let queue=t.lockSt?[]:t.axes&&t.axes.length?t.axes.map(p=>({pts:p,d:0})):inRoads.map(z=>({pts:z.pts,d:0})).concat(t.streets.map(p=>({pts:p,d:0})));
     if(!t.lockSt&&!queue.length||(queue.length<2&&t.kind!=="village")){const a=rng()*6.2832;for(const da of[0,3.1416]){const g=grow(t,t.x,t.y,a+da,t.rmax*1.2,{straight:planned,m:1.02});if(g.pts.length>3){regSt(g.pts,ti,true);t.streets.push(g.pts);mains.add(g.pts);line(g.pts,3,1);queue.push({pts:g.pts,d:0})}}}
-    if(!t.lockSt&&(t.wall||big)){const ring=[];for(let k=0;k<=t.rs.length*2;k++){const a=k/(t.rs.length*2)*6.2832,ii=k%t.rs.length,r=t.rs[(k>>1)%t.rs.length]*.84;ring.push([t.x+Math.cos(a)*r,t.y+Math.sin(a)*r])}
+    if(!t.lockSt&&!planned&&(t.wall||big)){const ring=[];for(let k=0;k<=t.rs.length*2;k++){const a=k/(t.rs.length*2)*6.2832,ii=k%t.rs.length,r=t.rs[(k>>1)%t.rs.length]*.84;ring.push([t.x+Math.cos(a)*r,t.y+Math.sin(a)*r])}
       let cur=[];const flush=()=>{if(cur.length>6){const pts=resample(cur,4);regSt(pts,ti,false);t.streets.push(pts);line(pts,3,1);queue.push({pts,d:1})}cur=[]};
       for(const q of resample(ring,4)){if(wet(q[0],q[1])||occAt(q[0],q[1])===2)flush();else cur.push(q)}flush()}
     let made=0;
     while(queue.length&&made<cap){const z=queue.shift();if(z.d>=maxDepth)continue;const pts=z.pts;let acc=rng()*sp0*.6;
-      for(let i=1;i<pts.length-1&&made<cap;i++){acc+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);if(acc<sp0)continue;const p=pts[i];if(!t.inside(p[0],p[1],.95)){acc=0;continue}acc=planned?0:-rng()*sp0*.5;
-        const ta=tang(pts,i),core=t.rel(p[0],p[1])<.35;
-        for(const sd of[-1,1]){if(rng()<(planned?.15:.35))continue;const jit=planned&&!core?(rng()-.5)*.08:(rng()-.5)*.9,g=grow(t,p[0]+Math.cos(ta+sd*1.5708)*3,p[1]+Math.sin(ta+sd*1.5708)*3,ta+sd*1.5708+jit,(planned?1.6:.5+rng()*.8)*t.rmax,{straight:planned&&!core,m:.98});
+      for(let i=1;i<pts.length-1&&made<cap;i++){acc+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);if(acc<sp0)continue;const p=pts[i];if(!t.inside(p[0],p[1],.95)){acc=0;continue}acc=planned?(sd0=>0)():-rng()*sp0*.5;
+        const ta=tang(pts,i),core=t.rel(p[0],p[1])<(planned?.12:.35);
+        for(const sd of[-1,1]){if(rng()<(planned?.04:.35))continue;const jit=planned&&!core?0:(rng()-.5)*.9,g=grow(t,p[0]+Math.cos(ta+sd*1.5708)*3,p[1]+Math.sin(ta+sd*1.5708)*3,ta+sd*1.5708+jit,(planned?1.6:.5+rng()*.8)*t.rmax,{straight:planned&&!core,m:.98});
           if(g.pts.length>(g.join?3:5)){g.pts.unshift([p[0],p[1]]);regSt(g.pts,ti,false);t.streets.push(g.pts);line(g.pts,2.2,1);queue.push({pts:g.pts,d:z.d+1});made++}}}}
     // casas de frente para as ruas
     for(const z of allSt){if(z.ti!==ti&&!(z.ti===-1&&z.pts.some(q=>t.inside(q[0],q[1],1.6))))continue;lineFront(t,z.pts,z.main?4.2:3.2,1)}
@@ -434,11 +439,11 @@ function generate(P){
       for(let y=t.y-t.rmax;y<=t.y+t.rmax;y+=st)for(let x=t.x-t.rmax;x<=t.x+t.rmax;x+=st){const px=x+(rng()-.5)*3,py=y+(rng()-.5)*3;if(t.inside(px,py,1)&&!wet(px,py))spots.push([px,py])}
       for(let i=spots.length-1;i>0;i--){const j=(rng()*(i+1))|0,tmp=spots[i];spots[i]=spots[j];spots[j]=tmp}
       const ang=(px,py)=>{const n=nearSt(px,py,30,-1);return n?[tang(allSt[n.s].pts,n.i),Math.hypot(n.q[0]-px,n.q[1]-py)]:[rng()*3.14,99]};
-      const pH=vil?.22:.62+.36*t.dens;
+      const pH=vil?.05+.3*t.dens:.06+.92*t.dens;
       for(const [px,py] of spots){if(occAt(px,py)||rng()>pH)continue;const [a,d]=ang(px,py),aa=a+(rng()<.65?0:1.5708);
         if(vil){house(t,px,py,aa,rng()<.5?"hut":"shed");continue}
         house(t,px,py,aa,typeFor(t,px,py))||house(t,px,py,aa,"row")||house(t,px,py,aa+1.5708,"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed")}
-      if(!vil)for(const [px,py] of spots){if(occAt(px,py)||rng()>.55+.4*t.dens)continue;const [a]=ang(px,py);for(const aa of[a,a+1.5708])if(house(t,px,py,aa,"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed"))break}
+      if(!vil&&t.dens>.35)for(const [px,py] of spots){if(occAt(px,py)||rng()>(t.dens-.35)*1.5)continue;const [a]=ang(px,py);for(const aa of[a,a+1.5708])if(house(t,px,py,aa,"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed"))break}
       for(const [px,py] of spots){if(occAt(px,py))continue;const [a,d]=ang(px,py),r=rng();
         if(d<9&&wells<wmax&&r<.08){B.push({k:7,ti,x:px,y:py});disc(px,py,3,2,false);wells++}
         else if(r<(vil?.3:.42)){const w=7+rng()*6,h=5+rng()*4;if(freeRect(px,py,a,w,h,0)){takeRect(px,py,a,w,h,3);gardens.push({x:px,y:py,a,w,h,col:pick(["#8f9a4a","#a59a55","#7f8f43","#b59a62"])})}}
@@ -489,6 +494,7 @@ function generate(P){
 // ---------- desenho ----------
 function smoothPath(c,pts){c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length-1;i++){const mx=(pts[i][0]+pts[i+1][0])/2,my=(pts[i][1]+pts[i+1][1])/2;c.quadraticCurveTo(pts[i][0],pts[i][1],mx,my)}c.lineTo(pts[pts.length-1][0],pts[pts.length-1][1])}
 function render(W,canvas,stamps){
+  setScale(W.P.size||1);if(canvas.width!==CW||canvas.height!==CH){canvas.width=CW;canvas.height=CH}
   const {rng,fbm,rivers,towns,roads,occAt,P}=W;
   // 1. textura plana (mundo visto de cima)
   const flat=document.createElement("canvas");flat.width=WX;flat.height=WY;const f=flat.getContext("2d");
@@ -638,5 +644,5 @@ function render(W,canvas,stamps){
 }
 
 
-window.AtlasGen={simp,generate,render,makeStamps,mulberry,hashStr,CW,CH,MX,MY,MW,MH,WX,WY,TILT,G,NAMES};
+window.AtlasGen={simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
 })();
