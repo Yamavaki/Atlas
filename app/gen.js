@@ -26,15 +26,15 @@ const BFOR=[1,1.15,.5,.22,.05,.3,1.45,.8,.35];
 const RACES=["humano","anao","elfo","orc","deserto","norte","halfling","pantano","tribal"];
 const RACE_PT={humano:"Humanos",anao:"Anões",elfo:"Elfos",orc:"Orcs",deserto:"Povo do deserto",norte:"Nórdicos",halfling:"Halflings",pantano:"Povo do pântano",tribal:"Tribais"};
 const CUL={
-  humano:{roof:["tile","tile","dark","thatch"],wall:["daub"],form:"gable",fence:"stone",st:"stone",rf:"dark"},
-  anao:{roof:["slate","dark","slate"],wall:["darkstone","stone"],form:"gable",low:1,fence:"stone",st:"darkstone",rf:"slate"},
-  elfo:{roof:["teal","teal","leaf"],wall:["white"],form:"gable",steep:1,fence:"hedge",st:"white",rf:"teal",trees:1},
+  humano:{roof:["tile","tile2","tileb","dark","thatch","slate","moss"],wall:["daub","daub","daub2","daub3","brick","stone"],form:"gable",fence:"stone",st:"stone",rf:"dark"},
+  anao:{roof:["slate","dark","slate","tileb"],wall:["darkstone","stone","brick"],form:"gable",low:1,fence:"stone",st:"darkstone",rf:"slate"},
+  elfo:{roof:["teal","teal","leaf","blue"],wall:["white","white","daub"],form:"gable",steep:1,fence:"hedge",st:"white",rf:"teal",trees:1},
   orc:{roof:["hide","old"],wall:["wooddark","mud"],form:"round",fence:"palisade",st:"wooddark",rf:"hide"},
   deserto:{roof:["sandtop"],wall:["sand","sand2","white"],form:"flat",fence:"sand",st:"sand",rf:"sandtop"},
-  norte:{roof:["shingle","old"],wall:["wooddark","wood"],form:"long",fence:"palisade",st:"wooddark",rf:"shingle"},
+  norte:{roof:["shingle","old","moss"],wall:["wooddark","wood"],form:"long",fence:"palisade",st:"wooddark",rf:"shingle"},
   halfling:{roof:["leaf"],wall:["daub"],form:"mound",fence:"hedge",st:"daub",rf:"leaf",fields:1.4},
   pantano:{roof:["thatch","old"],wall:["wood","wooddark"],form:"stilt",fence:"palisade",st:"wood",rf:"thatch"},
-  tribal:{roof:["thatch","old"],wall:["mud","daub"],form:"round",fence:"palisade",st:"mud",rf:"thatch"}};
+  tribal:{roof:["thatch","old","moss"],wall:["mud","daub"],form:"round",fence:"palisade",st:"mud",rf:"thatch"}};
 
 // ---------- dimensoes ----------
 const MX=46,MY=64,TILT=0.7,K=112,G=8,O=4;
@@ -126,8 +126,8 @@ function makeStamps(rng){
   for(let v=0;v<3;v++)reed.push(mk(16,14,x=>{x.strokeStyle="#6a7a3a";x.lineWidth=.9;for(let i=0;i<7;i++){const sx=3+i*1.6+rng();x.beginPath();x.moveTo(sx,13);x.quadraticCurveTo(sx+(rng()-.5)*3,7,sx+(rng()-.5)*4,2+rng()*3);x.stroke()}x.fillStyle="#5b3d1e";x.fillRect(6,3,1.4,3);x.fillRect(10,4,1.4,3)}));
   return {dec,con,bush,rock,palm,acacia,cactus,snowpine,dead,willow,jungle,reed}}
 function poly(c,pts,fill,stroke){c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)c.lineTo(pts[i][0],pts[i][1]);c.closePath();if(fill){c.fillStyle=fill;c.fill()}if(stroke){c.strokeStyle=stroke;c.stroke()}}
-const ROOF={thatch:["#c2a868","#8f7741"],old:["#a8915a","#7b6638"],tile:["#bb573c","#8c3d2a"],dark:["#9c4631","#743222"],slate:["#80828a","#5a5c63"],shingle:["#8d6c46","#654c30"],teal:["#5c9a92","#3c6862"],leaf:["#86a453","#5d7737"],hide:["#8f6c4a","#5e4630"],snow:["#eef1f3","#bfc9d0"],sandtop:["#e8d2a2","#c9ad78"],blue:["#4f72a8","#344e78"],gold:["#d8b45a","#a68436"]};
-const WALL={daub:["#e8dec2","#bcae8e"],stone:["#d0c9b7","#9a9484"],wood:["#b38d5c","#86663f"],white:["#f3efe3","#c8c2b0"],sand:["#e6c892","#b8955c"],sand2:["#d8ad78","#a5804c"],wooddark:["#7d5c3b","#553d26"],darkstone:["#aaa59b","#76726a"],mud:["#b99a6a","#8a6e45"]};
+const ROOF={tile2:["#c9673a","#94482a"],tileb:["#9a4a36","#6e3426"],moss:["#8a8a52","#62633a"],thatch:["#c2a868","#8f7741"],old:["#a8915a","#7b6638"],tile:["#bb573c","#8c3d2a"],dark:["#9c4631","#743222"],slate:["#80828a","#5a5c63"],shingle:["#8d6c46","#654c30"],teal:["#5c9a92","#3c6862"],leaf:["#86a453","#5d7737"],hide:["#8f6c4a","#5e4630"],snow:["#eef1f3","#bfc9d0"],sandtop:["#e8d2a2","#c9ad78"],blue:["#4f72a8","#344e78"],gold:["#d8b45a","#a68436"]};
+const WALL={daub2:["#e6cf9a","#b89d68"],daub3:["#e8c9b4","#b99883"],brick:["#b86a4c","#874a33"],daub:["#e8dec2","#bcae8e"],stone:["#d0c9b7","#9a9484"],wood:["#b38d5c","#86663f"],white:["#f3efe3","#c8c2b0"],sand:["#e6c892","#b8955c"],sand2:["#d8ad78","#a5804c"],wooddark:["#7d5c3b","#553d26"],darkstone:["#aaa59b","#76726a"],mud:["#b99a6a","#8a6e45"]};
 function drawHouse(c,x,y,o){
   const s=o.flip?-1:1,a=[.87*s,-.43],b=[-.87*s,-.43],L=o.L,D=o.D,H=o.H,R=o.R,roof=ROOF[o.roof],wall=WALL[o.wall];
   const F=[x,y],Rr=[x+a[0]*D,y+a[1]*D],Ll=[x+b[0]*L,y+b[1]*L],Oo=[Rr[0]+b[0]*L,Rr[1]+b[1]*L];
@@ -155,10 +155,11 @@ function drawHouse(c,x,y,o){
   if(o.sign){c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.moveTo(Rr[0],Rr[1]-H*.8);c.lineTo(Rr[0]+3.5*s,Rr[1]-H*.8);c.stroke();c.fillStyle="#c9a24c";c.fillRect(Rr[0]+(s>0?1.5:-3.5),Rr[1]-H*.8,2,2.4)}
 }
 const hexc=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+function tint(h,t){const p=hexc(h),f=v=>{v=t>0?v+(255-v)*t:v*(1+t);return clamp(Math.round(v),0,255).toString(16).padStart(2,"0")};return "#"+f(p[0])+f(p[1])+f(p[2])}
 function mixc(a,b,t){const p=hexc(a),q=hexc(b);return "rgb("+((p[0]+(q[0]-p[0])*t)|0)+","+((p[1]+(q[1]-p[1])*t)|0)+","+((p[2]+(q[2]-p[2])*t)|0)+")"}
 // casa vista inclinada em qualquer angulo: x,y = centro da base na tela; o.ang = direcao da cumeeira no mundo
 function drawHouseA(c,x,y,o){
-  const ca=Math.cos(o.ang),sa=Math.sin(o.ang),U=[ca,sa*TILT],V=[-sa,ca*TILT],hl=o.L/2,hd=o.D/2,H=o.H,R=o.R,roof=ROOF[o.roof],wall=WALL[o.wall];
+  const ca=Math.cos(o.ang),sa=Math.sin(o.ang),U=[ca,sa*TILT],V=[-sa,ca*TILT],hl=o.L/2,hd=o.D/2,H=o.H,R=o.R,tr=o.tr||0,tw=o.tw||0,roof=ROOF[o.roof].map(c0=>tint(c0,tr)),wall=WALL[o.wall].map(c0=>tint(c0,tw));
   const P=(a,b,h)=>[x+U[0]*a+V[0]*b,y+U[1]*a+V[1]*b-(h||0)],lt=(nx,ny)=>clamp(.5+.62*(-nx*.85+ny*.3),0,1);
   c.lineJoin="round";c.lineWidth=.75;
   c.fillStyle="rgba(20,22,6,.28)";c.beginPath();[P(-hl,-hd),P(hl,-hd),P(hl,hd),P(-hl,hd)].forEach((q,i)=>i?c.lineTo(q[0]+2.6,q[1]+1.2):c.moveTo(q[0]+2.6,q[1]+1.2));c.closePath();c.fill();
@@ -176,10 +177,17 @@ function drawHouseA(c,x,y,o){
     if(f.kind!=="roof"){c.fillStyle="#3a2c1b";const win=(a,b,h,w)=>{const p=f.kind==="long"?P(a,f.s*hd,h):P(f.s*hl,b,h),q=f.kind==="long"?P(a+w,f.s*hd,h):P(f.s*hl,b+w,h);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-1.8);c.lineTo(p[0],p[1]-1.8);c.closePath();c.fill()};
       if(f.kind==="long"){if(o.win){const n=Math.max(1,Math.round(o.L/5));for(let i=0;i<n;i++){const a=-hl+o.L*(i+.5)/n-.7;win(a,0,H*.62,1.4);if(H>7)win(a,0,H*.22+1.6,1.4)}}if(o.door){const p=P(hl*.15,f.s*hd,0),q=P(hl*.15+(o.door>1?2.4:1.8),f.s*hd,0),h=o.door>1?3.8:2.8;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-h);c.lineTo(p[0],p[1]-h);c.closePath();c.fill()}}
       else if(o.win)win(0,-.7,H*.6,1.4)}}
+  if(o.dorm&&R>3.5){for(const s2 of[-1,1]){if(s2*ca*R+TILT*hd<=0)continue;for(const u of o.dorm){const b0=P(u-1.4,s2*hd*.55,H+R*.45),b1=P(u+1.4,s2*hd*.55,H+R*.45),tp=P(u,s2*hd*.45,H+R*.45+2.6),bs=P(u,s2*hd*.62,H+R*.38);poly(c,[b0,b1,[b1[0],b1[1]+1.6],[b0[0],b0[1]+1.6]],wall[0],INK);poly(c,[b0,tp,b1],roof[0],INK);c.fillStyle="#3a2c1b";c.fillRect(bs[0]-.6,bs[1]-.2,1.2,1.4)}}}
   if(o.chim){const p=P(hl*.42,0,H+R-.6);c.fillStyle="#9a8f80";c.strokeStyle=INK;c.lineWidth=.6;c.fillRect(p[0]-1.1,p[1]-3.2,2.2,3.8);c.strokeRect(p[0]-1.1,p[1]-3.2,2.2,3.8)}
   if(o.sign){const p=P(hl,0,H*.7);c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(p[0]+3,p[1]);c.stroke();c.fillStyle="#c9a24c";c.fillRect(p[0]+1.6,p[1],2,2.4)}
 }
 function drawBuilding(c,x,y,o){
+  if(o.wing){const w=o.wing;drawHouseA(c,x+w.dx,y+w.dy,Object.assign({},o,{L:w.L,D:w.D,H:o.H*w.h,R:o.R*.85,ang:w.ang,wing:null,dorm:null,chim:false,sign:false,tower:null}))}
+  if(o.tower&&o.tower.back){const t=o.tower;drawTower(c,x+t.dx,y+t.dy,t.w,t.h,t.r,ROOF[o.roof],WALL[o.wall],false)}
+  const r0=drawBuilding0(c,x,y,o);
+  if(o.tower&&!o.tower.back){const t=o.tower;drawTower(c,x+t.dx,y+t.dy,t.w,t.h,t.r,ROOF[o.roof],WALL[o.wall],false)}
+  return r0}
+function drawBuilding0(c,x,y,o){
   if(o.form==="flat")return drawFlat(c,x,y,o);
   if(o.form==="round")return drawRound(c,x,y,(o.L+o.D)/4,o.H,o.R*1.3,o);
   if(o.form==="mound")return drawMound(c,x,y,o);
@@ -313,19 +321,35 @@ function generate(P){
   for(const e of P.edits||[]){if(e.t==="biome"){bEd.push(e);continue}const tgt=e.t==="land"||e.t==="sea"?ladd:e.t==="up"||e.t==="down"?hadd:fadd,sg=(e.t==="land"||e.t==="up"||e.t==="forest")?1:-1,amt=tgt===ladd?1.5:tgt===hadd?.22:1;
     const i0=Math.max(0,((e.x-e.r)/G)|0),i1=Math.min(GW-1,((e.x+e.r)/G|0)+1),j0=Math.max(0,((e.y-e.r)/G)|0),j1=Math.min(GH-1,((e.y+e.r)/G|0)+1);
     for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const d=Math.hypot(i*G-e.x,j*G-e.y);if(d<e.r)tgt[j*GW+i]+=sg*amt*sstep(e.r,e.r*.35,d)}}
-  const form=P.form||"regiao",side=(rng()*4)|0,blobs=[],lakes=[],cx0=WX*.5,cy0=WY*.46,edge=[[0,cy0],[WX,cy0],[cx0,0],[cx0,WY]][side];
-  if(form==="ilha")blobs.push([cx0+(rng()-.5)*120,cy0+(rng()-.5)*100,WX*.35,WY*.31,rng()*3.14]);
-  else if(form==="arquipelago"){const n=4+((rng()*3)|0);for(let i=0;i<n;i++)blobs.push([WX*(.16+rng()*.68),WY*(.16+rng()*.62),WX*(.1+rng()*.09),WY*(.09+rng()*.08),rng()*3.14])}
-  else if(form==="peninsula")for(let i=0;i<5;i++){const t=i/4;blobs.push([lerp(edge[0],cx0,t*1.1)+(rng()-.5)*110,lerp(edge[1],cy0,t*1.1)+(rng()-.5)*110,WX*(.21-.02*i),WY*(.2-.02*i),rng()*3.14])}
-  else if(form==="continente")blobs.push([cx0,cy0,WX*.5,WY*.47,rng()*.4]);
-  for(let i=0;i<(P.islands||0);i++)blobs.push([WX*(.08+rng()*.84),WY*(.08+rng()*.8),50+rng()*70,45+rng()*60,rng()*3.14,1]);
-  for(let i=0;i<(P.lakes||0);i++)lakes.push([WX*(.2+rng()*.6),WY*(.2+rng()*.55),38+rng()*50,30+rng()*40,rng()*3.14]);
+  const form=P.form||"regiao",side=(rng()*4)|0,blobs=[],bays=[],lakes=[],cx0=WX*(.42+rng()*.16),cy0=WY*(.4+rng()*.14),edge=[[0,cy0],[WX,cy0],[cx0,0],[cx0,WY]][side];
+  const D0=Math.min(WX,WY),R1=()=>rng(),fbmW=makeNoise(seed^0x3c6e),fbmC=makeNoise(seed^0x91b2);
+  // cadeia de massas ao longo de uma espinha curva (peninsulas, ilhas alongadas, bracos de continente)
+  const spine=(x,y,ang,len,r0,r1,n,isl)=>{let a=ang;for(let i=0;i<n;i++){const t=i/Math.max(1,n-1),r=lerp(r0,r1,t)*(.75+R1()*.5);blobs.push([x,y,r*(1+R1()*.6),r*(.6+R1()*.5),R1()*3.14,isl?1:0]);a+=(R1()-.5)*1.1;const st=len/n;x+=Math.cos(a)*st;y+=Math.sin(a)*st}};
+  const inward=(x,y)=>Math.atan2(cy0-y,cx0-x);
+  if(form==="ilha"){const a=R1()*6.28,n=4+((R1()*4)|0),len=D0*(.45+R1()*.3);spine(cx0-Math.cos(a)*len*.45,cy0-Math.sin(a)*len*.45,a,len,D0*.2,D0*.12,n);
+    for(let k=0;k<1+((R1()*3)|0);k++){const b=blobs[(R1()*blobs.length)|0];spine(b[0],b[1],R1()*6.28,D0*(.15+R1()*.2),D0*.09,D0*.04,3)}
+    for(let k=0;k<2+((R1()*3)|0);k++){const a2=R1()*6.28,r=D0*(.25+R1()*.12);bays.push([cx0+Math.cos(a2)*r,cy0+Math.sin(a2)*r,D0*(.05+R1()*.07),D0*(.04+R1()*.05),R1()*3.14])}}
+  else if(form==="arquipelago"){const n=7+((R1()*6)|0);for(let i=0;i<n;i++){const x=WX*(.12+R1()*.76),y=WY*(.12+R1()*.72),big=i<3;spine(x,y,R1()*6.28,D0*(big?.3:.12),D0*(big?.13:.075),D0*.04,big?4:2+((R1()*2)|0))}}
+  else if(form==="peninsula"){const a=inward(edge[0],edge[1])+(R1()-.5)*.5;spine(edge[0]-Math.cos(a)*40,edge[1]-Math.sin(a)*40,a,D0*(.75+R1()*.25),D0*.24,D0*.1,6+((R1()*3)|0));
+    for(let k=0;k<2;k++){const b=blobs[2+((R1()*(blobs.length-2))|0)];spine(b[0],b[1],a+(R1()<.5?1.3:-1.3)+(R1()-.5)*.5,D0*(.12+R1()*.15),D0*.08,D0*.04,3)}}
+  else if(form==="continente"){const n=4+((R1()*4)|0);for(let i=0;i<n;i++){const a=R1()*6.28,r=D0*(.08+R1()*.24);blobs.push([cx0+Math.cos(a)*r*1.5,cy0+Math.sin(a)*r,D0*(.14+R1()*.16),D0*(.1+R1()*.12),R1()*3.14])}
+    const arms=2+((R1()*4)|0);for(let k=0;k<arms;k++){const a=R1()*6.28,sx=cx0+Math.cos(a)*D0*.3,sy=cy0+Math.sin(a)*D0*.25;spine(sx,sy,a+(R1()-.5)*.8,D0*(.2+R1()*.3),D0*(.1+R1()*.06),D0*.03,3+((R1()*3)|0))}
+    const nb=3+((R1()*4)|0);for(let k=0;k<nb;k++){const a=R1()*6.28,r=D0*(.3+R1()*.18);bays.push([cx0+Math.cos(a)*r*1.3,cy0+Math.sin(a)*r,D0*(.06+R1()*.1),D0*(.04+R1()*.06),R1()*3.14])}
+    for(let k=0;k<2+((R1()*4)|0);k++){const a=R1()*6.28,r=D0*(.5+R1()*.15);spine(cx0+Math.cos(a)*r*1.3,cy0+Math.sin(a)*r,R1()*6.28,D0*.08,D0*.045,D0*.02,2,1)}}
+  else if(form==="costa"){const n=5+((R1()*4)|0);for(let i=0;i<n;i++){const t=(i+R1()*.6)/n,along=side<2?[ (side===0?.32:.68)*WX,t*WY]:[t*WX,(side===2?.32:.68)*WY];blobs.push([along[0],along[1],D0*(.1+R1()*.14),D0*(.08+R1()*.1),R1()*3.14])}
+    for(let k=0;k<2+((R1()*3)|0);k++){const t=R1(),p=side<2?[(side===0?.36:.64)*WX,t*WY]:[t*WX,(side===2?.36:.64)*WY];bays.push([p[0],p[1],D0*(.06+R1()*.09),D0*(.04+R1()*.07),R1()*3.14])}}
+  for(let i=0;i<(P.islands||0);i++){const x=WX*(.08+R1()*.84),y=WY*(.08+R1()*.8);spine(x,y,R1()*6.28,D0*(.05+R1()*.08),D0*(.04+R1()*.03),D0*.02,2+((R1()*2)|0),1)}
+  for(let i=0;i<(P.lakes||0);i++)lakes.push([WX*(.2+R1()*.6),WY*(.2+R1()*.55),38+R1()*50,30+R1()*40,R1()*3.14]);
   const ell=(b,x,y)=>{const c=Math.cos(b[4]),s=Math.sin(b[4]),dx=x-b[0],dy=y-b[1];return Math.hypot((dx*c+dy*s)/b[2],(-dx*s+dy*c)/b[3])};
-  const seaT=((P.sea==null?.5:P.sea)-.5)*.6;let anyWater=false;
+  const seaT=((P.sea==null?.5:P.sea)-.5)*.6-(form==="arquipelago"?.08:0);let anyWater=false;const rough=form==="continente"?1:form==="ilha"?.85:form==="arquipelago"?.6:.8;
   for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const x=i*G,y=j*G,k=j*GW+i,tt=[x/WX,1-x/WX,y/WY,1-y/WY][side];let L;
-    if(form==="regiao")L=1;else{L=form==="costa"?(tt-.3)*3:form==="peninsula"?(.13-tt)*5:-1;
-      for(const b of blobs){const v=(1-ell(b,x,y))*(b[5]?1.1:1.3);if(v>L)L=v}
-      L+=(fbm(x/170+31,y/170+17,4)-.5)*(form==="continente"?1.05:.62)-seaT}
+    if(form==="regiao")L=1;else{
+      // deformacao do dominio: litoral sinuoso, cabos e enseadas
+      const w1=D0*.2,qx=x+(fbmW(x/(D0*.42)+3,y/(D0*.42)+7,3)-.5)*w1*2,qy=y+(fbmW(x/(D0*.42)+31,y/(D0*.42)+17,3)-.5)*w1*2,rx=qx+(fbmC(qx/90+5,qy/90+9,2)-.5)*44,ry=qy+(fbmC(qx/90+41,qy/90+3,2)-.5)*44;
+      let M=form==="costa"?(tt-.3)*2.6:form==="peninsula"?(.17-tt)*3.4:-1;for(const b of blobs){const v=(1-ell(b,rx,ry))*(b[5]?1.1:1.25);if(v>M)M=v}
+      for(const b of bays){const v=1-ell(b,rx,ry);if(v>0)M-=v*1.4}
+      L=M+(fbm(rx/(D0*.17)+31,ry/(D0*.17)+17,5)-.5)*.75*rough+(fbmC(x/38+11,y/38+5,3)-.5)*.22-seaT;
+      if(form!=="costa"&&form!=="peninsula"){const ed=Math.min(x,y,WX-x,WY-y);L-=1-sstep(10,90,ed)}}
     for(const b of lakes){const v=1-ell(b,x,y);if(v>0)L=Math.min(L,.03-v*1.5+(fbm(x/60+3,y/60+9,2)-.5)*.3)}
     L=clamp(L+ladd[k],-1,1);land[k]=L;if(L<0)anyWater=true;
     const wx_=x+(fbm(x/260+70,y/260+40,2)-.5)*170,wy_=y+(fbm(x/260+10,y/260+90,2)-.5)*170,base=fbm(wx_/460+3,wy_/460+7,5),ridge=1-Math.abs(2*fbm2(wx_/300+9,wy_/300+2,3)-1),pass_=.3+.7*sstep(.02,.2,Math.abs(fbm2(wx_/400+20,wy_/400+60,2)-.5)*2);
@@ -489,7 +513,15 @@ function generate(P){
     if(form==="stilt"&&wet(cx,cy))return false;
     if(!freeRect(cx,cy,a,L,D,[H,R]))return false;takeRect(cx,cy,a,L,D);
     const rural=type==="hut"||type==="shed"||type==="barn"||type==="farm";let roof=rural&&form==="gable"&&race==="humano"?pick(sp.roof):pick(C.roof),wall=rural&&race==="humano"?pick(sp.wall):pick(C.wall);if(cold&&form!=="flat"&&form!=="mound")roof="snow";
-    B.push({k:1,x:cx,y:cy,ang:a,ti:t?t.i:-1,type,L,D,H,R,form,roof,wall,door:sp.door,win:sp.win,timber:race==="humano"&&sp.timber&&rng()<.8,chim:sp.chim||(cold&&rng()<.5),sign:sp.sign,smoke:sp.smoke||(cold&&rng()<.25),dome:form==="flat"&&(type==="rich"||type==="manor")&&rng()<.7,spike:race==="orc"});return true};
+    const big=type==="rich"||type==="manor"||type==="tavern",urb=type==="town"||type==="row"||big;H*=form==="gable"&&urb?.82+rng()*.45:.9+rng()*.2;
+    let wing=null,tower=null,dorm=null;const ca=Math.cos(a),sa=Math.sin(a);
+    if(form==="gable"||form==="long"){
+      if((big||type==="farm"||type==="town"||type==="barn")&&rng()<(big?.75:.45)){const wl=D*(.7+rng()*.5),wd=L*(.32+rng()*.22),s0=rng()<.5?-1:1,e0=rng()<.5?-1:1;
+        for(const [side,end] of [[s0,e0],[-s0,e0],[s0,-e0],[-s0,-e0]]){const u=end*(L/2-wd/2),v=side*(D/2+wl/2-.6),wx=cx+ca*u-sa*v,wy=cy+sa*u+ca*v;
+          if(freeRect(wx,wy,a+1.5708,wl,wd,[H*.8,R*.8])){takeRect(wx,wy,a+1.5708,wl,wd);wing={dx:(wx-cx),dy:(wy-cy)*TILT,L:wl,D:wd,h:.8+rng()*.15,ang:a+1.5708};break}}}
+      if(type==="manor"&&rng()<.75||type==="rich"&&rng()<.35||type==="town"&&rng()<.05||type==="tavern"&&rng()<.2){const end=rng()<.5?-1:1,u=end*L/2,tx=cx+ca*u,ty=cy+sa*u;tower={dx:tx-cx,dy:(ty-cy)*TILT+1,w:2.6+rng()*.8,h:H+R+4+rng()*5,r:4+rng()*2,back:(sa*end)<0}}
+      if(urb&&R>2.6&&rng()<.5){dorm=[];const n=1+((L/7)|0);for(let q=0;q<n;q++)dorm.push(-L/2+L*(q+.5)/n)}}
+    B.push({k:1,x:cx,y:cy,ang:a,ti:t?t.i:-1,type,L,D,H,R,form,roof,wall,wing,tower,dorm,tr:(rng()-.5)*.22,tw:(rng()-.5)*.14,door:sp.door,win:sp.win,timber:race==="humano"&&sp.timber&&rng()<.8,chim:sp.chim||(cold&&rng()<.5),sign:sp.sign,smoke:sp.smoke||(cold&&rng()<.25),dome:form==="flat"&&(type==="rich"||type==="manor")&&rng()<.7,spike:race==="orc"});return true};
   const house0=(t,cx,cy,a,type)=>{
     return false};
   // casa de frente para a rua: x,y no eixo da rua, ang = direcao da rua, sd = lado
