@@ -20,18 +20,20 @@ const TPL={
   item:"---\ntipo: item\ndono: \n---\n\n## Descrição\n\n\n## Efeito\n\n\n## História\n\n",
   sessao:"---\ntipo: sessao\ndata: \n---\n\n## Onde paramos\n\n\n## Cenas previstas\n\n- [ ] \n\n## NPCs em jogo\n\n\n## Anotações\n\n"};
 const FOLD={local:"Locais",personagem:"Personagens",faccao:"Facções",item:"Itens",sessao:"Sessões",livre:""};
-const DEF={smooth:.2,plains:.3,poi:.5,culture:"europa",size:1,temp:.5,humid:.5,climVar:.5,waste:.1,races:.5,form:"regiao",seed:"sasau-1403",sea:.5,islands:0,lakes:0,rivers:1,relief:.65,forest:.5,fields:.65,towns:6,meander:.6,clouds:.38,plan:"mixed"};
+const DEF={smooth:.2,plains:.3,poi:.5,culture:"europa",size:1,temp:.5,humid:.5,climVar:.5,waste:.1,races:.5,form:"regiao",seed:"sasau-1403",sea:.5,islands:0,lakes:0,rivers:1,relief:.65,forest:.5,fields:.65,towns:6,meander:.6,clouds:.38,plan:"mixed",season:"verao"};
 const PARAMS=[["size","Tamanho do mapa","select",[[1,"Região (normal)"],[1.5,"Grande (2× a área)"],[2,"Continente (4× a área)"]]],["form","Formação","select",[["regiao","Região interior"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["arquipelago","Arquipélago"],["continente","Continente"]]],
   ["seed","Semente","text"],["sea","Nível do mar","pct"],["islands","Ilhas extras","int",0,6],["lakes","Lagos","int",0,4],["rivers","Rios","int",0,3],
   ["temp","Temperatura (frio ↔ quente)","pct"],["humid","Umidade (seco ↔ úmido)","pct"],["climVar","Variedade de climas","pct"],["waste","Terra arrasada","pct"],["culture","Região cultural","select",A.CULTURES],["races","Diversidade de culturas","pct"],["relief","Relevo (altura das serras)","pct"],["smooth","Suavidade do relevo","pct"],["plains","Planícies (nivelar terras baixas)","pct"],["poi","Pontos de interesse","pct"],["forest","Floresta","pct"],["fields","Campos cultivados","pct"],["towns","Povoados (por área de região)","int",2,9],["meander","Meandros do rio principal","pct"],
-  ["clouds","Nuvens na borda","pct"],["plan","Traçado das ruas","select",[["mixed","Misto"],["organic","Orgânico"],["planned","Planejado"]]]];
+  ["season","Estação","select",[["verao","Verão"],["primavera","Primavera (flores)"],["outono","Outono"],["inverno","Inverno (neve)"]]],["clouds","Nuvens na borda","pct"],["plan","Traçado das ruas","select",[["mixed","Misto"],["organic","Orgânico"],["planned","Planejado"]]]];
 const STRUCT=new Set(["culture","size","races","form","seed","towns","plan","rivers","meander","islands","lakes"]);
 const TOOLGROUPS=[["Navegar",[["move","Navegar"]]],["Terreno",[["land","Terra"],["sea","Mar"],["up","Elevar"],["down","Rebaixar"]]],["Natureza",[["forest","Floresta"],["clear","Clareira"],["biome","Bioma"]]],
-  ["Povoados",[["town","Novo povoado"],["untown","Remover povoado"],["city","Editar cidade"],["street","Nova rua"]]],["Linhas",[["lines","Editar rios e estradas"],["road","Nova estrada"],["river","Novo rio"]]],["Marcar",[["pin","Pino"]]]];
+  ["Povoados",[["town","Novo povoado"],["untown","Remover povoado"],["city","Editar cidade"],["street","Nova rua"]]],["Linhas",[["lines","Editar rios e estradas"],["road","Nova estrada"],["river","Novo rio"]]],["Objetos",[["obj","Colocar objeto"],["erase","Apagar"]]],["Marcar",[["pin","Pino"]]]];
+const OBJCAT=[["Árvores",[["oak","Carvalho"],["pine","Pinheiro"],["birch","Bétula"],["autumn","Árvore de outono"],["sakura","Cerejeira (sakura)"],["blossom","Árvore florida branca"],["willow","Salgueiro"],["palm","Palmeira"],["acacia","Acácia"],["jungle","Árvore de selva"],["snowpine","Pinheiro com neve"],["bare","Árvore sem folhas"],["dead","Árvore morta"],["cactus","Cacto"],["bush","Arbusto"]]],["Rochas e relevo",[["rock","Rocha"],["boulders","Grupo de rochas"],["spires","Agulhas de pedra"],["arch","Arco de pedra"],["mesa","Planalto (mesa)"],["volcano","Vulcão"],["pond","Lagoa"]]],["Pontos de interesse",[["cave","Caverna"],["ruin","Ruína"],["stones","Círculo de pedras"],["watch","Torre de vigia"],["camp","Acampamento"],["mine","Mina"],["graves","Cemitério"],["shrine","Santuário"],["totem","Totem"],["torii","Portal torii"]]]];
+const OBJTREE=new Set(OBJCAT[0][1].map(x=>x[0]));
 const ICON={move:"M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3",land:"M3 18c2-5 5-8 9-8s7 3 9 8M3 18h18",sea:"M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0",
   up:"M4 19l8-13 8 13M12 6v-3",down:"M4 6l8 13 8-13",forest:"M12 3l6 9h-4l5 7H5l5-7H6zM12 19v3",clear:"M12 4a8 8 0 1 0 .01 0M8 12h8",biome:"M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2M12 8a4 4 0 1 0 .01 0",
   town:"M4 20V10l8-6 8 6v10zM10 20v-6h4v6",untown:"M4 20V10l8-6 8 6v10zM9 11l6 6M15 11l-6 6",city:"M3 20V9h3v3h3V9h3v3h3V9h3v11zM10 20v-4h4v4",street:"M4 4v16M12 4v16M20 4v16M4 12h16",
-  lines:"M4 18l6-8 5 4 5-9M4 18a1.5 1.5 0 1 0 .01 0M10 10a1.5 1.5 0 1 0 .01 0M15 14a1.5 1.5 0 1 0 .01 0M20 5a1.5 1.5 0 1 0 .01 0",road:"M8 3l-3 18M16 3l3 18M12 5v3M12 11v3M12 17v3",river:"M7 3c4 4-4 7 0 11s-4 5 0 7M14 3c4 4-4 7 0 11s-4 5 0 7",pin:"M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11zM12 10a2 2 0 1 0 .01 0"};
+  lines:"M4 18l6-8 5 4 5-9M4 18a1.5 1.5 0 1 0 .01 0M10 10a1.5 1.5 0 1 0 .01 0M15 14a1.5 1.5 0 1 0 .01 0M20 5a1.5 1.5 0 1 0 .01 0",road:"M8 3l-3 18M16 3l3 18M12 5v3M12 11v3M12 17v3",river:"M7 3c4 4-4 7 0 11s-4 5 0 7M14 3c4 4-4 7 0 11s-4 5 0 7",pin:"M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11zM12 10a2 2 0 1 0 .01 0",obj:"M12 3l7 4v8l-7 4-7-4V7zM12 11l7-4M12 11v8M12 11L5 7",erase:"M16 4l5 5-10 10H6l-3-3zM9 9l6 6M6 19h15"};
 const svgI=(d)=>{const n="http://www.w3.org/2000/svg",sv=document.createElementNS(n,"svg");sv.setAttribute("viewBox","0 0 24 24");sv.setAttribute("aria-hidden","true");const p=document.createElementNS(n,"path");p.setAttribute("d",d);sv.append(p);return sv};
 
 // ---------- armazenamento ----------
@@ -120,7 +122,7 @@ function newMap(){const id=uid("m"),nm=A.NAMES[(Math.random()*A.NAMES.length)|0]
   const o={id,name,params:Object.assign({},DEF,{seed:nm.toLowerCase()+"-"+(1300+((Math.random()*200)|0))}),edits:[],lock:null,pins:[],updated:now()};S.maps.set(id,o);Store.save("maps",o);return o}
 function openMap(id,flash){S.sec="maps";S.map=id;undo=[];tool="move";closePlace();drawAll(flash);$("#side").classList.remove("open")}
 function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();
-  o.params=Object.assign({},DEF,o.params);o.edits=o.edits||[];o.pins=o.pins||[];
+  o.params=Object.assign({},DEF,o.params);o.edits=o.edits||[];o.pins=o.pins||[];o.objs=o.objs||[];
   const mc=h("canvas",{id:"mc",width:A.CW,height:A.CH,"aria-label":"Mapa"}),mo=h("canvas",{id:"mo",width:A.CW,height:A.CH}),pins=h("div",{id:"mpins"}),stage=h("div",{class:"stage"},mc,mo,pins),busy=h("div",{class:"busy"},"Gerando…"),status=h("div",{class:"status"});
   const view=h("div",{class:"view"},stage),octx=mo.getContext("2d");let sel=null,draft=[];
   // zoom e arrasto
@@ -129,10 +131,10 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const zoomAt=(cx,cy,f)=>{const k2=clamp(Z.k*f,1,8);Z.x=cx-(cx-Z.x)*k2/Z.k;Z.y=cy-(cy-Z.y)*k2/Z.k;Z.k=k2;applyZ()};
   const fitWrap=()=>{const w=view.parentNode;if(w&&!matchMedia("(max-width:860px)").matches)w.style.maxWidth="calc((100vh - 190px) * "+mc.width+" / "+mc.height+")";else if(w)w.style.maxWidth=""};
   const zoomMid=f=>zoomAt(view.clientWidth/2,view.clientHeight/2,f),zl=h("span",{class:"zl"},"100%");
-  const snap=()=>{undo.push(JSON.stringify({params:o.params,edits:o.edits,lock:o.lock,pins:o.pins,vec:o.vec||null}));if(undo.length>30)undo.shift()};
+  const snap=()=>{undo.push(JSON.stringify({params:o.params,edits:o.edits,lock:o.lock,pins:o.pins,objs:o.objs,vec:o.vec||null}));if(undo.length>30)undo.shift()};
   S.snap=snap;
   function regen(){busy.hidden=false;setTimeout(()=>{const t0=performance.now();try{
-      const P=Object.assign({},o.params,{edits:o.edits,lock:o.lock,vec:o.vec,title:o.name}),W=A.generate(P),info=A.render(W,mc,A.makeStamps(A.mulberry(W.seed^77)));
+      const P=Object.assign({},o.params,{edits:o.edits,lock:o.lock,vec:o.vec,objs:o.objs,title:o.name}),W=A.generate(P),info=A.render(W,mc,A.makeStamps(A.mulberry(W.seed^77)));
       o.lock=W.towns.map(t=>{const z={x:t.x,y:t.y,size:t.size,kind:t.kind,planned:t.planned,name:t.name,dens:Math.round(t.dens*100)/100,wall:!!t.wall,race:t.race};if(t.lockOutline)z.outline=t.lockOutline;if(t.lockSt)z.st=t.lockSt;return z});o.vec=W.vec;cur={W,info};if(mo.width!==mc.width||mo.height!==mc.height){mo.width=mc.width;mo.height=mc.height}view.style.aspectRatio=mc.width+"/"+mc.height;fitWrap();applyZ();drawPins();Store.save("maps",o);
       status.textContent=W.towns.length+" povoados, "+info.b+" construções, "+W.fieldsP.length+" lotes de campo, "+W.vec.roads.length+" estradas, "+W.vec.rivers.length+" rios, "+Math.round(performance.now()-t0)+" ms"}
     catch(e){console.error(e);status.textContent="Não foi possível gerar este mapa. Tente outra semente ou desfaça a última edição. ("+e.message+")"}
@@ -162,12 +164,13 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     return {x:sx,y:cur.info.YB[sy*A.MW+sx]||sy/A.TILT,cx,cy}}
   const drawDraft=()=>{octx.clearRect(0,0,A.CW,A.CH);if(!draft.length)return;octx.lineWidth=3;octx.strokeStyle=tool==="river"?"#3f6f8f":tool==="street"?"#c98f45":"#7a4a1c";octx.fillStyle="#f3e6c6";octx.beginPath();draft.forEach((d,i)=>i?octx.lineTo(d.cx,d.cy):octx.moveTo(d.cx,d.cy));octx.stroke();for(const d of draft){octx.beginPath();octx.arc(d.cx,d.cy,5,0,7);octx.fill();octx.stroke()}};
   const BCOL=["rgba(150,170,80,.5)","rgba(60,100,70,.5)","rgba(240,244,250,.6)","rgba(180,180,150,.5)","rgba(230,190,110,.55)","rgba(210,190,100,.5)","rgba(50,120,40,.5)","rgba(90,110,90,.55)","rgba(110,80,60,.55)"];let biomeSel=4;
-  const BR={biome:"",land:"rgba(190,200,110,.45)",sea:"rgba(90,130,160,.5)",up:"rgba(230,210,150,.45)",down:"rgba(60,50,30,.45)",forest:"rgba(50,90,40,.5)",clear:"rgba(200,190,120,.45)"};
+  const BR={biome:"",land:"rgba(190,200,110,.45)",sea:"rgba(90,130,160,.5)",up:"rgba(230,210,150,.45)",down:"rgba(60,50,30,.45)",forest:"rgba(50,90,40,.5)",clear:"rgba(200,190,120,.45)",erase:"rgba(170,60,50,.45)"};let objSel="oak",objSize=1,objSpread=1;
   const ptrs=new Map();let pan=null,pinch=null,stroke=null,tap=null;
   function add(w){const l=stroke[stroke.length-1];if(l&&Math.hypot(l.x-w.x,l.y-w.y)<brush*.45)return;stroke.push(tool==="biome"?{t:"biome",b:biomeSel,x:Math.round(w.x),y:Math.round(w.y),r:brush}:{t:tool,x:Math.round(w.x),y:Math.round(w.y),r:brush});octx.fillStyle=tool==="biome"?BCOL[biomeSel]:BR[tool];octx.beginPath();octx.ellipse(w.cx,w.cy,brush,brush*A.TILT,0,0,7);octx.fill()}
   function act(w){
     if(tool==="town"){snap();o.lock=(o.lock||[]).concat({x:Math.round(w.x/A.G)*A.G,y:Math.round(w.y/A.G)*A.G,size:8,kind:"village",planned:false,name:""});regen()}
     else if(tool==="untown"){let bi=-1,bd=110;(o.lock||[]).forEach((t,i)=>{const d=Math.hypot(t.x-w.x,t.y-w.y);if(d<bd){bd=d;bi=i}});if(bi<0){toast("Toque mais perto de um povoado.");return}snap();o.lock.splice(bi,1);regen()}
+    else if(tool==="obj"){snap();const n=OBJTREE.has(objSel)?objSpread:1;for(let i=0;i<n;i++){const a=Math.random()*6.28,d=i?Math.sqrt(Math.random())*(14+n*3):0;o.objs.push({v:objSel,x:Math.round(w.x+Math.cos(a)*d),y:Math.round(w.y+Math.sin(a)*d*.8),s:+(objSize*(i?.85+Math.random()*.3:1)).toFixed(2)})}regen()}
     else if(tool==="pin"){snap();const pn={id:uid("p"),x:w.x,y:w.y,label:"Novo local "+(o.pins.length+1)};o.pins.push(pn);Store.save("maps",o);drawPins();openPlace({kind:"pin",id:pn.id})}
     else if(tool==="road"||tool==="river"||(tool==="street"&&cityI>=0)){draft.push(w);drawDraft()}}
   view.addEventListener("pointerdown",ev=>{if(ev.target.closest("button"))return;ptrs.set(ev.pointerId,[ev.clientX,ev.clientY]);try{view.setPointerCapture(ev.pointerId)}catch(e){}
@@ -180,7 +183,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     if(stroke){const w=world(ev);if(w)add(w)}});
   const up=ev=>{if(!ptrs.has(ev.pointerId))return;ptrs.delete(ev.pointerId);if(ptrs.size<2)pinch=null;pan=null;
     if(tap&&!ptrs.size){const t=tap;tap=null;if(ev.type==="pointerup"&&Math.hypot(ev.clientX-t[0],ev.clientY-t[1])<10){const w=world(ev);if(w)act(w)}}
-    if(stroke&&!ptrs.size){const st=stroke;stroke=null;if(st.length){snap();o.edits=o.edits.concat(st);regen()}}};
+    if(stroke&&!ptrs.size){const st=stroke;stroke=null;if(st.length){snap();if(st[0].t==="erase")o.objs=o.objs.filter(m=>!st.some(e=>Math.hypot(m.x-e.x,m.y-e.y)<e.r));o.edits=o.edits.concat(st);regen()}}};
   view.addEventListener("pointerup",up);view.addEventListener("pointercancel",up);
   view.addEventListener("wheel",ev=>{ev.preventDefault();const r=view.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*.0016))},{passive:false});
   view.addEventListener("dblclick",ev=>{if(ev.target.closest("button")||tool!=="move")return;const r=view.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,1.8)});
@@ -197,7 +200,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const tipFor=(l)=>l;
   TOOLGROUPS.forEach(([g,items],gi)=>{const grp=h("div",{class:"pgrp","aria-label":g});if(gi)pal.append(h("span",{class:"psep"}));
     for(const [t,l] of items){const b=h("button",{type:"button",class:"tbtn","data-t":t,"aria-label":l,title:l,onclick:()=>setTool(t)},svgI(ICON[t]),h("span",{class:"tip"},l));grp.append(b)}pal.append(grp)});
-  const HINT={move:"Arraste para mover · roda do mouse ou dois dedos para aproximar · toque num povoado para abrir a nota",lines:"Arraste um ponto para mudar o traçado · toque em + para criar um ponto",road:"Toque no mapa para marcar os pontos da estrada",river:"Toque no mapa da nascente à foz",town:"Toque onde quer o novo povoado",untown:"Toque no povoado que quer remover",pin:"Toque onde quer o pino",biome:"Pinte para transformar a área no bioma escolhido",city:"Toque no nome de um povoado para editar contorno e ruas",street:"Escolha o povoado e marque os pontos da rua"};
+  const HINT={move:"Arraste para mover · roda do mouse ou dois dedos para aproximar · toque num povoado para abrir a nota",lines:"Arraste um ponto para mudar o traçado · toque em + para criar um ponto",road:"Toque no mapa para marcar os pontos da estrada",river:"Toque no mapa da nascente à foz",town:"Toque onde quer o novo povoado",untown:"Toque no povoado que quer remover",pin:"Toque onde quer o pino",obj:"Toque no mapa para colocar o objeto escolhido",erase:"Pinte por cima do que quer apagar",biome:"Pinte para transformar a área no bioma escolhido",city:"Toque no nome de um povoado para editar contorno e ruas",street:"Escolha o povoado e marque os pontos da rua"};
   const brushSl=()=>h("label",{class:"cf"},"Pincel",h("input",{type:"range",min:20,max:140,value:brush,"aria-label":"Tamanho do pincel",oninput:e=>brush=+e.target.value}));
   const B_=(label,fn,cls)=>h("button",{type:"button",class:cls||"",onclick:fn},label);
   const finish=()=>{if(draft.length<2){toast("Marque pelo menos dois pontos no mapa.");return}snap();o.vec=o.vec||{rivers:[],roads:[]};const c=draft.map(d=>[Math.round(d.x),Math.round(d.y)]);if(tool==="street"){const L=matCity(cityI);if(!L){toast("Escolha um povoado primeiro.");return}L.st.push({c,m:0})}else if(tool==="river")o.vec.rivers.push({c,w:10});else o.vec.roads.push(c);draft=[];regen()};
@@ -207,6 +210,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const clearBr=()=>{if(!o.edits.length){toast("Este mapa não tem pinceladas.");return}snap();o.edits=[];regen()};
   function drawCtx(){ctx.replaceChildren();const name=(TOOLGROUPS.flatMap(g=>g[1]).find(x=>x[0]===tool)||["",""])[1];ctx.append(h("strong",{class:"cname"},name));
     if(BR[tool]!==undefined){if(tool==="biome")ctx.append(h("label",{class:"cf"},"Tipo",h("select",{"aria-label":"Bioma do pincel",onchange:e=>biomeSel=+e.target.value},A.BIOMES.map((n,i)=>h("option",{value:i,selected:i===biomeSel},n)))));ctx.append(brushSl(),B_("Limpar pinceladas",clearBr,"ghost"))}
+    if(tool==="obj"){ctx.append(h("label",{class:"cf"},"Objeto",h("select",{"aria-label":"Objeto a colocar",onchange:e=>{objSel=e.target.value;drawCtx()}},OBJCAT.map(([g,it])=>h("optgroup",{label:g},it.map(([v,n])=>h("option",{value:v,selected:v===objSel},n)))))),h("label",{class:"cf"},"Tamanho",h("input",{type:"range",min:.5,max:2,step:.1,value:objSize,"aria-label":"Tamanho do objeto",oninput:e=>objSize=+e.target.value})));if(OBJTREE.has(objSel))ctx.append(h("label",{class:"cf"},"Quantas por toque",h("input",{type:"range",min:1,max:12,step:1,value:objSpread,"aria-label":"Árvores por toque",oninput:e=>objSpread=+e.target.value})));ctx.append(B_("Tirar todos os objetos colocados",()=>{if(!o.objs.length){toast("Nenhum objeto colocado.");return}snap();o.objs=[];regen()},"ghost"))}
     else if(tool==="road"||tool==="river"||tool==="street")ctx.append(B_("Concluir linha",finish,"primary"),B_("Cancelar",()=>{draft=[];drawDraft()},"ghost"));
     else if(tool==="lines")ctx.append(B_("Remover ponto",rmPoint),B_("Remover linha",rmLine));
     else if(tool==="city")ctx.append(B_("Remover ponto",rmPoint),B_("Remover rua",rmLine),B_("Restaurar cidade",restore,"ghost"));
