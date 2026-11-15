@@ -448,7 +448,10 @@ function generate(P){
   const roads=[],roadCtrl=[];const pushRoad=ctrl=>{const pts=chaikin(ctrl,3);for(const q of resample(pts,6))roadG[cellOf(q[0],q[1])]=1;roads.push(pts);roadCtrl.push(ctrl)};
   const adj=new Map(),addE=(a,b)=>{if(a===b)return;if(!adj.has(a))adj.set(a,new Set());if(!adj.has(b))adj.set(b,new Set());adj.get(a).add(b);adj.get(b).add(a)};
   const addRoad=(a,b)=>{const cells=astar(a,b);if(cells.length<2)return;cells.forEach((c,i)=>{roadG[c]=1;if(i)addE(cells[i-1],c)})};
-  if(P.vec&&P.vec.roads){for(const c of P.vec.roads)if(c&&c.length>1)pushRoad(c);
+  if(P.vec&&P.vec.roads){for(const c of P.vec.roads){if(!c||c.length<2)continue;let cur=[c[0]];const dryP=q=>sampleGrid(land,q[0],q[1])>=.02;
+      for(let i=1;i<c.length;i++){const a=c[i-1],b=c[i],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/4));let ok=dryP(a)&&dryP(b);for(let k=1;k<n&&ok;k++)if(!dryP([lerp(a[0],b[0],k/n),lerp(a[1],b[1],k/n)]))ok=false;
+        if(ok)cur.push(b);else{if(cur.length>1)pushRoad(cur);cur=dryP(b)?[b]:[]}}
+      if(cur.length>1)pushRoad(cur)}
     towns.forEach((t,i)=>{if(roads.some(r=>r.some(q=>Math.hypot(q[0]-t.x,q[1]-t.y)<28)))return;let bj=-1,bd=1e9;towns.forEach((o,j)=>{if(j===i)return;const d=Math.hypot(o.x-t.x,o.y-t.y);if(d<bd){bd=d;bj=j}});if(bj>=0)addRoad(cellOf(t.x,t.y),cellOf(towns[bj].x,towns[bj].y))})}
   else
   {const inT=[0],out=towns.map((_,i)=>i).slice(1);const tc=t=>cellOf(t.x,t.y);
