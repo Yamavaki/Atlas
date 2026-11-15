@@ -189,7 +189,7 @@ input[type=range]{accent-color:var(--gold)}
 .mwrap{margin:3px auto;width:100%}
 
 .obox{flex-basis:100%;display:flex;flex-direction:column;gap:6px}
-.otabs{display:flex;gap:4px}
+.otabs{display:flex;flex-wrap:wrap;gap:4px}
 .otabs button{background:transparent;border:1px solid var(--line);color:var(--muted)}
 .otabs button.on{color:var(--gold);border-color:var(--gold)}
 .ogrid{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;max-width:100%;scrollbar-width:thin}
