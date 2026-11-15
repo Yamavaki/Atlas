@@ -38,6 +38,8 @@ function segD(px,py,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,t=clam
 function polyD(px,py,pts,closed){let d=1e9;for(let i=0;i<pts.length-(closed?0:1);i++){const q=segD(px,py,pts[i],pts[(i+1)%pts.length]);if(q<d)d=q}return d}
 function chaikin(pts,closed,it){let o=pts;for(let k=0;k<it;k++){const n=[];const m=o.length;if(!closed)n.push(o[0]);for(let i=0;i<(closed?m:m-1);i++){const a=o[i],b=o[(i+1)%m];n.push([lerp(a[0],b[0],.25),lerp(a[1],b[1],.25)],[lerp(a[0],b[0],.75),lerp(a[1],b[1],.75)])}if(!closed)n.push(o[m-1]);o=n}return o}
 function resampleP(pts,step,closed){const o=[pts[0]];let acc=0;const P2=closed?pts.concat([pts[0]]):pts;for(let i=0;i<P2.length-1;i++){const a=P2[i],b=P2[i+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);let t=step-acc;while(t<=l){o.push([a[0]+(b[0]-a[0])*t/l,a[1]+(b[1]-a[1])*t/l]);t+=step}acc=l-(t-step)}if(!closed){const e=pts[pts.length-1];if(Math.hypot(e[0]-o[o.length-1][0],e[1]-o[o.length-1][1])>step*.4)o.push(e)}return o}
+const obb=(x,y,ang,L,D)=>{const ca=Math.cos(ang),sa=Math.sin(ang);return [[-L/2,-D/2],[L/2,-D/2],[L/2,D/2],[-L/2,D/2]].map(([u,v])=>[x+ca*u-sa*v,y+sa*u+ca*v])};
+const sat=(A,B)=>{for(const P of[A,B])for(let i=0;i<4;i++){const a=P[i],b=P[(i+1)%4],nx=b[1]-a[1],ny=a[0]-b[0];let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const q of A){const d=q[0]*nx+q[1]*ny;a0=Math.min(a0,d);a1=Math.max(a1,d)}for(const q of B){const d=q[0]*nx+q[1]*ny;b0=Math.min(b0,d);b1=Math.max(b1,d)}if(a1<=b0+.6||b1<=a0+.6)return false}return true};
 // retangulo (casa) que cabe no lote
 function fitRect(lot,c,ang,L,D){const ca=Math.cos(ang),sa=Math.sin(ang);for(let k=0;k<10;k++){const pts=[[-L/2,-D/2],[L/2,-D/2],[L/2,D/2],[-L/2,D/2]].map(([u,v])=>[c[0]+ca*u-sa*v,c[1]+sa*u+ca*v]);if(pts.every(q=>inPoly(lot,q[0],q[1])))return [L,D];L*=.92;D*=.93;if(L<6||D<5)return null}return null}
 
@@ -206,20 +208,23 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     for(const [id,home] of MAGIC)if(home===t&&rng()<P.magic*.9)list.push([id,1,1]);
     for(const [id,ch,n] of list)for(let q=0;q<n;q++)if(rng()<ch*(t==="arrabalde"?1:.5+P.wealth))placeSpec(p,id,lots)}
   // casas
+  const HG=new Map();
   for(const p of patches){const lots=pLots.get(p);if(!lots)continue;const t=p.type,race=p.race;
     for(const lot of lots){if(lot.used)continue;if(t==="castelo"&&rng()<.3)continue;const c=cen(lot),sq=area(lot);if(wet(c[0],c[1],4)||lot.some(v=>wet(v[0],v[1],0)))continue;if(nearWall(c[0],c[1],P.wall==="curva"?13:9))continue;if(p.cwall&&polyD(c[0],c[1],p.cwall,true)<10)continue;
       const innerLot=p.block.length>2&&lot.every(v=>polyD(v[0],v[1],p.block,true)>3);
-      if(innerLot&&rng()<(t==="pobre"||t==="arrabalde"||t==="mercado"?.08:t==="nobre"?.5:.22)){yards.push({poly:lot,col:t==="nobre"?"#a3b262":rng()<.3+P.green*.4?"#aab166":"#c7b98c",g:1});if(rng()<P.green*.55&&t!=="militar")trees.push([c[0],c[1],.62+rng()*.2]);continue}
+      if(!innerLot&&sq>150&&sq<700&&(t==="moradia"||t==="artesaos"||t==="mercadores"||t==="pobre"||t==="porto"||t==="estrangeiro")&&rng()<.07&&!hit(c[0],c[1],30)){squares.push({poly:inset(lot,-.01),kind:"largo"});addOcc(c[0],c[1],26);props.push({id:rng()<.5?"well":rng()<.5?"bench":"statue",x:c[0],y:c[1],race});if(rng()<.6)trees.push([c[0]+4,c[1]-3,.6]);continue}
+      if(innerLot&&rng()<(t==="pobre"||t==="arrabalde"||t==="mercado"?.12:t==="nobre"?.5:.3)){yards.push({poly:lot,col:t==="nobre"?"#a3b262":rng()<.3+P.green*.4?"#aab166":"#c7b98c",g:1});if(rng()<P.green*.55&&t!=="militar")trees.push([c[0],c[1],.62+rng()*.2]);continue}
       // a frente da casa olha para a rua mais proxima
       let fk=0,fd=1e9;for(let k=0;k<lot.length;k++){const a=lot[k],b=lot[(k+1)%lot.length],m=[(a[0]+b[0])/2,(a[1]+b[1])/2],d=polyD(m[0],m[1],p.block,true)-Math.hypot(b[0]-a[0],b[1]-a[1])*.02;if(d<fd){fd=d;fk=k}}
       const a=lot[fk],b=lot[(fk+1)%lot.length];let ang=Math.atan2(b[1]-a[1],b[0]-a[0]);const ca=Math.cos(ang),sa2=Math.sin(ang);let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;for(const v of lot){const u=(v[0]-c[0])*ca+(v[1]-c[1])*sa2,w=-(v[0]-c[0])*sa2+(v[1]-c[1])*ca;u0=Math.min(u0,u);u1=Math.max(u1,u);v0=Math.min(v0,w);v1=Math.max(v1,w)}
-      const FF=(CUL[race]||{}).form==="asian"?.82:.93;let L=(u1-u0)*FF,D=(v1-v0)*FF;if(t==="nobre"){L*=.75;D*=.72}if(t==="pobre"||t==="arrabalde"){ang+=(rng()-.5)*.16}
+      const FM=(CUL[race]||{}).form,FF=FM==="asian"?.74:FM==="round"||FM==="yurt"?.84:.88;let L=(u1-u0)*FF,D=(v1-v0)*FF;if(t==="nobre"){L*=.75;D*=.72}if(t==="pobre"||t==="arrabalde"){ang+=(rng()-.5)*.16}
       L=Math.min(L,t==="porto"||t==="militar"||t==="producao"?46:t==="nobre"?40:30);D=Math.min(D,26);if(D>L*1.15&&t!=="porto"){const q=L;L=D;D=q;ang+=1.5708}
       const cc=[(u0+u1)/2,(v0+v1)/2],cx2=c[0]+ca*cc[0]-sa2*cc[1],cy2=c[1]+sa2*cc[0]+ca*cc[1];let fit=fitRect(lot,[cx2,cy2],ang,L,D);if(!fit||fit[0]*fit[1]<L*D*.45){let bi=0,bl=-1;for(let k=0;k<lot.length;k++){const l=Math.hypot(lot[(k+1)%lot.length][0]-lot[k][0],lot[(k+1)%lot.length][1]-lot[k][1]);if(l>bl){bl=l;bi=k}}const a2=Math.atan2(lot[(bi+1)%lot.length][1]-lot[bi][1],lot[(bi+1)%lot.length][0]-lot[bi][0]),f2=fitRect(lot,c,a2,(u1-u0)*FF,(v1-v0)*FF*.9);if(f2&&(!fit||f2[0]*f2[1]>fit[0]*fit[1])){fit=f2;ang=a2}}
       if(!fit||fit[0]<7||fit[1]<6){if(sq>70)yards.push({poly:inset(lot,.6),col:rng()<.5?"#a9ae62":"#b8b070",g:1,rows:1});continue}[L,D]=fit;
       const r=Math.hypot(L,D)/2*.8;if(hit(cx2,cy2,r*.45))continue;
       if(t==="nobre"){yards.push({poly:lot,col:"#a3b262",g:1});if(rng()<.5+P.green*.5)trees.push([cx2+(rng()-.5)*L*.9,cy2+D*.7,.6+rng()*.2])}
       const tt=p.foreign?"estrangeiro":t;let ty=pick(TY[tt]||TY.moradia);if(sq<200&&ty!=="shed")ty=t==="pobre"||t==="arrabalde"?"hut":"row";if(ty==="row"&&L>D*1.7)ty="town";
+      {let ok=false;for(let k=0;k<3&&!ok;k++){const R=obb(cx2,cy2,ang,L+1.2,D+1.2),gx=(cx2/40)|0,gy=(cy2/40)|0;ok=true;for(let a=-1;a<=1&&ok;a++)for(let b2=-1;b2<=1&&ok;b2++){const l=HG.get((gx+a)+"_"+(gy+b2));if(l)for(const o2 of l)if(sat(R,o2)){ok=false;break}}if(!ok){L*=.85;D*=.87}}if(!ok||L<7||D<6)continue;const k0=((cx2/40)|0)+"_"+((cy2/40)|0),R=obb(cx2,cy2,ang,L,D);HG.has(k0)?HG.get(k0).push(R):HG.set(k0,[R])}
       B.push({x:cx2,y:cy2,type:ty,race,ang,L,D,pal:p.pal,plain:t==="militar"});
       if(p.quay&&rng()<.18){const [d,q]=nearQuay(cx2,cy2);if(d<40){const x=cx2+q.n[0]*(d*.6),y=cy2+q.n[1]*(d*.6);if(!hit(x,y,5)){props.push({id:rng()<.6?"cargo":"crates",x,y,race});addOcc(x,y,6)}}}}}
   // praca do mercado: barracas em fileiras, fonte no centro, carrocas
@@ -306,7 +311,7 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     c.fillStyle="#3a2a18";const L=Math.hypot(pb[0]-pa[0],pb[1]-pa[1]);for(let t=6;t<L;t+=8){const x=lerp(pa[0],pb[0],t/L),y=lerp(pa[1],pb[1],t/L);c.fillRect(x-3.6,y+2,1.2,2.4);c.fillRect(x+2.4,y+2,1.2,2.4)}c.lineCap="round"}
   // 6. objetos em ordem de profundidade
   const obj=[],fz=CUL[P.culture].fence;
-  for(const b of C.B){const r2=A.mulberry((Math.imul(b.x*4|0,73856093)^Math.imul(b.y*4|0,19349663))>>>0),pk=a=>r2()<.74?a[0]:a[1],o=A.mkHouse(b.race,b.type,r2,b.ang,{L:b.L/Z,D:b.D/Z,roof:pk(b.pal.roof),wall:pk(b.pal.wall),plain:b.plain});o.wing=null;
+  for(const b of C.B){const r2=A.mulberry((Math.imul(b.x*4|0,73856093)^Math.imul(b.y*4|0,19349663))>>>0),pk=a=>r2()<.74?a[0]:a[1],o=A.mkHouse(b.race,b.type,r2,b.ang,{L:b.L/Z,D:b.D/Z,roof:pk(b.pal.roof),wall:pk(b.pal.wall),plain:b.plain});o.wing=null;{const big=b.type==="manor"||b.type==="rich"||b.hall;o.H*=big?.85:.74;o.R=Math.min(o.R,o.D*(o.form==="asian"?.42:.5));const lim=o.D*(big?1.5:1.15)+2.5;if(o.H+o.R>lim){const k=lim/(o.H+o.R);o.H*=k;o.R*=k}if(!big){o.tower=null;o.dorm=null}}
     const p=pj(b.x,b.y),ey=(Math.abs(Math.sin(b.ang))*b.L+Math.abs(Math.cos(b.ang))*b.D)/2*TILT;obj.push({k:1,x:p[0],y:p[1]+ey,cy:p[1],o,smoke:o.smoke||b.type==="tavern"&&r2()<.5,wx:b.x,wy:b.y})}
   for(const s of C.SPB){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{x:p[0],y:p[1]+(s.k===3?30:s.k===2?14:(s.r||8)*TILT*.6),py:p[1],wx:s.x,wy:s.y}))}
   for(const s of C.props){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{k:40,x:p[0],y:p[1],py:p[1],wx:s.x,wy:s.y}))}
@@ -320,6 +325,11 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
       const pu=pj(u[0],u[1]),pv=pj(v[0],v[1]),wt=rd(m[0],m[1])<rw+3;obj.push({k:wt?9:4,a:pu,b:pv,y:Math.max(pu[1],pv[1]),h});since+=Math.hypot(v[0]-u[0],v[1]-u[1]);if(since>(inner?32:52)&&!wt){since=0;const p=pj(v[0],v[1]);obj.push({k:5,x:p[0],y:p[1]+.6,inner})}}};
   if(C.WALLON){for(const w of C.walls)pushWall(w.pts,w.closed,8.5,true,false);if(fz!=="hedge")for(const g of gatePts){const p=pj(g[0],g[1]);obj.push({k:40,id:"gatehouse",x:p[0],y:p[1]+4,race:P.culture,v:.5,s:1.1,gate:1})}}
   if(C.castle&&C.castle.cwall)pushWall(C.castle.cwall,true,7,false,true);
+  {const bx=[];for(const q of obj){if(q.k===1){const o=q.o,w=(Math.abs(Math.cos(o.ang))*o.L+Math.abs(Math.sin(o.ang))*o.D)/2*Z,top=q.cy-(o.H+o.R)*Z-2;bx.push({q,x0:q.x-w,x1:q.x+w,y0:top,y1:q.y,h:1})}else if(q.id&&AS.SIZE[q.id]&&!q.street){const sz=AS.SIZE[q.id],z=(q.s||1)*Z,w=sz[0]*z*.75;bx.push({q,x0:q.x-w,x1:q.x+w,y0:(q.py||q.y)-sz[1]*z*.85,y1:(q.py||q.y)+2,h:0})}else if(q.k===2||q.k===3){const w=q.k===3?52:36;bx.push({q,x0:q.x-w,x1:q.x+w,y0:q.py-(q.k===3?70:64),y1:q.y,h:0})}}
+    const G=new Map(),key=(x,y)=>((x/40)|0)+"_"+((y/40)|0);for(const b of bx){for(let x=Math.floor(b.x0/40);x<=Math.floor(b.x1/40);x++)for(let y=Math.floor(b.y0/40);y<=Math.floor(b.y1/40);y++){const k=x+"_"+y;G.has(k)?G.get(k).push(b):G.set(k,[b])}}
+    const drop=new Set();for(const b of bx){if(!b.h)continue;const area=(b.x1-b.x0)*(b.y1-b.y0);let cov=0;const seen=new Set();for(let x=Math.floor(b.x0/40);x<=Math.floor(b.x1/40);x++)for(let y=Math.floor(b.y0/40);y<=Math.floor(b.y1/40);y++)for(const f of G.get(x+"_"+y)||[]){if(f===b||seen.has(f)||drop.has(f.q)||f.y1<=b.y1+1)continue;seen.add(f);const ix=Math.min(b.x1,f.x1)-Math.max(b.x0,f.x0),iy=Math.min(b.y1,f.y1)-Math.max(b.y0,f.y0);if(ix>0&&iy>0)cov+=ix*iy*(f.h?1:1.4)}
+      if(cov>area*.5)drop.add(b.q)}window.__drop=drop.size;
+    for(let i=obj.length-1;i>=0;i--)if(drop.has(obj[i]))obj.splice(i,1)}
   obj.sort((a,b)=>a.y-b.y);const smoke=[],treeSet=P.culture==="deserto"?stamps.palm:P.culture==="norte"?stamps.con:stamps.dec,wildSet=P.culture==="deserto"?stamps.palm.concat(stamps.acacia):P.culture==="norte"?stamps.con:stamps.dec.concat(stamps.dec,stamps.con);
   const ER=opt.erase||[];
   for(const q of obj){rs=A.mulberry((Math.imul(q.x*4|0,73856093)^Math.imul(q.y*4|0,19349663)^q.k*83492791)>>>0);
