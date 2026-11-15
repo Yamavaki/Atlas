@@ -2,7 +2,7 @@
 
 App open source para criar mundos: mapas no estilo de gravura medieval (vista inclinada) e notas ligadas entre si, no modelo do Obsidian.
 
-Estado: **v0.2, protótipo web**. Roda direto no navegador, sem instalar nada.
+Estado: **v0.6, protótipo web**. Roda direto no navegador, sem instalar nada.
 
 ## Como abrir
 
@@ -18,6 +18,10 @@ Abra `app/index.html` no navegador. Sem servidor, os dados ficam salvos só naqu
 - Edição: pincéis (terra, mar, elevar, rebaixar, floresta, clareira), adicionar e remover povoados, pinos, e **linhas vetoriais** para rios e estradas (arrastar pontos, criar e remover).
 - Cada povoado tem parâmetros próprios: tipo, tamanho, densidade, traçado das ruas e muralha.
 - Zoom com roda do mouse, dois dedos ou botões; arrastar para mover.
+- Biomas por clima (temperado, floresta boreal, neve, tundra, deserto, savana, selva, pântano, terra arrasada), com parâmetros de temperatura, umidade, variedade de climas e terra arrasada, e um pincel para pintar biomas.
+- Culturas com arquitetura própria: humanos, anões, elfos, orcs, povo do deserto, nórdicos, halflings, povo do pântano e tribais.
+- Marcos: mesas, vulcões, ruínas, círculos de pedra e totens.
+- Tamanho do mapa: região, grande e continente.
 
 **Notas**
 - Markdown com `[[links]]`, autocompletar, modelos por tipo, pastas, busca e "mencionada em".
