@@ -39,7 +39,7 @@ function polyD(px,py,pts,closed){let d=1e9;for(let i=0;i<pts.length-(closed?0:1)
 function chaikin(pts,closed,it){let o=pts;for(let k=0;k<it;k++){const n=[];const m=o.length;if(!closed)n.push(o[0]);for(let i=0;i<(closed?m:m-1);i++){const a=o[i],b=o[(i+1)%m];n.push([lerp(a[0],b[0],.25),lerp(a[1],b[1],.25)],[lerp(a[0],b[0],.75),lerp(a[1],b[1],.75)])}if(!closed)n.push(o[m-1]);o=n}return o}
 function resampleP(pts,step,closed){const o=[pts[0]];let acc=0;const P2=closed?pts.concat([pts[0]]):pts;for(let i=0;i<P2.length-1;i++){const a=P2[i],b=P2[i+1],l=Math.hypot(b[0]-a[0],b[1]-a[1]);let t=step-acc;while(t<=l){o.push([a[0]+(b[0]-a[0])*t/l,a[1]+(b[1]-a[1])*t/l]);t+=step}acc=l-(t-step)}if(!closed){const e=pts[pts.length-1];if(Math.hypot(e[0]-o[o.length-1][0],e[1]-o[o.length-1][1])>step*.4)o.push(e)}return o}
 // retangulo (casa) que cabe no lote
-function fitRect(lot,c,ang,L,D){const ca=Math.cos(ang),sa=Math.sin(ang);for(let k=0;k<6;k++){const pts=[[-L/2,-D/2],[L/2,-D/2],[L/2,D/2],[-L/2,D/2]].map(([u,v])=>[c[0]+ca*u-sa*v,c[1]+sa*u+ca*v]);if(pts.every(q=>inPoly(lot,q[0],q[1])))return [L,D];L*=.86;D*=.88;if(L<6||D<5)return null}return null}
+function fitRect(lot,c,ang,L,D){const ca=Math.cos(ang),sa=Math.sin(ang);for(let k=0;k<10;k++){const pts=[[-L/2,-D/2],[L/2,-D/2],[L/2,D/2],[-L/2,D/2]].map(([u,v])=>[c[0]+ca*u-sa*v,c[1]+sa*u+ca*v]);if(pts.every(q=>inPoly(lot,q[0],q[1])))return [L,D];L*=.92;D*=.93;if(L<6||D<5)return null}return null}
 
 function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="reta";if(P.wall===false)P.wall="nenhuma";const WALLON=P.wall!=="nenhuma";
   const seed=A.hashStr(String(P.seed)+"|"+P.site),rng=A.mulberry(seed),pick=a=>a[(rng()*a.length)|0];
@@ -83,10 +83,12 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   // bairros de dentro: compactos, em terra e longe da moldura
   const cand=patches.filter(p=>!p.sea&&p.c[0]>70&&p.c[0]<WX-70&&p.c[1]>110&&p.c[1]<WY-170);const med=cand.slice(0,nP).map(p=>p.area).sort((a,b)=>a-b)[Math.min(nP,cand.length)>>1]||1e9;
   const inner=[];for(const p of cand){if(inner.length>=nP)break;if(p.area>med*2.4||p.poly.some(v=>v[0]<20||v[0]>WX-20||v[1]<40||v[1]>WY-100))continue;if(inner.length&&!nbs(p).some(q=>q.inner)&&!blobs)continue;p.inner=true;inner.push(p)}
+  for(const k in P.wards||{}){const p=patches[+k],o=P.wards[k];if(!p||p.sea||o.inside==null)continue;if(o.inside&&!p.inner){p.inner=true;inner.push(p)}else if(!o.inside&&p.inner&&p!==inner[0]){p.inner=false;inner.splice(inner.indexOf(p),1)}}
   // grafo de vertices e arestas
   const nodes=[],nh=new Map(),nodeAt=(x,y)=>{const gx=Math.round(x/3),gy=Math.round(y/3);for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=nh.get((gx+a)+"_"+(gy+b));if(l)for(const id of l)if(Math.hypot(nodes[id].x-x,nodes[id].y-y)<2.5)return id}const id=nodes.length;nodes.push({x,y,adj:[]});const k=gx+"_"+gy;nh.has(k)?nh.get(k).push(id):nh.set(k,[id]);return id};
   const edges=new Map(),ekey=(a,b)=>a<b?a+"_"+b:b+"_"+a;for(const p of patches){p.nd=p.poly.map(v=>nodeAt(v[0],v[1]));p.nd.forEach((a,k)=>{const b=p.nd[(k+1)%p.nd.length];if(a===b)return;let e=edges.get(ekey(a,b));if(!e){e={a,b,ps:[],len:Math.hypot(nodes[a].x-nodes[b].x,nodes[a].y-nodes[b].y)};edges.set(ekey(a,b),e);nodes[a].adj.push([b,e]);nodes[b].adj.push([a,e])}e.ps.push(p)})}
   const edgeOf=(p,k)=>edges.get(ekey(p.nd[k],p.nd[(k+1)%p.nd.length]));
+  if(P.nodes&&Object.keys(P.nodes).length){for(const k in P.nodes){const n=nodes[+k];if(n){n.x=P.nodes[k][0];n.y=P.nodes[k][1]}}for(const p of patches){p.poly=p.nd.map(id=>[nodes[id].x,nodes[id].y]);p.c=cen(p.poly);p.area=area(p.poly)}for(const e of edges.values())e.len=Math.hypot(nodes[e.a].x-nodes[e.b].x,nodes[e.a].y-nodes[e.b].y)}
   for(const e of edges.values()){const a=nodes[e.a],b=nodes[e.b];e.in=e.ps.filter(p=>p.inner).length;let w=0,r=0;for(let q=0;q<=6;q++){const x=lerp(a.x,b.x,q/6),y=lerp(a.y,b.y,q/6);if(land(x,y)<.03)w++;else if(rd(x,y)<rw+1)r++}e.sea=w>=3||e.ps.some(p=>p.sea)&&w>0;e.riv=r>0}
   // pontes entre partes da cidade separadas por agua (ilhas, margens)
   const comp=new Map();{let ci=0;for(const p of inner){if(comp.has(p))continue;const stack=[p];comp.set(p,ci);while(stack.length){const q=stack.pop();q.nd.forEach((_,k)=>{const e=edgeOf(q,k);if(!e||e.sea)return;for(const z of e.ps)if(z.inner&&!comp.has(z)){comp.set(z,ci);stack.push(z)}})}ci++}}
@@ -110,6 +112,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   const onWall=new Set();for(const w of walls)for(const id of w.ids)onWall.add(id);
   {const cnd=[...(WALLON?onWall:new Set(bE.filter(e=>!e.sea).flatMap(e=>[e.a,e.b])))].filter(id=>{const n=nodes[id],dx=n.x-cx,dy=n.y-cy,d=Math.hypot(dx,dy)||1;return !wet(n.x,n.y,10)&&!wet(n.x+dx/d*40,n.y+dy/d*40,6)&&!(castle&&castle.nd.includes(id))&&n.adj.some(([v,e])=>e.in===2)});
     const want=clamp(2+Math.round(nP/9),2,6);while(gatesN.length<want&&cnd.length){let best=-1,bs=-1;for(const id of cnd){const n=nodes[id];let m=1e9;for(const g of gatesN)m=Math.min(m,Math.hypot(nodes[g].x-n.x,nodes[g].y-n.y));const s=gatesN.length?m:rng();if(s>bs){bs=s;best=id}}if(gatesN.length&&bs<Rc*.5)break;gatesN.push(best);cnd.splice(cnd.indexOf(best),1)}}
+  if(P.gates){for(const id of P.gates.del||[]){const i=gatesN.indexOf(id);if(i>=0)gatesN.splice(i,1)}for(const id of P.gates.add||[])if(nodes[id]&&!gatesN.includes(id))gatesN.push(id)}
   // ruas principais: caminho mais curto pelas divisas dos bairros
   const mainE=new Set();const route=(src,dstSet)=>{const dist=new Map([[src,0]]),prev=new Map(),open=[src],done=new Set();let end=-1;
     while(open.length){let bi=0;for(let q=1;q<open.length;q++)if(dist.get(open[q])<dist.get(open[bi]))bi=q;const u=open.splice(bi,1)[0];if(done.has(u))continue;done.add(u);if(dstSet.has(u)){end=u;break}
@@ -145,9 +148,10 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     const isSea=land(mx+nx*30,my+ny*30)<.05;if(isSea){for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const x=i*GS,y=j*GS,t=(x-mx)*ux+(y-my)*uy;if(t<t0-6||t>t1+6)continue;const d=(x-mx)*nx+(y-my)*ny-off,k=j*GW+i;if(d<0&&d>-60)LG[k]=Math.max(LG[k],.06+(-d)/200);else if(d>=0&&d<60)LG[k]=Math.min(LG[k],-.06-d/220)}}
     quays.push({a,b,n:[nx,ny],u:[ux,uy],p,sea:isSea});p.quay=quays[quays.length-1]}
   // ---- lotes
+  const ALLEY=(CUL[P.culture]||{}).form==="asian"||(CUL[P.culture]||{}).form==="round"?2.6:2.1;
   const cut=(p,minSq,gc,sc,ep,split,out,dep)=>{let bi=0,bl=-1;for(let k=0;k<p.length;k++){const a=p[k],b=p[(k+1)%p.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(l>bl){bl=l;bi=k}}
     const a=p[bi],b=p[(bi+1)%p.length],spread=.8*gc,ratio=(1-spread)/2+rng()*spread,sq0=area(p),ang=Math.PI/6*gc*(sq0<minSq*4?0:1)*(rng()-.5);
-    const ex=(b[0]-a[0])/bl,ey=(b[1]-a[1])/bl,ca=Math.cos(ang),sn=Math.sin(ang),nx=ex*ca-ey*sn,ny=ex*sn+ey*ca,mx=lerp(a[0],b[0],ratio),my=lerp(a[1],b[1],ratio),g=split?1.5:.35;
+    const ex=(b[0]-a[0])/bl,ey=(b[1]-a[1])/bl,ca=Math.cos(ang),sn=Math.sin(ang),nx=ex*ca-ey*sn,ny=ex*sn+ey*ca,mx=lerp(a[0],b[0],ratio),my=lerp(a[1],b[1],ratio),g=split?ALLEY:.4;
     for(const h of [clip(p,mx-nx*g,my-ny*g,nx,ny),clip(p,mx+nx*g,my+ny*g,-nx,-ny)]){if(h.length<3)continue;const sq=area(h);if(sq<26)continue;
       if(sq<minSq*Math.pow(2,4*sc*(rng()-.5))||dep>12){if(rng()>=ep)out.push(h)}else cut(h,minSq,gc,sc,ep,sq>minSq/(rng()*rng()),out,dep+1)}};
   // quarteirao planejado: ruas paralelas e transversais
@@ -155,8 +159,8 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     const cells=[];const nu=Math.max(1,Math.round((u1-u0)/sp1)),nv=Math.max(1,Math.round((v1-v0)/sp2)),du=(u1-u0)/nu,dv=(v1-v0)/nv;
     for(let i=0;i<nu;i++)for(let j=0;j<nv;j++){let cl=blk;const U0=u0+i*du+(i?gap/2:0),U1=u0+(i+1)*du-(i<nu-1?gap/2:0),V0=v0+j*dv+(j?gap/2:0),V1=v0+(j+1)*dv-(j<nv-1?gap/2:0);
       cl=clip(cl,c[0]+ca*U1,c[1]+sn*U1,ca,sn);if(cl.length<3)continue;cl=clip(cl,c[0]+ca*U0,c[1]+sn*U0,-ca,-sn);if(cl.length<3)continue;cl=clip(cl,c[0]-sn*V1,c[1]+ca*V1,-sn,ca);if(cl.length<3)continue;cl=clip(cl,c[0]-sn*V0,c[1]+ca*V0,sn,-ca);if(cl.length<3||area(cl)<60)continue;cells.push(cl)}return cells};
-  const plannedOf=p=>p.planOv?p.planOv==="planejado":P.plan==="planejado"?true:P.plan==="organico"?false:(p.type==="nobre"||p.type==="militar"||p.type==="universidade"||p.type==="mercadores"&&rng()<.55||p.type==="porto"&&rng()<.5||rng()<.25);
-  const WP={mercadores:[330,.4,.45,.01],nobre:[900,.3,.4,.02],artesaos:[270,.5,.55,.02],moradia:[250,.55,.6,.03],pobre:[160,.85,.75,.06],producao:[420,.4,.5,.04],porto:[420,.3,.45,.03],militar:[520,0,.2,.05],templo:[300,.4,.5,.03],castelo:[480,.3,.4,.1],arrabalde:[230,.85,.75,.1],universidade:[420,.2,.3,.03],estrangeiro:[260,.5,.6,.03]};
+  const plannedOf=p=>p.planOv?p.planOv==="planejado":(p.type==="pobre"||p.type==="arrabalde")?false:P.plan==="planejado"?true:P.plan==="organico"?false:(p.type==="nobre"||p.type==="militar"||p.type==="universidade"||p.type==="mercadores"&&rng()<.55||p.type==="porto"&&rng()<.5||rng()<.25);
+  const WP={mercadores:[330,.4,.45,.01],nobre:[900,.3,.4,.02],artesaos:[270,.5,.55,.02],moradia:[250,.55,.6,.03],pobre:[170,.6,.6,.04],producao:[420,.4,.5,.04],porto:[420,.3,.45,.03],militar:[520,0,.2,.05],templo:[300,.4,.5,.03],castelo:[480,.3,.4,.1],arrabalde:[230,.6,.6,.08],universidade:[420,.2,.3,.03],estrangeiro:[260,.5,.6,.03]};
   const B=[],yards=[],fields=[],trees=[],squares=[],SPB=[],props=[];
   const C0=CUL[P.culture]||CUL.humano,tier=(race,wl)=>{const C=CUL[race]||C0;if(race!=="humano")return {roof:[pick(C.roof),pick(C.roof)],wall:[pick(C.wall),pick(C.wall)]};
     return wl>.7?{roof:[pick(["slate","dark","tileb"]),"slate"],wall:[pick(["stone","brick","daub2"]),"stone"]}:wl>.35?{roof:[pick(["tile","tile2","tileb"]),pick(["tile","dark"])],wall:[pick(["daub","daub2","daub3"]),"daub"]}:{roof:[pick(["thatch","old","moss"]),"thatch"],wall:[pick(["daub","daub3","wood"]),"wood"]}};
@@ -169,10 +173,10 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   const nearQuay=(x,y)=>{let d=1e9,qq=null;for(const q of quays){const v=segD(x,y,q.a,q.b);if(v<d){d=v;qq=q}}return [d,qq]};
   const pLots=new Map();
   for(const p of patches){if(p.sea)continue;const t=p.type,race=p.race||P.culture;p.race=race;
-    const ins=p.poly.map((_,k)=>{const e=edgeOf(p,k);return !e?5:(e.in===1&&WALLON&&P.wall!=="curva")?12:mainE.has(e)?7.5:p.inner?4.5:6.5});
+    const ins=p.poly.map((_,k)=>{const e=edgeOf(p,k);return !e?5.5:(e.in===1&&WALLON&&P.wall!=="curva")?12:mainE.has(e)?9:p.inner?5.6:6.5});
     p.block=inset(p.poly,ins);if(p.block.length<3)continue;if(p.quay){const q=p.quay,nb=clip(p.block,q.a[0]-q.n[0]*9,q.a[1]-q.n[1]*9,q.n[0],q.n[1]);if(nb.length>2&&area(nb)>area(p.block)*.35)p.block=nb;else{quays.splice(quays.indexOf(q),1);p.quay=null}}
     p.pl=plannedOf(p);p.pal=tier(race,(WL[p.foreign?"estrangeiro":t]||.4)*(.6+P.wealth*.8));
-    if(t==="mercado"){const Rp=clamp(46+nP*1.7,50,110),n=9,a0=rng()*6.28,sq=[];for(let k=0;k<n;k++){const a=a0+k/n*6.2832,r=Rp*(.86+rng()*.22);sq.push([p.c[0]+Math.cos(a)*r,p.c[1]+Math.sin(a)*r*.9])}const sqc=sq.filter(v=>!wet(v[0],v[1],4));p.square=sqc.length>4?sqc:inset(p.poly,4);squares.push({poly:p.square,kind:"praca"});pLots.set(p,[]);continue}
+    if(t==="mercado"){const Rp=clamp(24+nP*2.3,32,104),n=9,a0=rng()*6.28,sq=[];for(let k=0;k<n;k++){const a=a0+k/n*6.2832,r=Rp*(.86+rng()*.22);sq.push([p.c[0]+Math.cos(a)*r,p.c[1]+Math.sin(a)*r*.9])}const sqc=sq.filter(v=>!wet(v[0],v[1],4));p.square=sqc.length>4?sqc:inset(p.poly,4);squares.push({poly:p.square,kind:"praca"});pLots.set(p,[]);continue}
     if(t==="parque"){yards.push({poly:p.block,col:"#9fb060",park:1});for(let q=0;q<p.area/260;q++){const x=p.c[0]+(rng()-.5)*220,y=p.c[1]+(rng()-.5)*220;if(inPoly(inset(p.block,8),x,y)&&!wet(x,y,6))trees.push([x,y,1+rng()*.3])}pLots.set(p,[]);continue}
     if(t==="campos"){const out=[];cut(p.block,2400+rng()*2600,.25,.6,.1,false,out,0);for(const f of out){const c=cen(f);if(wet(c[0],c[1],6)||f.some(v=>wet(v[0],v[1])))continue;fields.push({poly:inset(f,1.5),c,ang:Math.atan2(f[1][1]-f[0][1],f[1][0]-f[0][0]),col:pick(["#c9b86a","#b9b060","#d4c57e","#a8b05a","#bfa85c","#9fae58","#cdb372"]),k:rng()});
         if(rng()<.18){const ang=rng()*3.14;B.push({x:c[0],y:c[1],type:"farm",race,ang,L:19,D:12,pal:tier(race,.2)});if(rng()<.7)props.push({id:"haystack",x:c[0]+18,y:c[1]+8,race});if(rng()<.3)props.push({id:"cart",x:c[0]-14,y:c[1]+10,race,ang:rng()*6})}}continue}
@@ -195,7 +199,8 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   const placeSpec=(p,id,lots)=>{if(["lighthouse","crane","shipwright","fishery"].includes(id)&&!(p.quay&&(p.quay.sea||id==="fishery")))return false;const sz=(AS.SIZE[id]||[12,16])[0]*Z*.82;let best=null,bs=-1e9;for(const l of lots){if(l.used)continue;const cc=cen(l),ar=area(l);if(hit(cc[0],cc[1],sz*.8))continue;
       const qd=p.quay?nearQuay(cc[0],cc[1])[0]:0;let s=ar/(sz*sz)-Math.abs(ar-sz*sz*2.6)/(sz*sz*3)+rng()*.3;if(["warehouse","fishery","shipwright","crane","lighthouse"].includes(id))s-=qd/14;if(id==="watermill")s-=Math.max(0,rd(cc[0],cc[1])-rw-14)/8;if(s>bs){bs=s;best=l}}
     if(!best)return false;const cc=cen(best);if(id==="watermill"&&rd(cc[0],cc[1])>rw+40)return false;
-    let x=cc[0],y=cc[1],ang=0;if(p.quay&&["crane","lighthouse"].includes(id)){const q=p.quay,L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,0,1),tt=id==="lighthouse"?(t<.5?0:1):t;x=lerp(q.a[0],q.b[0],tt)-q.n[0]*5;y=lerp(q.a[1],q.b[1],tt)-q.n[1]*5}
+    let x=cc[0],y=cc[1],ang=0;if(p.quay&&id==="shipwright"){const q=p.quay;const L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,.15,.85);x=lerp(q.a[0],q.b[0],t)-q.n[0]*12;y=lerp(q.a[1],q.b[1],t)-q.n[1]*12;ang=Math.atan2(q.n[1],q.n[0])}
+    else if(p.quay&&["crane","lighthouse"].includes(id)){const q=p.quay,L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,0,1),tt=id==="lighthouse"?(t<.5?0:1):t;x=lerp(q.a[0],q.b[0],tt)-q.n[0]*5;y=lerp(q.a[1],q.b[1],tt)-q.n[1]*5}
     for(const l of lots){const c2=cen(l);if(Math.hypot(c2[0]-x,c2[1]-y)<sz*1.05)l.used=true}best.used=true;SPB.push({id,x,y,race:p.race,v:rng(),r:sz,ang});addOcc(x,y,sz);return true};
   for(const p of inner.concat(patches.filter(z=>z.type==="arrabalde"))){const lots=pLots.get(p);if(!lots||!lots.length)continue;const t=p.foreign?"moradia":p.type,list=(SPEC[t]||[]).slice();
     for(const [id,home] of MAGIC)if(home===t&&rng()<P.magic*.9)list.push([id,1,1]);
@@ -208,9 +213,10 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
       // a frente da casa olha para a rua mais proxima
       let fk=0,fd=1e9;for(let k=0;k<lot.length;k++){const a=lot[k],b=lot[(k+1)%lot.length],m=[(a[0]+b[0])/2,(a[1]+b[1])/2],d=polyD(m[0],m[1],p.block,true)-Math.hypot(b[0]-a[0],b[1]-a[1])*.02;if(d<fd){fd=d;fk=k}}
       const a=lot[fk],b=lot[(fk+1)%lot.length];let ang=Math.atan2(b[1]-a[1],b[0]-a[0]);const ca=Math.cos(ang),sa2=Math.sin(ang);let u0=1e9,u1=-1e9,v0=1e9,v1=-1e9;for(const v of lot){const u=(v[0]-c[0])*ca+(v[1]-c[1])*sa2,w=-(v[0]-c[0])*sa2+(v[1]-c[1])*ca;u0=Math.min(u0,u);u1=Math.max(u1,u);v0=Math.min(v0,w);v1=Math.max(v1,w)}
-      let L=(u1-u0)*.94,D=(v1-v0)*.92;if(t==="nobre"){L*=.75;D*=.72}if(t==="pobre"||t==="arrabalde"){L*=.86;D*=.84;ang+=(rng()-.5)*.3}
+      const FF=(CUL[race]||{}).form==="asian"?.82:.93;let L=(u1-u0)*FF,D=(v1-v0)*FF;if(t==="nobre"){L*=.75;D*=.72}if(t==="pobre"||t==="arrabalde"){ang+=(rng()-.5)*.16}
       L=Math.min(L,t==="porto"||t==="militar"||t==="producao"?46:t==="nobre"?40:30);D=Math.min(D,26);if(D>L*1.15&&t!=="porto"){const q=L;L=D;D=q;ang+=1.5708}
-      const cc=[(u0+u1)/2,(v0+v1)/2],cx2=c[0]+ca*cc[0]-sa2*cc[1],cy2=c[1]+sa2*cc[0]+ca*cc[1];const fit=fitRect(lot,[cx2,cy2],ang,L,D);if(!fit)continue;[L,D]=fit;if(L<7||D<6)continue;
+      const cc=[(u0+u1)/2,(v0+v1)/2],cx2=c[0]+ca*cc[0]-sa2*cc[1],cy2=c[1]+sa2*cc[0]+ca*cc[1];let fit=fitRect(lot,[cx2,cy2],ang,L,D);if(!fit||fit[0]*fit[1]<L*D*.45){let bi=0,bl=-1;for(let k=0;k<lot.length;k++){const l=Math.hypot(lot[(k+1)%lot.length][0]-lot[k][0],lot[(k+1)%lot.length][1]-lot[k][1]);if(l>bl){bl=l;bi=k}}const a2=Math.atan2(lot[(bi+1)%lot.length][1]-lot[bi][1],lot[(bi+1)%lot.length][0]-lot[bi][0]),f2=fitRect(lot,c,a2,(u1-u0)*FF,(v1-v0)*FF*.9);if(f2&&(!fit||f2[0]*f2[1]>fit[0]*fit[1])){fit=f2;ang=a2}}
+      if(!fit||fit[0]<7||fit[1]<6){if(sq>70)yards.push({poly:inset(lot,.6),col:rng()<.5?"#a9ae62":"#b8b070",g:1,rows:1});continue}[L,D]=fit;
       const r=Math.hypot(L,D)/2*.8;if(hit(cx2,cy2,r*.45))continue;
       if(t==="nobre"){yards.push({poly:lot,col:"#a3b262",g:1});if(rng()<.5+P.green*.5)trees.push([cx2+(rng()-.5)*L*.9,cy2+D*.7,.6+rng()*.2])}
       const tt=p.foreign?"estrangeiro":t;let ty=pick(TY[tt]||TY.moradia);if(sq<200&&ty!=="shed")ty=t==="pobre"||t==="arrabalde"?"hut":"row";if(ty==="row"&&L>D*1.7)ty="town";
@@ -282,7 +288,7 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   // ruas principais com calcamento mais claro e meio-fio
   {const segs=[...C.mainE].filter(e=>!e.bridge).map(e=>[[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]]);for(const [wd,col] of [[10,"rgba(70,55,30,.35)"],[8.4,rich>.25?PAT.laje:PAT.cascalho]]){c.strokeStyle=col;c.lineWidth=wd;for(const s of segs){path(s,false);c.stroke()}}}
   for(const p of urb){if(p.type==="arrabalde")continue;const bl=p.blocks&&p.blocks.length?p.blocks:[p.block];for(const b of bl){path(b,true);c.fillStyle=EARTH;c.fill();c.strokeStyle="rgba(70,55,30,.5)";c.lineWidth=.8;c.stroke()}}
-  for(const y of C.yards){path(y.poly,true);c.fillStyle=y.col;c.fill();c.strokeStyle="rgba(70,60,25,.35)";c.lineWidth=.6;c.stroke()}
+  for(const y of C.yards){path(y.poly,true);c.fillStyle=y.col;c.fill();if(y.rows){c.save();c.clip();const q=pj(y.poly[0][0],y.poly[0][1]);c.strokeStyle="rgba(80,90,30,.45)";c.lineWidth=.8;c.beginPath();for(let k=-40;k<40;k+=3){c.moveTo(q[0]-40,q[1]+k);c.lineTo(q[0]+40,q[1]+k+8)}c.stroke();c.restore();path(y.poly,true)}c.strokeStyle="rgba(70,60,25,.35)";c.lineWidth=.6;c.stroke()}
   for(const s of C.squares){path(s.poly,true);c.fillStyle=s.kind==="patio"?PAT.pedra:PAT.laje;c.fill();c.strokeStyle="rgba(60,48,28,.6)";c.lineWidth=1;c.stroke()}
   // 5. agua por cima (recorta o que caiu na agua), cais, pontes e pieres
   c.drawImage(wc,0,0);
