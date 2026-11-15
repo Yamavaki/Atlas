@@ -361,12 +361,12 @@ function generate(P){
   const biome=new Uint8Array(N),snow=new Float32Array(N),bR=new Float32Array(N),bG=new Float32Array(N),bB=new Float32Array(N),fR=new Float32Array(N),fG=new Float32Array(N),fB=new Float32Array(N),bfor=new Float32Array(N);
   const bov=new Int8Array(N).fill(-1);for(const e of bEd){const i0=Math.max(0,((e.x-e.r)/G)|0),i1=Math.min(GW-1,((e.x+e.r)/G|0)+1),j0=Math.max(0,((e.y-e.r)/G)|0),j1=Math.min(GH-1,((e.y+e.r)/G|0)+1);for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){if(Math.hypot(i*G-e.x,j*G-e.y)<e.r*(.8+.35*fbm3(i/3,j/3,2)))bov[j*GW+i]=e.b}}
   for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const k=j*GW+i,x=i*G,y=j*G;
-    const T=(temp-.5)*.9+.5+(fbm3(x/(520*SC)+5,y/(520*SC)+9,4)-.5)*(.25+cv*1.1)+(y/WY-.5)*.25*cv-elev[k]*.55;
+    const lat=(y/WY-.5)+(fbm3(x/(700*SC)+5,y/(700*SC)+9,3)-.5)*.35,T=(temp-.5)*.9+.56+lat*(.08+cv*.55)*Math.sqrt(SC)+(fbm3(x/(950*SC)+15,y/(950*SC)+3,2)-.5)*.1-elev[k]*.36;
     const Mo=(hum-.5)*.9+.5+(fbm3(x/(430*SC)+41,y/(430*SC)+13,4)-.5)*(.25+cv*1.1)+.18*(1-sstep(20,140,dist[k]));
-    let b;if(T<.16)b=2;else if(T<.3)b=Mo>.42?1:3;else if(T<.66){b=Mo<.2&&T>.5?5:(Mo>.76&&elev[k]<.12&&dist[k]<90)?7:T<.38?1:0}else b=Mo<.36?4:Mo<.54?5:(Mo>.78&&elev[k]<.12)?7:6;
+    let b;if(T<.14)b=2;else if(T<.27)b=Mo>.42?1:3;else if(T<.66){b=Mo<.2&&T>.5?5:(Mo>.76&&elev[k]<.12&&dist[k]<90)?7:T<.38?1:0}else b=Mo<.36?4:Mo<.54?5:(Mo>.78&&elev[k]<.12)?7:6;
     if(waste>0&&fbm3(x/(380*SC)+77,y/(380*SC)+31,3)>1.02-waste*.55)b=8;
     if(bov[k]>=0)b=bov[k];biome[k]=b;
-    const sl=b===2?1:sstep(.62+(T-.3)*.9,.78+(T-.3)*.9,elev[k])*(b===4||b===6?0:1);snow[k]=Math.max(b===2?1:b===3?.35:0,sl);
+    const sl=b===2?1:sstep(.33,.2,T)*sstep(.45,.62,elev[k])*(b===4||b===6||b===5?0:1);snow[k]=Math.max(b===2?1:b===3?.35:0,sl);
     const c0=BG[b][0],c1=BG[b][1];bR[k]=(c0[0]+c1[0])/2;bG[k]=(c0[1]+c1[1])/2;bB[k]=(c0[2]+c1[2])/2;fR[k]=BF[b][0];fG[k]=BF[b][1];fB[k]=BF[b][2];bfor[k]=BFOR[b]}
   // mistura suave das cores entre biomas
   for(const arr of[bR,bG,bB,fR,fG,fB,bfor])for(let pass=0;pass<2;pass++){const tmp=arr.slice();for(let j=1;j<GH-1;j++)for(let i=1;i<GW-1;i++){const k=j*GW+i;arr[k]=(tmp[k]*4+tmp[k-1]+tmp[k+1]+tmp[k-GW]+tmp[k+GW])/8}}
