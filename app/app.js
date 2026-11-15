@@ -26,7 +26,13 @@ const PARAMS=[["size","Tamanho do mapa","select",[[1,"Região (normal)"],[1.5,"G
   ["temp","Temperatura (frio ↔ quente)","pct"],["humid","Umidade (seco ↔ úmido)","pct"],["climVar","Variedade de climas","pct"],["waste","Terra arrasada","pct"],["culture","Região cultural","select",A.CULTURES],["races","Diversidade de culturas","pct"],["relief","Relevo","pct"],["forest","Floresta","pct"],["fields","Campos cultivados","pct"],["towns","Povoados (por área de região)","int",2,9],["meander","Meandros do rio principal","pct"],
   ["clouds","Nuvens na borda","pct"],["plan","Traçado das ruas","select",[["mixed","Misto"],["organic","Orgânico"],["planned","Planejado"]]]];
 const STRUCT=new Set(["culture","size","races","form","seed","towns","plan","rivers","meander","islands","lakes"]);
-const TOOLS=[["move","Navegar"],["land","Terra"],["sea","Mar"],["up","Elevar"],["down","Rebaixar"],["forest","Floresta"],["clear","Clareira"],["biome","Bioma"],["town","Povoado"],["untown","Remover povoado"],["pin","Pino"],["lines","Editar linhas"],["road","Nova estrada"],["river","Novo rio"],["city","Editar cidade"],["street","Nova rua"]];
+const TOOLGROUPS=[["Navegar",[["move","Navegar"]]],["Terreno",[["land","Terra"],["sea","Mar"],["up","Elevar"],["down","Rebaixar"]]],["Natureza",[["forest","Floresta"],["clear","Clareira"],["biome","Bioma"]]],
+  ["Povoados",[["town","Novo povoado"],["untown","Remover povoado"],["city","Editar cidade"],["street","Nova rua"]]],["Linhas",[["lines","Editar rios e estradas"],["road","Nova estrada"],["river","Novo rio"]]],["Marcar",[["pin","Pino"]]]];
+const ICON={move:"M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3",land:"M3 18c2-5 5-8 9-8s7 3 9 8M3 18h18",sea:"M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0",
+  up:"M4 19l8-13 8 13M12 6v-3",down:"M4 6l8 13 8-13",forest:"M12 3l6 9h-4l5 7H5l5-7H6zM12 19v3",clear:"M12 4a8 8 0 1 0 .01 0M8 12h8",biome:"M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2M12 8a4 4 0 1 0 .01 0",
+  town:"M4 20V10l8-6 8 6v10zM10 20v-6h4v6",untown:"M4 20V10l8-6 8 6v10zM9 11l6 6M15 11l-6 6",city:"M3 20V9h3v3h3V9h3v3h3V9h3v11zM10 20v-4h4v4",street:"M4 4v16M12 4v16M20 4v16M4 12h16",
+  lines:"M4 18l6-8 5 4 5-9M4 18a1.5 1.5 0 1 0 .01 0M10 10a1.5 1.5 0 1 0 .01 0M15 14a1.5 1.5 0 1 0 .01 0M20 5a1.5 1.5 0 1 0 .01 0",road:"M8 3l-3 18M16 3l3 18M12 5v3M12 11v3M12 17v3",river:"M7 3c4 4-4 7 0 11s-4 5 0 7M14 3c4 4-4 7 0 11s-4 5 0 7",pin:"M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11zM12 10a2 2 0 1 0 .01 0"};
+const svgI=(d)=>{const n="http://www.w3.org/2000/svg",sv=document.createElementNS(n,"svg");sv.setAttribute("viewBox","0 0 24 24");sv.setAttribute("aria-hidden","true");const p=document.createElementNS(n,"path");p.setAttribute("d",d);sv.append(p);return sv};
 
 // ---------- armazenamento ----------
 const Store={db:null,dl:null,dirty:new Set(),timers:new Map(),chain:new Map(),
@@ -121,12 +127,13 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const Z={k:1,x:0,y:0};
   const applyZ=()=>{const vw=view.clientWidth,vh=view.clientHeight;Z.x=clamp(Z.x,vw-vw*Z.k,0);Z.y=clamp(Z.y,vh-vh*Z.k,0);stage.style.transform="translate("+Z.x+"px,"+Z.y+"px) scale("+Z.k+")";stage.style.setProperty("--k",Z.k);zl.textContent=Math.round(Z.k*100)+"%"};
   const zoomAt=(cx,cy,f)=>{const k2=clamp(Z.k*f,1,8);Z.x=cx-(cx-Z.x)*k2/Z.k;Z.y=cy-(cy-Z.y)*k2/Z.k;Z.k=k2;applyZ()};
+  const fitWrap=()=>{const w=view.parentNode;if(w&&!matchMedia("(max-width:860px)").matches)w.style.maxWidth="calc((100vh - 190px) * "+mc.width+" / "+mc.height+")";else if(w)w.style.maxWidth=""};
   const zoomMid=f=>zoomAt(view.clientWidth/2,view.clientHeight/2,f),zl=h("span",{class:"zl"},"100%");
   const snap=()=>{undo.push(JSON.stringify({params:o.params,edits:o.edits,lock:o.lock,pins:o.pins,vec:o.vec||null}));if(undo.length>30)undo.shift()};
   S.snap=snap;
   function regen(){busy.hidden=false;setTimeout(()=>{const t0=performance.now();try{
       const P=Object.assign({},o.params,{edits:o.edits,lock:o.lock,vec:o.vec,title:o.name}),W=A.generate(P),info=A.render(W,mc,A.makeStamps(A.mulberry(W.seed^77)));
-      o.lock=W.towns.map(t=>{const z={x:t.x,y:t.y,size:t.size,kind:t.kind,planned:t.planned,name:t.name,dens:Math.round(t.dens*100)/100,wall:!!t.wall,race:t.race};if(t.lockOutline)z.outline=t.lockOutline;if(t.lockSt)z.st=t.lockSt;return z});o.vec=W.vec;cur={W,info};if(mo.width!==mc.width||mo.height!==mc.height){mo.width=mc.width;mo.height=mc.height}view.style.aspectRatio=mc.width+"/"+mc.height;applyZ();drawPins();Store.save("maps",o);
+      o.lock=W.towns.map(t=>{const z={x:t.x,y:t.y,size:t.size,kind:t.kind,planned:t.planned,name:t.name,dens:Math.round(t.dens*100)/100,wall:!!t.wall,race:t.race};if(t.lockOutline)z.outline=t.lockOutline;if(t.lockSt)z.st=t.lockSt;return z});o.vec=W.vec;cur={W,info};if(mo.width!==mc.width||mo.height!==mc.height){mo.width=mc.width;mo.height=mc.height}view.style.aspectRatio=mc.width+"/"+mc.height;fitWrap();applyZ();drawPins();Store.save("maps",o);
       status.textContent=W.towns.length+" povoados, "+info.b+" construções, "+W.fieldsP.length+" lotes de campo, "+W.vec.roads.length+" estradas, "+W.vec.rivers.length+" rios, "+Math.round(performance.now()-t0)+" ms"}
     catch(e){console.error(e);status.textContent="Não foi possível gerar este mapa. Tente outra semente ou desfaça a última edição. ("+e.message+")"}
     busy.hidden=true;octx.clearRect(0,0,A.CW,A.CH);if(S.place)drawPlace()},30)}
@@ -182,22 +189,31 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const title=h("input",{class:"title",type:"text",value:o.name,"aria-label":"Nome do mapa",onchange:e=>{o.name=e.target.value.trim()||"Mapa";drawSide();regen()}});
   const body=h("div",{class:"mbody"}),par=h("div",{class:"params",hidden:true});
   const bPar=h("button",{type:"button","aria-pressed":"false",onclick:()=>{par.hidden=!par.hidden;body.classList.toggle("par",!par.hidden);bPar.setAttribute("aria-pressed",String(!par.hidden));requestAnimationFrame(applyZ)}},"Parâmetros");
-  let armed=false;const del=h("button",{type:"button",class:"danger",onclick:()=>{if(!armed){armed=true;del.textContent="Confirmar exclusão";setTimeout(()=>{armed=false;del.textContent="Excluir"},3000);return}Store.remove("maps",o.id);S.map=null;drawAll()}},"Excluir");
-  const head=h("div",{class:"mhead"},title,h("button",{type:"button",class:"primary",onclick:()=>{snap();o.params.seed=A.NAMES[(Math.random()*A.NAMES.length)|0].toLowerCase()+"-"+(1300+((Math.random()*200)|0));o.lock=null;o.vec=null;o.edits=[];fill();regen()}},"Sortear novo"),bPar,
-    h("span",{class:"zoom"},h("button",{type:"button","aria-label":"Afastar",onclick:()=>zoomMid(1/1.5)},"−"),zl,h("button",{type:"button","aria-label":"Aproximar",onclick:()=>zoomMid(1.5)},"+"),h("button",{type:"button",onclick:()=>{Z.k=1;Z.x=Z.y=0;applyZ()}},"Ajustar")),
-    h("button",{type:"button",onclick:()=>mc.toBlob(b=>saveFile(safe(o.name)+".png",b))},"Salvar PNG"),del);
-  // ferramentas
-  const tb=h("div",{class:"tools",role:"toolbar","aria-label":"Ferramentas de edição"}),hint=h("div",{class:"status"});
-  const HINT={move:"Arraste para mover. Use a roda do mouse ou dois dedos para aproximar. Toque num povoado para abrir a nota dele.",lines:"Arraste um ponto para mudar o traçado. Toque em + para criar um ponto. Selecione um ponto para remover.",road:"Toque no mapa para marcar os pontos da estrada e depois em Concluir linha.",river:"Toque no mapa para marcar os pontos do rio, da nascente à foz, e depois em Concluir linha.",town:"Toque onde quer o novo povoado.",untown:"Toque no povoado que quer remover.",pin:"Toque onde quer o pino.",biome:"Pinte para transformar a área no bioma escolhido ao lado. Use Limpar pinceladas para voltar ao clima gerado.",city:"Toque no nome de um povoado para editar o contorno e as ruas dele.",street:"Escolha o povoado e toque no mapa para marcar os pontos da rua. Depois toque em Concluir linha."};
-  const setTool=t=>{if(!(t==="city"||t==="street")||!(tool==="city"||tool==="street"))cityI=-1;tool=t;draft=[];sel=null;drawDraft();stage.classList.toggle("draw",!["move","lines","city"].includes(t));view.classList.toggle("grab",["move","lines","city"].includes(t));for(const b of tb.querySelectorAll("button[data-t]"))b.setAttribute("aria-pressed",String(b.dataset.t===t));hint.textContent=HINT[t]||"Pinte arrastando sobre o mapa. Com dois dedos você continua podendo aproximar.";drawPins()};
-  TOOLS.forEach(([t,l],i)=>{if(i===1||i===8||i===11||i===14)tb.append(h("span",{class:"sep"}));tb.append(h("button",{type:"button","data-t":t,onclick:()=>setTool(t)},l))});
-  tb.append(h("button",{type:"button",onclick:()=>{if(draft.length<2){toast("Marque pelo menos dois pontos no mapa.");return}snap();o.vec=o.vec||{rivers:[],roads:[]};const c=draft.map(d=>[Math.round(d.x),Math.round(d.y)]);if(tool==="street"){const L=matCity(cityI);if(!L){toast("Escolha um povoado primeiro.");return}L.st.push({c,m:0})}else if(tool==="river")o.vec.rivers.push({c,w:10});else o.vec.roads.push(c);draft=[];regen()}},"Concluir linha"),
-    h("button",{type:"button",onclick:()=>{if(!sel){toast("Toque num ponto primeiro.");return}snap();if(sel.kind==="o"||sel.kind==="s")matCity(sel.i);const c=lineOf(sel.kind,sel.i,sel.k),min=sel.kind==="o"?4:3;if(c.length<min){if(sel.kind==="o"){toast("O contorno precisa de pelo menos 3 pontos.");undo.pop();return}removeLine(sel)}else c.splice(sel.j,1);sel=null;regen()}},"Remover ponto"),
-    h("button",{type:"button",onclick:()=>{if(!sel){toast("Toque num ponto da linha primeiro.");return}if(sel.kind==="o"){toast("O contorno não pode ser removido. Use Restaurar cidade.");return}snap();if(sel.kind==="s")matCity(sel.i);removeLine(sel);sel=null;regen()}},"Remover linha"),
-    h("button",{type:"button",onclick:()=>{if(cityI<0||!o.lock[cityI]){toast("Em Editar cidade, escolha um povoado primeiro.");return}snap();delete o.lock[cityI].outline;delete o.lock[cityI].st;sel=null;regen()}},"Restaurar cidade"),
-    h("span",{class:"sep"}),h("label",{},"Bioma do pincel",h("select",{"aria-label":"Bioma do pincel",onchange:e=>{biomeSel=+e.target.value;setTool("biome")}},A.BIOMES.map((n,i)=>h("option",{value:i,selected:i===biomeSel},n)))),h("label",{},"Pincel",h("input",{type:"range",min:20,max:140,value:brush,"aria-label":"Tamanho do pincel",oninput:e=>brush=+e.target.value})),
-    h("button",{type:"button",onclick:()=>{const u=undo.pop();if(!u){toast("Nada para desfazer.");return}Object.assign(o,JSON.parse(u));sel=null;fill();regen()}},"Desfazer"),
-    h("button",{type:"button",onclick:()=>{if(!o.edits.length){toast("Este mapa não tem pinceladas.");return}snap();o.edits=[];regen()}},"Limpar pinceladas"));
+  let armed=false;const del=h("button",{type:"button",class:"danger ghost",onclick:()=>{if(!armed){armed=true;del.textContent="Confirmar";setTimeout(()=>{armed=false;del.textContent="Excluir"},3000);return}Store.remove("maps",o.id);S.map=null;drawAll()}},"Excluir");
+  const head=h("div",{class:"mhead"},title,h("div",{class:"hact"},h("button",{type:"button",class:"primary",onclick:()=>{snap();o.params.seed=A.NAMES[(Math.random()*A.NAMES.length)|0].toLowerCase()+"-"+(1300+((Math.random()*200)|0));o.lock=null;o.vec=null;o.edits=[];fill();regen()}},"Sortear novo"),bPar,
+    h("button",{type:"button",onclick:()=>mc.toBlob(b=>saveFile(safe(o.name)+".png",b))},"Salvar PNG"),del));
+  // paleta de ferramentas (flutuante, por grupo)
+  const pal=h("div",{class:"pal",role:"toolbar","aria-label":"Ferramentas"}),ctx=h("div",{class:"ctx"}),hint=h("div",{class:"hintc"});
+  const tipFor=(l)=>l;
+  TOOLGROUPS.forEach(([g,items],gi)=>{const grp=h("div",{class:"pgrp","aria-label":g});if(gi)pal.append(h("span",{class:"psep"}));
+    for(const [t,l] of items){const b=h("button",{type:"button",class:"tbtn","data-t":t,"aria-label":l,title:l,onclick:()=>setTool(t)},svgI(ICON[t]),h("span",{class:"tip"},l));grp.append(b)}pal.append(grp)});
+  const HINT={move:"Arraste para mover · roda do mouse ou dois dedos para aproximar · toque num povoado para abrir a nota",lines:"Arraste um ponto para mudar o traçado · toque em + para criar um ponto",road:"Toque no mapa para marcar os pontos da estrada",river:"Toque no mapa da nascente à foz",town:"Toque onde quer o novo povoado",untown:"Toque no povoado que quer remover",pin:"Toque onde quer o pino",biome:"Pinte para transformar a área no bioma escolhido",city:"Toque no nome de um povoado para editar contorno e ruas",street:"Escolha o povoado e marque os pontos da rua"};
+  const brushSl=()=>h("label",{class:"cf"},"Pincel",h("input",{type:"range",min:20,max:140,value:brush,"aria-label":"Tamanho do pincel",oninput:e=>brush=+e.target.value}));
+  const B_=(label,fn,cls)=>h("button",{type:"button",class:cls||"",onclick:fn},label);
+  const finish=()=>{if(draft.length<2){toast("Marque pelo menos dois pontos no mapa.");return}snap();o.vec=o.vec||{rivers:[],roads:[]};const c=draft.map(d=>[Math.round(d.x),Math.round(d.y)]);if(tool==="street"){const L=matCity(cityI);if(!L){toast("Escolha um povoado primeiro.");return}L.st.push({c,m:0})}else if(tool==="river")o.vec.rivers.push({c,w:10});else o.vec.roads.push(c);draft=[];regen()};
+  const rmPoint=()=>{if(!sel){toast("Toque num ponto primeiro.");return}snap();if(sel.kind==="o"||sel.kind==="s")matCity(sel.i);const c=lineOf(sel.kind,sel.i,sel.k),min=sel.kind==="o"?4:3;if(c.length<min){if(sel.kind==="o"){toast("O contorno precisa de pelo menos 3 pontos.");undo.pop();return}removeLine(sel)}else c.splice(sel.j,1);sel=null;regen()};
+  const rmLine=()=>{if(!sel){toast("Toque num ponto da linha primeiro.");return}if(sel.kind==="o"){toast("O contorno não pode ser removido. Use Restaurar cidade.");return}snap();if(sel.kind==="s")matCity(sel.i);removeLine(sel);sel=null;regen()};
+  const restore=()=>{if(cityI<0||!o.lock[cityI]){toast("Escolha um povoado primeiro.");return}snap();delete o.lock[cityI].outline;delete o.lock[cityI].st;sel=null;regen()};
+  const clearBr=()=>{if(!o.edits.length){toast("Este mapa não tem pinceladas.");return}snap();o.edits=[];regen()};
+  function drawCtx(){ctx.replaceChildren();const name=(TOOLGROUPS.flatMap(g=>g[1]).find(x=>x[0]===tool)||["",""])[1];ctx.append(h("strong",{class:"cname"},name));
+    if(BR[tool]!==undefined){if(tool==="biome")ctx.append(h("label",{class:"cf"},"Tipo",h("select",{"aria-label":"Bioma do pincel",onchange:e=>biomeSel=+e.target.value},A.BIOMES.map((n,i)=>h("option",{value:i,selected:i===biomeSel},n)))));ctx.append(brushSl(),B_("Limpar pinceladas",clearBr,"ghost"))}
+    else if(tool==="road"||tool==="river"||tool==="street")ctx.append(B_("Concluir linha",finish,"primary"),B_("Cancelar",()=>{draft=[];drawDraft()},"ghost"));
+    else if(tool==="lines")ctx.append(B_("Remover ponto",rmPoint),B_("Remover linha",rmLine));
+    else if(tool==="city")ctx.append(B_("Remover ponto",rmPoint),B_("Remover rua",rmLine),B_("Restaurar cidade",restore,"ghost"));
+    ctx.hidden=tool==="move";hint.textContent=HINT[tool]||"Pinte arrastando sobre o mapa"}
+  const setTool=t=>{if(!(t==="city"||t==="street")||!(tool==="city"||tool==="street"))cityI=-1;tool=t;draft=[];sel=null;drawDraft();stage.classList.toggle("draw",!["move","lines","city"].includes(t));view.classList.toggle("grab",["move","lines","city"].includes(t));for(const b of pal.querySelectorAll("button[data-t]"))b.setAttribute("aria-pressed",String(b.dataset.t===t));drawCtx();drawPins()};
+  const undoB=h("button",{type:"button",class:"icb",title:"Desfazer","aria-label":"Desfazer",onclick:()=>{const u=undo.pop();if(!u){toast("Nada para desfazer.");return}Object.assign(o,JSON.parse(u));sel=null;fill();regen()}},svgI("M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"));
+  const zbox=h("div",{class:"zbox"},undoB,h("span",{class:"zsep"}),h("button",{type:"button",class:"icb","aria-label":"Afastar",title:"Afastar",onclick:()=>zoomMid(1/1.5)},svgI("M5 12h14")),zl,h("button",{type:"button",class:"icb","aria-label":"Aproximar",title:"Aproximar",onclick:()=>zoomMid(1.5)},svgI("M5 12h14M12 5v14")),h("button",{type:"button",class:"icb","aria-label":"Ajustar à tela",title:"Ajustar à tela",onclick:()=>{Z.k=1;Z.x=Z.y=0;applyZ()}},svgI("M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5")));
   // parametros
   function fill(){par.replaceChildren(h("h2",{},"Parâmetros"));
     for(const [k,label,kind,a,b] of PARAMS){const id="p_"+k;let inp,val=h("span",{});
@@ -207,8 +223,8 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
       else if(kind==="pct"){inp=h("input",{id,type:"range",min:0,max:100,value:Math.round(o.params[k]*100),oninput:e=>val.textContent=e.target.value+"%",onchange:e=>ch(e.target.value/100)});val.textContent=Math.round(o.params[k]*100)+"%"}
       else{inp=h("input",{id,type:"range",min:a,max:b,value:o.params[k],oninput:e=>val.textContent=e.target.value,onchange:e=>ch(+e.target.value)});val.textContent=o.params[k]}
       par.append(h("div",{class:"fld"},h("label",{for:id},label,val),inp))}}
-  fill();body.append(h("div",{class:"mwrap"},view,busy),par);
-  main.append(h("div",{class:"mapv"},head,tb,hint,body,status));setTool("move");applyZ();
+  fill();body.append(h("div",{class:"mwrap"},view,busy,pal,ctx,zbox,hint),par);
+  main.append(h("div",{class:"mapv"},head,body,status));setTool("move");fitWrap();applyZ();
   busy.hidden=false;setTimeout(()=>{regen();if(flash)setTimeout(()=>drawPins(flash),500)},20)}
 
 // ---------- painel do lugar ----------
