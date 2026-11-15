@@ -187,3 +187,14 @@ input[type=range]{accent-color:var(--gold)}
   .hact button{font-size:12px;padding:4px 8px}
 }
 .mwrap{margin:3px auto;width:100%}
+
+.obox{flex-basis:100%;display:flex;flex-direction:column;gap:6px}
+.otabs{display:flex;gap:4px}
+.otabs button{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.otabs button.on{color:var(--gold);border-color:var(--gold)}
+.ogrid{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;max-width:100%;scrollbar-width:thin}
+.ctx .ocell{flex:0 0 68px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px;min-height:0;background:#d8c9a3;border:1px solid transparent;color:#2a2116;font-size:11px;line-height:1.15;text-align:center}
+.ctx .ocell canvas{width:46px;height:46px}
+.ctx .ocell span{width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctx .ocell:hover{border-color:var(--gold)}
+.ctx .ocell.on{border-color:var(--gold);box-shadow:inset 0 0 0 2px var(--gold);background:#eadcb6}

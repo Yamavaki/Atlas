@@ -596,7 +596,6 @@ function generate(P){
     for(let j=y0;j<=y1;j++)for(let i=x0;i<=x1;i++){const dx=i*O+2-x,dy=j*O+2-y;if(dx*dx+dy*dy<=r*r){const k=j*OW+i;if(force||!occ[k])occ[k]=v}}};
   const line=(pts,r,v)=>{for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],n=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/3)+1;for(let k=0;k<=n;k++)disc(lerp(a[0],b[0],k/n),lerp(a[1],b[1],k/n),r,v,true)}};
   for(const r of roads)line(r,4,1);
-  for(const e of erList)disc(e.x,e.y,e.r,3,false);
   // pontes
   const bridges=[];const findBridges=r0=>{const r=resample(r0,2);let run=null;for(let i=0;i<r.length;i++){const w=sampleGrid(rdist,r[i][0],r[i][1])<10.5;if(w&&run===null)run=i;if((!w||i===r.length-1)&&run!==null){{let a0=Math.max(0,run-1),b0=Math.min(r.length-1,i);while(a0>0&&sampleGrid(rdist,r[a0][0],r[a0][1])<12.5)a0--;while(b0<r.length-1&&sampleGrid(rdist,r[b0][0],r[b0][1])<12.5)b0++;bridges.push([r[a0],r[b0]])}run=null}}};for(const r of roads)findBridges(r);
   const splitDry=pts=>{const out=[];let cur=[];for(const q of pts){if(sampleGrid(dist,q[0],q[1])<13){if(cur.length>2)out.push(cur);cur=[]}else cur.push(q)}if(cur.length>2)out.push(cur);return out};
@@ -762,15 +761,8 @@ function generate(P){
       else if(rng()<.01*poi&&sampleGrid(elev,x,y)>.25&&b!==4&&lm.filter(z=>z.k===25).length<2*SC*SC){if(free(x,y,10))o={k:25,x,y,r:10}}
       else if(rng()<.012*poi&&sampleGrid(slope,x,y)<.04&&(b===0||b===1||b===7||b===3)&&sampleGrid(dist,x,y)>24&&ponds.length<4*SC*SC){const w=14+rng()*16;if(free(x,y,w+6)){ponds.push({x,y,w,h:w*(.55+rng()*.3),a:rng()*3.14});disc(x,y,w,2,false);continue}}
       if(o){lm.push(o);disc(x,y,o.r*.8,2,false);B.push(o)}}}
-  {const KM={cave:20,watch:21,camp:22,graves:23,shrine:24,mine:25,ruin:16,stones:17,totem:18,torii:19,arch:26,spires:27,boulders:28};
-    const TREES=new Set(["oak","pine","snowpine","autumn","sakura","blossom","birch","palm","acacia","willow","jungle","dead","cactus","bush","bare"]);
-    for(const m of P.objs||[]){if(!m||m.x==null)continue;const x=m.x,y=m.y,s=m.s||1;if(sampleGrid(land,x,y)<.02&&m.v!=="pond")continue;
-      if(m.v==="volcano")addVolcano(x,y,58*s);else if(m.v==="mesa")addMesa(x,y,26*s,.12*s);
-      else if(m.v==="pond"){ponds.push({x,y,w:16*s,h:16*s*.65,a:0});disc(x,y,16*s,2,true)}
-      else if(TREES.has(m.v)){B.push({k:30,x,y,v:m.v,s:s*(m.v==="bush"?1:.9),man:1});disc(x,y,3,2,false)}
-      else if(m.v==="rock"){B.push({k:31,x,y,s,man:1})}
-      else if(KM[m.v]){const b=bAt(x,y),col=b===3?["#b9b3a2","#77705f","#d6d0c0"]:b===8?["#86705e","#54443a","#a08a74"]:b===4||b===5?["#c9a06c","#8c6a44","#e0c494"]:["#b9b3a2","#77705f","#d6d0c0"];
-        B.push({k:KM[m.v],x,y,man:1,s,col,st:(rng()*12)|0,race:(towns.find(t=>t.rel(x,y)<2.5)||{race:"humano"}).race,snow:sampleGrid(snow,x,y)>.5});disc(x,y,8*s,2,true)}}}
+  for(const m of P.objs||[]){if(!m||m.x==null)continue;const x=m.x,y=m.y,s=m.s||1;if(sampleGrid(land,x,y)<.02&&m.v!=="pond")continue;
+    if(m.v==="volcano")addVolcano(x,y,58*s);else if(m.v==="mesa")addMesa(x,y,26*s,.12*s);else if(m.v==="pond"){ponds.push({x,y,w:16*s,h:16*s*.65,a:0});disc(x,y,16*s,2,true)}}
   for(let j=1;j<GH-1;j++)for(let i=1;i<GW-1;i++){const k=j*GW+i;slope[k]=Math.hypot(elev[k+1]-elev[k-1],elev[k+GW]-elev[k-GW])}
   for(const t of towns){if(rng()<.35+poi*.5){for(let k=0;k<24;k++){const a=rng()*6.28,r=t.rmax*(1.15+rng()*.35),x=t.x+Math.cos(a)*r,y=t.y+Math.sin(a)*r;let f=true;for(let q=0;q<6.28;q+=.8)if(occAt(x+Math.cos(q)*9,y+Math.sin(q)*7)||wet(x+Math.cos(q)*9,y+Math.sin(q)*7))f=false;if(f){disc(x,y,9,2,false);B.push({k:23,x,y,race:t.race});break}}}
     if(rng()<poi*.6){const z=allSt.filter(z=>z.ti===-1);if(z.length){const zz=pick(z),q=zz.pts[(rng()*zz.pts.length)|0],a=rng()*6.28,x=q[0]+Math.cos(a)*9,y=q[1]+Math.sin(a)*9;if(!occAt(x,y)&&!wet(x,y)&&!towns.some(o=>o.rel(x,y)<1.2)){disc(x,y,4,2,false);B.push({k:24,x,y,race:t.race})}}}}
@@ -875,24 +867,26 @@ function render(W,canvas,stamps){
       const top=sy<0?0:sy;for(let s=top;s<ymin;s++){const k=(s*MW+x)*4,gr=.975+((((Math.imul(x,73856093)^Math.imul(s,19349663))>>>0)%89)/89)*.05;o[k]=r*sh*gr;o[k+1]=g*sh*gr;o[k+2]=b*sh*wb*gr;o[k+3]=255;YB[s*MW+x]=y}
       ymin=sy;if(ymin<=0)break}}
   const tmp=document.createElement("canvas");tmp.width=MW;tmp.height=MH;tmp.getContext("2d").putImageData(img,0,0);
+  const MKEY={cave:20,watch:21,camp:22,graves:23,shrine:24,mine:25,ruin:16,stones:17,totem:18,torii:19,arch:26,spires:27,boulders:28},TREEK=new Set(["oak","pine","snowpine","autumn","sakura","blossom","birch","palm","acacia","willow","jungle","dead","cactus","bush","bare"]);
+  let CACHE=null;const compose=(MO,ER)=>{setScale(W.P.size||1);let rngS=mulberry((W.seed^4242)>>>0);const rng=()=>rngS();
   // 3. papel e moldura
-  const c=canvas.getContext("2d");c.setTransform(1,0,0,1,0,0);c.fillStyle="#cdbb93";c.fillRect(0,0,CW,CH);
+  const c=canvas.getContext("2d");c.setTransform(1,0,0,1,0,0);if(CACHE)c.drawImage(CACHE.base,0,0);else{c.fillStyle="#cdbb93";c.fillRect(0,0,CW,CH);
   for(let i=0;i<60;i++){const x=rng()*CW,y=rng()*CH,r=40+rng()*200,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,"rgba(110,80,35,"+(.03+rng()*.07)+")");g.addColorStop(1,"rgba(110,80,35,0)");c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2)}
-  c.drawImage(tmp,MX,MY);
+  c.drawImage(tmp,MX,MY);}
   c.save();c.beginPath();c.rect(MX,MY,MW,MH);c.clip();c.translate(MX,MY);c.lineCap="round";
   const eAt=(x,y)=>E[clamp(y|0,0,WY-1)*WX+clamp(x|0,0,WX-1)];
   const pj=(x,y)=>[x,y*TILT-eAt(x,y)*K];
   const vis=(x,y,p)=>{const sx=p[0]|0,sy=p[1]|0;if(sx<0||sy<0||sx>=MW||sy>=MH)return sy<MH+40&&sx>-20&&sx<MW+20&&sy>-10;return YB[sy*MW+sx]<=y+14};
   // 4a. hachuras de encosta: escuras no lado da sombra, claras no lado da luz
-  {const hd=[],hl=[];
+  let bc=null;if(!CACHE){const hd=[],hl=[];
     for(let y=6;y<WY-6;y+=7)for(let x=6;x<WX-6;x+=7){const px=x+(rng()-.5)*6,py=y+(rng()-.5)*6;const gx=(eAt(px+3,py)-eAt(px-3,py))/6,gy=(eAt(px,py+3)-eAt(px,py-3))/6,g=Math.hypot(gx,gy);
       if(g<.0016||rng()>g*170)continue;const k=(clamp(py|0,0,WY-1)*WX+clamp(px|0,0,WX-1))*4;if(tex[k+3]>60||LF[k>>2]<.06)continue;
       const p=pj(px,py);if(!vis(px,py,p))continue;const len=clamp(g*2600,3,10),q=pj(px-gx/g*len,py-gy/g*len);
       ((gx*.85+gy*.7)>0?hl:hd).push([p,q])}
     c.lineWidth=.9;c.strokeStyle="rgba(62,54,22,.55)";c.beginPath();for(const[p,q]of hd){c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}c.stroke();
-    c.strokeStyle="rgba(244,232,166,.5)";c.beginPath();for(const[p,q]of hl){c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}c.stroke()}
+    c.strokeStyle="rgba(244,232,166,.5)";c.beginPath();for(const[p,q]of hl){c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}c.stroke();bc=document.createElement("canvas");bc.width=CW;bc.height=CH;bc.getContext("2d").drawImage(canvas,0,0)}
   // 4. objetos (construcoes primeiro; arvores que cobririam uma construcao atras delas sao omitidas)
-  const obj=[];const CS=4,SGW=Math.ceil(MW/CS)+1,SGH=Math.ceil(MH/CS)+1,minY=new Float32Array(SGW*SGH).fill(1e9);
+  let obj=[];if(CACHE)obj=CACHE.obj.slice();else{const CS=4,SGW=Math.ceil(MW/CS)+1,SGH=Math.ceil(MH/CS)+1,minY=new Float32Array(SGW*SGH).fill(1e9);
   const mark=(x0,y0,x1,y1,yy)=>{const i0=Math.max(0,(x0/CS)|0),i1=Math.min(SGW-1,(x1/CS)|0),j0=Math.max(0,(y0/CS)|0),j1=Math.min(SGH-1,(y1/CS)|0);for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const k=j*SGW+i;if(yy<minY[k])minY[k]=yy}};
   const blocked=(x0,y0,x1,y1,yy)=>{const i0=Math.max(0,(x0/CS)|0),i1=Math.min(SGW-1,(x1/CS)|0),j0=Math.max(0,(y0/CS)|0),j1=Math.min(SGH-1,(y1/CS)|0);for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++)if(minY[j*SGW+i]<yy-1)return true;return false};
   for(const b of W.B){const p=pj(b.x,b.y);if(!vis(b.x,b.y,p))continue;const ey=b.k===1?(Math.abs(Math.sin(b.ang))*b.L+Math.abs(Math.cos(b.ang))*b.D)/2*TILT:0,ex=b.k===1?(Math.abs(Math.cos(b.ang))*b.L+Math.abs(Math.sin(b.ang))*b.D)/2:0;const q=Object.assign({},b,{x:p[0],y:p[1]+ey,cy:p[1]});obj.push(q);
@@ -930,8 +924,13 @@ function render(W,canvas,stamps){
     obj.push({y:p[1],x:p[0],k:0,s:sc*(bb===6?1.1:bb===4&&st.width<25?.8:1),st})}
   {for(let i=0;i<Math.round(5000*SC*SC);i++){const px=rng()*WX,py=rng()*WY;if(W.bAt(px,py)!==7||occAt(px,py)||sampleGrid(W.land,px,py)<.05||sampleGrid(W.rdist,px,py)<14)continue;const p=pj(px,py);if(!vis(px,py,p))continue;obj.push({k:12,x:p[0],y:p[1],s:.8+rng()*.4,st:stamps.reed[(rng()*stamps.reed.length)|0]})}}
   for(const e of W.extra){if(occAt(e[0],e[1])===3||sampleGrid(W.rdist,e[0],e[1])<15||sampleGrid(W.land,e[0],e[1])<.04)continue;const p=pj(e[0],e[1]);if(!vis(e[0],e[1],p))continue;if(e[3]==="b"){obj.push({k:12,x:p[0],y:p[1],s:e[2],st:stamps.bush[(rng()*stamps.bush.length)|0]});continue}const w=34*e[2],h=38*e[2];if(blocked(p[0]-w*.32,p[1]-h*.85,p[0]+w*.32,p[1],p[1]))continue;const tn=W.towns.find(t=>t.rel(e[0],e[1])<1.4),se=W.P.season;let ar=stamps.dec;if(tn&&(tn.race==="japones"||tn.race==="chines")&&rng()<.55)ar=stamps.sakura;else if(se==="outono"&&rng()<.7)ar=stamps.autumn;else if(se==="inverno")ar=stamps.bare;else if(se==="primavera"&&rng()<.25)ar=stamps.blossom;obj.push({y:p[1],x:p[0],k:0,s:e[2],st:ar[(rng()*ar.length)|0]})}
-  obj.sort((a,b)=>a.y-b.y);const smoke=[];
-  for(const q of obj){const _sc=q.man&&q.k>=16&&q.k<=28&&q.s&&q.s!==1;if(_sc){c.save();c.translate(q.x,q.y);c.scale(q.s,q.s);c.translate(-q.x,-q.y)}try{
+  CACHE={base:bc,obj:obj.slice()}}
+  for(const m of MO||[]){if(!m||m.x==null||!(TREEK.has(m.v)||m.v==="rock"||MKEY[m.v]))continue;if(sampleGrid(W.land,m.x,m.y)<.02||sampleGrid(W.rdist,m.x,m.y)<5)continue;const p=pj(m.x,m.y);if(!vis(m.x,m.y,p))continue;const s=m.s||1;
+    if(TREEK.has(m.v))obj.push({k:30,x:p[0],y:p[1],v:m.v,s:s*(m.v==="bush"?1:.9),man:1});else if(m.v==="rock")obj.push({k:31,x:p[0],y:p[1],s,man:1});
+    else{const b=W.bAt(m.x,m.y),col=b===8?["#86705e","#54443a","#a08a74"]:b===4||b===5?["#c9a06c","#8c6a44","#e0c494"]:["#b9b3a2","#77705f","#d6d0c0"];obj.push({k:MKEY[m.v],x:p[0],y:p[1],man:1,s,col,st:((m.x*7+m.y*3)|0)%12,race:(towns.find(t=>t.rel(m.x,m.y)<2.5)||{race:"humano"}).race,snow:sampleGrid(W.snow,m.x,m.y)>.5})}}
+  let objD=obj;if(ER&&ER.length){const ep=ER.map(e=>{const p=pj(e.x,e.y);return [p[0],p[1],e.r*e.r]});objD=obj.filter(q=>{if(q.man||q.x==null||q.k===4||q.k===5||q.k===9||q.k===13||q.k===15)return true;for(const [x,y,r2] of ep){const dx=q.x-x,dy=(q.y-y)/TILT;if(dx*dx+dy*dy<r2)return false}return true})}
+  objD.sort((a,b)=>a.y-b.y);const smoke=[];
+  for(const q of objD){rngS=mulberry((Math.imul((q.x||0)*4|0,73856093)^Math.imul((q.y||0)*4|0,19349663)^q.k*83492791)>>>0);const _sc=q.man&&q.k>=16&&q.k<=28&&q.s&&q.s!==1;if(_sc){c.save();c.translate(q.x,q.y);c.scale(q.s,q.s);c.translate(-q.x,-q.y)}try{
     if(q.k===0){const w=34*q.s,h=38*q.s;c.drawImage(q.st,q.x-w/2,q.y-h*.9,w,h)}
     else if(q.k===1){drawBuilding(c,q.x,q.cy,q);if(q.smoke)smoke.push([q.x,q.cy-q.H-q.R-2])}
     else if(q.k===2){c.save();if((q.v||0)<.5){c.translate(q.x,0);c.scale(-1,1);c.translate(-q.x,0)}const m=(q.big?1.3:1)*(q.sz||1),rc=q.race||"humano",sw=q.cold?"snow":null;
@@ -974,7 +973,8 @@ function render(W,canvas,stamps){
     else if(q.k===13)drawShip(c,q.x,q.y,q.big,q.flip);
     else if(q.k===15)drawCrater(c,q.x,q.y,q.w,rng);else if(q.k===26)drawArch(c,q.x,q.y,q.col,rng);else if(q.k===27)drawSpires(c,q.x,q.y,q.col,rng);else if(q.k===28)drawBoulders(c,q.x,q.y,stamps.rockc[q.st%stamps.rockc.length]);else if(q.k===31){const st=stamps.rocks[(q.y|0)%stamps.rocks.length],w=22*q.s,h=17*q.s;c.drawImage(st,q.x-w/2,q.y-h*.85,w,h)}else if(q.k===30){const M={oak:stamps.dec,pine:stamps.con,snowpine:stamps.snowpine,autumn:stamps.autumn,sakura:stamps.sakura,blossom:stamps.blossom,birch:stamps.birch,palm:stamps.palm,acacia:stamps.acacia,willow:stamps.willow,jungle:stamps.jungle,dead:stamps.dead,cactus:stamps.cactus,bush:stamps.bush,bare:stamps.bare},ar=M[q.v]||stamps.dec,st=ar[((q.x*7+q.y*13)|0)%ar.length],w=st.width*q.s,h=st.height*q.s;c.drawImage(st,q.x-w/2,q.y-h*.9,w,h)}else if(q.k===16)drawRuin(c,q.x,q.y,rng);else if(q.k===17)drawStones(c,q.x,q.y,rng);else if(q.k===18)drawTotem(c,q.x,q.y);else if(q.k===20)drawCave(c,q.x,q.y,q.snow,rng);else if(q.k===21)drawWatch(c,q.x,q.y);else if(q.k===22)drawCamp(c,q.x,q.y,q.race,rng);else if(q.k===23)drawGraves(c,q.x,q.y,q.race);else if(q.k===24)drawShrine(c,q.x,q.y,q.race);else if(q.k===25)drawMine(c,q.x,q.y);else if(q.k===19)drawTorii(c,q.x,q.y);
     else if(q.k===8){c.save();c.translate(q.x,q.y);c.scale(.82,.82);c.translate(-q.x,-q.y);drawMill(c,q.x,q.y,q.rot);c.restore()}}finally{if(_sc)c.restore()}}
-  for(const s of smoke)drawSmoke(c,s[0],s[1],rng);
+  rngS=mulberry((W.seed^99)>>>0);for(const s of smoke)drawSmoke(c,s[0],s[1],rng);
+  if(!CACHE.ov){rngS=mulberry((W.seed^777)>>>0);const ovc=document.createElement("canvas");ovc.width=MW;ovc.height=MH;const c=ovc.getContext("2d");c.lineCap="round";
   // 6. rotulos
   towns.forEach((t,i)=>{const p=pj(t.x,t.y);banner(c,clamp(p[0],110,MW-130),clamp(p[1]-(i===0?t.core*.72+44:t.core*.55+30),24,MH-20),t.name,i===0||t.kind==="town",rng)});
   // 7. nuvens em gravura
@@ -986,19 +986,39 @@ function render(W,canvas,stamps){
         puffs.push({r:r+rng()*10,x:x+nx*r+(rng()-.5)*40,y:y+ny*r+(rng()-.5)*26,w,h:w*(.55+rng()*.12),t})}}
     puffs.sort((a,b)=>a.r-b.r||a.y-b.y);
     for(const p of puffs){const t=p.t,m=(a,b)=>Math.round(lerp(a,b,t));puff(c,p.x,p.y,p.w,p.h,["rgb("+m(158,212)+","+m(158,209)+","+m(142,194)+")","rgb("+m(92,128)+","+m(94,128)+","+m(80,112)+")"],rng)}}
+  CACHE.ov=ovc}
+  c.drawImage(CACHE.ov,0,0);
   // 8. envelhecimento e grao
   const vg=c.createRadialGradient(MW/2,MH/2,MH*.45,MW/2,MH/2,MW*.75);vg.addColorStop(0,"rgba(70,45,10,0)");vg.addColorStop(1,"rgba(70,45,10,.3)");c.fillStyle=vg;c.fillRect(0,0,MW,MH);
-  const gn=document.createElement("canvas");gn.width=gn.height=160;const gx=gn.getContext("2d"),gd=gx.createImageData(160,160);
-  for(let i=0;i<gd.data.length;i+=4){const v=150+rng()*105;gd.data[i]=v;gd.data[i+1]=v*.97;gd.data[i+2]=v*.9;gd.data[i+3]=255}gx.putImageData(gd,0,0);
+  const gn=CACHE.gn||document.createElement("canvas");if(!CACHE.gn){CACHE.gn=gn;gn.width=gn.height=160;const gx=gn.getContext("2d"),gd=gx.createImageData(160,160);
+  for(let i=0;i<gd.data.length;i+=4){const v=150+rng()*105;gd.data[i]=v;gd.data[i+1]=v*.97;gd.data[i+2]=v*.9;gd.data[i+3]=255}gx.putImageData(gd,0,0)}
   c.globalCompositeOperation="multiply";c.globalAlpha=.34;c.fillStyle=c.createPattern(gn,"repeat");c.fillRect(0,0,MW,MH);c.globalAlpha=1;c.globalCompositeOperation="source-over";
   c.restore();
   c.strokeStyle=INK;c.lineWidth=2;c.strokeRect(MX-.5,MY-.5,MW+1,MH+1);c.lineWidth=.8;c.strokeRect(MX-6.5,MY-6.5,MW+13,MH+13);
   c.font='30px "IM Fell English SC","IM Fell English",Georgia,serif';c.textAlign="center";c.textBaseline="middle";c.fillStyle="#1d160d";
   const title=(P.title||("Região de "+(towns[0]?towns[0].name:"Atlas"))).toUpperCase();c.fillText(title,CW/2,31);const tw=c.measureText(title).width/2+22;
   for(const s of[-1,1])poly(c,[[CW/2+s*tw,24],[CW/2+s*tw+6,31],[CW/2+s*tw,38],[CW/2+s*tw-6,31]],"#a8352a");
-  return {n:obj.length,b:W.B.filter(b=>b.k===1).length,YB,project:(x,y)=>{const p=pj(x,y);return [p[0]+MX,p[1]+MY]}};
+  return objD.length};
+  const n=compose(P.objs,(P.edits||[]).filter(e=>e.t==="erase"));
+  return {n,compose,b:W.B.filter(b=>b.k===1).length,YB,project:(x,y)=>[x+MX,y*TILT-E[clamp(y|0,0,WY-1)*WX+clamp(x|0,0,WX-1)]*K+MY]};
 }
 
+// miniatura de um objeto para o catalogo (desenhada com as mesmas funcoes do mapa)
+function objThumb(v,stamps,S){S=S||72;const cv=document.createElement("canvas");cv.width=cv.height=S;const c=cv.getContext("2d"),rng=mulberry(hashStr(v)),k=S/72;c.scale(k,k);c.lineCap="round";c.lineJoin="round";
+  const T={oak:stamps.dec,pine:stamps.con,snowpine:stamps.snowpine,autumn:stamps.autumn,sakura:stamps.sakura,blossom:stamps.blossom,birch:stamps.birch,palm:stamps.palm,acacia:stamps.acacia,willow:stamps.willow,jungle:stamps.jungle,dead:stamps.dead,cactus:stamps.cactus,bush:stamps.bush,bare:stamps.bare};
+  const grey=["#b9b3a2","#77705f","#d6d0c0"],sand=["#c9a06c","#8c6a44","#e0c494"];
+  const sc=(f,z,x,y)=>{c.save();c.translate(x,y);c.scale(z,z);c.translate(-x,-y);f();c.restore()};
+  if(T[v]){const st=T[v][0],z=Math.min(60/st.width,62/st.height);c.drawImage(st,36-st.width*z/2,66-st.height*z,st.width*z,st.height*z)}
+  else if(v==="rock"){const st=stamps.rocks[6];c.drawImage(st,10,22,52,40)}
+  else if(v==="boulders")c.drawImage(stamps.rockc[0],2,18,68,48);
+  else if(v==="arch")sc(()=>drawArch(c,36,52,grey,rng),1.3,36,52);
+  else if(v==="spires")sc(()=>drawSpires(c,36,54,sand,rng),1.5,36,54);
+  else if(v==="volcano"){c.fillStyle="rgba(30,25,10,.3)";c.beginPath();c.ellipse(36,62,32,7,0,0,7);c.fill();const g=c.createLinearGradient(8,0,64,0);g.addColorStop(0,"#6e5e54");g.addColorStop(1,"#3a302c");c.fillStyle=g;c.strokeStyle=INK;c.lineWidth=1;c.beginPath();c.moveTo(4,62);c.quadraticCurveTo(24,52,31,30);c.lineTo(41,30);c.quadraticCurveTo(48,52,68,62);c.closePath();c.fill();c.stroke();
+    c.strokeStyle="rgba(30,20,15,.5)";c.lineWidth=.6;for(let i=0;i<9;i++){const x=12+i*6;c.beginPath();c.moveTo(36+(x-36)*.2,32);c.lineTo(x,60);c.stroke()}c.strokeStyle="#e2632a";c.lineWidth=1.8;c.beginPath();c.moveTo(34,31);c.quadraticCurveTo(30,46,22,58);c.stroke();sc(()=>drawCrater(c,36,30,40,rng),.8,36,30)}
+  else if(v==="mesa"){const g=c.createLinearGradient(0,26,0,60);g.addColorStop(0,"#d8aa76");g.addColorStop(1,"#8c6a44");c.fillStyle=g;c.strokeStyle=INK;c.lineWidth=1;c.beginPath();c.moveTo(6,60);c.lineTo(14,30);c.lineTo(58,28);c.lineTo(66,60);c.closePath();c.fill();c.stroke();c.fillStyle="#e6c08a";c.beginPath();c.ellipse(36,29,23,6,0,0,7);c.fill();c.stroke();c.strokeStyle="rgba(80,45,20,.45)";c.lineWidth=.7;for(let y=38;y<60;y+=6){c.beginPath();c.moveTo(10,y);c.lineTo(62,y+1);c.stroke()}}
+  else if(v==="pond"){c.fillStyle="#6f8d98";c.strokeStyle=INK;c.lineWidth=1.2;c.beginPath();c.ellipse(36,46,28,14,0,0,7);c.fill();c.stroke();c.strokeStyle="rgba(230,240,240,.6)";c.lineWidth=.8;c.beginPath();c.moveTo(22,44);c.lineTo(34,44);c.moveTo(38,50);c.lineTo(50,50);c.stroke()}
+  else sc(()=>{const x=36,y=50;if(v==="cave")drawCave(c,x,y,false,rng);else if(v==="ruin")drawRuin(c,x,y,rng);else if(v==="stones")drawStones(c,x,y,rng);else if(v==="totem")drawTotem(c,x,y);else if(v==="torii")drawTorii(c,x,y);else if(v==="watch")drawWatch(c,x,y);else if(v==="camp")drawCamp(c,x,y,"humano",rng);else if(v==="graves")drawGraves(c,x,y,"humano");else if(v==="shrine")drawShrine(c,x,y,"humano");else if(v==="mine")drawMine(c,x,y)},{watch:1.65,totem:2.2,shrine:2.6,graves:2.6,stones:2.4,torii:1.9,camp:2.2,ruin:2,cave:2.2,mine:2.2}[v]||2,36,v==="watch"||v==="totem"||v==="torii"?66:52);
+  return cv}
 
-window.AtlasGen={CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["misto","Mundo misto"]],BIOMES,RACES,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
+window.AtlasGen={objThumb,CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["misto","Mundo misto"]],BIOMES,RACES,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
 })();
