@@ -28,7 +28,7 @@ const PARAMS=[["size","Tamanho do mapa","select",[[1,"Região (normal)"],[1.5,"G
 const STRUCT=new Set(["culture","size","races","form","seed","towns","plan","rivers","meander","islands","lakes"]);
 const TOOLGROUPS=[["Navegar",[["move","Navegar"]]],["Terreno",[["land","Terra"],["sea","Mar"],["up","Elevar"],["down","Rebaixar"]]],["Natureza",[["forest","Floresta"],["clear","Clareira"],["biome","Bioma"]]],
   ["Povoados",[["town","Novo povoado"],["untown","Remover povoado"],["city","Editar cidade"],["street","Nova rua"]]],["Linhas",[["lines","Editar rios e estradas"],["road","Nova estrada"],["river","Novo rio"]]],["Objetos",[["obj","Colocar objeto"],["erase","Apagar"]]],["Marcar",[["pin","Pino"]]]];
-const OBJCAT=[["Árvores",[["oak","Carvalho"],["pine","Pinheiro"],["birch","Bétula"],["autumn","Árvore de outono"],["sakura","Cerejeira (sakura)"],["blossom","Árvore florida branca"],["willow","Salgueiro"],["palm","Palmeira"],["acacia","Acácia"],["jungle","Árvore de selva"],["snowpine","Pinheiro com neve"],["bare","Árvore sem folhas"],["dead","Árvore morta"],["cactus","Cacto"],["bush","Arbusto"]]],["Rochas e relevo",[["rock","Rocha"],["boulders","Grupo de rochas"],["spires","Agulhas de pedra"],["arch","Arco de pedra"],["mesa","Planalto (mesa)"],["volcano","Vulcão"],["pond","Lagoa"]]],["Pontos de interesse",[["cave","Caverna"],["ruin","Ruína"],["stones","Círculo de pedras"],["watch","Torre de vigia"],["camp","Acampamento"],["mine","Mina"],["graves","Cemitério"],["shrine","Santuário"],["totem","Totem"],["torii","Portal torii"]]]];
+const OBJCAT=[["Árvores",[["oak","Carvalho"],["pine","Pinheiro"],["birch","Bétula"],["autumn","Árvore de outono"],["sakura","Cerejeira (sakura)"],["blossom","Árvore florida branca"],["willow","Salgueiro"],["palm","Palmeira"],["acacia","Acácia"],["jungle","Árvore de selva"],["snowpine","Pinheiro com neve"],["bare","Árvore sem folhas"],["dead","Árvore morta"],["cactus","Cacto"],["bush","Arbusto"]]],["Rochas e relevo",[["rock","Rocha"],["boulders","Grupo de rochas"],["spires","Agulhas de pedra"],["arch","Arco de pedra"],["mesa","Planalto (mesa)"],["volcano","Vulcão"],["pond","Lagoa"]]],["Construções",[["b_town","Casa"],["b_row","Sobrado"],["b_rich","Casarão"],["b_manor","Solar"],["b_tavern","Taverna"],["b_smithy","Ferraria"],["b_farm","Casa de campo"],["b_hut","Cabana"],["b_barn","Celeiro"],["b_shed","Barracão"],["b_temple","Templo"],["b_castle","Castelo"],["b_tower","Torre"],["b_mill","Moinho"],["b_stall","Barraca de feira"],["b_well","Poço"],["b_tent","Barraca militar"],["b_cmd","Tenda de comando"],["b_fire","Fogueira"]]],["Pontos de interesse",[["cave","Caverna"],["ruin","Ruína"],["stones","Círculo de pedras"],["watch","Torre de vigia"],["camp","Acampamento"],["mine","Mina"],["graves","Cemitério"],["shrine","Santuário"],["totem","Totem"],["torii","Portal torii"]]]];
 const OBJTREE=new Set(OBJCAT[0][1].map(x=>x[0])),OBJTERR=new Set(["volcano","mesa","pond"]);let THUMBS=null;
 const objName=v=>(OBJCAT.flatMap(g=>g[1]).find(x=>x[0]===v)||["",v])[1];
 const ICON={move:"M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3",land:"M3 18c2-5 5-8 9-8s7 3 9 8M3 18h18",sea:"M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0",
@@ -121,8 +121,36 @@ function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChil
 let cur=null,tool="move",brush=60,undo=[];
 function newMap(){const id=uid("m"),nm=A.NAMES[(Math.random()*A.NAMES.length)|0];let name="Região de "+nm,k=2;while([...S.maps.values()].some(m=>m.name===name))name="Região de "+nm+" "+(k++);
   const o={id,name,params:Object.assign({},DEF,{seed:nm.toLowerCase()+"-"+(1300+((Math.random()*200)|0))}),edits:[],lock:null,pins:[],updated:now()};S.maps.set(id,o);Store.save("maps",o);return o}
+function newCity(){const AC=window.AtlasCity,id=uid("m"),nm=A.NAMES[(Math.random()*A.NAMES.length)|0];let name="Cidade de "+nm,k=2;while([...S.maps.values()].some(m=>m.name===name))name="Cidade de "+nm+" "+(k++);
+  const o={id,name,type:"city",params:Object.assign({},AC.DEF,{seed:nm.toLowerCase()+"-"+(1200+((Math.random()*300)|0)),site:AC.SITES[(Math.random()*AC.SITES.length)|0][0]}),updated:now()};S.maps.set(id,o);Store.save("maps",o);return o}
+// mapa de cidade: gerador proprio (city.js), com zoom, arrasto e parametros
+function drawCityMap(o,main){const AC=window.AtlasCity;o.params=Object.assign({},AC.DEF,o.params);
+  const mc=h("canvas",{id:"mc",width:AC.CW,height:AC.CH,"aria-label":"Mapa da cidade"}),stage=h("div",{class:"stage"},mc),busy=h("div",{class:"busy"},"Gerando…"),status=h("div",{class:"status"}),view=h("div",{class:"view"},stage);view.style.aspectRatio=AC.CW+"/"+AC.CH;
+  const Z={k:1,x:0,y:0},zl=h("span",{class:"zl"},"100%"),applyZ=()=>{const vw=view.clientWidth,vh=view.clientHeight;Z.x=clamp(Z.x,vw-vw*Z.k,0);Z.y=clamp(Z.y,vh-vh*Z.k,0);stage.style.transform="translate("+Z.x+"px,"+Z.y+"px) scale("+Z.k+")";zl.textContent=Math.round(Z.k*100)+"%"};
+  const zoomAt=(cx,cy,f)=>{const k2=clamp(Z.k*f,1,8);Z.x=cx-(cx-Z.x)*k2/Z.k;Z.y=cy-(cy-Z.y)*k2/Z.k;Z.k=k2;applyZ()},zoomMid=f=>zoomAt(view.clientWidth/2,view.clientHeight/2,f);
+  let pan=null;view.addEventListener("pointerdown",ev=>{if(ev.target.closest("button"))return;if(ev.button===1)ev.preventDefault();pan=[ev.clientX,ev.clientY];try{view.setPointerCapture(ev.pointerId)}catch(e){}});
+  view.addEventListener("pointermove",ev=>{if(!pan)return;Z.x+=ev.clientX-pan[0];Z.y+=ev.clientY-pan[1];pan=[ev.clientX,ev.clientY];applyZ()});const up=()=>{pan=null};view.addEventListener("pointerup",up);view.addEventListener("pointercancel",up);
+  view.addEventListener("mousedown",ev=>{if(ev.button===1)ev.preventDefault()});view.addEventListener("wheel",ev=>{ev.preventDefault();const r=view.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*.0016))},{passive:false});
+  function regen(){busy.hidden=false;setTimeout(()=>{const t0=performance.now();try{const C=AC.generate(Object.assign({},o.params,{title:o.name.replace(/^Cidade de /i,"")})),info=AC.render(C,mc);Store.save("maps",o);
+      const cnt={};for(const d of C.districts)cnt[d.type]=(cnt[d.type]||0)+1;status.textContent=C.inner.length+" bairros, "+C.districts.length+" distritos, "+info.houses+" construções, "+C.gates.length+" portões, "+Math.round(performance.now()-t0)+" ms"}
+    catch(e){console.error(e);status.textContent="Não foi possível gerar esta cidade. Tente outra semente. ("+e.message+")"}busy.hidden=true},30)}
+  const par=h("aside",{class:"params","aria-label":"Parâmetros da cidade"}),body=h("div",{class:"mbody par"});
+  function fill(){par.replaceChildren(h("h2",{},"Parâmetros da cidade"));for(const [k,label,kind,a,b] of AC.PARAMS){const id="c_"+k;let inp,val=h("span",{});const ch=v=>{o.params[k]=v;regen()};
+      if(kind==="select"){inp=h("select",{id,onchange:e=>ch(e.target.value)},a.map(([v,t])=>h("option",{value:v},t)));inp.value=String(o.params[k])}
+      else if(kind==="text")inp=h("input",{id,type:"text",value:o.params[k],autocomplete:"off",onchange:e=>ch(e.target.value.trim()||"atlas")});
+      else if(kind==="bool"){inp=h("select",{id,onchange:e=>ch(e.target.value==="1")},h("option",{value:"1"},"Sim"),h("option",{value:"0"},"Não"));inp.value=o.params[k]?"1":"0"}
+      else if(kind==="pct"){inp=h("input",{id,type:"range",min:0,max:100,value:Math.round(o.params[k]*100),oninput:e=>val.textContent=e.target.value+"%",onchange:e=>ch(e.target.value/100)});val.textContent=Math.round(o.params[k]*100)+"%"}
+      else{inp=h("input",{id,type:"range",min:a,max:b,value:o.params[k],oninput:e=>val.textContent=e.target.value,onchange:e=>ch(+e.target.value)});val.textContent=o.params[k]}
+      par.append(h("div",{class:"fld"},h("label",{for:id},label,val),inp))}}
+  const title=h("input",{class:"title",type:"text",value:o.name,"aria-label":"Nome da cidade",onchange:e=>{o.name=e.target.value.trim()||"Cidade";drawSide();regen()}});
+  let armed=false;const del=h("button",{type:"button",class:"danger ghost",onclick:()=>{if(!armed){armed=true;del.textContent="Confirmar";setTimeout(()=>{armed=false;del.textContent="Excluir"},3000);return}Store.remove("maps",o.id);S.map=null;drawAll()}},"Excluir");
+  const bPar=h("button",{type:"button","aria-pressed":"true",onclick:()=>{par.hidden=!par.hidden;body.classList.toggle("par",!par.hidden);bPar.setAttribute("aria-pressed",String(!par.hidden));applyZ()}},"Parâmetros");
+  const head=h("div",{class:"mhead"},title,h("div",{class:"hact"},h("button",{type:"button",class:"primary",onclick:()=>{o.params.seed=A.NAMES[(Math.random()*A.NAMES.length)|0].toLowerCase()+"-"+(1200+((Math.random()*300)|0));fill();regen()}},"Sortear nova"),bPar,h("button",{type:"button",onclick:()=>mc.toBlob(b=>saveFile(safe(o.name)+".png",b))},"Salvar PNG"),del));
+  const zbox=h("div",{class:"zbox"},h("button",{type:"button",class:"icb",title:"Afastar","aria-label":"Afastar",onclick:()=>zoomMid(1/1.4)},"−"),zl,h("button",{type:"button",class:"icb",title:"Aproximar","aria-label":"Aproximar",onclick:()=>zoomMid(1.4)},"+"),h("button",{type:"button",class:"icb",title:"Ajustar à tela","aria-label":"Ajustar à tela",onclick:()=>{Z.k=1;Z.x=Z.y=0;applyZ()}},"⤢"));
+  const hint=h("div",{class:"hintc"},"Arraste para mover · roda do mouse para aproximar");
+  fill();body.append(h("div",{class:"mwrap"},view,busy,zbox,hint),par);main.append(h("div",{class:"mapv"},head,body,status));applyZ();regen()}
 function openMap(id,flash){S.sec="maps";S.map=id;undo=[];tool="move";closePlace();drawAll(flash);$("#side").classList.remove("open")}
-function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();
+function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();if(o.type==="city"&&window.AtlasCity)return drawCityMap(o,main);
   o.params=Object.assign({},DEF,o.params);o.edits=o.edits||[];o.pins=o.pins||[];o.objs=o.objs||[];
   const mc=h("canvas",{id:"mc",width:A.CW,height:A.CH,"aria-label":"Mapa"}),mo=h("canvas",{id:"mo",width:A.CW,height:A.CH}),pins=h("div",{id:"mpins"}),stage=h("div",{class:"stage"},mc,mo,pins),busy=h("div",{class:"busy"},"Gerando…"),status=h("div",{class:"status"});
   const view=h("div",{class:"view"},stage),octx=mo.getContext("2d");let sel=null,draft=[];
@@ -167,28 +195,31 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     return {x:sx,y:cur.info.YB[sy*A.MW+sx]||sy/A.TILT,cx,cy}}
   const drawDraft=()=>{octx.clearRect(0,0,A.CW,A.CH);if(!draft.length)return;octx.lineWidth=3;octx.strokeStyle=tool==="river"?"#3f6f8f":tool==="street"?"#c98f45":"#7a4a1c";octx.fillStyle="#f3e6c6";octx.beginPath();draft.forEach((d,i)=>i?octx.lineTo(d.cx,d.cy):octx.moveTo(d.cx,d.cy));octx.stroke();for(const d of draft){octx.beginPath();octx.arc(d.cx,d.cy,5,0,7);octx.fill();octx.stroke()}};
   const BCOL=["rgba(150,170,80,.5)","rgba(60,100,70,.5)","rgba(240,244,250,.6)","rgba(180,180,150,.5)","rgba(230,190,110,.55)","rgba(210,190,100,.5)","rgba(50,120,40,.5)","rgba(90,110,90,.55)","rgba(110,80,60,.55)"];let biomeSel=4;
-  const BR={biome:"",land:"rgba(190,200,110,.45)",sea:"rgba(90,130,160,.5)",up:"rgba(230,210,150,.45)",down:"rgba(60,50,30,.45)",forest:"rgba(50,90,40,.5)",clear:"rgba(200,190,120,.45)",erase:"rgba(170,60,50,.45)"};let objSel="oak",objSize=1,objSpread=1;
+  const BR={biome:"",land:"rgba(190,200,110,.45)",sea:"rgba(90,130,160,.5)",up:"rgba(230,210,150,.45)",down:"rgba(60,50,30,.45)",forest:"rgba(50,90,40,.5)",clear:"rgba(200,190,120,.45)",erase:"rgba(170,60,50,.45)"};let objSel="oak",objSize=1,objSpread=1,objRace="humano",objRot=20,thumbRace="";const isB=v=>v.slice(0,2)==="b_";
   const ptrs=new Map();let pan=null,pinch=null,stroke=null,tap=null;
   function add(w){const l=stroke[stroke.length-1];if(l&&Math.hypot(l.x-w.x,l.y-w.y)<brush*.45)return;stroke.push(tool==="biome"?{t:"biome",b:biomeSel,x:Math.round(w.x),y:Math.round(w.y),r:brush}:{t:tool,x:Math.round(w.x),y:Math.round(w.y),r:brush});octx.fillStyle=tool==="biome"?BCOL[biomeSel]:BR[tool];octx.beginPath();octx.ellipse(w.cx,w.cy,brush,brush*A.TILT,0,0,7);octx.fill()}
   function act(w){
     if(tool==="town"){snap();o.lock=(o.lock||[]).concat({x:Math.round(w.x/A.G)*A.G,y:Math.round(w.y/A.G)*A.G,size:8,kind:"village",planned:false,name:""});regen()}
     else if(tool==="untown"){let bi=-1,bd=110;(o.lock||[]).forEach((t,i)=>{const d=Math.hypot(t.x-w.x,t.y-w.y);if(d<bd){bd=d;bi=i}});if(bi<0){toast("Toque mais perto de um povoado.");return}snap();o.lock.splice(bi,1);regen()}
-    else if(tool==="obj"){snap();const n=OBJTREE.has(objSel)?objSpread:1;for(let i=0;i<n;i++){const a=Math.random()*6.28,d=i?Math.sqrt(Math.random())*(14+n*3):0;o.objs.push({v:objSel,x:Math.round(w.x+Math.cos(a)*d),y:Math.round(w.y+Math.sin(a)*d*.8),s:+(objSize*(i?.85+Math.random()*.3:1)).toFixed(2)})}if(OBJTERR.has(objSel))regen();else recompose()}
+    else if(tool==="obj"){snap();const n=OBJTREE.has(objSel)?objSpread:1;for(let i=0;i<n;i++){const a=Math.random()*6.28,d=i?Math.sqrt(Math.random())*(14+n*3):0;o.objs.push({v:objSel,x:Math.round(w.x+Math.cos(a)*d),y:Math.round(w.y+Math.sin(a)*d*.8),s:+(objSize*(i?.85+Math.random()*.3:1)).toFixed(2)});if(isB(objSel)){const m=o.objs[o.objs.length-1];m.c=objRace;m.a=objRot}}if(OBJTERR.has(objSel))regen();else recompose()}
     else if(tool==="pin"){snap();const pn={id:uid("p"),x:w.x,y:w.y,label:"Novo local "+(o.pins.length+1)};o.pins.push(pn);Store.save("maps",o);drawPins();openPlace({kind:"pin",id:pn.id})}
     else if(tool==="road"||tool==="river"||(tool==="street"&&cityI>=0)){draft.push(w);drawDraft()}}
   view.addEventListener("pointerleave",()=>{if(tool==="obj")octx.clearRect(0,0,A.CW,A.CH)});
   view.addEventListener("pointerdown",ev=>{if(ev.target.closest("button"))return;ptrs.set(ev.pointerId,[ev.clientX,ev.clientY]);try{view.setPointerCapture(ev.pointerId)}catch(e){}
     if(ptrs.size===2){if(stroke){stroke=null;drawDraft()}tap=null;pan=null;const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])||1,mx:(a[0]+b[0])/2,my:(a[1]+b[1])/2};return}
+    if(ev.button===1){ev.preventDefault();pan=[ev.clientX,ev.clientY];view.style.cursor="grabbing";return}
+    if(ev.button===2)return;
     if(tool==="move"||tool==="lines"||tool==="city"||(tool==="street"&&cityI<0)){pan=[ev.clientX,ev.clientY];return}
     if(BR[tool]!==undefined){const w=world(ev);if(w){stroke=[];add(w)}}else tap=[ev.clientX,ev.clientY]});
-  view.addEventListener("pointermove",ev=>{if(tool==="obj"&&!ptrs.size&&THUMBS&&THUMBS[objSel]){const w=world(ev);octx.clearRect(0,0,A.CW,A.CH);if(w){const t=THUMBS[objSel],z=(OBJTERR.has(objSel)?(objSel==="volcano"?2.4:1.5):OBJTREE.has(objSel)?.62:.55)*objSize;octx.strokeStyle="rgba(201,162,74,.95)";octx.lineWidth=1.5;octx.beginPath();octx.ellipse(w.cx,w.cy,14*Math.max(z,.6),14*Math.max(z,.6)*A.TILT,0,0,7);octx.stroke();octx.globalAlpha=.8;octx.drawImage(t,w.cx-36*z,w.cy-64*z,72*z,72*z);octx.globalAlpha=1}}
+  view.addEventListener("pointermove",ev=>{if(tool==="obj"&&!ptrs.size&&THUMBS&&THUMBS[objSel]){const w=world(ev);octx.clearRect(0,0,A.CW,A.CH);if(w){const t=THUMBS[objSel],z=(OBJTERR.has(objSel)?(objSel==="volcano"?2.4:1.5):OBJTREE.has(objSel)?.62:isB(objSel)?.6:.55)*objSize;octx.strokeStyle="rgba(201,162,74,.95)";octx.lineWidth=1.5;octx.beginPath();octx.ellipse(w.cx,w.cy,14*Math.max(z,.6),14*Math.max(z,.6)*A.TILT,0,0,7);octx.stroke();octx.globalAlpha=.8;octx.drawImage(t,w.cx-36*z,w.cy-64*z,72*z,72*z);octx.globalAlpha=1}}
     if(!ptrs.has(ev.pointerId))return;ptrs.set(ev.pointerId,[ev.clientX,ev.clientY]);
     if(pinch&&ptrs.size>=2){const [a,b]=[...ptrs.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1])||1,mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,r=view.getBoundingClientRect();Z.x+=mx-pinch.mx;Z.y+=my-pinch.my;zoomAt(mx-r.left,my-r.top,d/pinch.d);pinch={d,mx,my};return}
     if(pan){Z.x+=ev.clientX-pan[0];Z.y+=ev.clientY-pan[1];pan=[ev.clientX,ev.clientY];applyZ();return}
     if(stroke){const w=world(ev);if(w)add(w)}});
-  const up=ev=>{if(!ptrs.has(ev.pointerId))return;ptrs.delete(ev.pointerId);if(ptrs.size<2)pinch=null;pan=null;
+  const up=ev=>{if(!ptrs.has(ev.pointerId))return;ptrs.delete(ev.pointerId);if(ptrs.size<2)pinch=null;pan=null;view.style.cursor="";
     if(tap&&!ptrs.size){const t=tap;tap=null;if(ev.type==="pointerup"&&Math.hypot(ev.clientX-t[0],ev.clientY-t[1])<10){const w=world(ev);if(w)act(w)}}
     if(stroke&&!ptrs.size){const st=stroke;stroke=null;if(st.length){snap();if(st[0].t==="erase"){const gone=o.objs.filter(m=>st.some(e=>Math.hypot(m.x-e.x,m.y-e.y)<e.r));o.objs=o.objs.filter(m=>!gone.includes(m));o.edits=o.edits.concat(st);if(gone.some(m=>OBJTERR.has(m.v)))regen();else recompose()}else{o.edits=o.edits.concat(st);regen()}}}};
+  view.addEventListener("mousedown",ev=>{if(ev.button===1)ev.preventDefault()});view.addEventListener("auxclick",ev=>ev.preventDefault());
   view.addEventListener("pointerup",up);view.addEventListener("pointercancel",up);
   view.addEventListener("wheel",ev=>{ev.preventDefault();const r=view.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*.0016))},{passive:false});
   view.addEventListener("dblclick",ev=>{if(ev.target.closest("button")||tool!=="move")return;const r=view.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,1.8)});
@@ -215,10 +246,11 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const clearBr=()=>{if(!o.edits.length){toast("Este mapa não tem pinceladas.");return}snap();o.edits=[];regen()};
   function drawCtx(){ctx.replaceChildren();const name=(TOOLGROUPS.flatMap(g=>g[1]).find(x=>x[0]===tool)||["",""])[1];ctx.append(h("strong",{class:"cname"},name));
     if(BR[tool]!==undefined){if(tool==="biome")ctx.append(h("label",{class:"cf"},"Tipo",h("select",{"aria-label":"Bioma do pincel",onchange:e=>biomeSel=+e.target.value},A.BIOMES.map((n,i)=>h("option",{value:i,selected:i===biomeSel},n)))));ctx.append(brushSl(),B_("Limpar pinceladas",clearBr,"ghost"))}
-    if(tool==="obj"){if(!THUMBS){const st=A.makeStamps(A.mulberry(12345));THUMBS={};for(const [,it] of OBJCAT)for(const [v] of it)THUMBS[v]=A.objThumb(v,st,72)}
+    if(tool==="obj"){if(!THUMBS||thumbRace!==objRace){const st=A.makeStamps(A.mulberry(12345));THUMBS={};thumbRace=objRace;for(const [,it] of OBJCAT)for(const [v] of it)THUMBS[v]=A.objThumb(v,st,72,objRace)}
       const gi=Math.max(0,OBJCAT.findIndex(g=>g[1].some(x=>x[0]===objSel)));
       ctx.append(h("span",{class:"cf"},objName(objSel)+(OBJTERR.has(objSel)?" · muda o relevo, refaz o mapa":"")),h("label",{class:"cf"},"Tamanho",h("input",{type:"range",min:.5,max:2,step:.1,value:objSize,"aria-label":"Tamanho do objeto",oninput:e=>objSize=+e.target.value})));
       if(OBJTREE.has(objSel))ctx.append(h("label",{class:"cf"},"Por toque",h("input",{type:"range",min:1,max:12,step:1,value:objSpread,"aria-label":"Árvores por toque",oninput:e=>objSpread=+e.target.value})));
+      if(isB(objSel))ctx.append(h("label",{class:"cf"},"Cultura",h("select",{"aria-label":"Cultura da construção",onchange:e=>{objRace=e.target.value;drawCtx()}},A.RACES.map(r=>h("option",{value:r,selected:r===objRace},A.RACE_PT[r])))),h("label",{class:"cf"},"Giro",h("input",{type:"range",min:0,max:175,step:5,value:objRot,"aria-label":"Giro da construção",oninput:e=>objRot=+e.target.value})));
       ctx.append(B_("Tirar todos os colocados",()=>{if(!o.objs.length){toast("Nenhum objeto colocado.");return}snap();const t=o.objs.some(m=>OBJTERR.has(m.v));o.objs=[];t?regen():recompose()},"ghost"));
       const tabs=h("div",{class:"otabs",role:"tablist"},OBJCAT.map(([g],k)=>h("button",{type:"button",role:"tab","aria-selected":k===gi?"true":"false",class:k===gi?"on":"",onclick:()=>{objSel=OBJCAT[k][1][0][0];drawCtx()}},g)));
       const grid=h("div",{class:"ogrid"},OBJCAT[gi][1].map(([v,n])=>{const b=h("button",{type:"button",class:"ocell"+(v===objSel?" on":""),title:n,"aria-label":n,"aria-pressed":v===objSel?"true":"false",onclick:()=>{objSel=v;drawCtx()}});const cv=document.createElement("canvas");cv.width=cv.height=72;cv.getContext("2d").drawImage(THUMBS[v],0,0);b.append(cv,h("span",{},n));return b}));
@@ -253,7 +285,7 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
     if(town&&o.lock.some(t=>t!==town&&t.name===v)){toast("Já existe um povoado com esse nome.");e.target.value=name;return}
     if(note&&!findNote(v)){note.title=v;Store.save("notes",note)}
     if(town){town.name=v;S.place={kind:"town",name:v};Store.save("maps",o);S.regen&&S.regen()}else{pin.label=v;Store.save("maps",o);S.redrawPins&&S.redrawPins()}drawSide();drawPlace()}});
-  const kindTxt=town?({city:"Cidade murada",town:"Vila",village:"Aldeia"}[town.kind]||"Povoado"):"Pino";
+  const kindTxt=town?({city:"Cidade murada",town:"Vila",village:"Aldeia",camp:"Acampamento militar"}[town.kind]||"Povoado"):"Pino";
   const acts=h("div",{class:"row"});
   if(note){acts.append(h("button",{type:"button",class:"primary",onclick:()=>{S.placeEdit=!S.placeEdit;drawPlace()}},S.placeEdit?"Ler":"Editar aqui"),h("button",{type:"button",onclick:()=>openNote(note.id)},"Abrir nota"))}
   else acts.append(h("button",{type:"button",class:"primary",onclick:()=>{newNote("local",name,{content:"---\ntipo: local\nmapa: "+o.name+"\npino: "+name+"\n---\n\n## Descrição\n\n\n## Quem vive aqui\n\n\n## Ganchos\n\n- [ ] \n"});S.placeEdit=true;drawSide();drawPlace()}},"Criar nota deste lugar"));
@@ -262,7 +294,7 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
   if(town){const set=(k,v)=>{S.snap&&S.snap();town[k]=v;if(k==="kind"){town.size={village:8,town:14,city:30}[v];town.wall=v==="city"}if(k==="race"&&(v==="halfling"))town.wall=false;Store.save("maps",o);S.regen&&S.regen()};
     const rng=(label,k,min,max,val,fmt,conv)=>{const sp=h("span",{},fmt(val)),id="t_"+k;return h("div",{class:"fld"},h("label",{for:id},label,sp),h("input",{id,type:"range",min,max,value:val,oninput:e=>sp.textContent=fmt(+e.target.value),onchange:e=>set(k,conv(+e.target.value))}))};
     const rc=h("select",{id:"t_race",onchange:e=>set("race",e.target.value)},A.RACES.map(r=>h("option",{value:r},A.RACE_PT[r])));rc.value=town.race||"humano";
-    const kd=h("select",{id:"t_kind",onchange:e=>set("kind",e.target.value)},[["village","Aldeia"],["town","Vila"],["city","Cidade"]].map(([v,t])=>h("option",{value:v},t)));kd.value=town.kind;
+    const kd=h("select",{id:"t_kind",onchange:e=>set("kind",e.target.value)},[["village","Aldeia"],["town","Vila"],["city","Cidade"],["camp","Acampamento militar"]].map(([v,t])=>h("option",{value:v},t)));kd.value=town.kind;
     const pl=h("select",{id:"t_plan",onchange:e=>set("planned",e.target.value==="1")},h("option",{value:"0"},"Orgânico"),h("option",{value:"1"},"Planejado"));pl.value=town.planned?"1":"0";
     const wl=h("select",{id:"t_wall",onchange:e=>set("wall",e.target.value==="1")},h("option",{value:"0"},"Sem muralha"),h("option",{value:"1"},"Com muralha"));wl.value=town.wall?"1":"0";
     box.append(h("div",{class:"params"},h("div",{class:"fld"},h("label",{for:"t_race"},"Cultura"),rc),h("div",{class:"fld"},h("label",{for:"t_kind"},"Tipo"),kd),rng("Tamanho","size",4,46,town.size,v=>String(v),v=>v),rng("Densidade de construções","dens",0,100,Math.round((town.dens==null?.6:town.dens)*100),v=>v+"%",v=>v/100),
@@ -280,8 +312,8 @@ function drawSide(){const side=$("#side");side.replaceChildren();for(const b of 
     side.append(h("h2",{},"Notas"),sel,q,list);drawList()}
   else{const list=h("div",{class:"list"}),all=[...S.maps.values()].sort((a,b)=>a.name.localeCompare(b.name));
     if(!all.length)list.append(h("p",{class:"empty"},"Nenhum mapa ainda."));
-    for(const m of all)list.append(h("button",{class:"item"+(m.id===S.map?" on":""),type:"button",onclick:()=>openMap(m.id)},m.name,h("small",{},(m.lock||[]).length?(m.lock.length+" povoados"):"")));
-    side.append(h("h2",{},"Mapas"),h("button",{type:"button",class:"primary",onclick:()=>openMap(newMap().id)},"+ Novo mapa"),list)}}
+    for(const m of all)list.append(h("button",{class:"item"+(m.id===S.map?" on":""),type:"button",onclick:()=>openMap(m.id)},m.name,h("small",{},m.type==="city"?"cidade":(m.lock||[]).length?(m.lock.length+" povoados"):"")));
+    side.append(h("h2",{},"Mapas"),h("button",{type:"button",class:"primary",onclick:()=>openMap(newMap().id)},"+ Novo mapa de região"),h("button",{type:"button",onclick:()=>openMap(newCity().id)},"+ Novo mapa de cidade"),list)}}
 function drawWelcome(){const main=$("#main");main.replaceChildren();const empty=!S.notes.size&&!S.maps.size;
   main.append(h("div",{class:"welcome"},h("h1",{},empty?"Seu mundo começa aqui":S.sec==="notes"?"Escolha uma nota":"Escolha um mapa"),
     h("p",{},empty?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":"Abra um item na lista ou crie um novo."),
