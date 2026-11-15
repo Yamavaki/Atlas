@@ -144,3 +144,6 @@ input[type=range]{accent-color:var(--gold)}
 .hdl.mid{width:13px;height:13px;background:var(--paper);color:var(--ink);font:700 11px/11px var(--body);text-align:center;opacity:.8;cursor:pointer}
 .hdl:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .insp .params{padding:var(--s3);background:var(--panel-2)}
+.hdl.ol{background:var(--gold)}.hdl.st{background:#a8703a;width:12px;height:12px}
+.hit.pick{display:flex;align-items:flex-start;justify-content:center;box-shadow:0 0 0 2px var(--gold)}
+.hit.pick span{transform:translateY(-120%);background:var(--paper);color:var(--ink);border:1px solid var(--ink);padding:0 6px;font-family:var(--display);font-size:clamp(9px,1vw,13px);white-space:nowrap}
