@@ -1105,6 +1105,7 @@ function render(W,canvas,stamps){
       if(o.a!=null)q.ang=o.a;if(o.s!=null)q.os=o.s;if(o.v!=null)q.v=o.v;if(o.id)q.id=o.id;
       if(o.vs){if(q.st){const fam=Object.values(stamps).find(a=>Array.isArray(a)&&a.includes(q.st));if(fam)q.st=fam[(fam.indexOf(q.st)+o.vs)%fam.length]}else if(q.k===1&&q.roof){const RK=Object.keys(ROOF);q.roof=RK[(RK.indexOf(q.roof)+o.vs)%RK.length]}}}
       const ly=(o&&o.ly)||(q.mref&&q.mref.ly);q.ly=LI.has(ly)?ly:LI.has("base")?"base":LYS[0].id;out.push(q)}
+    {const seen=new Set();for(const q of objD)if(q.key)seen.add(q.key);API.orph=Object.keys(OV).filter(k=>!seen.has(k))}
     objD=out}
   objD.sort((a,b)=>(LI.get(a.ly)-LI.get(b.ly))||(a.y-b.y));const smoke=[];
   const seedQ=q=>{rngS=mulberry((Math.imul((q.x||0)*4|0,73856093)^Math.imul((q.y||0)*4|0,19349663)^q.k*83492791)>>>0)};

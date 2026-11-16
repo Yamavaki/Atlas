@@ -45,7 +45,7 @@ const sat=(A,B)=>{for(const P of[A,B])for(let i=0;i<4;i++){const a=P[i],b=P[(i+1
 function fitRect(lot,c,ang,L,D){const ca=Math.cos(ang),sa=Math.sin(ang);for(let k=0;k<10;k++){const pts=[[-L/2,-D/2],[L/2,-D/2],[L/2,D/2],[-L/2,D/2]].map(([u,v])=>[c[0]+ca*u-sa*v,c[1]+sa*u+ca*v]);if(pts.every(q=>inPoly(lot,q[0],q[1])))return [L,D];L*=.92;D*=.93;if(L<6||D<5)return null}return null}
 
 function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="reta";if(P.wall===false)P.wall="nenhuma";const WALLON=P.wall!=="nenhuma";
-  const seed=A.hashStr(String(P.seed)+"|"+P.site),RS0=A.mulberry(seed);let RS=RS0;const rng=()=>RS(),reseed=k=>{RS=A.mulberry((seed^Math.imul(k+1,2654435761))>>>0)},pick=a=>a[(rng()*a.length)|0];
+  const seed=A.hashStr(String(P.seed)+"|"+P.site),RS0=A.mulberry(seed);let RS=RS0;const rng=()=>RS(),reseed=k=>{RS=A.mulberry((seed^Math.imul(k+1,2654435761))>>>0)},WPO=p=>(P.wards&&P.wards[p.i])||{},WRS=p=>(WPO(p).rs||0)*1000003,pick=a=>a[(rng()*a.length)|0];
   const NT=new Float32Array(65536);for(let i=0;i<65536;i++)NT[i]=rng();
   const vn=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),h=(a,b)=>NT[((a&255)+((b&255)<<8))&65535];return lerp(lerp(h(xi,yi),h(xi+1,yi),u),lerp(h(xi,yi+1),h(xi+1,yi+1),u),v)};
   const fbm=(x,y,o)=>{let s=0,a=.5,n=0;for(let i=0;i<o;i++){s+=vn(x,y)*a;n+=a;x=x*2.03+17.1;y=y*2.03+9.7;a*=.5}return s/n};
@@ -197,7 +197,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   const nearWall=(x,y,r)=>{const gx=(x/30)|0,gy=(y/30)|0;for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=WGR.get((gx+a)+"_"+(gy+b));if(l)for(const q of l)if(Math.hypot(q[0]-x,q[1]-y)<r)return true}return false};
   const nearQuay=(x,y)=>{let d=1e9,qq=null;for(const q of quays){const v=segD(x,y,q.a,q.b);if(v<d){d=v;qq=q}}return [d,qq]};
   const pLots=new Map();
-  for(const p of patches){if(p.sea)continue;const t=p.type,race=p.race||P.culture;p.race=race;reseed(p.i*7+1);ALLEY_=t==="pobre"||t==="arrabalde"?1.3:ALLEY;
+  for(const p of patches){if(p.sea)continue;const t=p.type,race=p.race||P.culture;p.race=race;reseed(p.i*7+1+WRS(p));ALLEY_=t==="pobre"||t==="arrabalde"?1.3:ALLEY;
     const ins=p.poly.map((_,k)=>{const e=edgeOf(p,k);return !e?5.5:(e.in===1&&WALLON&&P.wall!=="curva")?12:mainE.has(e)?10.5:t==="pobre"?3.6:p.inner?5.4:6.5});
     p.block=inset(p.poly,ins);if(p.block.length<3)continue;if(p.quay){const q=p.quay,nb=clip(p.block,q.a[0]-q.n[0]*9,q.a[1]-q.n[1]*9,q.n[0],q.n[1]);if(nb.length>2&&area(nb)>area(p.block)*.35)p.block=nb;else{quays.splice(quays.indexOf(q),1);p.quay=null}}
     p.pl=plannedOf(p);p.pal=tier(race,(WL[p.foreign?"estrangeiro":t]||.4)*(.6+P.wealth*.8));
@@ -231,7 +231,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     if(p.quay&&id==="shipwright"){const q=p.quay;const L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,.15,.85);x=lerp(q.a[0],q.b[0],t)-q.n[0]*12;y=lerp(q.a[1],q.b[1],t)-q.n[1]*12;ang=Math.atan2(q.n[1],q.n[0])}
     else if(p.quay&&["crane","lighthouse"].includes(id)){const q=p.quay,L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,0,1),tt=id==="lighthouse"?(t<.5?0:1):t;x=lerp(q.a[0],q.b[0],tt)-q.n[0]*5;y=lerp(q.a[1],q.b[1],tt)-q.n[1]*5}
     for(const l of lots){const c2=cen(l);if(Math.hypot(c2[0]-x,c2[1]-y)<sz*1.05)l.used=true}best.used=true;SPB.push({id,x,y,race:p.race,v:rng(),r:sz,ang});addOcc(x,y,sz);return true};
-  for(const p of inner.concat(patches.filter(z=>z.type==="arrabalde"))){const lots=pLots.get(p);if(!lots||!lots.length)continue;reseed(p.i*7+3);const t=p.foreign?"moradia":p.type,list=(SPEC[t]||[]).slice();
+  for(const p of inner.concat(patches.filter(z=>z.type==="arrabalde"))){const lots=pLots.get(p);if(!lots||!lots.length)continue;reseed(p.i*7+3+WRS(p));const t=p.foreign?"moradia":p.type,list=(SPEC[t]||[]).slice();
     for(const [id,home] of MAGIC)if(home===t&&rng()<P.magic*.9)list.push([id,1,1]);
     for(const [id,ch,n] of list)for(let q=0;q<n;q++)if(rng()<ch*(t==="arrabalde"?1:.5+P.wealth))placeSpec(p,id,lots)}
   // pontes do rio
@@ -245,7 +245,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
       const A=[mx-ux*(h0+6),my-uy*(h0+6)],Bb=[mx+ux*(h1+6),my+uy*(h1+6)];bridgesR.push({a:A,b:Bb,m:[mx,my],stone:main||P.wealth>.6,wd:main?8.4:5.2});for(const q of [A,Bb])addOcc(q[0],q[1],main?13:10);addOcc(mx,my,rw+4)}}
   // casas
   const HG=new Map(),vit=p=>fbm(p.c[0]/380+7.3,p.c[1]/380+1.9,3)+(p.dn>1?-.08:0)+(P.wealth-.5)*.3;
-  for(const p of patches){const lots=pLots.get(p);if(!lots)continue;const t=p.type,race=p.race;reseed(p.i*7+5);const DENSE=t==="moradia"||t==="artesaos"||t==="mercadores"||t==="porto"||t==="universidade"||p.foreign;
+  for(const p of patches){const lots=pLots.get(p);if(!lots)continue;const t=p.type,race=p.race;reseed(p.i*7+5+WRS(p));const DENSE=t==="moradia"||t==="artesaos"||t==="mercadores"||t==="porto"||t==="universidade"||p.foreign;
     const V=vit(p),AB=P.abandon==null?1:P.abandon/.35,decay=clamp(AB*(p.inner?1:.5)*((t==="pobre"||t==="arrabalde"||t==="producao"||t==="moradia"||t==="porto")?clamp((.44-V)*1.3,0,.24)+(t==="pobre"?.03:t==="arrabalde"?.02:0):0),0,.6),OLD=p.dn<.4&&t!=="nobre";p.decay=decay;
     for(const lot of lots){if(lot.used)continue;if(t==="castelo"&&rng()<.3)continue;const c=cen(lot),sq=area(lot);if(wet(c[0],c[1],4)||lot.some(v=>wet(v[0],v[1],0)))continue;if(nearWall(c[0],c[1],P.wall==="curva"?13:9))continue;if(p.cwall&&polyD(c[0],c[1],p.cwall,true)<10)continue;
       const innerLot=p.block.length>2&&lot.every(v=>polyD(v[0],v[1],p.block,true)>3);
@@ -279,13 +279,13 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
       if(!fit||fit[0]<7||fit[1]<6){if(sq>70)yards.push({poly:inset(lot,.6),col:rng()<.5?"#a9ae62":"#b8b070",g:1,rows:1});continue}[L,D]=fit;
       const r=Math.hypot(L,D)/2*.8;if(hit(cx2,cy2,r*.45))continue;
       if(t==="nobre"){yards.push({poly:lot,col:"#a3b262",g:1});if(rng()<.5+P.green*.5)trees.push([cx2+(rng()-.5)*L*.9,cy2+D*.7,.6+rng()*.2])}
-      const tt=p.foreign?"estrangeiro":t;let ty=pick(TY[tt]||TY.moradia);if(sq<200&&ty!=="shed")ty=t==="pobre"||t==="arrabalde"?"hut":"row";if(ty==="row"&&L>D*1.7)ty="town";if(gem&&ty!=="rich"&&ty!=="manor")ty="row";if(corner&&DENSE)ty=P.wealth>.5&&rng()<.5?"rich":"row";
+      const tt=p.foreign?"estrangeiro":t,wp=WPO(p);if(wp.dens!=null&&rng()>wp.dens*1.15){yards.push({poly:inset(lot,.6),col:rng()<.5?"#aab166":"#c7b98c",g:1});if(rng()<P.green*.6)trees.push([c[0],c[1],.6+rng()*.2]);continue}let ty=pick(TY[tt]||TY.moradia);if(sq<200&&ty!=="shed")ty=t==="pobre"||t==="arrabalde"?"hut":"row";if(ty==="row"&&L>D*1.7)ty="town";if(gem&&ty!=="rich"&&ty!=="manor")ty="row";if(corner&&DENSE)ty=P.wealth>.5&&rng()<.5?"rich":"row";
       {const wr=obb(cx2,cy2,ang,L+3,D+3);if(wr.some(q=>wet(q[0],q[1],1))||wr.some((q,i)=>{const r=wr[(i+1)%4];return wet((q[0]+r[0])/2,(q[1]+r[1])/2,1)}))continue}
       {let ok=false;for(let k=0;k<3&&!ok;k++){const R=obb(cx2,cy2,ang,gem?L-1.4:L+1.2,D+1.2),gx=(cx2/40)|0,gy=(cy2/40)|0;ok=true;for(let a=-1;a<=1&&ok;a++)for(let b2=-1;b2<=1&&ok;b2++){const l=HG.get((gx+a)+"_"+(gy+b2));if(l)for(const o2 of l)if(sat(R,o2)){ok=false;break}}if(!ok){L*=.85;D*=.87}}if(!ok||L<7||D<6)continue;const k0=((cx2/40)|0)+"_"+((cy2/40)|0),R=obb(cx2,cy2,ang,L,D);HG.has(k0)?HG.get(k0).push(R):HG.set(k0,[R])}
       let wing=null;if(wantL&&L>11){const fm=[(a[0]+b[0])/2,(a[1]+b[1])/2],fv=(-(fm[0]-cx2)*Math.sin(ang)+(fm[1]-cy2)*Math.cos(ang))>0?1:-1,end=rng()<.5?-1:1,wd=Math.max(6,L*.36),wl=Math.max(8,(v1-v0)*.42),u=end*(L/2-wd/2),v=-fv*(D/2+wl/2+.35),cA=Math.cos(ang),sA=Math.sin(ang),wx=cx2+cA*u-sA*v,wy=cy2+sA*u+cA*v,R=obb(wx,wy,ang+1.5708,wl,wd);
         if(R.every(z=>inPoly(lot,z[0],z[1])&&!wet(z[0],z[1],1))&&!hit(wx,wy,Math.min(wl,wd)*.3)){let ok=true;const gx=(wx/40)|0,gy=(wy/40)|0;for(let a2=-1;a2<=1&&ok;a2++)for(let b2=-1;b2<=1&&ok;b2++){const l=HG.get((gx+a2)+"_"+(gy+b2));if(l)for(const o2 of l)if(sat(obb(wx,wy,ang+1.5708,wl,wd),o2)){ok=false;break}}
           if(ok){wing={x:wx,y:wy,L:wl,D:wd,ang:ang+1.5708};const k0=((wx/40)|0)+"_"+((wy/40)|0);HG.has(k0)?HG.get(k0).push(R):HG.set(k0,[R])}}}
-      if((t==="pobre"||decay>.3)&&rng()<.55)ty=rng()<.6?"hut":"shed";B.push({poor:t==="pobre"||decay>.3?1:0,x:cx2,y:cy2,type:ty,race,ang,L,D,pal:p.pal,plain:t==="militar",hm:corner&&DENSE?1.32:DENSE?.86+rng()*.3:1,gem:gem?1:0,wing,corner:corner?1:0});
+      if((t==="pobre"||decay>.3)&&rng()<.55)ty=rng()<.6?"hut":"shed";if(wp.wl){const UP={hut:"town",shed:"hut",row:"town",town:"rich",rich:"manor"},DN={manor:"rich",rich:"town",town:"row",row:"hut",tavern:"town"};if(rng()<Math.abs(wp.wl)*.75)ty=(wp.wl>0?UP:DN)[ty]||ty;if(wp.wl>.6&&rng()<.3)ty=(UP[ty]||ty)}B.push({arch:wp.arch||undefined,roofK:wp.roof||undefined,wallK:wp.wall||undefined,poor:t==="pobre"||decay>.3?1:0,x:cx2,y:cy2,type:ty,race,ang,L,D,pal:p.pal,plain:t==="militar",hm:corner&&DENSE?1.32:DENSE?.86+rng()*.3:1,gem:gem?1:0,wing,corner:corner?1:0});
       if(p.quay&&rng()<.18){const [d,q]=nearQuay(cx2,cy2);if(d<40){const x=cx2+q.n[0]*(d*.6),y=cy2+q.n[1]*(d*.6);if(!hit(x,y,5)){props.push({id:rng()<.6?"cargo":"crates",x,y,race});addOcc(x,y,6)}}}}}
   const bunting=[];
   // praca do mercado: barracas em fileiras, fonte no centro, carrocas
@@ -328,7 +328,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   // nada de construcao em cima da agua: tenta mover para o seco mais perto, senao tira
   {const dry=(x,y,m)=>!wet(x,y,m);const fix=(q,m)=>{if(dry(q.x,q.y,m))return true;for(let r=14;r<=70;r+=8)for(let k=0;k<12;k++){const a=k/12*6.283,x=q.x+Math.cos(a)*r,y=q.y+Math.sin(a)*r;if(dry(x,y,m)){q.x=x;q.y=y;return true}}return false};
     for(let i=SPB.length-1;i>=0;i--){const q=SPB[i];if(q.k===2||q.k===3)continue;if(!fix(q,4))SPB.splice(i,1)}for(let i=props.length-1;i>=0;i--){if(!fix(props[i],1))props.splice(i,1)}}
-  let SOLID=null;const GANG=[];
+  let SOLID=null,ORPH=[];const GANG=[];
   const FPC=AtlasCity._fpc||(AtlasCity._fpc=new Map()),footW=(id,race)=>{const k=id+"|"+race;if(FPC.has(k))return FPC.get(k);let w=(AS.SIZE[id]||[8])[0]*1.8;try{const cv=document.createElement("canvas");cv.width=cv.height=260;const g=cv.getContext("2d");g.translate(130,190);AS.draw(g,0,0,id,race,.4,0);const d=g.getImageData(0,0,260,260).data;let x0=260,x1=-1;for(let y=0;y<260;y+=2)for(let x=0;x<260;x++)if(d[(y*260+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x}if(x1>x0)w=x1-x0}catch(e){}FPC.set(k,w);return w};
   // resolucao final de sobreposicoes: castelo > templo > especiais > casas > ruinas > objetos > arvores
   {const satN=(A,B,mg)=>{for(const P_ of[A,B])for(let i=0;i<4;i++){const a=P_[i],b=P_[(i+1)%4];let nx=b[1]-a[1],ny=a[0]-b[0];const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const q of A){const d=q[0]*nx+q[1]*ny;a0=Math.min(a0,d);a1=Math.max(a1,d)}for(const q of B){const d=q[0]*nx+q[1]*ny;b0=Math.min(b0,d);b1=Math.max(b1,d)}if(a1<=b0+mg||b1<=a0+mg)return false}return true};
@@ -368,8 +368,8 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   if(SOLID){const S_=SOLID;for(let i=trees.length-1;i>=0;i--){const t=trees[i],r=4*(t[2]||1),o=obb(t[0],t[1],0,r,r),gx=(t[0]/40)|0,gy=(t[1]/40)|0;let h=false;for(let a=-1;a<=1&&!h;a++)for(let b=-1;b<=1&&!h;b++)for(const z of S_.get((gx+a)+"_"+(gy+b))||[])if(sat(z.poly,o)){h=true;break}if(h)trees.splice(i,1)}}
   for(let i=bunting.length-1;i>=0;i--){const z=bunting[i];let w=false;for(let t=0;t<=1.0001&&!w;t+=.1)if(wet(lerp(z.a[0],z.b[0],t),lerp(z.a[1],z.b[1],t),2))w=true;if(w)bunting.splice(i,1)}
   {const K=(t,o,id)=>t+":"+id+":"+Math.round(o.x)+":"+Math.round(o.y);for(const b of B){b.key=K("h",b,b.type);b.kx=b.x;b.ky=b.y}for(const q of SPB)q.key=K("s",q,q.id||("k"+q.k));for(const q of props)q.key=K("p",q,q.id);const KA=(t,a)=>t+":"+Math.round(a[0])+":"+Math.round(a[1]);for(const t of trees)t.key=KA("t",t);for(const t of NAT)t.key=KA("n",t);for(const q of ships)q.key=K("sh",q,"ship");for(const q of boats)q.key=K("bt",q,"boat");for(const z of bunting)z.key="bu:"+Math.round(z.a[0])+":"+Math.round(z.a[1])+":"+Math.round(z.b[0])+":"+Math.round(z.b[1]);for(const f of fields)f.key=KA("f",f.c);
-    const OV=P.ovr||{};if(Object.keys(OV).length){const CC={B,SPB,props,trees,NAT,ships,boats,bunting,fields},all=[];for(const n of ARR)for(const q of CC[n])if(OV[q.key])all.push(q);for(const q of all)applyOv(CC,q,OV[q.key])}}
-  return {GANG,NAT,bunting,farmPaths,LEG,AVE,LINES,RK,P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON,bridgesR}}
+    const OV=P.ovr||{};if(Object.keys(OV).length){const CC={B,SPB,props,trees,NAT,ships,boats,bunting,fields},all=[];for(const n of ARR)for(const q of CC[n])if(OV[q.key])all.push(q);for(const q of all)applyOv(CC,q,OV[q.key]);const hit_=new Set(all.map(q=>q.key));ORPH=Object.keys(OV).filter(k=>!hit_.has(k))}}
+  return {ORPH,GANG,NAT,bunting,farmPaths,LEG,AVE,LINES,RK,P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON,bridgesR}}
 
 // ---------- texturas de chao (padroes ja achatados pela inclinacao) ----------
 function mkPat(c,kind){const w=48,h=Math.round(48*TILT),cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d"),r=A.mulberry(A.hashStr(kind));
@@ -487,10 +487,11 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
       if(b.poor&&SEAS!=="inverno"&&(o.form==="gable"||o.form==="long")){if(r2()<.65)o.roof=VK(ROOF,r2()<.5?"thatch":"old",r2,.08);if(r2()<.5)o.wall=VK(WALL,r2()<.5?"mud":"wood",r2,.06);o.H*=.88;o.dorm=null;o.tower=null}
       if(b.wing){const w=b.wing;o.wing={dx:(w.x-b.x)/Z,dy:((w.y-b.y)*TILT-(elev(w.x,w.y)-elev(b.x,b.y))*KE)/Z,L:w.L/Z,D:w.D/Z,h:.86,ang:w.ang,front:w.y>b.y}}
       if(o.form==="asian"&&(b.type==="town"||b.type==="row"||b.type==="rich")&&r2()<.45)o.veranda=1;if(o.form==="flat"&&(b.type==="town"||b.type==="row"||b.type==="tavern")&&r2()<.55){o.awning=["#b5473a","#3f6f8f","#5f7e35","#c9a24a","#efe6cb"][(r2()*5)|0];if(r2()<.5)o.roofTerr=1}
-      {const AR=P.arch||"misto",hum=(b.race==="humano"||b.race==="anao")&&o.form==="gable",urb=b.type==="town"||b.type==="row"||b.type==="tavern"||b.type==="rich";
+      {const AR=b.arch||P.arch||"misto",hum=(b.race==="humano"||b.race==="anao")&&o.form==="gable",urb=b.type==="town"||b.type==="row"||b.type==="tavern"||b.type==="rich";
         if(hum){o.timber=0;if((urb||AR==="enxaimel")&&r2()<(AR==="enxaimel"?.9:AR==="misto"?.5:AR==="pedra"?.1:0)){o.timber=1;if(r2()<.6)o.wall=VK(WALL,"daub",r2,.06)}}
         if(hum&&!b.prf&&SEAS!=="inverno"){if(AR==="pedra"){if(r2()<.7)o.wall=VK(WALL,r2()<.5?"stone":"darkstone",r2,.05);if(r2()<.6)o.roof=VK(ROOF,r2()<.6?"slate":"dark",r2,.06)}
           else if(AR==="colonial"){o.wall=VK(WALL,["white","ochre","pink","white","ochre"][(r2()*5)|0],r2,.06);o.roof=VK(ROOF,r2()<.7?"terra":"tile2",r2,.06)}}}
+      if(b.roofK&&ROOF[b.roofK]&&SEAS!=="inverno")o.roof=VK(ROOF,b.roofK,r2,.05);if(b.wallK&&WALL[b.wallK])o.wall=VK(WALL,b.wallK,r2,.05);
       {const cA=Math.cos(b.ang),sA=Math.sin(b.ang),cor=[[1,1],[1,-1],[-1,1],[-1,-1]].map(([su,sv])=>{const u=su*b.L/2,v=sv*b.D/2;return {dx:(u*cA-v*sA)/Z,dy:(u*sA+v*cA)*TILT/Z,wy:u*sA+v*cA}}).sort((p_,q_)=>q_.wy-p_.wy),R0=ROOF[o.roof]?o.roof:"dark";
         const tw=(k,hk)=>({dx:cor[k].dx,dy:cor[k].dy,w:Math.max(3,Math.min(o.L,o.D)*.3),h:o.H*hk+1,r:Math.max(3.6,o.R*.95),back:cor[k].wy<0});
         const TF=o.form==="gable"||o.form==="asian"||o.form==="flat";if(b.sym&&TF){o.towers=[tw(0,1.3),tw(1,1.3)];if(o.form==="gable"){o.dorm=[-o.L*.25,0,o.L*.25];o.chim=true}}else if(b.corner&&(b.type==="rich"||b.type==="tavern"&&o.form==="flat")&&TF&&r2()<.6)o.towers=[tw(0,o.form==="flat"?1.45:1.2)]}

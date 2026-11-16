@@ -294,3 +294,7 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .lyw{position:absolute;left:50%;bottom:60px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:var(--s2);padding:4px 6px 4px 12px;background:#5c1f18;color:#f3e3c3;border:1px solid #c9a24a;font-size:13px;box-shadow:0 4px 18px rgba(0,0,0,.45)}
 .lyw[hidden]{display:none}.lyw button{min-height:28px;padding:2px 10px;font-size:13px}
 .lyr .icb svg{width:16px;height:16px}
+.frz{border:1px solid var(--line);padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.frz.on{border-color:var(--gold);background:rgba(201,162,74,.1)}
+.frz p{margin:0;font-size:12px;line-height:1.35}
+.fld.lock{opacity:.5}
