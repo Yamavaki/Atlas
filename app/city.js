@@ -367,8 +367,8 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     if(LINES.length||roads.length){const RR=roads.concat(LINES.filter(l=>l.t==="road").map(l=>l.pts));for(let i=NAT.length-1;i>=0;i--)if(RR.some(r=>polyD(NAT[i][0],NAT[i][1],r,false)<9))NAT.splice(i,1)}}
   if(SOLID){const S_=SOLID;for(let i=trees.length-1;i>=0;i--){const t=trees[i],r=4*(t[2]||1),o=obb(t[0],t[1],0,r,r),gx=(t[0]/40)|0,gy=(t[1]/40)|0;let h=false;for(let a=-1;a<=1&&!h;a++)for(let b=-1;b<=1&&!h;b++)for(const z of S_.get((gx+a)+"_"+(gy+b))||[])if(sat(z.poly,o)){h=true;break}if(h)trees.splice(i,1)}}
   for(let i=bunting.length-1;i>=0;i--){const z=bunting[i];let w=false;for(let t=0;t<=1.0001&&!w;t+=.1)if(wet(lerp(z.a[0],z.b[0],t),lerp(z.a[1],z.b[1],t),2))w=true;if(w)bunting.splice(i,1)}
-  {const K=(t,o,id)=>t+":"+id+":"+Math.round(o.x)+":"+Math.round(o.y);for(const b of B){b.key=K("h",b,b.type);b.kx=b.x;b.ky=b.y}for(const q of SPB)q.key=K("s",q,q.id||("k"+q.k));for(const q of props)q.key=K("p",q,q.id);
-    const OV=P.ovr||{};if(Object.keys(OV).length){for(const arr of[B,SPB,props])for(let i=arr.length-1;i>=0;i--){const o=OV[arr[i].key];if(!o)continue;if(o.del){arr.splice(i,1);continue}const q=arr[i];if(o.x!=null){if(q.wing){q.wing.x+=o.x-q.x;q.wing.y+=o.y-q.y}q.x=o.x;q.y=o.y}if(o.a!=null){q.ang=o.a;q.wing=null}if(o.v!=null)q.v=o.v;if(o.vs!=null)q.vs=o.vs;if(o.id)q.id=o.id;if(o.type)q.type=o.type;if(o.ms!=null)q.ms=o.ms}}}
+  {const K=(t,o,id)=>t+":"+id+":"+Math.round(o.x)+":"+Math.round(o.y);for(const b of B){b.key=K("h",b,b.type);b.kx=b.x;b.ky=b.y}for(const q of SPB)q.key=K("s",q,q.id||("k"+q.k));for(const q of props)q.key=K("p",q,q.id);const KA=(t,a)=>t+":"+Math.round(a[0])+":"+Math.round(a[1]);for(const t of trees)t.key=KA("t",t);for(const t of NAT)t.key=KA("n",t);for(const q of ships)q.key=K("sh",q,"ship");for(const q of boats)q.key=K("bt",q,"boat");
+    const OV=P.ovr||{};if(Object.keys(OV).length){const CC={B,SPB,props,trees,NAT,ships,boats},all=[];for(const n of ARR)for(const q of CC[n])if(OV[q.key])all.push(q);for(const q of all)applyOv(CC,q,OV[q.key])}}
   return {GANG,NAT,bunting,farmPaths,LEG,AVE,LINES,RK,P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON,bridgesR}}
 
 // ---------- texturas de chao (padroes ja achatados pela inclinacao) ----------
@@ -382,6 +382,11 @@ function mkPat(c,kind){const w=48,h=Math.round(48*TILT),cv=document.createElemen
   return c.createPattern(cv,"repeat")}
 
 let CACHE=null,PICKC=null,SNAPC=null;
+// silhueta e contorno de um desenho isolado (coordenadas do mapa)
+function mkSil(draw,qx,qy,big){const W=Math.ceil(big*2)+8,H=Math.ceil(big*1.6+32)+8,sc=document.createElement("canvas");sc.width=W;sc.height=H;const sx=sc.getContext("2d");sx.translate(big+4-qx,big*1.6+4-qy);draw(sx);
+  let x0=W,x1=0;{const d=sx.getImageData(0,0,W,H).data;for(let y=0;y<H;y+=2)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x}}
+  const mk=(col,r)=>{const oc=document.createElement("canvas");oc.width=W;oc.height=H;const ox=oc.getContext("2d");for(let a2=0;a2<16;a2++)ox.drawImage(sc,Math.cos(a2*.3927)*r,Math.sin(a2*.3927)*r);ox.globalCompositeOperation="source-in";ox.fillStyle=col;ox.fillRect(0,0,W,H);ox.globalCompositeOperation="destination-out";ox.drawImage(sc,0,0);return oc};
+  return {w:Math.max(4,x1-x0),sel:mk("#f0c060",2.2),hov:mk("rgba(255,236,190,.85)",1.4),ghost:sc,x:qx-big-4+MX,y:qy-big*1.6-4+MY}}
 const shadeHex=(h,f)=>{const n=parseInt(h.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,m=v=>clamp(Math.round(f>0?v+(255-v)*f:v*(1+f)),0,255);return "#"+((1<<24)|(m(r)<<16)|(m(g)<<8)|m(b)).toString(16).slice(1)};
 const VK=(T,k,r,amt)=>{const base=T[k];if(!base||!Array.isArray(base)||typeof base[0]!=="string"||base[0][0]!=="#")return k;const v=(r()*5)|0;if(v===2)return k;const key=k+"~"+v+"~"+amt;if(!T[key])T[key]=base.map(c=>typeof c==="string"&&c[0]==="#"&&c.length===7?shadeHex(c,(v-2)*amt):c);return key};
 function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,sg,nodes}=C;let rs=A.mulberry((C.seed^9173)>>>0);const rng=()=>rs();
@@ -488,10 +493,10 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     const p=pj(b.x,b.y),ey=(Math.abs(Math.sin(b.ang))*b.L+Math.abs(Math.cos(b.ang))*b.D)/2*TILT;obj.push({k:1,src:b,keep:b.sym||b.tw?1:0,x:p[0],y:p[1]+ey,cy:p[1],o,smoke:o.smoke||b.type==="tavern"&&r2()<.5,wx:b.x,wy:b.y})}
   for(const s of C.SPB){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{src:s,x:p[0],y:p[1]+(s.k===3?30:s.k===2?14:(s.r||8)*TILT*.6),py:p[1],wx:s.x,wy:s.y}))}
   for(const s of C.props){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{src:s,k:40,x:p[0],y:p[1],py:p[1],wx:s.x,wy:s.y}))}
-  for(const t of C.trees){const p=pj(t[0],t[1]);obj.push({k:0,x:p[0],y:p[1],s:t[2],wild:t[3],wx:t[0],wy:t[1]})}
-  for(const t of C.NAT||[]){const p=pj(t[0],t[1]);obj.push({k:15,x:p[0],y:p[1],s:t[2],nk:t[3],wx:t[0],wy:t[1]})}
-  for(const s of C.ships){const p=pj(s.x,s.y);obj.push({k:13,x:p[0],y:p[1],ang:s.ang,big:s.big,col:s.col,wx:s.x,wy:s.y})}
-  for(const s of C.boats){const p=pj(s.x,s.y);obj.push({k:14,x:p[0],y:p[1],ang:s.ang,sm:s.sm,wx:s.x,wy:s.y})}
+  for(const t of C.trees){const p=pj(t[0],t[1]);obj.push({k:0,src:t,vs:t.vs||0,x:p[0],y:p[1],s:t[2],wild:t[3],wx:t[0],wy:t[1]})}
+  for(const t of C.NAT||[]){const p=pj(t[0],t[1]);obj.push({k:15,src:t,vs:t.vs||0,x:p[0],y:p[1],s:t[2],nk:t[3],wx:t[0],wy:t[1]})}
+  for(const s of C.ships){const p=pj(s.x,s.y);obj.push({k:13,src:s,x:p[0],y:p[1],ang:s.ang,big:s.big,col:s.col,wx:s.x,wy:s.y})}
+  for(const s of C.boats){const p=pj(s.x,s.y);obj.push({k:14,src:s,x:p[0],y:p[1],ang:s.ang,sm:s.sm,wx:s.x,wy:s.y})}
   // muralha
   const gatePts=C.gates.map(id=>[nodes[id].x,nodes[id].y]);
   const pushWall=(pts,closed,h,gatesOn,inner)=>{const rsP=resampleP(pts,P.wall==="curva"||inner?11:14,closed);const n=rsP.length;let since=0;
@@ -509,8 +514,8 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   const seedQ=q=>{rs=A.mulberry((Math.imul(q.x*4|0,73856093)^Math.imul(q.y*4|0,19349663)^q.k*83492791)>>>0)},gone=q=>q.wx!=null&&ER.length&&ER.some(e=>Math.hypot(e.x-q.wx,e.y-q.wy)<e.r);
   const drawQ=(c,q,pk)=>{
     if(q.k===1){c.save();c.translate(q.x,q.cy);c.scale(Z,Z);K.drawBuilding(c,0,0,q.o);c.restore();if(q.smoke&&!pk)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3])}
-    else if(q.k===0){const set=q.wild?wildSet:(P.culture==="japones"||P.culture==="chines")&&rng()<.6?stamps.sakura:treeSet,st=set[(rng()*set.length)|0],wd=(st.lw||st.width)*q.s*1.25,hg=(st.lh||st.height)*q.s*1.25;c.drawImage(st,q.x-wd/2,q.y-hg*.9,wd,hg)}
-    else if(q.k===15){const set=q.nk==="rock"?stamps.rocks:SEAS==="inverno"?stamps.bare:stamps.bush,st=set[(rng()*set.length)|0],f=q.nk==="rock"?.55:.75,wd=(st.lw||st.width)*q.s*f,hg=(st.lh||st.height)*q.s*f;c.drawImage(st,q.x-wd/2,q.y-hg*.85,wd,hg)}
+    else if(q.k===0){const set=q.wild?wildSet:(P.culture==="japones"||P.culture==="chines")&&rng()<.6?stamps.sakura:treeSet,st=set[(((rng()*set.length)|0)+q.vs)%set.length],wd=(st.lw||st.width)*q.s*1.25,hg=(st.lh||st.height)*q.s*1.25;c.drawImage(st,q.x-wd/2,q.y-hg*.9,wd,hg)}
+    else if(q.k===15){const set=q.nk==="rock"?stamps.rocks:SEAS==="inverno"?stamps.bare:stamps.bush,st=set[(((rng()*set.length)|0)+q.vs)%set.length],f=q.nk==="rock"?.55:.75,wd=(st.lw||st.width)*q.s*f,hg=(st.lh||st.height)*q.s*f;c.drawImage(st,q.x-wd/2,q.y-hg*.85,wd,hg)}
     else if(q.k===2||q.k===3){c.save();c.translate(q.x,q.py);const z=q.k===3?2:(q.big?2.2:1.8);c.scale(z,z);K.drawBig(c,Object.assign({},q,{x:0,y:0,sz:1}));c.restore()}
     else if(q.k===4){if(fz==="palisade")K.drawPalisade(c,q.a,q.b,q.h+.5);else if(fz==="hedge")K.drawHedge(c,q.a,q.b,5);else K.drawWall(c,q.a,q.b,q.h,fz)}
     else if(q.k===9)K.drawWaterWall(c,q.a,q.b,q.h,fz);
@@ -521,21 +526,22 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     else if(q.id){const z=(q.s||1)*Z*(q.street?.85:1);c.save();c.translate(q.x,q.py!=null?q.py:q.y);c.scale(z,z);AS.draw(c,0,0,q.id,q.race,q.v,q.ang||0);c.restore()}};
   for(const q of obj){seedQ(q);if(gone(q))continue;drawQ(c,q)}
   // contorno exato do objeto (silhueta do proprio desenho)
-  const SILC=new Map();C._sil=src=>{if(SILC.has(src))return SILC.get(src);const q=obj.find(z=>z.src===src);if(!q){SILC.set(src,null);return null}const big=q.k===3?190:q.k===2?110:q.k===1?60:70,W=Math.ceil(big*2)+8,H=Math.ceil(big*1.6+16)+8,keep=rs;
-    const sc=document.createElement("canvas");sc.width=W;sc.height=H;const sx=sc.getContext("2d");sx.translate(big+4-q.x,big*1.6+4-q.y);try{seedQ(q);drawQ(sx,q,true)}finally{rs=keep}
-    const mk=(col,r)=>{const oc=document.createElement("canvas");oc.width=W;oc.height=H;const ox=oc.getContext("2d");for(let a2=0;a2<16;a2++)ox.drawImage(sc,Math.cos(a2*.3927)*r,Math.sin(a2*.3927)*r);ox.globalCompositeOperation="source-in";ox.fillStyle=col;ox.fillRect(0,0,W,H);ox.globalCompositeOperation="destination-out";ox.drawImage(sc,0,0);return oc};
-    let x0=W,x1=0;{const d=sx.getImageData(0,0,W,H).data;for(let y=0;y<H;y+=2)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x}}const r={w:Math.max(4,x1-x0),sel:mk("#f0c060",2.2),hov:mk("rgba(255,236,190,.85)",1.4),ghost:sc,x:q.x-big-4+MX,y:q.y-big*1.6-4+MY};SILC.set(src,r);return r};
+  const BIGQ=q=>q.k===3?240:q.k===2?120:q.k===1?70:q.k===0?45:q.k===15?30:q.k===13?80:70,SILC=new Map();C._sil=src=>{if(SILC.has(src))return SILC.get(src);const q=obj.find(z=>z.src===src);if(!q){SILC.set(src,null);return null}const big=BIGQ(q),keep=rs;
+    let r;try{r=mkSil(c2=>{seedQ(q);drawQ(c2,q,true)},q.x,q.y,big)}finally{rs=keep}SILC.set(src,r);return r};
   // selecao precisa: testa o pixel do proprio desenho, do mais a frente para tras
   C._pick=(sx,sy)=>{sx-=MX;sy-=MY;if(!PICKC){PICKC=document.createElement("canvas");PICKC.width=PICKC.height=3}const pc=PICKC.getContext("2d",{willReadFrequently:true}),keep=rs;
-    try{for(let i=obj.length-1;i>=0;i--){const q=obj[i];if(!q.src||gone(q))continue;const big=q.k===3?190:q.k===2?110:q.k===1?60:70;if(Math.abs(q.x-sx)>big||sy>q.y+12||sy<q.y-big*1.6)continue;
+    try{for(let i=obj.length-1;i>=0;i--){const q=obj[i];if(!q.src||gone(q))continue;const big=BIGQ(q);if(Math.abs(q.x-sx)>big||sy>q.y+34||sy<q.y-big*1.6)continue;
       pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);seedQ(q);drawQ(pc,q,true);if(pc.getImageData(1,1,1,1).data[3]>40)return q.src}}finally{rs=keep}return null};
   rs=A.mulberry((C.seed^99)>>>0);for(const s of smoke)K.drawSmoke(c,s[0],s[1],rng);
   if(opt.snap){if(!SNAPC||SNAPC.width!==canvas.width||SNAPC.height!==canvas.height){SNAPC=document.createElement("canvas");SNAPC.width=canvas.width;SNAPC.height=canvas.height}SNAPC.getContext("2d").drawImage(canvas,0,0);C._snap={S,ek:EK,img:SNAPC,obj}}}
   // objetos colocados a mao
   if(opt.objs&&opt.objs.length){const list=opt.objs.map(m=>{const p=pj(m.x,m.y);return {m,x:p[0],y:p[1]}}).sort((a,b)=>a.y-b.y);const st2=stamps;
-    for(const {m,x,y} of list){const z=(m.s||1)*Z;c.save();c.translate(x,y);c.scale(z,z);if(AS.NAME[m.v])AS.draw(c,0,0,m.v,m.c||P.culture,((m.x*7+m.y*3)%100)/100,(m.a||0)*Math.PI/180);
+    const drawM=(c,m,x,y)=>{const z=(m.s||1)*Z;c.save();c.translate(x,y);c.scale(z,z);if(AS.NAME[m.v])AS.draw(c,0,0,m.v,m.c||P.culture,(((m.x*7+m.y*3)%100)/100+(m.vv||0))%1,(m.a||0)*Math.PI/180);
       else if(m.v.slice(0,2)==="b_"){const sp={b_hut:"hut",b_farm:"farm",b_town:"town",b_row:"row",b_rich:"rich",b_manor:"manor",b_tavern:"tavern",b_smithy:"smithy",b_barn:"barn",b_shed:"shed"}[m.v];if(sp){const o=A.mkHouse(m.c||P.culture,sp,A.mulberry((m.x*31+m.y)|0),(m.a||0)*Math.PI/180);K.drawBuilding(c,0,0,o)}else if(m.v==="b_temple"||m.v==="b_castle"){c.scale(1.2,1.2);K.drawBig(c,{k:m.v==="b_temple"?2:3,x:0,y:0,race:m.c||P.culture,v:.4,sz:1})}else if(m.v==="b_tent")K.drawTent(c,0,0,m.c||P.culture,1,false,true);else if(m.v==="b_mill")K.drawMill(c,0,0,.4);else if(m.v==="b_tower")K.drawTower(c,0,0,4.4,12,6,ROOF.dark,WALL.stone,false)}
-      else{const T={oak:st2.dec,pine:st2.con,birch:st2.birch,autumn:st2.autumn,sakura:st2.sakura,blossom:st2.blossom,palm:st2.palm,willow:st2.willow,bush:st2.bush,acacia:st2.acacia,jungle:st2.jungle,snowpine:st2.snowpine,dead:st2.dead,cactus:st2.cactus,bare:st2.bare,rock:st2.rocks,boulders:st2.rockc}[m.v];if(T){const s0=T[((m.x+m.y)|0)%T.length];c.drawImage(s0,-(s0.lw||s0.width)*.45,-(s0.lh||s0.height)*.85,(s0.lw||s0.width)*.9,(s0.lh||s0.height)*.9)}}c.restore()}}
+      else{const T={oak:st2.dec,pine:st2.con,birch:st2.birch,autumn:st2.autumn,sakura:st2.sakura,blossom:st2.blossom,palm:st2.palm,willow:st2.willow,bush:st2.bush,acacia:st2.acacia,jungle:st2.jungle,snowpine:st2.snowpine,dead:st2.dead,cactus:st2.cactus,bare:st2.bare,rock:st2.rocks,boulders:st2.rockc}[m.v];if(T){const s0=T[((m.x+m.y)|0)%T.length];c.drawImage(s0,-(s0.lw||s0.width)*.45,-(s0.lh||s0.height)*.85,(s0.lw||s0.width)*.9,(s0.lh||s0.height)*.9)}}c.restore()};
+    for(const {m,x,y} of list)drawM(c,m,x,y);
+    C._pickM=(sx,sy)=>{sx-=MX;sy-=MY;if(!PICKC){PICKC=document.createElement("canvas");PICKC.width=PICKC.height=3}const pc=PICKC.getContext("2d",{willReadFrequently:true});for(let i=list.length-1;i>=0;i--){const {m,x,y}=list[i],big=90*(m.s||1);if(Math.abs(x-sx)>big||sy>y+20||sy<y-big*1.6)continue;pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);drawM(pc,m,x,y);if(pc.getImageData(1,1,1,1).data[3]>40)return m}return null};
+    C._silM=m=>{const it=list.find(z=>z.m===m);if(!it)return null;const big=90*(m.s||1);return mkSil(c2=>drawM(c2,m,it.x,it.y),it.x,it.y,big)}}else{C._pickM=()=>null;C._silM=()=>null}
   // bandeirinhas
   if(C.bunting&&C.bunting.length){const FC=["#a8352a","#3f6f8f","#c9a24a","#5f7e35","#8a4a7a","#efe6cb"];let k=0;for(const z of C.bunting){if(ER_&&ER_.some(e=>Math.hypot(e.x-(z.a[0]+z.b[0])/2,e.y-(z.a[1]+z.b[1])/2)<e.r))continue;const pa=pj(z.a[0],z.a[1]),pb=pj(z.b[0],z.b[1]),A_=[pa[0],pa[1]-z.ha*Z],B_=[pb[0],pb[1]-z.hb*Z],M=[(A_[0]+B_[0])/2,(A_[1]+B_[1])/2+7];
     c.strokeStyle="rgba(40,30,20,.75)";c.lineWidth=.55;c.beginPath();c.moveTo(A_[0],A_[1]);c.quadraticCurveTo(M[0],M[1],B_[0],B_[1]);c.stroke();const L=Math.hypot(B_[0]-A_[0],B_[1]-A_[1]),n=Math.max(3,Math.floor(L/5));
@@ -619,5 +625,12 @@ function renderTop(C,canvas,opt){opt=opt||{};const ER=opt.erase||[],gone=(x,y)=>
 function gridOver(canvas,cell,S){const c=canvas.getContext("2d");c.save();c.setTransform(S,0,0,S,0,0);c.beginPath();c.rect(MX,MY,MW,MH);c.clip();c.strokeStyle="rgba(20,16,10,.3)";c.lineWidth=1/S;c.beginPath();for(let x=MX;x<=MX+MW;x+=cell){c.moveTo(x,MY);c.lineTo(x,MY+MH)}for(let y=MY;y<=MY+MH;y+=cell*TILT){c.moveTo(MX,y);c.lineTo(MX+MW,y)}c.stroke();c.restore()}
 // bairro sob um ponto do mundo
 function patchAt(C,x,y){for(const p of C.patches){if(p.sea)continue;if(inPoly(p.poly,x,y))return p}return null}
-window.AtlasCity={renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
+// edicao de um objeto gerado (usada ao gerar e ao editar ao vivo)
+const ARR=["B","SPB","props","trees","NAT","ships","boats"];
+function applyOv(C,q,o){const isA=Array.isArray(q),own=ARR.find(n=>C[n]&&C[n].includes(q));if(!own)return;
+  if(o.del){C[own].splice(C[own].indexOf(q),1);return}
+  if(o.x!=null){if(isA){q[0]=o.x;q[1]=o.y}else{if(q.wing){q.wing.x+=o.x-q.x;q.wing.y+=o.y-q.y}q.x=o.x;q.y=o.y}}
+  if(o.a!=null){q.ang=o.a;q.wing=null}if(o.v!=null)q.v=o.v;if(o.vs!=null)q.vs=o.vs;if(o.id)q.id=o.id;if(o.type)q.type=o.type;if(o.ms!=null)q.ms=o.ms;if(o.big!=null)q.big=o.big;
+  if(isA){if(o.s!=null)q[2]=o.s;if(o.kind){const tree=o.kind==="tree"||o.kind==="wild",dst=tree?"trees":"NAT";q[3]=o.kind==="wild"?1:tree?0:o.kind;if(dst!==own){C[own].splice(C[own].indexOf(q),1);C[dst].push(q)}}}}
+window.AtlasCity={applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
 })();
