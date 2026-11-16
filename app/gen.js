@@ -545,7 +545,7 @@ function drawTent(c,x,y,race,s,big,flag){const T=TENT[race]||TENT.humano,[c0,c1]
     if(race==="japones"||race==="chines"){poly(c,[[px,py-ph],[px+2.6,py-ph],[px+2.6,py-ph+8],[px,py-ph+8]],race==="chines"?"#b8352a":"#f3eee2",INK);c.fillStyle=T.tr;c.beginPath();c.arc(px+1.3,py-ph+3,.8,0,7);c.fill()}
     else poly(c,[[px,py-ph],[px+6,py-ph+1.6],[px,py-ph+3.6]],T.tr==="#e8e0c8"||T.tr==="#f0e2b4"||T.tr==="#f6ead0"?"#a8352a":T.tr,INK)}}
 function drawFire(c,x,y){c.fillStyle="#3a2c1b";c.beginPath();c.ellipse(x,y,2,.9,0,0,7);c.fill();c.fillStyle="#e07a2a";c.beginPath();c.moveTo(x-1.4,y-.2);c.quadraticCurveTo(x-.6,y-2,x,y-3.8);c.quadraticCurveTo(x+.8,y-2,x+1.4,y-.2);c.fill();c.fillStyle="#f6c04a";c.beginPath();c.moveTo(x-.6,y-.2);c.lineTo(x,y-2.2);c.lineTo(x+.6,y-.2);c.fill()}
-function generate(P){
+function generate(P){if(!["europa","leste","sul","meso","estepe","misto"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
   setScale(P.size||1);
   const seed=hashStr(P.seed),rng=mulberry(seed),fbm=makeNoise(seed^0x9e37),fbm2=makeNoise(seed^0x51f1);
   const pick=a=>a[(rng()*a.length)|0];
@@ -913,13 +913,14 @@ function generate(P){
       else if(rng()<.012*poi&&sampleGrid(forest,x,y)>.1&&sampleGrid(forest,x,y)<.6&&lm.filter(z=>z.k===22).length<3*SC*SC){if(free(x,y,12))o={k:22,x,y,r:12,race:pick(["humano","orc","mongol"])}}
       else if(rng()<.01*poi&&sampleGrid(elev,x,y)>.25&&b!==4&&lm.filter(z=>z.k===25).length<2*SC*SC){if(free(x,y,10))o={k:25,x,y,r:10}}
       else if(rng()<.012*poi&&sampleGrid(slope,x,y)<.04&&(b===0||b===1||b===7||b===3)&&sampleGrid(dist,x,y)>24&&ponds.length<4*SC*SC){const w=14+rng()*16;if(free(x,y,w+6)){ponds.push({x,y,w,h:w*(.55+rng()*.3),a:rng()*3.14});disc(x,y,w,2,false);continue}}
+      if(o&&lm.some(q=>q.k===o.k&&Math.hypot(q.x-o.x,q.y-o.y)<260))o=null;
       if(o){lm.push(o);disc(x,y,o.r*.8,2,false);B.push(o)}}}
   for(const m of P.objs||[]){if(!m||m.x==null)continue;const x=m.x,y=m.y,s=m.s||1;if(sampleGrid(land,x,y)<.02&&m.v!=="pond")continue;
     if(m.v==="volcano")addVolcano(x,y,58*s);else if(m.v==="mesa")addMesa(x,y,26*s,.12*s);else if(m.v==="pond"){ponds.push({x,y,w:16*s,h:16*s*.65,a:0});disc(x,y,16*s,2,true)}}
   for(let j=1;j<GH-1;j++)for(let i=1;i<GW-1;i++){const k=j*GW+i;slope[k]=Math.hypot(elev[k+1]-elev[k-1],elev[k+GW]-elev[k-GW])}
-  for(const t of towns){if(rng()<.35+poi*.5){for(let k=0;k<24;k++){const a=rng()*6.28,r=t.rmax*(1.15+rng()*.35),x=t.x+Math.cos(a)*r,y=t.y+Math.sin(a)*r;let f=true;for(let q=0;q<6.28;q+=.8)if(occAt(x+Math.cos(q)*9,y+Math.sin(q)*7)||wet(x+Math.cos(q)*9,y+Math.sin(q)*7))f=false;if(f){disc(x,y,9,2,false);B.push({k:23,x,y,race:t.race});break}}}
-    if(rng()<poi*.6){const z=allSt.filter(z=>z.ti===-1);if(z.length){const zz=pick(z),q=zz.pts[(rng()*zz.pts.length)|0],a=rng()*6.28,x=q[0]+Math.cos(a)*9,y=q[1]+Math.sin(a)*9;if(!occAt(x,y)&&!wet(x,y)&&!towns.some(o=>o.rel(x,y)<1.2)){disc(x,y,4,2,false);B.push({k:24,x,y,race:t.race})}}}}
-  for(const t of towns){const C=CUL[t.race];if((t.race==="orc"||t.race==="tribal"||t.race==="mongol")&&t.plaza){B.push({k:18,ti:t.i,x:t.x-6,y:t.y+2})}if(t.race==="japones"){for(let k=0;k<20;k++){const a=rng()*6.28,x=t.x+Math.cos(a)*t.rmax*1.1,y=t.y+Math.sin(a)*t.rmax*1.1;if(!occAt(x,y)&&sampleGrid(land,x,y)>.05&&sampleGrid(rdist,x,y)>16){disc(x,y,6,2,false);B.push({k:19,x,y});break}}}}
+  for(const t of towns){if(rng()<.35+poi*.5){for(let k=0;k<24;k++){const a=rng()*6.28,r=t.rmax*(1.15+rng()*.35),x=t.x+Math.cos(a)*r,y=t.y+Math.sin(a)*r;let f=true;for(let q=0;q<6.28;q+=.8)if(occAt(x+Math.cos(q)*9,y+Math.sin(q)*7)||wet(x+Math.cos(q)*9,y+Math.sin(q)*7))f=false;if(f&&!B.some(q=>q.k===23&&Math.hypot(q.x-x,q.y-y)<200)){disc(x,y,9,2,false);B.push({k:23,x,y,race:t.race});break}}}
+    if(rng()<poi*.6){const z=allSt.filter(z=>z.ti===-1);if(z.length){const zz=pick(z),q=zz.pts[(rng()*zz.pts.length)|0],a=rng()*6.28,x=q[0]+Math.cos(a)*9,y=q[1]+Math.sin(a)*9;if(!occAt(x,y)&&!wet(x,y)&&!B.some(q=>q.k===24&&Math.hypot(q.x-x,q.y-y)<160)&&!towns.some(o=>o.rel(x,y)<1.2)){disc(x,y,4,2,false);B.push({k:24,x,y,race:t.race})}}}}
+  for(const t of towns){const C=CUL[t.race];if((t.race==="orc"||t.race==="tribal"||t.race==="mongol")&&t.plaza){B.push({k:18,ti:t.i,x:t.x-6,y:t.y+2})}if(t.race==="japones"){for(let k=0;k<20;k++){const a=rng()*6.28,x=t.x+Math.cos(a)*t.rmax*1.1,y=t.y+Math.sin(a)*t.rmax*1.1;if(!occAt(x,y)&&sampleGrid(land,x,y)>.05&&sampleGrid(rdist,x,y)>16&&!B.some(q=>q.k===19&&Math.hypot(q.x-x,q.y-y)<200)){disc(x,y,6,2,false);B.push({k:19,x,y});break}}}}
   // sitios: casa e celeiro perto das estradas, fora das vilas; os campos nascem em volta deles
   const farms=[];
   if(P.fields>0)for(const t of towns){const fb=bAt(t.x,t.y);if(fb===2||fb===8||(fb===4&&sampleGrid(rdist,t.x,t.y)>90))continue;const want=Math.round(P.fields*(1+t.size/9)*(CUL[t.race].fields||1));let n=0;
@@ -948,6 +949,16 @@ function generate(P){
       if(kind==="orchard"){const ca=Math.cos(fp.ang),sa=Math.sin(fp.ang);for(let u=-60;u<=60;u+=8)for(let v=-60;v<=60;v+=8){const x=z.x+ca*u-sa*v,y=z.y+sa*u+ca*v;if(inPoly(poly,x,y)&&dsegPoly(poly,x,y)>3)extra.push([x,y,.5])}}
       else if(rng()<.3){const e=(rng()*poly.length)|0,a=poly[e],b=poly[(e+1)%poly.length],l=Math.hypot(b[0]-a[0],b[1]-a[1]);for(let q=3;q<l;q+=6.5){const x=lerp(a[0],b[0],q/l),y=lerp(a[1],b[1],q/l);if(!wet(x,y)&&sampleGrid(rdist,x,y)>17)extra.push([x,y,.5])}}}}
   const brs=[];for(const b of bridges){if(towns.some(t=>t.kind!=="village"&&t.inside((b[0][0]+b[1][0])/2,(b[0][1]+b[1][1])/2,1.15))&&!brAdd.includes(b)&&brs.some(o=>towns.some(t=>t.inside(o.mx,o.my,1.2)&&t.inside((b[0][0]+b[1][0])/2,(b[0][1]+b[1][1])/2,1.2))))continue;const mx=(b[0][0]+b[1][0])/2,my=(b[0][1]+b[1][1])/2;if(brs.some(o=>Math.hypot(o.mx-mx,o.my-my)<34))continue;b.mx=mx;b.my=my;b.stone=towns.some(t=>t.kind!=="village"&&Math.hypot(t.x-mx,t.y-my)<t.core*1.7)||rng()<.3;brs.push(b)}
+  // resolucao final: castelo > templo > pontos de interesse > objetos da praca > casas
+  {const obbR=(x,y,a,L,D)=>{const c=Math.cos(a),s2=Math.sin(a),l=L/2,d=D/2;return [[x+c*l-s2*d,y+s2*l+c*d],[x-c*l-s2*d,y-s2*l+c*d],[x-c*l+s2*d,y-s2*l-c*d],[x+c*l+s2*d,y+s2*l-c*d]]},
+    satN=(A,Bp)=>{for(const P_ of[A,Bp])for(let i=0;i<4;i++){const a=P_[i],b=P_[(i+1)%4];let nx=b[1]-a[1],ny=a[0]-b[0];const l=Math.hypot(nx,ny)||1;nx/=l;ny/=l;let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const q of A){const d=q[0]*nx+q[1]*ny;a0=Math.min(a0,d);a1=Math.max(a1,d)}for(const q of Bp){const d=q[0]*nx+q[1]*ny;b0=Math.min(b0,d);b1=Math.max(b1,d)}if(a1<=b0-.3||b1<=a0-.3)return false}return true};
+    const RR={2:14,8:6,16:12,17:12,18:4,19:6,20:9,21:5,22:12,23:8,24:4,25:10,26:14,27:14,28:14,7:2.4,6:2.6,32:3,33:6,34:2,35:2,36:2};
+    const fp=b=>{if(b.k===1)return obbR(b.x,b.y,b.ang,b.L*.82,b.D*.82);if(b.k===40){const sz=((window.AtlasAssets&&AtlasAssets.SIZE[b.id])||[6])[0]*.55;return obbR(b.x,b.y,0,sz*1.64,sz*1.15)}if(b.k===6||b.k===7)return obbR(b.x,b.y,0,3.3,2.5);let r=b.r||RR[b.k]||5;if(b.k===3)r=26*(b.ms||1);if(b.k===2)r=13*(b.sz||1);return obbR(b.x,b.y-(b.k===3?r*.4:0),0,r*1.31,r*.98)};
+    const pri=b=>b.k===3?9:b.k===2?8:b.k>=14&&b.k<=28&&b.k!==18&&b.k!==21?7:b.k===8?6:b.k===40||b.k===6||b.k===7?5:b.k===18?4:b.k===1?3:b.k===13||b.k===37?-1:2;
+    const G=new Map(),order=B.map((b,i)=>[b,i]).filter(z=>pri(z[0])>=0).sort((a,b)=>pri(b[0])-pri(a[0])||a[1]-b[1]),drop=new Set();
+    for(const [b] of order){const poly=fp(b),gx=(b.x/40)|0,gy=(b.y/40)|0,grp=b.k===40||b.k===6||b.k===7?"p"+b.ti:null;let bad=false;for(let a=-2;a<=2&&!bad;a++)for(let c2=-2;c2<=2&&!bad;c2++)for(const z of G.get((gx+a)+"_"+(gy+c2))||[]){if(grp&&z.grp===grp)continue;if(satN(poly,z.poly)){bad=true;break}}
+      if(bad&&pri(b)<8){drop.add(b);continue}const k=gx+"_"+gy;(G.get(k)||G.set(k,[]).get(k)).push({poly,grp})}
+    for(let i=B.length-1;i>=0;i--)if(drop.has(B[i]))B.splice(i,1)}
   return {vmask,mmask,lava,erList,ponds,biome,snow,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP,piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
 }
 
