@@ -196,8 +196,9 @@ function drawHouseA(c,x,y,o){
     c.strokeStyle="rgba(50,30,15,.42)";c.lineWidth=.5;c.beginPath();
     if(f.kind==="roof"){const s=f.s;if(o.roof==="thatch"||o.roof==="old"){for(const t of[.35,.68]){const a=P(-hl,s*hd*(1-t),H+R*t),b=P(hl,s*hd*(1-t),H+R*t);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1])}}
       else{const n=Math.max(2,Math.round(o.L/2.3));for(let i=1;i<n;i++){const a=-hl+o.L*i/n,p=P(a,s*hd,H),q=P(a,0,H+R);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}const p=P(-hl,s*hd*.5,H+R*.5),q=P(hl,s*hd*.5,H+R*.5);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}}
-    else if(o.timber){if(f.kind==="long"){const p=P(-hl,f.s*hd,H*.5),q=P(hl,f.s*hd,H*.5);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);for(const t of[-.33,.33]){const a=P(hl*t*2,f.s*hd,0),b=P(hl*t*2,f.s*hd,H);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1])}}
-      else{const p=P(f.s*hl,-hd,H*.5),q=P(f.s*hl,hd,H*.5);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])}}
+    else if(o.timber){c.stroke();c.strokeStyle="rgba(58,36,18,.82)";c.lineWidth=.62;c.beginPath();const L_=(a,b,h0,h1,side)=>{const p=side?P(a,f.s*hd,h0):P(f.s*hl,a,h0),q=side?P(b,f.s*hd,h1):P(f.s*hl,b,h1);c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1])};
+      if(f.kind==="long"){L_(-hl,hl,H*.5,H*.5,1);L_(-hl,hl,H-.2,H-.2,1);const n=Math.max(2,Math.round(o.L/4.2));for(let i=0;i<=n;i++){const u=-hl+o.L*i/n;L_(u,u,0,H,1);if(i<n){const u2=-hl+o.L*(i+1)/n;if(i%2)L_(u,u2,H*.5,H-.2,1);else L_(u2,u,H*.5,H-.2,1)}}}
+      else{L_(-hd,hd,H*.5,H*.5,0);L_(0,0,0,H,0);L_(-hd,0,H*.5,H,0);L_(hd,0,H*.5,H,0)}}
     c.stroke();
     if(f.kind!=="roof"){c.fillStyle="#3a2c1b";const win=(a,b,h,w)=>{const p=f.kind==="long"?P(a,f.s*hd,h):P(f.s*hl,b,h),q=f.kind==="long"?P(a+w,f.s*hd,h):P(f.s*hl,b+w,h);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-1.8);c.lineTo(p[0],p[1]-1.8);c.closePath();c.fill()};
       if(f.kind==="long"){if(o.win){const n=Math.max(1,Math.round(o.L/5));for(let i=0;i<n;i++){const a=-hl+o.L*(i+.5)/n-.7;win(a,0,H*.62,1.4);if(H>7)win(a,0,H*.22+1.6,1.4)}}if(o.door){const p=P(hl*.15,f.s*hd,0),q=P(hl*.15+(o.door>1?2.4:1.8),f.s*hd,0),h=o.door>1?3.8:2.8;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-h);c.lineTo(p[0],p[1]-h);c.closePath();c.fill()}}
@@ -207,10 +208,12 @@ function drawHouseA(c,x,y,o){
   if(o.sign){const p=P(hl,0,H*.7);c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(p[0]+3,p[1]);c.stroke();c.fillStyle="#c9a24c";c.fillRect(p[0]+1.6,p[1],2,2.4)}
 }
 function drawBuilding(c,x,y,o){
-  if(o.wing){const w=o.wing;drawHouseA(c,x+w.dx,y+w.dy,Object.assign({},o,{L:w.L,D:w.D,H:o.H*w.h,R:o.R*.85,ang:w.ang,wing:null,dorm:null,chim:false,sign:false,tower:null}))}
-  if(o.tower&&o.tower.back){const t=o.tower;drawTower(c,x+t.dx,y+t.dy,t.w,t.h,t.r,ROOF[o.roof],WALL[o.wall],false)}
+  const wingD=()=>{const w=o.wing;drawHouseA(c,x+w.dx,y+w.dy,Object.assign({},o,{L:w.L,D:w.D,H:o.H*w.h,R:o.R*.85,ang:w.ang,wing:null,dorm:null,chim:false,sign:false,tower:null,towers:null}))},TW=(t)=>drawTower(c,x+t.dx,y+t.dy,t.w,t.h,t.r,ROOF[o.roof]||ROOF.dark,WALL[o.wall]||WALL.stone,false);
+  if(o.wing&&!o.wing.front)wingD();
+  if(o.tower&&o.tower.back)TW(o.tower);if(o.towers)for(const t of o.towers)if(t.back)TW(t);
   const r0=drawBuilding0(c,x,y,o);
-  if(o.tower&&!o.tower.back){const t=o.tower;drawTower(c,x+t.dx,y+t.dy,t.w,t.h,t.r,ROOF[o.roof],WALL[o.wall],false)}
+  if(o.tower&&!o.tower.back)TW(o.tower);if(o.towers)for(const t of o.towers)if(!t.back)TW(t);
+  if(o.wing&&o.wing.front)wingD();
   return r0}
 function drawBuilding0(c,x,y,o){
   if(o.form==="asian")return drawAsian(c,x,y,o);
@@ -800,7 +803,7 @@ function generate(P){
   towns.forEach((t,ti)=>{t.i=ti;const big=t.kind==="city";t.streets=[];if(t.kind==="camp"){buildCamp(t,ti);return}
     const inRoads=allSt.filter(z=>z.main&&z.pts.some(q=>t.inside(q[0],q[1],1.1)));
     // praca
-    if(t.kind!=="village"){const pr=big?15:11,n=7,a0=rng()*6.28;t.plaza={x:t.x,y:t.y,poly:Array.from({length:n},(_,i)=>{const a=a0+i/n*6.2832,r=pr*(.75+rng()*.4);return [t.x+Math.cos(a)*r,t.y+Math.sin(a)*r*.85]})};
+    if(t.kind!=="village"){const pr=big?18:13,n=9,a0=rng()*6.28;t.plaza={x:t.x,y:t.y,pr,poly:Array.from({length:n},(_,i)=>{const a=a0+i/n*6.2832,r=pr*(.75+rng()*.4);return [t.x+Math.cos(a)*r,t.y+Math.sin(a)*r*.85]})};
       for(const q of t.plaza.poly)disc((q[0]+t.x)/2,(q[1]+t.y)/2,pr*.55,1,true);disc(t.x,t.y,pr*.6,1,true)}
     const mains=new Set();
     if(t.lockSt){for(const z of t.lockSt){if(!z||!z.c||z.c.length<2)continue;const pts=resample(chaikin(z.c,2),3),segs=[];let seg=[],ws=-1;
@@ -831,7 +834,7 @@ function generate(P){
       if(bd){t.castle=bd;takeRect(bd[0],bd[1]-15,0,54,40,2);B.push({k:3,x:bd[0],y:bd[1],ti,race:t.race,cold:snowAt(bd[0],bd[1])>.5,v:rng(),sz:.9+rng()*.2})}}
     if(t.kind!=="village"||t.size>8){const cm=big?1.3:1,L=26*cm,D=12*cm;for(let k=0;k<24;k++){const a=rng()*6.2832,r=(t.plaza?20:8)+rng()*14,x=t.x+Math.cos(a)*r,y=t.y+Math.sin(a)*r;if(freeRect(x,y-4,0,L,D,0)){takeRect(x,y-4,0,L,D+6);B.push({k:2,ti,x:x+L*.18,y:y+D*.32,big,race:t.race,cold:snowAt(x,y)>.5,v:rng(),sz:.9+rng()*.22});break}}}
     // ruas secundarias: nascem das principais, curvam, acompanham o relevo e se fundem ao encontrar outra rua
-    const planned=t.planned,maxDepth=planned?3:big?3:t.kind==="town"?2:1,cap=Math.round((big?30:t.kind==="town"?12:4)*(.45+t.dens*.9)*(planned?1.6:1)),sp0=lerp(70,44,t.dens)*(t.kind==="village"?1.5:t.planned?.62:1);
+    const planned=t.planned,maxDepth=planned?3:big?3:t.kind==="town"?2:1,cap=Math.round((big?30:t.kind==="town"?12:4)*(.62+t.dens*.5)*(planned?1.5:1)),sp0=lerp(64,52,t.dens)*(t.kind==="village"?1.5:t.planned?.66:1);
     let queue=t.lockSt?[]:t.axes&&t.axes.length?t.axes.map(p=>({pts:p,d:0})):inRoads.map(z=>({pts:z.pts,d:0})).concat(t.streets.map(p=>({pts:p,d:0})));
     if(!t.lockSt&&!queue.length||(queue.length<2&&t.kind!=="village")){const a=rng()*6.2832;for(const da of[0,3.1416]){const g=grow(t,t.x,t.y,a+da,t.rmax*1.2,{straight:planned,m:1.02});if(g.pts.length>3){regSt(g.pts,ti,true);t.streets.push(g.pts);mains.add(g.pts);line(g.pts,3,1);queue.push({pts:g.pts,d:0})}}}
     if(!t.lockSt&&!planned&&(t.wall||big)){const ring=[];for(let k=0;k<=t.rs.length*2;k++){const a=k/(t.rs.length*2)*6.2832,ii=k%t.rs.length,r=t.rs[(k>>1)%t.rs.length]*.84;ring.push([t.x+Math.cos(a)*r,t.y+Math.sin(a)*r])}
@@ -855,13 +858,21 @@ function generate(P){
       for(const [px,py] of spots){if(occAt(px,py)||rng()>pH)continue;const [a,d]=ang(px,py),aa=a+(rng()<.65?0:1.5708);
         if(vil){house(t,px,py,aa,rng()<.5?"hut":"shed");continue}
         house(t,px,py,aa,typeFor(t,px,py))||house(t,px,py,aa,"row")||house(t,px,py,aa+1.5708,"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed")}
-      if(!vil&&t.dens>.35)for(const [px,py] of spots){if(occAt(px,py)||rng()>(t.dens-.35)*1.5)continue;const [a]=ang(px,py);for(const aa of[a,a+1.5708])if(house(t,px,py,aa,"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed"))break}
+      if(!vil&&t.dens>.2)for(const [px,py] of spots){if(occAt(px,py)||rng()>(t.dens-.2)*1.6)continue;const [a]=ang(px,py);for(const aa of[a,a+1.5708])if(house(t,px,py,aa,typeFor(t,px,py))||house(t,px,py,aa,"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed"))break}
+      if(t.dens>.5){const fine=[];for(let y=t.y-t.rmax;y<=t.y+t.rmax;y+=3.2)for(let x=t.x-t.rmax;x<=t.x+t.rmax;x+=3.2){if(t.inside(x,y,.97)&&!wet(x,y)&&!occAt(x,y))fine.push([x,y])}
+        for(const [px,py] of fine){if(occAt(px,py)||rng()>(t.dens-.5)*2.2)continue;const [a]=ang(px,py);for(const aa of[a,a+1.5708])if(house(t,px,py,aa,vil?"hut":"row")||house(t,px,py,aa,"hut")||house(t,px,py,aa,"shed"))break}}
       for(const [px,py] of spots){if(occAt(px,py))continue;const [a,d]=ang(px,py),r=rng();
         if(d<9&&wells<wmax&&r<.08){B.push({k:7,ti,x:px,y:py});disc(px,py,3,2,false);wells++}
-        else if(r<(vil?.3:.42)){const w=7+rng()*6,h=5+rng()*4;if(freeRect(px,py,a,w,h,0)){takeRect(px,py,a,w,h,3);gardens.push({x:px,y:py,a,w,h,col:pick(["#8f9a4a","#a59a55","#7f8f43","#b59a62"])})}}
+        else if(r<(vil?.3:.42*(1.25-t.dens))){const w=7+rng()*6,h=5+rng()*4;if(freeRect(px,py,a,w,h,0)){takeRect(px,py,a,w,h,3);gardens.push({x:px,y:py,a,w,h,col:pick(["#8f9a4a","#a59a55","#7f8f43","#b59a62"])})}}
         else if(r<(vil?.62:.5))extra.push([px,py,.4+rng()*.12]);
         else if(r<(vil?.8:.6))extra.push([px,py,.55+rng()*.3,"b"])}}
-    if(t.plaza){const n=big?8:4;for(let i=0;i<n;i++){const a=rng()*6.28,r=4+rng()*7;B.push({k:6,ti,x:t.x+Math.cos(a)*r,y:t.y+Math.sin(a)*r*.75,col:pick(["#a8352a","#2f4f86","#c9a24c","#e8e0c8"])})}B.push({k:7,ti,x:t.x+3,y:t.y-3})}
+    if(t.plaza){const pr=t.plaza.pr||12,sty=pick(big?["feira","fonte","monumento","cruz"]:["feira","fonte","cruz"]);t.plaza.style=sty;const A_=(id,x,y,ang)=>B.push({k:40,ti,id,x,y,race:t.race,vv:rng(),ang:ang||0}),st_=(x,y,ang)=>B.push({k:6,ti,x,y,race:t.race,ang});
+      const ax=rng()*3.14,ca=Math.cos(ax),sn=Math.sin(ax),PP=(u,v)=>[t.x+ca*u-sn*v,t.y+(sn*u+ca*v)*.85];
+      if(sty==="feira"){for(const v of(big?[-7,-2.4,2.4,7]:[-2.6,2.6]))for(let u=-pr*.62;u<=pr*.62;u+=4.4){if(rng()<.12)continue;const q=PP(u,v);st_(q[0],q[1],ax+(v>0?3.1416:0))}const q=PP(pr*.82,0);A_("cart",q[0],q[1],ax);const w=PP(-pr*.8,big?0:5);B.push({k:7,ti,x:w[0],y:w[1]})}
+      else if(sty==="fonte"){A_("fountain",t.x,t.y,0);const n=big?8:6;for(let k=0;k<n;k++){const a=k/n*6.283+.3,q=[t.x+Math.cos(a)*pr*.66,t.y+Math.sin(a)*pr*.66*.85];st_(q[0],q[1],a+1.5708)}}
+      else if(sty==="monumento"){A_(pick(["statue","obelisk"]),t.x,t.y,0);for(const sd of[-1,1])for(let u=6;u<pr*.75;u+=4.4)for(const v of[-2.4,2.4]){const q=PP(u*sd,v);st_(q[0],q[1],ax+(v>0?3.1416:0))}const l=PP(0,pr*.6);A_("lamp",l[0],l[1],0)}
+      else{A_("marketcross",t.x,t.y,0);const n=big?9:6;for(let k=0;k<n;k++){const a=ax+k/n*4.2,q=[t.x+Math.cos(a)*pr*.6,t.y+Math.sin(a)*pr*.6*.85];st_(q[0],q[1],a+1.5708)}const w=PP(-pr*.55,-pr*.35);B.push({k:7,ti,x:w[0],y:w[1]})}
+      const cr=PP(pr*.5,-pr*.5);A_(pick(["crates","goods"]),cr[0],cr[1],ax)}
     t.ctrlStreets=t.lockSt||t.streets.filter(z=>z.length>1).map(z=>({c:simp(z,2.2),m:mains.has(z)?1:0}));
     if(!t.wall&&rng()<.7){for(let k=0;k<14;k++){const a=rng()*6.28,r=t.rmax+24+rng()*40,x=t.x+Math.cos(a)*r,y=t.y+Math.sin(a)*r;if(sampleGrid(elev,x,y)>sampleGrid(elev,t.x,t.y)+.02&&!occAt(x,y)&&!wet(x,y)&&sampleGrid(dist,x,y)>24){disc(x,y,9,2,false);B.push({k:8,ti,x,y,rot:rng()*1.57});break}}}});
   // portos: pieres no fim das ruas que chegam a agua
@@ -965,7 +976,8 @@ function render(W,canvas,stamps){
       for(const o0 of[-5,-1.5,2,5.5]){const o=o0*kk;if(((i*7+((o0*3)|0))&3)===0)continue;const sgn=(i+((o0+6)|0))&1?1:-1;f.moveTo(a[0]+nx*o,a[1]+ny*o);f.quadraticCurveTo(a[0]+dx*.5+nx*(o+1.8*sgn),a[1]+dy*.5+ny*(o+1.8*sgn),a[0]+dx*.85+nx*o,a[1]+dy*.85+ny*o)}}f.stroke()}
   for(const r of roads){smoothPath(f,r);f.strokeStyle="rgba(74,52,22,.7)";f.lineWidth=6;f.stroke()}
   for(const t of towns)for(const s of t.streets){smoothPath(f,s);f.strokeStyle="rgba(74,52,22,.6)";f.lineWidth=4.6;f.stroke()}
-  for(const t of towns){if(t.plaza){f.lineWidth=1.2;poly(f,t.plaza.poly,"#e2d3a2","rgba(74,52,22,.55)")}}
+  for(const t of towns){if(t.plaza){f.lineWidth=1.2;poly(f,t.plaza.poly,"#e2d3a2","rgba(74,52,22,.55)");const pl=t.plaza;f.save();f.beginPath();pl.poly.forEach((q,i)=>i?f.lineTo(q[0],q[1]):f.moveTo(q[0],q[1]));f.closePath();f.clip();f.strokeStyle="rgba(110,86,46,.35)";f.lineWidth=.5;
+      if(pl.style==="fonte"||pl.style==="monumento"||pl.style==="cruz"){for(let r=3.5;r<(pl.pr||12)*1.3;r+=2.6){f.beginPath();f.ellipse(pl.x,pl.y,r,r*.85,0,0,7);f.stroke()}}else{f.beginPath();for(let k=-12;k<=12;k++){f.moveTo(pl.x-30,pl.y+k*2.2);f.lineTo(pl.x+30,pl.y+k*2.2)}f.stroke()}f.restore()}}
   for(const r of roads){smoothPath(f,r);f.strokeStyle="#e4d3a0";f.lineWidth=3.8;f.stroke()}
   for(const t of towns)for(const s of t.streets){smoothPath(f,s);f.strokeStyle="#e0cf9c";f.lineWidth=2.8;f.stroke()}
   for(const p of W.piers){f.lineCap="butt";const ln=()=>{f.beginPath();f.moveTo(p[0][0],p[0][1]);f.lineTo(p[1][0],p[1][1])};ln();f.strokeStyle="#3a2a18";f.lineWidth=5.5;f.stroke();ln();f.strokeStyle="#a37c4c";f.lineWidth=3.6;f.stroke();ln();f.strokeStyle="rgba(50,32,15,.6)";f.setLineDash([.8,2.2]);f.stroke();f.setLineDash([]);f.lineCap="round"}
@@ -1075,7 +1087,7 @@ function render(W,canvas,stamps){
     else if(q.k===9)drawWaterWall(c,q.a,q.b,5.5,q.fz);
     else if(q.k===5&&q.fz==="asian"){drawAsian(c,q.x,q.y+2,{L:q.g?10:5,D:q.g?7:5,H:q.g?7:5,R:q.g?4:3,ang:0,roof:"jp",wall:"jpw",base:q.g?1:0})}
     else if(q.k===5){if(q.fz==="palisade")drawTower(c,q.x,q.y+2,q.g?4:3.4,q.g?11:9,q.g?5:4,ROOF.hide,WALL.wooddark,false);else if(q.fz==="hedge"){if(q.g){c.strokeStyle=INK;c.fillStyle="#5f7e35";c.lineWidth=.8;c.beginPath();c.arc(q.x,q.y-4,3.4,0,7);c.fill();c.stroke()}}else drawTower(c,q.x,q.y+2,q.g?4.4:3.8,q.g?12:9.5,q.g?6:0,ROOF.dark,q.fz==="sand"?WALL.sand:WALL.stone,!q.g)}
-    else if(q.k===6){if(window.AtlasAssets){c.save();c.translate(q.x,q.y);c.scale(.8,.8);AtlasAssets.draw(c,0,0,"stall",q.race||"humano",((q.x*7+q.y)%10)/10,-.2);c.restore()}}
+    else if(q.k===6){if(window.AtlasAssets){c.save();c.translate(q.x,q.y);c.scale(.8,.8);AtlasAssets.draw(c,0,0,"stall",q.race||"humano",((q.x*7+q.y)%10)/10,q.ang!=null?q.ang:-.2);c.restore()}}
     else if(q.k===7){if(window.AtlasAssets){c.save();c.translate(q.x,q.y);c.scale(.8,.8);AtlasAssets.draw(c,0,0,"well",q.race||"humano",.5,0);c.restore()}}
     else if(q.k===10)drawCliff(c,q.x,q.ty,q.w,q.h,rng);
     else if(q.k===11){const w=(q.wide?34:18)*q.s,h=(q.wide?24:14)*q.s;c.drawImage(q.st,q.x-w/2,q.y-h*.85,w,h)}
