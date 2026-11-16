@@ -200,7 +200,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   if(plaza.square){const sq=plaza.square,c=plaza.c;let bx=null,bd=-1e9;for(const v of sq){const d=-v[1];if(d>bd){bd=d;bx=v}}const hx=lerp(c[0],bx[0],.6),hy=lerp(c[1],bx[1],.6);SPB.push({id:"townhall",x:hx,y:hy,race:P.culture,v:.5,r:22});addOcc(hx,hy,22)}
   const placeSpec=(p,id,lots)=>{if(["lighthouse","crane","shipwright","fishery"].includes(id)&&!(p.quay&&(p.quay.sea||id==="fishery")))return false;const sz=(AS.SIZE[id]||[12,16])[0]*Z*.82;let best=null,bs=-1e9;for(const l of lots){if(l.used)continue;const cc=cen(l),ar=area(l);if(hit(cc[0],cc[1],sz*.8))continue;
       const qd=p.quay?nearQuay(cc[0],cc[1])[0]:0;let s=ar/(sz*sz)-Math.abs(ar-sz*sz*2.6)/(sz*sz*3)+rng()*.3;if(["warehouse","fishery","shipwright","crane","lighthouse"].includes(id))s-=qd/14;if(id==="watermill")s-=Math.max(0,rd(cc[0],cc[1])-rw-14)/8;if(s>bs){bs=s;best=l}}
-    if(!best)return false;const cc=cen(best);if(id==="watermill"&&rd(cc[0],cc[1])>rw+40)return false;
+    if(!best)return false;const cc=cen(best);if(id==="watermill"&&rd(cc[0],cc[1])>rw+40)return false;{const m=id==="watermill"?.45:.85;for(let k=0;k<12;k++){const a=k/12*6.2832;if(wet(cc[0]+Math.cos(a)*sz*m,cc[1]+Math.sin(a)*sz*m,1)){best.used=true;return placeSpec(p,id,lots)}}if(wet(cc[0],cc[1],3)){best.used=true;return placeSpec(p,id,lots)}}
     let x=cc[0],y=cc[1],ang=0;if(p.quay&&id==="shipwright"){const q=p.quay;const L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,.15,.85);x=lerp(q.a[0],q.b[0],t)-q.n[0]*12;y=lerp(q.a[1],q.b[1],t)-q.n[1]*12;ang=Math.atan2(q.n[1],q.n[0])}
     else if(p.quay&&["crane","lighthouse"].includes(id)){const q=p.quay,L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),t=clamp(((x-q.a[0])*q.u[0]+(y-q.a[1])*q.u[1])/L,0,1),tt=id==="lighthouse"?(t<.5?0:1):t;x=lerp(q.a[0],q.b[0],tt)-q.n[0]*5;y=lerp(q.a[1],q.b[1],tt)-q.n[1]*5}
     for(const l of lots){const c2=cen(l);if(Math.hypot(c2[0]-x,c2[1]-y)<sz*1.05)l.used=true}best.used=true;SPB.push({id,x,y,race:p.race,v:rng(),r:sz,ang});addOcc(x,y,sz);return true};
@@ -224,6 +224,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
       const r=Math.hypot(L,D)/2*.8;if(hit(cx2,cy2,r*.45))continue;
       if(t==="nobre"){yards.push({poly:lot,col:"#a3b262",g:1});if(rng()<.5+P.green*.5)trees.push([cx2+(rng()-.5)*L*.9,cy2+D*.7,.6+rng()*.2])}
       const tt=p.foreign?"estrangeiro":t;let ty=pick(TY[tt]||TY.moradia);if(sq<200&&ty!=="shed")ty=t==="pobre"||t==="arrabalde"?"hut":"row";if(ty==="row"&&L>D*1.7)ty="town";
+      {const wr=obb(cx2,cy2,ang,L+3,D+3);if(wr.some(q=>wet(q[0],q[1],1))||wr.some((q,i)=>{const r=wr[(i+1)%4];return wet((q[0]+r[0])/2,(q[1]+r[1])/2,1)}))continue}
       {let ok=false;for(let k=0;k<3&&!ok;k++){const R=obb(cx2,cy2,ang,L+1.2,D+1.2),gx=(cx2/40)|0,gy=(cy2/40)|0;ok=true;for(let a=-1;a<=1&&ok;a++)for(let b2=-1;b2<=1&&ok;b2++){const l=HG.get((gx+a)+"_"+(gy+b2));if(l)for(const o2 of l)if(sat(R,o2)){ok=false;break}}if(!ok){L*=.85;D*=.87}}if(!ok||L<7||D<6)continue;const k0=((cx2/40)|0)+"_"+((cy2/40)|0),R=obb(cx2,cy2,ang,L,D);HG.has(k0)?HG.get(k0).push(R):HG.set(k0,[R])}
       B.push({x:cx2,y:cy2,type:ty,race,ang,L,D,pal:p.pal,plain:t==="militar"});
       if(p.quay&&rng()<.18){const [d,q]=nearQuay(cx2,cy2);if(d<40){const x=cx2+q.n[0]*(d*.6),y=cy2+q.n[1]*(d*.6);if(!hit(x,y,5)){props.push({id:rng()<.6?"cargo":"crates",x,y,race});addOcc(x,y,6)}}}}}
@@ -245,6 +246,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   // distritos com nome
   const districts=[];{const seen=new Set(),used=new Set();for(const p of patches){if(seen.has(p)||!(p.inner||p.type==="arrabalde")||p.sea)continue;const key=p.foreign?"f"+p.race:p.type,grp=[],stck=[p];seen.add(p);while(stck.length){const q=stck.pop();grp.push(q);for(const z of nbs(q))if(!seen.has(z)&&(z.foreign?"f"+z.race:z.type)===key&&(z.inner||z.type==="arrabalde")){seen.add(z);stck.push(z)}}
       let ar=0,x=0,y=0;for(const q of grp){ar+=q.area;x+=q.c[0]*q.area;y+=q.c[1]*q.area}let name;if(p.foreign)name="Bairro dos "+A.RACE_PT[p.race];else{const l=(NM[p.type]||NM.moradia).filter(n=>!used.has(n));name=l.length?pick(l):pick(NM[p.type]||NM.moradia)}used.add(name);grp.forEach(q=>q.district=districts.length);districts.push({name,type:p.foreign?"estrangeiro":p.type,x:x/ar,y:y/ar,area:ar,n:grp.length,race:p.race,ps:grp})}}
+  for(const arr of [props,trees])for(let i=arr.length-1;i>=0;i--){const q=arr[i],x=q.x!=null?q.x:q[0],y=q.y!=null?q.y:q[1];if(wet(x,y,1.5))arr.splice(i,1)}
   const title=P.title||A.NAMES[seed%A.NAMES.length];
   return {P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON}}
 
