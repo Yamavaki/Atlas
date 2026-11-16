@@ -381,7 +381,7 @@ function mkPat(c,kind){const w=48,h=Math.round(48*TILT),cv=document.createElemen
   else if(kind==="tabua"){x.strokeStyle="rgba(50,32,15,.5)";x.lineWidth=.6;for(let j=0;j<h;j+=3){x.beginPath();x.moveTo(0,j);x.lineTo(w,j);x.stroke();for(let i=(j*7)%16;i<w;i+=16){x.beginPath();x.moveTo(i,j);x.lineTo(i,j+3);x.stroke()}}}
   return c.createPattern(cv,"repeat")}
 
-let CACHE=null,SNAPC=null;
+let CACHE=null,PICKC=null,SNAPC=null;
 const shadeHex=(h,f)=>{const n=parseInt(h.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,m=v=>clamp(Math.round(f>0?v+(255-v)*f:v*(1+f)),0,255);return "#"+((1<<24)|(m(r)<<16)|(m(g)<<8)|m(b)).toString(16).slice(1)};
 const VK=(T,k,r,amt)=>{const base=T[k];if(!base||!Array.isArray(base)||typeof base[0]!=="string"||base[0][0]!=="#")return k;const v=(r()*5)|0;if(v===2)return k;const key=k+"~"+v+"~"+amt;if(!T[key])T[key]=base.map(c=>typeof c==="string"&&c[0]==="#"&&c.length===7?shadeHex(c,(v-2)*amt):c);return key};
 function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,sg,nodes}=C;let rs=A.mulberry((C.seed^9173)>>>0);const rng=()=>rs();
@@ -485,9 +485,9 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
       {const cA=Math.cos(b.ang),sA=Math.sin(b.ang),cor=[[1,1],[1,-1],[-1,1],[-1,-1]].map(([su,sv])=>{const u=su*b.L/2,v=sv*b.D/2;return {dx:(u*cA-v*sA)/Z,dy:(u*sA+v*cA)*TILT/Z,wy:u*sA+v*cA}}).sort((p_,q_)=>q_.wy-p_.wy),R0=ROOF[o.roof]?o.roof:"dark";
         const tw=(k,hk)=>({dx:cor[k].dx,dy:cor[k].dy,w:Math.max(3,Math.min(o.L,o.D)*.3),h:o.H*hk+1,r:Math.max(3.6,o.R*.95),back:cor[k].wy<0});
         const TF=o.form==="gable"||o.form==="asian"||o.form==="flat";if(b.sym&&TF){o.towers=[tw(0,1.3),tw(1,1.3)];if(o.form==="gable"){o.dorm=[-o.L*.25,0,o.L*.25];o.chim=true}}else if(b.corner&&(b.type==="rich"||b.type==="tavern"&&o.form==="flat")&&TF&&r2()<.6)o.towers=[tw(0,o.form==="flat"?1.45:1.2)]}
-    const p=pj(b.x,b.y),ey=(Math.abs(Math.sin(b.ang))*b.L+Math.abs(Math.cos(b.ang))*b.D)/2*TILT;obj.push({k:1,keep:b.sym||b.tw?1:0,x:p[0],y:p[1]+ey,cy:p[1],o,smoke:o.smoke||b.type==="tavern"&&r2()<.5,wx:b.x,wy:b.y})}
-  for(const s of C.SPB){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{x:p[0],y:p[1]+(s.k===3?30:s.k===2?14:(s.r||8)*TILT*.6),py:p[1],wx:s.x,wy:s.y}))}
-  for(const s of C.props){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{k:40,x:p[0],y:p[1],py:p[1],wx:s.x,wy:s.y}))}
+    const p=pj(b.x,b.y),ey=(Math.abs(Math.sin(b.ang))*b.L+Math.abs(Math.cos(b.ang))*b.D)/2*TILT;obj.push({k:1,src:b,keep:b.sym||b.tw?1:0,x:p[0],y:p[1]+ey,cy:p[1],o,smoke:o.smoke||b.type==="tavern"&&r2()<.5,wx:b.x,wy:b.y})}
+  for(const s of C.SPB){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{src:s,x:p[0],y:p[1]+(s.k===3?30:s.k===2?14:(s.r||8)*TILT*.6),py:p[1],wx:s.x,wy:s.y}))}
+  for(const s of C.props){const p=pj(s.x,s.y);obj.push(Object.assign({},s,{src:s,k:40,x:p[0],y:p[1],py:p[1],wx:s.x,wy:s.y}))}
   for(const t of C.trees){const p=pj(t[0],t[1]);obj.push({k:0,x:p[0],y:p[1],s:t[2],wild:t[3],wx:t[0],wy:t[1]})}
   for(const t of C.NAT||[]){const p=pj(t[0],t[1]);obj.push({k:15,x:p[0],y:p[1],s:t[2],nk:t[3],wx:t[0],wy:t[1]})}
   for(const s of C.ships){const p=pj(s.x,s.y);obj.push({k:13,x:p[0],y:p[1],ang:s.ang,big:s.big,col:s.col,wx:s.x,wy:s.y})}
@@ -506,9 +506,9 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     for(let i=obj.length-1;i>=0;i--)if(drop.has(obj[i]))obj.splice(i,1)}
   obj.sort((a,b)=>a.y-b.y);const smoke=[],treeSet=P.culture==="deserto"?stamps.palm:SEAS==="outono"?stamps.autumn:SEAS==="inverno"?stamps.bare:SEAS==="primavera"?stamps.dec.concat(stamps.blossom,stamps.sakura):P.culture==="norte"?stamps.con:stamps.dec,wildSet=P.culture==="deserto"?stamps.palm.concat(stamps.acacia):SEAS==="inverno"?stamps.snowpine.concat(stamps.bare):SEAS==="outono"?stamps.autumn.concat(stamps.con):P.culture==="norte"?stamps.con:stamps.dec.concat(stamps.dec,stamps.con);
   const ER=opt.erase||[];
-  for(const q of obj){rs=A.mulberry((Math.imul(q.x*4|0,73856093)^Math.imul(q.y*4|0,19349663)^q.k*83492791)>>>0);
-    if(q.wx!=null&&ER.length&&ER.some(e=>Math.hypot(e.x-q.wx,e.y-q.wy)<e.r))continue;
-    if(q.k===1){c.save();c.translate(q.x,q.cy);c.scale(Z,Z);K.drawBuilding(c,0,0,q.o);c.restore();if(q.smoke)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3])}
+  const seedQ=q=>{rs=A.mulberry((Math.imul(q.x*4|0,73856093)^Math.imul(q.y*4|0,19349663)^q.k*83492791)>>>0)},gone=q=>q.wx!=null&&ER.length&&ER.some(e=>Math.hypot(e.x-q.wx,e.y-q.wy)<e.r);
+  const drawQ=(c,q,pk)=>{
+    if(q.k===1){c.save();c.translate(q.x,q.cy);c.scale(Z,Z);K.drawBuilding(c,0,0,q.o);c.restore();if(q.smoke&&!pk)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3])}
     else if(q.k===0){const set=q.wild?wildSet:(P.culture==="japones"||P.culture==="chines")&&rng()<.6?stamps.sakura:treeSet,st=set[(rng()*set.length)|0],wd=(st.lw||st.width)*q.s*1.25,hg=(st.lh||st.height)*q.s*1.25;c.drawImage(st,q.x-wd/2,q.y-hg*.9,wd,hg)}
     else if(q.k===15){const set=q.nk==="rock"?stamps.rocks:SEAS==="inverno"?stamps.bare:stamps.bush,st=set[(rng()*set.length)|0],f=q.nk==="rock"?.55:.75,wd=(st.lw||st.width)*q.s*f,hg=(st.lh||st.height)*q.s*f;c.drawImage(st,q.x-wd/2,q.y-hg*.85,wd,hg)}
     else if(q.k===2||q.k===3){c.save();c.translate(q.x,q.py);const z=q.k===3?2:(q.big?2.2:1.8);c.scale(z,z);K.drawBig(c,Object.assign({},q,{x:0,y:0,sz:1}));c.restore()}
@@ -518,7 +518,17 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     else if(q.k===8){c.save();c.translate(q.x,q.y);c.scale(1.5,1.5);K.drawMill(c,0,0,q.rot);c.restore()}
     else if(q.k===13){c.save();c.translate(q.x,q.y);c.scale(1.5,1.5);AS.shipIso(c,0,0,q.ang,q.big,q.col?"#a8352a":null);c.restore()}
     else if(q.k===14){c.save();c.translate(q.x,q.y);const z=q.sm?1.05:1.5;c.scale(z,z);AS.boat(c,0,0,q.ang);c.restore()}
-    else if(q.id){const z=(q.s||1)*Z*(q.street?.85:1);c.save();c.translate(q.x,q.py!=null?q.py:q.y);c.scale(z,z);AS.draw(c,0,0,q.id,q.race,q.v,q.ang||0);c.restore()}}
+    else if(q.id){const z=(q.s||1)*Z*(q.street?.85:1);c.save();c.translate(q.x,q.py!=null?q.py:q.y);c.scale(z,z);AS.draw(c,0,0,q.id,q.race,q.v,q.ang||0);c.restore()}};
+  for(const q of obj){seedQ(q);if(gone(q))continue;drawQ(c,q)}
+  // contorno exato do objeto (silhueta do proprio desenho)
+  const SILC=new Map();C._sil=src=>{if(SILC.has(src))return SILC.get(src);const q=obj.find(z=>z.src===src);if(!q){SILC.set(src,null);return null}const big=q.k===3?190:q.k===2?110:q.k===1?60:70,W=Math.ceil(big*2)+8,H=Math.ceil(big*1.6+16)+8,keep=rs;
+    const sc=document.createElement("canvas");sc.width=W;sc.height=H;const sx=sc.getContext("2d");sx.translate(big+4-q.x,big*1.6+4-q.y);try{seedQ(q);drawQ(sx,q,true)}finally{rs=keep}
+    const mk=(col,r)=>{const oc=document.createElement("canvas");oc.width=W;oc.height=H;const ox=oc.getContext("2d");for(let a2=0;a2<16;a2++)ox.drawImage(sc,Math.cos(a2*.3927)*r,Math.sin(a2*.3927)*r);ox.globalCompositeOperation="source-in";ox.fillStyle=col;ox.fillRect(0,0,W,H);ox.globalCompositeOperation="destination-out";ox.drawImage(sc,0,0);return oc};
+    let x0=W,x1=0;{const d=sx.getImageData(0,0,W,H).data;for(let y=0;y<H;y+=2)for(let x=0;x<W;x++)if(d[(y*W+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x}}const r={w:Math.max(4,x1-x0),sel:mk("#f0c060",2.2),hov:mk("rgba(255,236,190,.85)",1.4),ghost:sc,x:q.x-big-4+MX,y:q.y-big*1.6-4+MY};SILC.set(src,r);return r};
+  // selecao precisa: testa o pixel do proprio desenho, do mais a frente para tras
+  C._pick=(sx,sy)=>{sx-=MX;sy-=MY;if(!PICKC){PICKC=document.createElement("canvas");PICKC.width=PICKC.height=3}const pc=PICKC.getContext("2d",{willReadFrequently:true}),keep=rs;
+    try{for(let i=obj.length-1;i>=0;i--){const q=obj[i];if(!q.src||gone(q))continue;const big=q.k===3?190:q.k===2?110:q.k===1?60:70;if(Math.abs(q.x-sx)>big||sy>q.y+12||sy<q.y-big*1.6)continue;
+      pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);seedQ(q);drawQ(pc,q,true);if(pc.getImageData(1,1,1,1).data[3]>40)return q.src}}finally{rs=keep}return null};
   rs=A.mulberry((C.seed^99)>>>0);for(const s of smoke)K.drawSmoke(c,s[0],s[1],rng);
   if(opt.snap){if(!SNAPC||SNAPC.width!==canvas.width||SNAPC.height!==canvas.height){SNAPC=document.createElement("canvas");SNAPC.width=canvas.width;SNAPC.height=canvas.height}SNAPC.getContext("2d").drawImage(canvas,0,0);C._snap={S,ek:EK,img:SNAPC,obj}}}
   // objetos colocados a mao
