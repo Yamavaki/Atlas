@@ -122,7 +122,10 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     for(let u=end;u>=0&&prev.has(u);){const [pu,e]=prev.get(u);mainE.add(e);u=pu}return end>=0};
   const pn=new Set(plaza.nd);for(const g of gatesN)route(g,pn);if(castle)route(castle.nd[0],pn);for(const e of bridgesW){route(e.a,pn);mainE.add(e)}
   // estradas fora dos portoes
-  const roads=[];for(const g of gatesN){const n=nodes[g];let a=Math.atan2(n.y-cy,n.x-cx),x=n.x,y=n.y;const pts=[[x,y]];for(let s=0;s<120;s++){a+=(fbm(x/140+s*.01,y/140,2)-.5)*.5;let ok=false;for(const da of[0,.35,-.35,.7,-.7,1.1,-1.1]){const nx=x+Math.cos(a+da)*13,ny=y+Math.sin(a+da)*13;if(!wet(nx,ny,8)){x=nx;y=ny;a+=da*.6;ok=true;break}}if(!ok)break;pts.push([x,y]);if(x<-20||y<-20||x>WX+20||y>WY+20)break}if(pts.length>3)roads.push(pts)}
+  const roads=[];for(const g of gatesN){const n=nodes[g],a0=Math.atan2(n.y-cy,n.x-cx);let a=a0,x=n.x,y=n.y;const pts=[[x,y]];let d0=Math.hypot(x-cx,y-cy);
+    for(let s=0;s<140;s++){const want=a0+(fbm(x/260+g*.37,y/260,2)-.5)*1.1;a+=clamp(want-a,-.12,.12);let ok=false;for(const da of[0,.25,-.25,.5,-.5,.8,-.8]){const b=a+da;if(Math.abs(((b-a0+9.42)%6.283)-3.1416)<1.6)continue;const nx=x+Math.cos(b)*13,ny=y+Math.sin(b)*13,d=Math.hypot(nx-cx,ny-cy);if(d<d0-2||wet(nx,ny,8))continue;x=nx;y=ny;d0=d;a=a+da*.5;ok=true;break}
+      if(!ok)break;pts.push([x,y]);if(x<-20||y<-20||x>WX+20||y>WY+20)break}
+    if(pts.length>3&&!roads.some(r=>r.length>4&&polyD(pts[pts.length-1][0],pts[pts.length-1][1],r,false)<20&&pts.length<8))roads.push(pts)}
   // ---- funcao de cada bairro
   {let best=null;for(const q of nbs(plaza))if(q.inner&&q.type==="mato"&&(!best||q.area>best.area))best=q;if(best&&nP>=7)best.type="templo";
     const sh=inner.filter(p=>p.type==="mato"&&(p.shore||P.site==="rio"&&p.riv)).sort((a,b)=>a.dn-b.dn);for(let q=0;q<Math.min(sh.length,Math.max(1,Math.round(nP/7)));q++)sh[q].type="porto";
@@ -142,12 +145,14 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   for(const k in P.wards||{}){const p=patches[+k],o=P.wards[k];if(!p||p.sea)continue;if(o.type)p.type=o.type;if(o.race){p.race=o.race;p.foreign=o.race!==P.culture}if(o.plan)p.planOv=o.plan}
   // ---- portos: cais reto seguindo a costa, com aterro
   const quays=[];for(const p of patches){if(p.type!=="porto")continue;const shore=[];let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const v of p.poly){x0=Math.min(x0,v[0]);x1=Math.max(x1,v[0]);y0=Math.min(y0,v[1]);y1=Math.max(y1,v[1])}
-    for(let y=y0;y<y1;y+=5)for(let x=x0;x<x1;x+=5){if(!inPoly(p.poly,x,y))continue;const l=land(x,y),r=rd(x,y)-rw;if(Math.abs(l)<.06||river&&Math.abs(r)<4)shore.push([x,y])}
+    for(let y=y0;y<y1;y+=5)for(let x=x0;x<x1;x+=5){if(!inPoly(p.poly,x,y))continue;const l=land(x,y),r=rd(x,y)-rw;if(Math.abs(l)<.06&&!(river&&r<26)||river&&Math.abs(r)<4&&l>.3)shore.push([x,y])}
     if(shore.length<4)continue;let mx=0,my=0;for(const q of shore){mx+=q[0];my+=q[1]}mx/=shore.length;my/=shore.length;let sxx=0,sxy=0,syy=0;for(const q of shore){const dx=q[0]-mx,dy=q[1]-my;sxx+=dx*dx;sxy+=dx*dy;syy+=dy*dy}
     const ang=.5*Math.atan2(2*sxy,sxx-syy),ux=Math.cos(ang),uy=Math.sin(ang);let nx=-uy,ny=ux;const tw=wet(mx+nx*25,my+ny*25);if(!tw){nx=-nx;ny=-ny}
     let t0=1e9,t1=-1e9;for(const q of shore){const t=(q[0]-mx)*ux+(q[1]-my)*uy;t0=Math.min(t0,t);t1=Math.max(t1,t)}if(t1-t0<30)continue;
     const off=river&&!(land(mx+nx*20,my+ny*20)<.05)?0:4,a=[mx+ux*t0+nx*off,my+uy*t0+ny*off],b=[mx+ux*t1+nx*off,my+uy*t1+ny*off];
     const isSea=land(mx+nx*30,my+ny*30)<.05;if(isSea){for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const x=i*GS,y=j*GS,t=(x-mx)*ux+(y-my)*uy;if(t<t0-6||t>t1+6)continue;const d=(x-mx)*nx+(y-my)*ny-off,k=j*GW+i;if(d<0&&d>-60)LG[k]=Math.max(LG[k],.06+(-d)/200);else if(d>=0&&d<60)LG[k]=Math.min(LG[k],-.06-d/220)}}
+    {const L=Math.hypot(b[0]-a[0],b[1]-a[1]),dry=[];let run=null;for(let t=0;t<=L;t+=3){const x=a[0]+ux*t,y=a[1]+uy*t,ok=!river||rd(x,y)>rw+(isSea?18:3);if(ok){if(!run)run=[t,t];run[1]=t}else if(run){dry.push(run);run=null}}if(run)dry.push(run);let best=null;for(const r of dry)if(!best||r[1]-r[0]>best[1]-best[0])best=r;if(!best||best[1]-best[0]<30)continue;
+      const a2=[a[0]+ux*best[0],a[1]+uy*best[0]],b2=[a[0]+ux*best[1],a[1]+uy*best[1]];a[0]=a2[0];a[1]=a2[1];b[0]=b2[0];b[1]=b2[1]}
     quays.push({a,b,n:[nx,ny],u:[ux,uy],p,sea:isSea});p.quay=quays[quays.length-1]}
   // ---- lotes
   const ALLEY=(CUL[P.culture]||{}).form==="asian"||(CUL[P.culture]||{}).form==="round"?2.6:2.1;
@@ -243,7 +248,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     for(let u=-260;u<=260;u+=16)for(let v=-260;v<=260;v+=13){if(Math.abs(u)<22||Math.abs(v)<9)continue;const x=c[0]+ca*u-sn*v,y=c[1]+sn*u+ca*v;if(!inPoly(sqi,x,y)||hit(x,y,7))continue;if(rng()<.78){props.push({id:"stall",x,y,race:P.culture,v:rng(),ang:a0});addOcc(x,y,7)}else if(rng()<.5){props.push({id:rng()<.5?"cart":"crates",x,y,race:P.culture,ang:a0+rng()*.6,v:rng()});addOcc(x,y,7)}}}
   // porto: pieres perpendiculares ao cais, navios encostados
   const piers=[],ships=[],boats=[];for(const q of quays){const L=Math.hypot(q.b[0]-q.a[0],q.b[1]-q.a[1]),n=Math.max(1,Math.floor(L/52));for(let i=0;i<n;i++){const t=(i+.5)/n,x=lerp(q.a[0],q.b[0],t),y=lerp(q.a[1],q.b[1],t),len=q.sea?30+rng()*22:Math.min(rw*.9,14);
-      const e=[x+q.n[0]*len,y+q.n[1]*len];if(!wet(e[0],e[1],0))continue;piers.push([[x,y],e]);const pa=Math.atan2(q.n[1],q.n[0]);if(q.sea&&len>26&&rng()<.85){const sd=rng()<.5?1:-1;ships.push({x:e[0]-q.n[0]*len*.45+q.u[0]*sd*11,y:e[1]-q.n[1]*len*.45+q.u[1]*sd*11,ang:pa+(rng()<.5?0:3.1416),big:rng()<.55,col:rng()<.3})}else boats.push({x:e[0]+q.u[0]*7,y:e[1]+q.u[1]*7,ang:pa})}
+      const e=[x+q.n[0]*len,y+q.n[1]*len];if(!wet(e[0],e[1],0))continue;if(q.sea&&river&&[0,.5,1].some(f=>rd(lerp(x,e[0],f),lerp(y,e[1],f))<rw+16))continue;piers.push([[x,y],e]);const pa=Math.atan2(q.n[1],q.n[0]);if(q.sea&&len>26&&rng()<.85){const sd=rng()<.5?1:-1;if(!(river&&rd(e[0]+q.u[0]*sd*11,e[1]+q.u[1]*sd*11)<rw+26))ships.push({x:e[0]-q.n[0]*len*.45+q.u[0]*sd*11,y:e[1]-q.n[1]*len*.45+q.u[1]*sd*11,ang:pa+(rng()<.5?0:3.1416),big:rng()<.55,col:rng()<.3})}else boats.push({x:e[0]+q.u[0]*7,y:e[1]+q.u[1]*7,ang:pa})}
     for(let k=0;k<3;k++){const t=rng(),x=lerp(q.a[0],q.b[0],t)-q.n[0]*4,y=lerp(q.a[1],q.b[1],t)-q.n[1]*4;if(!hit(x,y,5)){props.push({id:pick(["cargo","crates","cargo"]),x,y,race:P.culture});addOcc(x,y,6)}}}
   for(let q=0;q<(P.site==="interior"?0:7);q++){const x=80+rng()*(WX-160),y=140+rng()*(WY-380);if(land(x,y)<-.6&&!ships.some(s=>Math.hypot(s.x-x,s.y-y)<90))ships.push({x,y,ang:rng()*6.28,big:rng()<.4,col:rng()<.3})}
   if(river)for(let q=0;q<5;q++){const i=(rng()*river.length)|0,v=river[i],w=river[Math.min(river.length-1,i+1)];if(v[0]>20&&v[0]<WX-20&&v[1]>20&&v[1]<WY-60&&land(v[0],v[1])>.05)boats.push({x:v[0],y:v[1],ang:Math.atan2(w[1]-v[1],w[0]-v[0])})}
@@ -300,7 +305,7 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   const EARTH=dry?"#dcc79a":"#cbbd96";
   const urb=C.patches.filter(p=>(p.inner||p.type==="arrabalde")&&!p.sea&&p.block&&p.block.length>2);
   for(const p of urb){if(p.type==="arrabalde")continue;path(p.poly,true);c.fillStyle=pave(p);c.fill()}
-  {const hs=C.B.map(b=>[b.x,b.y]);const near=(x,y)=>hs.some(h=>Math.abs(h[0]-x)<26&&Math.abs(h[1]-y)<26);const lanes=C.edges.filter(e=>!e.sea&&e.in===0&&e.ps.some(p=>p.type==="arrabalde")&&[0,.5,1].some(t=>near(lerp(nodes[e.a].x,nodes[e.b].x,t),lerp(nodes[e.a].y,nodes[e.b].y,t))));for(const [wd,col] of [[6.4,"rgba(64,46,22,.5)"],[4.6,dry?PAT.areia:PAT.terra]]){c.strokeStyle=col;c.lineWidth=wd;for(const e of lanes){path([[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]],false);c.stroke()}}}
+  {const hs=C.B.map(b=>[b.x,b.y]);const near=(x,y)=>hs.some(h=>Math.abs(h[0]-x)<26&&Math.abs(h[1]-y)<26);const lanes=C.edges.filter(e=>!e.sea&&e.in===0&&e.len<90&&e.ps.some(p=>p.type==="arrabalde")&&[0,.5,1].every(t=>near(lerp(nodes[e.a].x,nodes[e.b].x,t),lerp(nodes[e.a].y,nodes[e.b].y,t))));for(const [wd,col] of [[6.4,"rgba(64,46,22,.5)"],[4.6,dry?PAT.areia:PAT.terra]]){c.strokeStyle=col;c.lineWidth=wd;for(const e of lanes){path([[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]],false);c.stroke()}}}
   // ruas principais com calcamento mais claro e meio-fio
   {const segs=[...C.mainE].filter(e=>!e.bridge).map(e=>[[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]]);for(const [wd,col] of [[10,"rgba(70,55,30,.35)"],[8.4,rich>.25?PAT.laje:PAT.cascalho]]){c.strokeStyle=col;c.lineWidth=wd;for(const s of segs){path(s,false);c.stroke()}}}
   for(const p of urb){if(p.type==="arrabalde")continue;const bl=p.blocks&&p.blocks.length?p.blocks:[p.block];for(const b of bl){path(b,true);c.fillStyle=EARTH;c.fill();c.strokeStyle="rgba(70,55,30,.5)";c.lineWidth=.8;c.stroke()}}
