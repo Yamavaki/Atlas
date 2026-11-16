@@ -52,15 +52,20 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   // ---- terreno
   const th=1.5708+(rng()-.5)*1.5,ct=Math.cos(th),st=Math.sin(th),wob=(x,y)=>(fbm(x/250+3,y/250+8,4)-.5)*190+(fbm(x/70+1,y/70+5,2)-.5)*36;
   if(P.site==="costa"){cx-=ct*Rc*.42;cy-=st*Rc*.5}if(P.site==="lago"){cx-=ct*Rc*.3;cy-=st*Rc*.3}
-  const lake=[cx+ct*(Rc*.62+170),cy+st*(Rc*.62+170),Rc*.55+150];
-  let blobs=null;if(P.site==="ilhas"){const off=Rc*.7+44;blobs=[[cx-st*off,cy+ct*off*.9,Rc*.68],[cx+st*off,cy-ct*off*.9,Rc*.64]]}
-  if(P.site==="arquipelago"){blobs=[[cx,cy,Rc*.56]];const n=3+((rng()*2)|0),a0=rng()*6.28;for(let i=0;i<n;i++){const a=a0+i/n*6.283+(rng()-.5)*.4,d=Rc*.56+Rc*.46+30+rng()*20;blobs.push([cx+Math.cos(a)*d,cy+Math.sin(a)*d*.92,Rc*(.38+rng()*.12)])}for(let i=0;i<4;i++){const a=rng()*6.28,d=Rc*1.9+rng()*200;blobs.push([cx+Math.cos(a)*d,cy+Math.sin(a)*d,50+rng()*60])}}
+  // formas irregulares: raio que varia com o angulo (cabos e baías), alongamento, giro e lóbulos
+  const shape=(x,y,R,el,rot,ph,rough)=>({x,y,R,el,rot,ph,rough,lobes:Array.from({length:1+((rng()*3)|0)},()=>{const a=rng()*6.28,d=.35+rng()*.4;return [Math.cos(a)*d,Math.sin(a)*d,.45+rng()*.3]})});
+  const shapeF=(S,x,y,wk)=>{const dx=x-S.x,dy=y-S.y,cr=Math.cos(S.rot),sr=Math.sin(S.rot);let u=(dx*cr+dy*sr)/S.el,v=-dx*sr+dy*cr;const a=Math.atan2(v,u),d=Math.hypot(u,v);
+    const rr=S.R*(1+S.rough*((fbm(Math.cos(a)*1.3+S.ph,Math.sin(a)*1.3+S.ph,4)-.5)*1.9)+.07*Math.sin(a*3+S.ph));let m=rr-d;for(const [lx,ly,lr] of S.lobes)m=Math.max(m,S.R*lr-Math.hypot(u-lx*S.R,v-ly*S.R));return m+wob(x,y)*wk};
+  let lakeS=null;if(P.site==="lago"){const R=Rc*.62+150;lakeS=shape(cx+ct*(R+Rc*.08),cy+st*(R+Rc*.08),R*.86,1.15+rng()*.55,rng()*3.14,rng()*9,.42)}
+  let blobs=null;if(P.site==="ilhas"){const off=Rc*.72+56,big=rng()<.5?1:-1;blobs=[shape(cx-st*off,cy+ct*off*.9,Rc*(big>0?.74:.6),1.15+rng()*.4,th+(rng()-.5)*.8,rng()*9,.32),shape(cx+st*off,cy-ct*off*.9,Rc*(big>0?.6:.74),1.1+rng()*.45,th+(rng()-.5)*1.2,rng()*9,.32)];
+    for(let i=0;i<3;i++){const a=rng()*6.28,d=Rc*1.5+rng()*160;blobs.push(shape(cx+Math.cos(a)*d,cy+Math.sin(a)*d,28+rng()*40,1+rng()*.8,rng()*3,rng()*9,.4))}}
+  if(P.site==="arquipelago"){blobs=[shape(cx,cy,Rc*.56,1.1+rng()*.3,rng()*3,rng()*9,.28)];const n=3+((rng()*2)|0),a0=rng()*6.28;for(let i=0;i<n;i++){const a=a0+i/n*6.283+(rng()-.5)*.4,d=Rc*.56+Rc*.46+36+rng()*24;blobs.push(shape(cx+Math.cos(a)*d,cy+Math.sin(a)*d*.92,Rc*(.34+rng()*.14),1.1+rng()*.7,rng()*3.14,rng()*9,.38))}for(let i=0;i<5;i++){const a=rng()*6.28,d=Rc*1.8+rng()*220;blobs.push(shape(cx+Math.cos(a)*d,cy+Math.sin(a)*d,30+rng()*55,1+rng()*.9,rng()*3,rng()*9,.45))}}
   const landF=(x,y)=>{const w=wob(x,y),dx=x-cx,dy=y-cy;
     if(P.site==="costa")return (Rc*.5+50-(dx*ct+dy*st)+w)/100;
     if(P.site==="ilha")return (Rc*1.12+95-Math.hypot(dx,dy)+w)/100;
     if(P.site==="peninsula"){const al=-(dx*ct+dy*st),pe=Math.abs(-dx*st+dy*ct);return Math.max(Rc*1.02+80-Math.hypot(dx,dy)+w,al>0?Rc*.5+40-pe+w*.6:-1e9,al-Rc*1.9+w)/100}
-    if(P.site==="lago")return (Math.hypot(x-lake[0],y-lake[1])-lake[2]+w*.5)/100;
-    if(blobs){let m=-1e9;for(const b of blobs)m=Math.max(m,b[2]-Math.hypot(x-b[0],y-b[1])+w*.32);return m/100}
+    if(P.site==="lago")return -shapeF(lakeS,x,y,.3)/100;
+    if(blobs){let m1=-1e9,m2=-1e9;for(const b of blobs){const v=shapeF(b,x,y,.22);if(v>m1){m2=m1;m1=v}else if(v>m2)m2=v}const gap=(m1-m2)*.5-16+(fbm(x/60+3,y/60,2)-.5)*10;return (m2>-60?Math.min(m1,gap):m1)/100}
     return 3};
   let river=null,rw=0;const hasRiver=P.site==="rio"||(P.river&&P.site!=="ilha"&&P.site!=="arquipelago"&&P.site!=="ilhas");
   if(hasRiver){rw=P.site==="rio"?15:10+rng()*4;const off=(rng()<.5?-1:1)*(P.site==="rio"?Rc*.12:Rc*.38),ph=rng()*6,am=50+rng()*60;river=[];
