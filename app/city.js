@@ -80,6 +80,10 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   const hill=[cx-ct*Rc*.5+(rng()-.5)*Rc*.5,cy-st*Rc*.5+(rng()-.5)*Rc*.4];
   if(TC_)EG.set(TC_.EG);else{for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const x=i*GS,y=j*GS,k=j*GW+i;let e=Math.max(0,fbm(x/430+2,y/430+6,4)-.36)*1.5+.36*Math.exp(-((x-hill[0])**2+(y-hill[1])**2)/(Rc*Rc*.3));
     e*=P.relief*1.5*sstep(0,1.5,LG[k])*(river?sstep(rw,rw+110,RG[k]):1);EG[k]=clamp(e,0,1)}TCACHE.set(TKEY,{LG:LG.slice(),RG:RG.slice(),EG:EG.slice()});if(TCACHE.size>4)TCACHE.delete(TCACHE.keys().next().value)}
+  // pincel de terreno da cidade: terra, agua, elevar, rebaixar
+  for(const st of P.terr||[]){const r=st.r||40,i0=Math.max(0,Math.floor((st.x-r)/GS)),i1=Math.min(GW-1,Math.ceil((st.x+r)/GS)),j0=Math.max(0,Math.floor((st.y-r)/GS)),j1=Math.min(GH-1,Math.ceil((st.y+r)/GS));
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const d=Math.hypot(i*GS-st.x,j*GS-st.y);if(d>r)continue;const f=1-(d/r)**2,k=j*GW+i;
+      if(st.t==="land"){if(LG[k]<.45)LG[k]=lerp(LG[k],.45,f)}else if(st.t==="sea"){if(LG[k]>-.3)LG[k]=lerp(LG[k],-.3,f);EG[k]*=1-f}else if(st.t==="up")EG[k]=clamp(EG[k]+.1*f,0,1);else if(st.t==="down")EG[k]=clamp(EG[k]-.1*f,0,1)}}
   const land=(x,y)=>sg(LG,x,y),elev=(x,y)=>sg(EG,x,y),rd=(x,y)=>sg(RG,x,y),wet=(x,y,m)=>land(x,y)<.05+(m||0)/100||rd(x,y)<rw+2+(m||0);
   // ---- bairros: Voronoi sobre uma espiral de pontos
   const sites=[],sa=rng()*6.28;for(let i=0;i<nP*9;i++){const a=sa+Math.sqrt(i)*5,r=i===0?0:(10+i*(2+rng()))*SP,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r*.96;if(x<-260||y<-260||x>WX+260||y>WY+260)continue;sites.push([x,y])}
@@ -512,10 +516,11 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   for(const s of C.boats){const p=pj(s.x,s.y);obj.push({k:14,src:s,x:p[0],y:p[1],ang:s.ang,sm:s.sm,wx:s.x,wy:s.y})}
   // muralha
   const gatePts=C.gates.map(id=>[nodes[id].x,nodes[id].y]);
-  const pushWall=(pts,closed,h,gatesOn,inner)=>{const rsP=resampleP(pts,P.wall==="curva"||inner?11:14,closed);const n=rsP.length;let since=0;
-    for(let i=0;i<n-(closed?0:1);i++){const u=rsP[i],v=rsP[(i+1)%n],m=[(u[0]+v[0])/2,(u[1]+v[1])/2];if(land(m[0],m[1])<.02)continue;const gd=gatesOn?Math.min(...gatePts.map(g=>Math.hypot(g[0]-m[0],g[1]-m[1])).concat([1e9])):1e9;if(gd<13)continue;
-      const pu=pj(u[0],u[1]),pv=pj(v[0],v[1]),wt=rd(m[0],m[1])<rw+3;obj.push({k:wt?9:4,a:pu,b:pv,y:Math.max(pu[1],pv[1]),h});since+=Math.hypot(v[0]-u[0],v[1]-u[1]);if(since>(inner?32:52)&&!wt){since=0;const p=pj(v[0],v[1]);obj.push({k:5,x:p[0],y:p[1]+.6,inner})}}};
-  if(C.WALLON){for(const w of C.walls)pushWall(w.pts,w.closed,8.5,true,false);if(fz!=="hedge")gatePts.forEach((g,gi)=>{const p=pj(g[0],g[1]);obj.push({k:40,id:"gatehouse",x:p[0],y:p[1]+4,race:P.culture,v:.5,s:1.1,gate:1,ang:(C.GANG&&C.GANG[gi])||0})})}
+  const WOV=opt.wov||{},GOV=opt.gov||{};const pushWall=(pts,closed,h,gatesOn,inner,wi)=>{const rsP=resampleP(pts,P.wall==="curva"||inner?11:14,closed);const n=rsP.length;let since=0;const NO=pts.length-(closed?0:1);
+    for(let i=0;i<n-(closed?0:1);i++){const u=rsP[i],v=rsP[(i+1)%n],m=[(u[0]+v[0])/2,(u[1]+v[1])/2];if(land(m[0],m[1])<.02)continue;let so=null;if(wi!=null){let bd=1e9,bj=0;for(let j=0;j<NO;j++){const d=segD(m[0],m[1],pts[j],pts[(j+1)%pts.length]);if(d<bd){bd=d;bj=j}}so=WOV["w:"+wi+":"+bj]||null;if(so&&so.hide){since=0;continue}}const gd=gatesOn?Math.min(...gatePts.map(g=>Math.hypot(g[0]-m[0],g[1]-m[1])).concat([1e9])):1e9;if(gd<13)continue;
+      const pu=pj(u[0],u[1]),pv=pj(v[0],v[1]),wt=rd(m[0],m[1])<rw+3;obj.push({k:wt?9:4,a:pu,b:pv,y:Math.max(pu[1],pv[1]),h});since+=Math.hypot(v[0]-u[0],v[1]-u[1]);const TS=so&&so.tw==="none"?1e9:so&&so.tw==="few"?(inner?64:104):so&&so.tw==="many"?(inner?18:26):(inner?32:52);if(since>TS&&!wt){since=0;const p=pj(v[0],v[1]);obj.push({k:5,x:p[0],y:p[1]+.6,inner})}}};
+  if(C.WALLON){C.walls.forEach((w,wi)=>pushWall(w.pts,w.closed,8.5,true,false,wi));if(!C._gobj||C._gobj.length!==gatePts.length)C._gobj=gatePts.map((g,gi)=>{const ov=GOV["g:"+C.gates[gi]]||{};return {key:"g:"+C.gates[gi],gi,x:g[0],y:g[1],id:ov.id||"gatehouse",v:ov.v!=null?ov.v:.5,ang:ov.a||0}});
+    if(fz!=="hedge")gatePts.forEach((g,gi)=>{const go=C._gobj[gi],ov=GOV[go.key]||{};if(ov.hide)return;const p=pj(g[0],g[1]);obj.push({k:40,src:go,id:ov.id||"gatehouse",x:p[0],y:p[1]+4,race:P.culture,v:ov.v!=null?ov.v:.5,s:1.1*(ov.s||1),gate:1,ang:((C.GANG&&C.GANG[gi])||0)+(ov.a||0)})})}
   if(C.castle&&C.castle.cwall)pushWall(C.castle.cwall,true,7,false,true);
   {const bx=[];for(const q of obj){if(q.k===1){const o=q.o,w=(Math.abs(Math.cos(o.ang))*o.L+Math.abs(Math.sin(o.ang))*o.D)/2*Z,top=q.cy-(o.H+o.R)*Z-2;bx.push({q,x0:q.x-w,x1:q.x+w,y0:top,y1:q.y,h:q.keep?0:1})}else if(q.id&&AS.SIZE[q.id]&&!q.street){const sz=AS.SIZE[q.id],z=(q.s||1)*Z,w=sz[0]*z*.75;bx.push({q,x0:q.x-w,x1:q.x+w,y0:(q.py||q.y)-sz[1]*z*.85,y1:(q.py||q.y)+2,h:0})}else if(q.k===2||q.k===3){const w=q.k===3?52:36;bx.push({q,x0:q.x-w,x1:q.x+w,y0:q.py-(q.k===3?70:64),y1:q.y,h:0})}}
     const G=new Map(),key=(x,y)=>((x/40)|0)+"_"+((y/40)|0);for(const b of bx){for(let x=Math.floor(b.x0/40);x<=Math.floor(b.x1/40);x++)for(let y=Math.floor(b.y0/40);y<=Math.floor(b.y1/40);y++){const k=x+"_"+y;G.has(k)?G.get(k).push(b):G.set(k,[b])}}
