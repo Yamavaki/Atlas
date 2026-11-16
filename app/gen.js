@@ -960,7 +960,7 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto"].includ
     for(const [b] of order){const poly=fp(b),gx=(b.x/40)|0,gy=(b.y/40)|0,grp=b.k===40||b.k===6||b.k===7?"p"+b.ti:null;let bad=false;for(let a=-2;a<=2&&!bad;a++)for(let c2=-2;c2<=2&&!bad;c2++)for(const z of G.get((gx+a)+"_"+(gy+c2))||[]){if(grp&&z.grp===grp)continue;if(satN(poly,z.poly)){bad=true;break}}
       if(bad&&pri(b)<8){drop.add(b);continue}const k=gx+"_"+gy;(G.get(k)||G.set(k,[]).get(k)).push({poly,grp})}
     for(let i=B.length-1;i>=0;i--)if(drop.has(B[i]))B.splice(i,1)}
-  return {vmask,mmask,lava,erList,ponds,biome,snow,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP,piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
+  return {vmask,mmask,lava,erList,ponds,biome,snow,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP:(()=>{for(const fp of fieldsP){let x=0,y=0;for(const p of fp.poly){x+=p[0];y+=p[1]}fp.key="fp:"+Math.round(x/fp.poly.length)+":"+Math.round(y/fp.poly.length)}return fieldsP})(),piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
 }
 
 // ---------- desenho ----------
@@ -968,6 +968,9 @@ function smoothPath(c,pts){c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i
 function render(W,canvas,stamps){
   setScale(W.P.size||1);if(canvas.width!==CW||canvas.height!==CH){canvas.width=CW;canvas.height=CH}
   const {rng,fbm,rivers,towns,roads,occAt,P}=W;
+  // edicoes de campos (vetor) e de estradas
+  {if(!W._fp0)W._fp0=W.fieldsP.map(f=>({f,poly:f.poly,col:f.col}));const FO=P.fov||{};W.fieldsP=W._fp0.filter(z=>!(FO[z.f.key]&&FO[z.f.key].del)).map(z=>{const o=FO[z.f.key];z.f.poly=o&&o.poly||z.poly;z.f.col=o&&o.col||z.col;return z.f})}
+  const ROV=P.rov||{},RW=[[3.5,2],[6,3.8],[8.5,5.6],[11,7.4]],RC={terra:"#e4d3a0",pedra:"#dcd6c4",areia:"#ecd9a8",trilha:"#d8c38e"};
   // 1. textura plana (mundo visto de cima)
   const flat=document.createElement("canvas");flat.width=WX;flat.height=WY;const f=flat.getContext("2d");
   f.lineJoin="round";f.lineCap="round";
@@ -995,11 +998,11 @@ function render(W,canvas,stamps){
     f.strokeStyle="rgba(40,58,66,.6)";f.lineWidth=.9;f.beginPath();
     for(let i=1;i<river.length-1;i++){const a=river[i],b=river[i+1];if(sampleGrid(W.land,a[0],a[1])<.06)continue;const dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l;
       for(const o0 of[-5,-1.5,2,5.5]){const o=o0*kk;if(((i*7+((o0*3)|0))&3)===0)continue;const sgn=(i+((o0+6)|0))&1?1:-1;f.moveTo(a[0]+nx*o,a[1]+ny*o);f.quadraticCurveTo(a[0]+dx*.5+nx*(o+1.8*sgn),a[1]+dy*.5+ny*(o+1.8*sgn),a[0]+dx*.85+nx*o,a[1]+dy*.85+ny*o)}}f.stroke()}
-  for(const r of roads){smoothPath(f,r);f.strokeStyle="rgba(74,52,22,.7)";f.lineWidth=6;f.stroke()}
+  for(const [ri,r] of roads.entries()){const o=ROV[ri]||{};if(o.hide)continue;smoothPath(f,r);f.strokeStyle="rgba(74,52,22,.7)";f.lineWidth=RW[o.w==null?1:o.w][0];if(o.type==="trilha")f.setLineDash([5,4]);f.stroke();f.setLineDash([])}
   for(const t of towns)for(const s of t.streets){smoothPath(f,s);f.strokeStyle="rgba(74,52,22,.6)";f.lineWidth=4.6;f.stroke()}
   for(const t of towns){if(t.plaza){f.lineWidth=1.2;poly(f,t.plaza.poly,"#e2d3a2","rgba(74,52,22,.55)");const pl=t.plaza;f.save();f.beginPath();pl.poly.forEach((q,i)=>i?f.lineTo(q[0],q[1]):f.moveTo(q[0],q[1]));f.closePath();f.clip();f.strokeStyle="rgba(110,86,46,.35)";f.lineWidth=.5;
       if(pl.style==="fonte"||pl.style==="monumento"||pl.style==="cruz"){for(let r=3.5;r<(pl.pr||12)*1.3;r+=2.6){f.beginPath();f.ellipse(pl.x,pl.y,r,r*.85,0,0,7);f.stroke()}}else{f.beginPath();for(let k=-12;k<=12;k++){f.moveTo(pl.x-30,pl.y+k*2.2);f.lineTo(pl.x+30,pl.y+k*2.2)}f.stroke()}f.restore()}}
-  for(const r of roads){smoothPath(f,r);f.strokeStyle="#e4d3a0";f.lineWidth=3.8;f.stroke()}
+  for(const [ri,r] of roads.entries()){const o=ROV[ri]||{};if(o.hide||o.type==="trilha")continue;smoothPath(f,r);f.strokeStyle=RC[o.type]||RC.terra;f.lineWidth=RW[o.w==null?1:o.w][1];f.stroke()}
   for(const t of towns)for(const s of t.streets){smoothPath(f,s);f.strokeStyle="#e0cf9c";f.lineWidth=2.8;f.stroke()}
   for(const p of W.piers){f.lineCap="butt";const ln=()=>{f.beginPath();f.moveTo(p[0][0],p[0][1]);f.lineTo(p[1][0],p[1][1])};ln();f.strokeStyle="#3a2a18";f.lineWidth=5.5;f.stroke();ln();f.strokeStyle="#a37c4c";f.lineWidth=3.6;f.stroke();ln();f.strokeStyle="rgba(50,32,15,.6)";f.setLineDash([.8,2.2]);f.stroke();f.setLineDash([]);f.lineCap="round"}
   for(const br of W.bridges){const dx=br[1][0]-br[0][0],dy=br[1][1]-br[0][1],l=Math.hypot(dx,dy)||1,a=[br[0][0]-dx/l*2,br[0][1]-dy/l*2],b=[br[1][0]+dx/l*2,br[1][1]+dy/l*2];f.lineCap="butt";const ln=()=>{f.beginPath();f.moveTo(a[0],a[1]);f.lineTo(b[0],b[1])};
