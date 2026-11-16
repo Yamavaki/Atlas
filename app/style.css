@@ -277,3 +277,17 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .tev{display:grid;grid-template-columns:110px minmax(0,1fr);gap:var(--s3);align-items:start;position:relative}.tev::before{content:"";position:absolute;left:calc(-1 * var(--s4) - 6px);top:12px;width:10px;height:10px;border-radius:50%;background:var(--c)}
 .tdate{color:var(--muted);font-size:13px;padding-top:8px;text-align:right}.tcard{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:6px 10px;border-left:3px solid var(--c)}.tcard b{font-family:var(--serif);font-size:17px;color:var(--text);font-weight:500}.tcard small{color:var(--muted)}.tcard p{margin:2px 0 0;color:var(--muted);font-size:13px}
 @media (max-width:860px){.ntop{grid-template-columns:1fr}.ficha{grid-template-columns:80px minmax(0,1fr)}.pic{width:80px}.placecard{width:100%;flex-direction:row}.placecard img{width:120px;aspect-ratio:16/10;border-bottom:none;border-right:1px solid var(--line)}.qboard{grid-template-columns:repeat(4,240px)}.tev{grid-template-columns:72px minmax(0,1fr)}}
+/* camadas */
+.lyp{position:absolute;right:10px;bottom:62px;z-index:6;width:330px;max-height:60%;overflow:auto;padding:8px;background:rgba(27,23,17,.95);border:1px solid var(--line);box-shadow:0 4px 18px rgba(0,0,0,.45)}
+.lyp[hidden]{display:none}
+.lyh{display:flex;align-items:center;gap:var(--s2);margin-bottom:6px}.lyh strong{font-family:var(--display);font-weight:400;color:var(--gold);letter-spacing:.06em}.lyh .cf{flex:1;font-size:12px}
+.lyh button{min-height:28px;padding:2px 8px;font-size:13px}
+.lyr{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid transparent}
+.lyr.on{border-color:var(--gold);background:rgba(201,162,74,.12)}
+.lyr.off input{opacity:.5;text-decoration:line-through}
+.lyr input{flex:1;min-width:0;min-height:28px;padding:2px 6px;font-size:13px}
+.lyr .icb{min-width:28px;min-height:28px;padding:0;font-size:12px}
+.lyc{min-width:34px;text-align:right;font-size:12px;color:var(--muted,#b9a98a);font-variant-numeric:tabular-nums}
+.lyf{margin:6px 2px 0;font-size:12px}
+.zbox .lyb{width:auto;padding:0 8px;font-size:13px}
+@media (max-width:860px){.lyp{position:static;width:auto;max-height:none;order:5;box-shadow:none;border:none;border-top:1px solid var(--line)}}

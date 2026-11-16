@@ -393,7 +393,9 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   const S=opt.scale||1;canvas.width=Math.round(CW*S);canvas.height=Math.round(CH*S);const c=canvas.getContext("2d");c.setTransform(S,0,0,S,0,0);const stamps=A.makeStamps(A.mulberry(C.seed^77),Math.max(1,Math.ceil(S)));
   const pj=(x,y)=>[x,y*TILT-elev(x,y)*KE],wetC=(x,y)=>land(x,y)<.05||rd(x,y)<rw+1;
   const SEAS=P.season||"verao",snowy=P.culture==="norte"||SEAS==="inverno",dry=P.culture==="deserto"||P.culture==="indiano"||P.culture==="meso",G0=SEAS==="inverno"&&!dry?[226,228,226]:dry?[214,188,128]:snowy?[176,180,150]:SEAS==="outono"?[184,166,92]:[170,170,90],G1=SEAS==="inverno"&&!dry?[202,206,210]:dry?[196,166,104]:snowy?[150,160,120]:SEAS==="outono"?[164,140,78]:[150,158,78];
-  const EK=JSON.stringify(opt.erase||[]),ER_=opt.erase||[];let obj;
+  const EK=JSON.stringify([opt.erase||[],opt.objs||[],opt.layers||null]),ER_=opt.erase||[];let obj;
+  // camadas: de tras para frente; dentro da mesma camada, a posicao decide quem fica na frente
+  const LYS=opt.layers&&opt.layers.length?opt.layers:DEFLY,LI=new Map(LYS.map((l,i)=>[l.id,i])),HID=new Set(LYS.filter(l=>l.hide).map(l=>l.id)),lyOf=(ly,id)=>LI.has(ly)?ly:FLATLY.has(id)&&LI.has("chao")?"chao":LI.has("base")?"base":LYS[0].id;
   if(opt.fast&&C._snap&&C._snap.S===S&&C._snap.ek===EK){c.setTransform(1,0,0,1,0,0);c.drawImage(C._snap.img,0,0);c.setTransform(S,0,0,S,0,0);c.save();c.beginPath();c.rect(MX,MY,MW,MH);c.clip();c.translate(MX,MY);c.lineCap="round";c.lineJoin="round";obj=C._snap.obj}
   else{
   // 1. chao e agua (guardados enquanto o terreno nao muda)
@@ -509,10 +511,16 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     const drop=new Set();for(const b of bx){if(!b.h)continue;const area=(b.x1-b.x0)*(b.y1-b.y0);let cov=0;const seen=new Set();for(let x=Math.floor(b.x0/40);x<=Math.floor(b.x1/40);x++)for(let y=Math.floor(b.y0/40);y<=Math.floor(b.y1/40);y++)for(const f of G.get(x+"_"+y)||[]){if(f===b||seen.has(f)||drop.has(f.q)||f.y1<=b.y1+1)continue;seen.add(f);const ix=Math.min(b.x1,f.x1)-Math.max(b.x0,f.x0),iy=Math.min(b.y1,f.y1)-Math.max(b.y0,f.y0);if(ix>0&&iy>0)cov+=ix*iy*(f.h?1:1.4)}
       if(cov>area*.5)drop.add(b.q)}window.__drop=drop.size;
     for(let i=obj.length-1;i>=0;i--)if(drop.has(obj[i]))obj.splice(i,1)}
-  obj.sort((a,b)=>a.y-b.y);const smoke=[],treeSet=P.culture==="deserto"?stamps.palm:SEAS==="outono"?stamps.autumn:SEAS==="inverno"?stamps.bare:SEAS==="primavera"?stamps.dec.concat(stamps.blossom,stamps.sakura):P.culture==="norte"?stamps.con:stamps.dec,wildSet=P.culture==="deserto"?stamps.palm.concat(stamps.acacia):SEAS==="inverno"?stamps.snowpine.concat(stamps.bare):SEAS==="outono"?stamps.autumn.concat(stamps.con):P.culture==="norte"?stamps.con:stamps.dec.concat(stamps.dec,stamps.con);
+  for(const m of opt.objs||[]){const p=pj(m.x,m.y);obj.push({k:"M",m,src:m,x:p[0],y:p[1]})}
+  for(const q of obj)q.ly=lyOf(q.src&&q.src.ly,q.id);
+  obj.sort((a,b)=>(LI.get(a.ly)-LI.get(b.ly))||(a.y-b.y));const smoke=[],treeSet=P.culture==="deserto"?stamps.palm:SEAS==="outono"?stamps.autumn:SEAS==="inverno"?stamps.bare:SEAS==="primavera"?stamps.dec.concat(stamps.blossom,stamps.sakura):P.culture==="norte"?stamps.con:stamps.dec,wildSet=P.culture==="deserto"?stamps.palm.concat(stamps.acacia):SEAS==="inverno"?stamps.snowpine.concat(stamps.bare):SEAS==="outono"?stamps.autumn.concat(stamps.con):P.culture==="norte"?stamps.con:stamps.dec.concat(stamps.dec,stamps.con);
   const ER=opt.erase||[];
+  const st2=stamps;
+    const drawM=(c,m,x,y)=>{const z=(m.s||1)*Z;c.save();c.translate(x,y);c.scale(z,z);if(AS.NAME[m.v])AS.draw(c,0,0,m.v,m.c||P.culture,(((m.x*7+m.y*3)%100)/100+(m.vv||0))%1,(m.a||0)*Math.PI/180);
+      else if(m.v.slice(0,2)==="b_"){const sp={b_hut:"hut",b_farm:"farm",b_town:"town",b_row:"row",b_rich:"rich",b_manor:"manor",b_tavern:"tavern",b_smithy:"smithy",b_barn:"barn",b_shed:"shed"}[m.v];if(sp){const o=A.mkHouse(m.c||P.culture,sp,A.mulberry((m.x*31+m.y)|0),(m.a||0)*Math.PI/180);K.drawBuilding(c,0,0,o)}else if(m.v==="b_temple"||m.v==="b_castle"){c.scale(1.2,1.2);K.drawBig(c,{k:m.v==="b_temple"?2:3,x:0,y:0,race:m.c||P.culture,v:.4,sz:1})}else if(m.v==="b_tent")K.drawTent(c,0,0,m.c||P.culture,1,false,true);else if(m.v==="b_mill")K.drawMill(c,0,0,.4);else if(m.v==="b_tower")K.drawTower(c,0,0,4.4,12,6,ROOF.dark,WALL.stone,false)}
+      else{const T={oak:st2.dec,pine:st2.con,birch:st2.birch,autumn:st2.autumn,sakura:st2.sakura,blossom:st2.blossom,palm:st2.palm,willow:st2.willow,bush:st2.bush,acacia:st2.acacia,jungle:st2.jungle,snowpine:st2.snowpine,dead:st2.dead,cactus:st2.cactus,bare:st2.bare,rock:st2.rocks,boulders:st2.rockc}[m.v];if(T){const s0=T[((m.x+m.y)|0)%T.length];c.drawImage(s0,-(s0.lw||s0.width)*.45,-(s0.lh||s0.height)*.85,(s0.lw||s0.width)*.9,(s0.lh||s0.height)*.9)}}c.restore()};
   const seedQ=q=>{rs=A.mulberry((Math.imul(q.x*4|0,73856093)^Math.imul(q.y*4|0,19349663)^q.k*83492791)>>>0)},gone=q=>q.wx!=null&&ER.length&&ER.some(e=>Math.hypot(e.x-q.wx,e.y-q.wy)<e.r);
-  const drawQ=(c,q,pk)=>{
+  const drawQ=(c,q,pk)=>{if(q.k==="M"){drawM(c,q.m,q.x,q.y);return}
     if(q.k===1){c.save();c.translate(q.x,q.cy);c.scale(Z,Z);K.drawBuilding(c,0,0,q.o);c.restore();if(q.smoke&&!pk)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3])}
     else if(q.k===0){const set=q.wild?wildSet:(P.culture==="japones"||P.culture==="chines")&&rng()<.6?stamps.sakura:treeSet,st=set[(((rng()*set.length)|0)+q.vs)%set.length],wd=(st.lw||st.width)*q.s*1.25,hg=(st.lh||st.height)*q.s*1.25;c.drawImage(st,q.x-wd/2,q.y-hg*.9,wd,hg)}
     else if(q.k===15){const set=q.nk==="rock"?stamps.rocks:SEAS==="inverno"?stamps.bare:stamps.bush,st=set[(((rng()*set.length)|0)+q.vs)%set.length],f=q.nk==="rock"?.55:.75,wd=(st.lw||st.width)*q.s*f,hg=(st.lh||st.height)*q.s*f;c.drawImage(st,q.x-wd/2,q.y-hg*.85,wd,hg)}
@@ -524,24 +532,16 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
     else if(q.k===13){c.save();c.translate(q.x,q.y);c.scale(1.5,1.5);AS.shipIso(c,0,0,q.ang,q.big,q.col?"#a8352a":null);c.restore()}
     else if(q.k===14){c.save();c.translate(q.x,q.y);const z=q.sm?1.05:1.5;c.scale(z,z);AS.boat(c,0,0,q.ang);c.restore()}
     else if(q.id){const z=(q.s||1)*Z*(q.street?.85:1);c.save();c.translate(q.x,q.py!=null?q.py:q.y);c.scale(z,z);AS.draw(c,0,0,q.id,q.race,q.v,q.ang||0);c.restore()}};
-  for(const q of obj){seedQ(q);if(gone(q))continue;drawQ(c,q)}
+  for(const q of obj){if(HID.has(q.ly))continue;seedQ(q);if(gone(q))continue;drawQ(c,q)}
   // contorno exato do objeto (silhueta do proprio desenho)
-  const BIGQ=q=>q.k===3?240:q.k===2?120:q.k===1?70:q.k===0?45:q.k===15?30:q.k===13?80:70,SILC=new Map();C._sil=src=>{if(SILC.has(src))return SILC.get(src);const q=obj.find(z=>z.src===src);if(!q){SILC.set(src,null);return null}const big=BIGQ(q),keep=rs;
+  const BIGQ=q=>q.k==="M"?90*(q.m.s||1):q.k===3?240:q.k===2?120:q.k===1?70:q.k===0?45:q.k===15?30:q.k===13?80:70,SILC=new Map();C._sil=src=>{if(SILC.has(src))return SILC.get(src);const q=obj.find(z=>z.src===src);if(!q){SILC.set(src,null);return null}const big=BIGQ(q),keep=rs;
     let r;try{r=mkSil(c2=>{seedQ(q);drawQ(c2,q,true)},q.x,q.y,big)}finally{rs=keep}SILC.set(src,r);return r};
   // selecao precisa: testa o pixel do proprio desenho, do mais a frente para tras
   C._pick=(sx,sy)=>{sx-=MX;sy-=MY;if(!PICKC){PICKC=document.createElement("canvas");PICKC.width=PICKC.height=3}const pc=PICKC.getContext("2d",{willReadFrequently:true}),keep=rs;
-    try{for(let i=obj.length-1;i>=0;i--){const q=obj[i];if(!q.src||gone(q))continue;const big=BIGQ(q);if(Math.abs(q.x-sx)>big||sy>q.y+34||sy<q.y-big*1.6)continue;
+    try{for(let i=obj.length-1;i>=0;i--){const q=obj[i];if(!q.src||gone(q)||HID.has(q.ly))continue;const big=BIGQ(q);if(Math.abs(q.x-sx)>big||sy>q.y+34||sy<q.y-big*1.6)continue;
       pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);seedQ(q);drawQ(pc,q,true);if(pc.getImageData(1,1,1,1).data[3]>40)return q.src}}finally{rs=keep}return null};
   rs=A.mulberry((C.seed^99)>>>0);for(const s of smoke)K.drawSmoke(c,s[0],s[1],rng);
   if(opt.snap){if(!SNAPC||SNAPC.width!==canvas.width||SNAPC.height!==canvas.height){SNAPC=document.createElement("canvas");SNAPC.width=canvas.width;SNAPC.height=canvas.height}SNAPC.getContext("2d").drawImage(canvas,0,0);C._snap={S,ek:EK,img:SNAPC,obj}}}
-  // objetos colocados a mao
-  if(opt.objs&&opt.objs.length){const list=opt.objs.map(m=>{const p=pj(m.x,m.y);return {m,x:p[0],y:p[1]}}).sort((a,b)=>a.y-b.y);const st2=stamps;
-    const drawM=(c,m,x,y)=>{const z=(m.s||1)*Z;c.save();c.translate(x,y);c.scale(z,z);if(AS.NAME[m.v])AS.draw(c,0,0,m.v,m.c||P.culture,(((m.x*7+m.y*3)%100)/100+(m.vv||0))%1,(m.a||0)*Math.PI/180);
-      else if(m.v.slice(0,2)==="b_"){const sp={b_hut:"hut",b_farm:"farm",b_town:"town",b_row:"row",b_rich:"rich",b_manor:"manor",b_tavern:"tavern",b_smithy:"smithy",b_barn:"barn",b_shed:"shed"}[m.v];if(sp){const o=A.mkHouse(m.c||P.culture,sp,A.mulberry((m.x*31+m.y)|0),(m.a||0)*Math.PI/180);K.drawBuilding(c,0,0,o)}else if(m.v==="b_temple"||m.v==="b_castle"){c.scale(1.2,1.2);K.drawBig(c,{k:m.v==="b_temple"?2:3,x:0,y:0,race:m.c||P.culture,v:.4,sz:1})}else if(m.v==="b_tent")K.drawTent(c,0,0,m.c||P.culture,1,false,true);else if(m.v==="b_mill")K.drawMill(c,0,0,.4);else if(m.v==="b_tower")K.drawTower(c,0,0,4.4,12,6,ROOF.dark,WALL.stone,false)}
-      else{const T={oak:st2.dec,pine:st2.con,birch:st2.birch,autumn:st2.autumn,sakura:st2.sakura,blossom:st2.blossom,palm:st2.palm,willow:st2.willow,bush:st2.bush,acacia:st2.acacia,jungle:st2.jungle,snowpine:st2.snowpine,dead:st2.dead,cactus:st2.cactus,bare:st2.bare,rock:st2.rocks,boulders:st2.rockc}[m.v];if(T){const s0=T[((m.x+m.y)|0)%T.length];c.drawImage(s0,-(s0.lw||s0.width)*.45,-(s0.lh||s0.height)*.85,(s0.lw||s0.width)*.9,(s0.lh||s0.height)*.9)}}c.restore()};
-    for(const {m,x,y} of list)drawM(c,m,x,y);
-    C._pickM=(sx,sy)=>{sx-=MX;sy-=MY;if(!PICKC){PICKC=document.createElement("canvas");PICKC.width=PICKC.height=3}const pc=PICKC.getContext("2d",{willReadFrequently:true});for(let i=list.length-1;i>=0;i--){const {m,x,y}=list[i],big=90*(m.s||1);if(Math.abs(x-sx)>big||sy>y+20||sy<y-big*1.6)continue;pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);drawM(pc,m,x,y);if(pc.getImageData(1,1,1,1).data[3]>40)return m}return null};
-    C._silM=m=>{const it=list.find(z=>z.m===m);if(!it)return null;const big=90*(m.s||1);return mkSil(c2=>drawM(c2,m,it.x,it.y),it.x,it.y,big)}}else{C._pickM=()=>null;C._silM=()=>null}
   // bandeirinhas
   if(C.bunting&&C.bunting.length){const FC=["#a8352a","#3f6f8f","#c9a24a","#5f7e35","#8a4a7a","#efe6cb"];let k=0;for(const z of C.bunting){if(ER_&&ER_.some(e=>Math.hypot(e.x-(z.a[0]+z.b[0])/2,e.y-(z.a[1]+z.b[1])/2)<e.r))continue;const pa=pj(z.a[0],z.a[1]),pb=pj(z.b[0],z.b[1]),A_=[pa[0],pa[1]-z.ha*Z],B_=[pb[0],pb[1]-z.hb*Z],M=[(A_[0]+B_[0])/2,(A_[1]+B_[1])/2+7];
     c.strokeStyle="rgba(40,30,20,.75)";c.lineWidth=.55;c.beginPath();c.moveTo(A_[0],A_[1]);c.quadraticCurveTo(M[0],M[1],B_[0],B_[1]);c.stroke();const L=Math.hypot(B_[0]-A_[0],B_[1]-A_[1]),n=Math.max(3,Math.floor(L/5));
@@ -630,7 +630,8 @@ const ARR=["B","SPB","props","trees","NAT","ships","boats"];
 function applyOv(C,q,o){const isA=Array.isArray(q),own=ARR.find(n=>C[n]&&C[n].includes(q));if(!own)return;
   if(o.del){C[own].splice(C[own].indexOf(q),1);return}
   if(o.x!=null){if(isA){q[0]=o.x;q[1]=o.y}else{if(q.wing){q.wing.x+=o.x-q.x;q.wing.y+=o.y-q.y}q.x=o.x;q.y=o.y}}
-  if(o.a!=null){q.ang=o.a;q.wing=null}if(o.v!=null)q.v=o.v;if(o.vs!=null)q.vs=o.vs;if(o.id)q.id=o.id;if(o.type)q.type=o.type;if(o.ms!=null)q.ms=o.ms;if(o.big!=null)q.big=o.big;
+  if(o.a!=null){q.ang=o.a;q.wing=null}if(o.v!=null)q.v=o.v;if(o.vs!=null)q.vs=o.vs;if(o.id)q.id=o.id;if(o.type)q.type=o.type;if(o.ms!=null)q.ms=o.ms;if(o.big!=null)q.big=o.big;if(o.ly!=null)q.ly=o.ly;
   if(isA){if(o.s!=null)q[2]=o.s;if(o.kind){const tree=o.kind==="tree"||o.kind==="wild",dst=tree?"trees":"NAT";q[3]=o.kind==="wild"?1:tree?0:o.kind;if(dst!==own){C[own].splice(C[own].indexOf(q),1);C[dst].push(q)}}}}
-window.AtlasCity={applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
+const DEFLY=[{id:"chao",name:"Chão"},{id:"base",name:"Principal"},{id:"frente",name:"Frente"}],FLATLY=new Set(["flowerbed","garden"]);
+window.AtlasCity={DEFLY,FLATLY,applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
 })();
