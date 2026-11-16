@@ -298,3 +298,6 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .frz.on{border-color:var(--gold);background:rgba(201,162,74,.1)}
 .frz p{margin:0;font-size:12px;line-height:1.35}
 .fld.lock{opacity:.5}
+.psub{font-family:var(--display);font-weight:400;color:var(--gold);font-size:15px;letter-spacing:.06em;margin:var(--s3) 0 0;border-top:1px solid var(--line);padding-top:var(--s3)}
+.chk{display:flex;align-items:center;gap:6px}
+.ctx textarea.tin{min-height:30px;min-width:180px;resize:vertical;padding:4px 8px;font:inherit;font-size:14px}
