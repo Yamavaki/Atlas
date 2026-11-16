@@ -65,11 +65,11 @@ function hull(p){p=p.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=
 function chaikin(p,n){for(let k=0;k<n;k++){const q=[p[0]];for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1];q.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75])}q.push(p[p.length-1]);p=q}return p}
 
 // ---------- carimbos por codigo ----------
-function makeStamps(rng){
+function makeStamps(rng,ss){const SS=ss||1;
   const pal=[["#5d7534","#8a9c48"],["#4f6a2f","#7a9040"],["#677a36","#96a34c"],["#48602e","#6f8840"]];
   const dec=[],con=[];
   for(const [body,hi] of pal)for(let v=0;v<3;v++){
-    const c=document.createElement("canvas");c.width=34;c.height=38;const x=c.getContext("2d");
+    const c=document.createElement("canvas");c.width=34*SS;c.height=38*SS;c.lw=34;c.lh=38;const x=c.getContext("2d");x.scale(SS,SS);
     x.fillStyle="rgba(22,28,8,.36)";x.beginPath();x.ellipse(21,33,10,4,0,0,7);x.fill();
     x.strokeStyle="#5b3d1e";x.lineWidth=2.2;x.beginPath();x.moveTo(17,35);x.lineTo(17,25);x.stroke();
     const lobes=[[17,16,8.4]];const n=4+((rng()*3)|0);
@@ -81,7 +81,7 @@ function makeStamps(rng){
     for(const[lx,ly,lr]of lobes){x.beginPath();x.arc(lx,ly,lr*.72,.1,1.7);x.stroke();if(lr>5.5){x.beginPath();x.arc(lx,ly,lr*.45,.2,1.5);x.stroke()}
       x.beginPath();x.arc(lx,ly,lr,3.6,5.2);x.stroke()}
     x.globalAlpha=1;dec.push(c)}
-  for(let v=0;v<4;v++){const c=document.createElement("canvas");c.width=34;c.height=38;const x=c.getContext("2d");
+  for(let v=0;v<4;v++){const c=document.createElement("canvas");c.width=34*SS;c.height=38*SS;c.lw=34;c.lh=38;const x=c.getContext("2d");x.scale(SS,SS);
     x.fillStyle="rgba(22,28,8,.36)";x.beginPath();x.ellipse(20,34,8,3,0,0,7);x.fill();
     x.strokeStyle="#5b3d1e";x.lineWidth=2;x.beginPath();x.moveTo(17,36);x.lineTo(17,30);x.stroke();
     const w=7+rng()*2;x.lineWidth=1;x.strokeStyle="#161d0b";x.lineJoin="round";
@@ -89,7 +89,7 @@ function makeStamps(rng){
       x.fillStyle="rgba(120,140,70,.5)";x.beginPath();x.moveTo(17-ww*.8,y0-1);x.lineTo(17,y0-11);x.lineTo(17-ww*.1,y0-1);x.closePath();x.fill()}
     con.push(c)}
   const bush=[],rock=[];
-  for(let v=0;v<6;v++){const c=document.createElement("canvas");c.width=20;c.height=15;const x=c.getContext("2d");
+  for(let v=0;v<6;v++){const c=document.createElement("canvas");c.width=20*SS;c.height=15*SS;c.lw=20;c.lh=15;const x=c.getContext("2d");x.scale(SS,SS);
     x.fillStyle="rgba(22,28,8,.3)";x.beginPath();x.ellipse(11,12,7,2.5,0,0,7);x.fill();
     const lb=[];const n=3+((rng()*3)|0);for(let i=0;i<n;i++)lb.push([5+rng()*10,7+rng()*3,2.6+rng()*1.8]);
     const col=v%3===0?["#566b2c","#7e9142"]:v%3===1?["#4c6230","#6f8a45"]:["#6a7433","#929a4b"];
@@ -97,7 +97,7 @@ function makeStamps(rng){
     x.fillStyle=col[0];for(const[a,b,r]of lb){x.beginPath();x.arc(a,b,r,0,7);x.fill()}
     x.fillStyle=col[1];for(const[a,b,r]of lb){x.beginPath();x.arc(a-r*.3,b-r*.35,r*.5,0,7);x.fill()}
     bush.push(c)}
-  for(let v=0;v<8;v++){const c=document.createElement("canvas");c.width=18;c.height=14;const x=c.getContext("2d");
+  for(let v=0;v<8;v++){const c=document.createElement("canvas");c.width=18*SS;c.height=14*SS;c.lw=18;c.lh=14;const x=c.getContext("2d");x.scale(SS,SS);
     x.fillStyle="rgba(30,25,10,.3)";x.beginPath();x.ellipse(10,11.5,7,2.3,0,0,7);x.fill();
     const n=6+((rng()*3)|0),pts=[];for(let i=0;i<n;i++){const a=3.1416+i/(n-1)*3.1416,r=4.5+rng()*2.5;pts.push([9+Math.cos(a)*r*1.15,11+Math.sin(a)*r])}
     x.lineJoin="round";x.lineWidth=.9;x.strokeStyle=INK;x.beginPath();x.moveTo(pts[0][0],pts[0][1]);for(const q of pts)x.lineTo(q[0],q[1]);x.closePath();
@@ -105,7 +105,7 @@ function makeStamps(rng){
     const m=pts[(n/2)|0];x.fillStyle="rgba(70,62,48,.55)";x.beginPath();x.moveTo(m[0],m[1]);x.lineTo(pts[n-2][0],pts[n-2][1]);x.lineTo(pts[n-1][0],pts[n-1][1]);x.lineTo(m[0]+1,11);x.closePath();x.fill();
     x.strokeStyle="rgba(50,40,25,.6)";x.lineWidth=.6;x.beginPath();x.moveTo(m[0],m[1]+.5);x.lineTo(m[0]+1,10.5);x.moveTo(pts[1][0]+2,pts[1][1]+1.5);x.lineTo(pts[1][0]+4,pts[1][1]+2);x.stroke();
     rock.push(c)}
-  const mk=(w,h,f)=>{const c=document.createElement("canvas");c.width=w;c.height=h;f(c.getContext("2d"));return c};
+  const mk=(w,h,f)=>{const c=document.createElement("canvas");c.width=w*SS;c.height=h*SS;c.lw=w;c.lh=h;const xx=c.getContext("2d");xx.scale(SS,SS);f(xx);return c};
   const shadow=(x,cx,cy,rx,ry)=>{x.fillStyle="rgba(22,28,8,.32)";x.beginPath();x.ellipse(cx,cy,rx,ry,0,0,7);x.fill()};
   const blob=(x,lobes,body,hi,ink)=>{x.fillStyle=ink;for(const[a,b,r]of lobes){x.beginPath();x.arc(a+.4,b+.6,r+1.4,0,7);x.fill()}x.fillStyle=body;for(const[a,b,r]of lobes){x.beginPath();x.arc(a,b,r,0,7);x.fill()}x.fillStyle=hi;x.globalAlpha=.85;for(const[a,b,r]of lobes){x.beginPath();x.arc(a-r*.25,b-r*.3,r*.55,0,7);x.fill()}x.globalAlpha=1};
   const palm=[],acacia=[],cactus=[],snowpine=[],dead=[],willow=[],jungle=[],reed=[];

@@ -15,7 +15,7 @@ const LIST=[
  ["Porto",[["lighthouse","Farol"],["shipwright","Estaleiro"],["fishery","Pesqueiro"],["crane","Guindaste do cais"],["ship","Navio"],["boat","Barco"],["cargo","Carga do cais"]]],
  ["Lazer",[["arena","Arena"],["theater","Teatro"],["baths","Termas"],["garden","Jardim com coreto"]]],
  ["Fantasia",[["wizard","Torre de mago"],["arcane","Círculo arcano"],["portal","Portal arcano"],["eldertree","Árvore anciã"],["dragonstatue","Estátua de dragão"],["crystal","Cristal flutuante"],["golem","Golem de pedra"]]],
- ["Detalhes",[["statue","Estátua"],["fountain","Fonte"],["well","Poço"],["gallows","Forca"],["cart","Carroça"],["wagon","Carruagem"],["crates","Caixas e barris"],["haystack","Monte de feno"],["lamp","Poste de luz"],["bench","Banco"]]]];
+ ["Detalhes",[["statue","Estátua"],["fountain","Fonte"],["well","Poço"],["gallows","Forca"],["cart","Carroça"],["wagon","Carruagem"],["crates","Caixas e barris"],["haystack","Monte de feno"],["scarecrow","Espantalho"],["lamp","Poste de luz"],["bench","Banco"]]]];
 const NAME={};for(const [,it] of LIST)for(const [k,n] of it)NAME[k]=n;
 // ---------- estilo por cultura ----------
 const ST=race=>{const C=CUL[race]||CUL.humano,f=C.form;return {race,C,form:f,asian:f==="asian",flat:f==="flat",low:f==="round"||f==="yurt"||f==="mound"||f==="stilt",roof:C.rf,wall:C.st,roofs:C.roof,walls:C.wall}};
@@ -155,11 +155,12 @@ function draw(c,x,y,id,race,v,ang){const s=ST(race||"humano");v=v==null?.5:v;ang
   case "haystack":{shadow(c,x,y,6,2.4);c.fillStyle="#d8bf6a";c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.moveTo(x-6,y);c.quadraticCurveTo(x-6,y-9,x,y-10);c.quadraticCurveTo(x+6,y-9,x+6,y);c.ellipse(x,y,6,2.4,0,0,3.1416);c.closePath();c.fill();c.stroke();c.strokeStyle="rgba(120,90,30,.6)";c.lineWidth=.5;c.beginPath();for(let k=1;k<4;k++){c.moveTo(x-6+k*.6,y-k*2.2);c.quadraticCurveTo(x,y-k*2.2-1,x+6-k*.6,y-k*2.2)}c.stroke();break}
   case "lamp":{post(c,Pf(x,y,0),0,0,0,11,.9,"#2a2420");line(c,[x,y-11],[x+2.2,y-11],.9,"#2a2420");glow(c,x+2.2,y-9.6,5,"rgba(255,210,120,.6)");prism(c,x+2.2,y-8.4,1.6,1.6,2.2,.6,["#f6d06a","#c99a3a"]);break}
   case "bench":{prism(c,x,y,7,2.4,1.6,ang,["#a07a4a","#6e5030"]);break}
+  case "scarecrow":{post(c,Pf(x,y,0),0,0,0,9,.9,"#5a4028");line(c,[x-4,y-6.4],[x+4,y-6.4],.9,"#5a4028");poly(c,[[x-2,y-6.6],[x+2,y-6.6],[x+2.4,y-2.6],[x-2.4,y-2.6]],"#8a5a3a",INK);c.fillStyle="#d8bf6a";c.strokeStyle=INK;c.lineWidth=.6;c.beginPath();c.arc(x,y-8.4,1.6,0,7);c.fill();c.stroke();poly(c,[[x-2.6,y-9.4],[x+2.6,y-9.4],[x,y-12]],"#5a4028",INK);break}
   default:{hall(c,x,y,12,8,6,s,{ang})}}}
 // tamanho aproximado de cada uma (raio no chao, altura) para ocupar espaco e ordenar
 const SIZE={townhall:[16,32],guild:[15,26],bank:[13,14],court:[14,24],prison:[13,22],hospital:[17,18],barracks:[18,22],gatehouse:[10,22],cathedral:[30,60],chapel:[9,20],monastery:[18,30],library:[16,24],university:[20,40],observatory:[10,26],school:[11,16],
   markethall:[17,16],inn:[18,22],shop:[8,14],bakery:[10,14],alchemist:[8,18],warehouse:[19,16],stall:[6,8],smithy:[12,16],stable:[15,14],watermill:[11,14],tannery:[12,10],brewery:[14,16],sawmill:[12,12],granary:[14,16],
   lighthouse:[7,44],shipwright:[20,18],fishery:[13,10],crane:[8,24],ship:[18,32],boat:[6,4],cargo:[10,6],arena:[23,14],theater:[17,12],baths:[16,16],garden:[18,10],wizard:[10,50],arcane:[15,16],portal:[10,28],eldertree:[14,48],dragonstatue:[9,24],crystal:[8,30],golem:[8,20],
-  statue:[4,16],fountain:[9,12],well:[4,12],gallows:[6,16],cart:[6,8],wagon:[10,12],crates:[7,6],haystack:[6,10],lamp:[2,12],bench:[4,3]};
+  statue:[4,16],fountain:[9,12],well:[4,12],gallows:[6,16],cart:[6,8],wagon:[10,12],crates:[7,6],haystack:[6,10],scarecrow:[4,12],lamp:[2,12],bench:[4,3]};
 window.AtlasAssets={LIST,NAME,SIZE,draw,cart,shipIso,boat,crate,barrel,horse,prism};
 })();
