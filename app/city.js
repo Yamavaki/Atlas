@@ -367,8 +367,8 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     if(LINES.length||roads.length){const RR=roads.concat(LINES.filter(l=>l.t==="road").map(l=>l.pts));for(let i=NAT.length-1;i>=0;i--)if(RR.some(r=>polyD(NAT[i][0],NAT[i][1],r,false)<9))NAT.splice(i,1)}}
   if(SOLID){const S_=SOLID;for(let i=trees.length-1;i>=0;i--){const t=trees[i],r=4*(t[2]||1),o=obb(t[0],t[1],0,r,r),gx=(t[0]/40)|0,gy=(t[1]/40)|0;let h=false;for(let a=-1;a<=1&&!h;a++)for(let b=-1;b<=1&&!h;b++)for(const z of S_.get((gx+a)+"_"+(gy+b))||[])if(sat(z.poly,o)){h=true;break}if(h)trees.splice(i,1)}}
   for(let i=bunting.length-1;i>=0;i--){const z=bunting[i];let w=false;for(let t=0;t<=1.0001&&!w;t+=.1)if(wet(lerp(z.a[0],z.b[0],t),lerp(z.a[1],z.b[1],t),2))w=true;if(w)bunting.splice(i,1)}
-  {const K=(t,o,id)=>t+":"+id+":"+Math.round(o.x)+":"+Math.round(o.y);for(const b of B){b.key=K("h",b,b.type);b.kx=b.x;b.ky=b.y}for(const q of SPB)q.key=K("s",q,q.id||("k"+q.k));for(const q of props)q.key=K("p",q,q.id);const KA=(t,a)=>t+":"+Math.round(a[0])+":"+Math.round(a[1]);for(const t of trees)t.key=KA("t",t);for(const t of NAT)t.key=KA("n",t);for(const q of ships)q.key=K("sh",q,"ship");for(const q of boats)q.key=K("bt",q,"boat");
-    const OV=P.ovr||{};if(Object.keys(OV).length){const CC={B,SPB,props,trees,NAT,ships,boats},all=[];for(const n of ARR)for(const q of CC[n])if(OV[q.key])all.push(q);for(const q of all)applyOv(CC,q,OV[q.key])}}
+  {const K=(t,o,id)=>t+":"+id+":"+Math.round(o.x)+":"+Math.round(o.y);for(const b of B){b.key=K("h",b,b.type);b.kx=b.x;b.ky=b.y}for(const q of SPB)q.key=K("s",q,q.id||("k"+q.k));for(const q of props)q.key=K("p",q,q.id);const KA=(t,a)=>t+":"+Math.round(a[0])+":"+Math.round(a[1]);for(const t of trees)t.key=KA("t",t);for(const t of NAT)t.key=KA("n",t);for(const q of ships)q.key=K("sh",q,"ship");for(const q of boats)q.key=K("bt",q,"boat");for(const z of bunting)z.key="bu:"+Math.round(z.a[0])+":"+Math.round(z.a[1])+":"+Math.round(z.b[0])+":"+Math.round(z.b[1]);for(const f of fields)f.key=KA("f",f.c);
+    const OV=P.ovr||{};if(Object.keys(OV).length){const CC={B,SPB,props,trees,NAT,ships,boats,bunting,fields},all=[];for(const n of ARR)for(const q of CC[n])if(OV[q.key])all.push(q);for(const q of all)applyOv(CC,q,OV[q.key])}}
   return {GANG,NAT,bunting,farmPaths,LEG,AVE,LINES,RK,P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON,bridgesR}}
 
 // ---------- texturas de chao (padroes ja achatados pela inclinacao) ----------
@@ -434,9 +434,11 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   const PE=(x,y,e)=>[x,y*TILT-e*KE];
   if(P.relief>.05){// muros de arrimo: face de pedra onde o quarteirao fica acima da rua, do lado que olha para quem ve
     for(const p of urb){const bl=p.blocks&&p.blocks.length?p.blocks:[p.block];for(const b of bl){const sg_=sgnA(b);for(let k=0;k<b.length;k++){const a=b[k],e=b[(k+1)%b.length],l=Math.hypot(e[0]-a[0],e[1]-a[1]);if(l<6)continue;const nx=(e[1]-a[1])/l*sg_,ny=-(e[0]-a[0])/l*sg_;if(ny<.25)continue;
-      const n=Math.max(1,Math.ceil(l/8)),top=[],bot=[];let any=false;for(let q=0;q<=n;q++){const x=lerp(a[0],e[0],q/n),y=lerp(a[1],e[1],q/n),ei=elev(x-nx*2,y-ny*2),eo=elev(x+nx*6,y+ny*6),dh=(ei-eo)*KE;if(dh>1.5)any=true;top.push(PE(x,y,ei));bot.push(PE(x,y,Math.min(ei,eo)))}
-      if(!any)continue;c.beginPath();top.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));for(let i=bot.length-1;i>=0;i--)c.lineTo(bot[i][0],bot[i][1]);c.closePath();c.fillStyle="#a39c8a";c.fill();c.strokeStyle="rgba(50,44,34,.7)";c.lineWidth=.7;c.stroke();
-      c.strokeStyle="rgba(60,52,40,.45)";c.lineWidth=.5;c.beginPath();for(let i=0;i<top.length;i++){const t=top[i],u=bot[i];if(u[1]-t[1]>3){for(let h=t[1]+2.4;h<u[1];h+=2.4){c.moveTo(t[0]-3,h);c.lineTo(t[0]+3,h)}}}c.stroke()}}}
+      const n=Math.max(1,Math.ceil(l/4)),H_=[];for(let q=0;q<=n;q++){const x=lerp(a[0],e[0],q/n),y=lerp(a[1],e[1],q/n),ei=elev(x-nx*2,y-ny*2),eo=elev(x+nx*6,y+ny*6);H_.push([x,y,ei,eo,(ei-eo)*KE])}
+      // so os trechos onde o desnivel aparece de verdade (antes saia uma lasca fina pelo lado todo)
+      const runs=[];let cur=null;for(const h of H_){if(h[4]>2.2){if(!cur)runs.push(cur=[]);cur.push(h)}else cur=null}
+      for(const run of runs){if(run.length<2||Math.max(...run.map(h=>h[4]))<3.2)continue;const top=run.map(h=>PE(h[0],h[1],h[2])),bot=run.map(h=>PE(h[0],h[1],Math.min(h[2],h[3])));c.beginPath();top.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));for(let i=bot.length-1;i>=0;i--)c.lineTo(bot[i][0],bot[i][1]);c.closePath();c.fillStyle="#a39c8a";c.fill();c.strokeStyle="rgba(50,44,34,.7)";c.lineWidth=.7;c.stroke();
+      c.strokeStyle="rgba(60,52,40,.45)";c.lineWidth=.5;c.beginPath();for(let i=0;i<top.length;i++){const t=top[i],u=bot[i];if(u[1]-t[1]>3){for(let h=t[1]+2.4;h<u[1];h+=2.4){c.moveTo(t[0]-3,h);c.lineTo(t[0]+3,h)}}}c.stroke()}}}}
     // escadarias nas ruas ingremes
     for(const e of C.edges){if(!(e.in>0)||e.sea||e.bridge)continue;const a=[nodes[e.a].x,nodes[e.a].y],b=[nodes[e.b].x,nodes[e.b].y],L=e.len;if(L<8)continue;const main=C.mainE.has(e),w=main?12:7,ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;
       if(main){const runs=[];let r0=-1;for(let t=4;t<=L-4;t+=2){const x=a[0]+ux*t,y=a[1]+uy*t,st=Math.abs(elev(x+ux*2,y+uy*2)-elev(x-ux*2,y-uy*2))*KE/4>=.42;if(st&&r0<0)r0=t;if((!st||t+2>L-4)&&r0>=0){if(t-r0>=10)runs.push([r0,t]);r0=-1}}
@@ -626,12 +628,14 @@ function gridOver(canvas,cell,S){const c=canvas.getContext("2d");c.save();c.setT
 // bairro sob um ponto do mundo
 function patchAt(C,x,y){for(const p of C.patches){if(p.sea)continue;if(inPoly(p.poly,x,y))return p}return null}
 // edicao de um objeto gerado (usada ao gerar e ao editar ao vivo)
-const ARR=["B","SPB","props","trees","NAT","ships","boats"];
+const ARR=["B","SPB","props","trees","NAT","ships","boats","bunting","fields"];
 function applyOv(C,q,o){const isA=Array.isArray(q),own=ARR.find(n=>C[n]&&C[n].includes(q));if(!own)return;
   if(o.del){C[own].splice(C[own].indexOf(q),1);return}
+  if(own==="fields"){if(o.poly&&o.poly.length>=3){q.poly=o.poly.map(v=>[v[0],v[1]]);let sx=0,sy=0;for(const v of q.poly){sx+=v[0];sy+=v[1]}q.c=[sx/q.poly.length,sy/q.poly.length]}if(o.col)q.col=o.col;if(o.fence!=null)q.fence=o.fence;return}
+  if(own==="bunting"){if(o.pa){q.a=[o.pa[0],o.pa[1]];q.b=[o.pb[0],o.pb[1]]}return}
   if(o.x!=null){if(isA){q[0]=o.x;q[1]=o.y}else{if(q.wing){q.wing.x+=o.x-q.x;q.wing.y+=o.y-q.y}q.x=o.x;q.y=o.y}}
   if(o.a!=null){q.ang=o.a;q.wing=null}if(o.v!=null)q.v=o.v;if(o.vs!=null)q.vs=o.vs;if(o.id)q.id=o.id;if(o.type)q.type=o.type;if(o.ms!=null)q.ms=o.ms;if(o.big!=null)q.big=o.big;if(o.ly!=null)q.ly=o.ly;
   if(isA){if(o.s!=null)q[2]=o.s;if(o.kind){const tree=o.kind==="tree"||o.kind==="wild",dst=tree?"trees":"NAT";q[3]=o.kind==="wild"?1:tree?0:o.kind;if(dst!==own){C[own].splice(C[own].indexOf(q),1);C[dst].push(q)}}}}
 const DEFLY=[{id:"chao",name:"Chão"},{id:"base",name:"Principal"},{id:"frente",name:"Frente"}],FLATLY=new Set(["flowerbed","garden"]);
-window.AtlasCity={DEFLY,FLATLY,applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
+window.AtlasCity={Z,TILT,DEFLY,FLATLY,applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
 })();
