@@ -240,8 +240,7 @@ function drawAsian(c,x,y,o){const ca=Math.cos(o.ang),sa=Math.sin(o.ang),U=[ca,sa
   c.strokeStyle=INK;c.lineWidth=1.6;c.beginPath();c.moveTo(r1[0],r1[1]);c.lineTo(r2[0],r2[1]);c.stroke();c.lineWidth=1;c.beginPath();c.moveTo(r1[0],r1[1]);c.lineTo(r1[0]-1.4,r1[1]-1.6);c.moveTo(r2[0],r2[1]);c.lineTo(r2[0]+1.4,r2[1]-1.6);c.stroke();c.lineWidth=.75}
 function drawPagoda(c,x,y,n,w,roofK,wallK){for(let i=0;i<n;i++){const s=w*(1-i*.15);drawAsian(c,x,y-i*6.2,{L:s,D:s,H:i?4.2:5,R:2.4+s*.12,ang:.7854,roof:roofK,wall:wallK})}
   c.strokeStyle=INK;c.lineWidth=1.1;const ty=y-(n-1)*6.2-4.2-2.4-w*.12*(1-(n-1)*.15);c.beginPath();c.moveTo(x,ty);c.lineTo(x,ty-7);c.stroke();c.fillStyle="#c9a24c";for(let k=0;k<3;k++){c.beginPath();c.ellipse(x,ty-1.5-k*1.8,1.3,.6,0,0,7);c.fill()}}
-function drawTorii(c,x,y){c.lineWidth=.7;const r="#c0392b";poly(c,[[x-5.5,y],[x-4.3,y],[x-4.3,y-11],[x-5.5,y-11]],r,INK);poly(c,[[x+4.3,y],[x+5.5,y],[x+5.5,y-11],[x+4.3,y-11]],r,INK);
-  poly(c,[[x-7,y-9],[x+7,y-9],[x+7,y-8],[x-7,y-8]],r,INK);c.fillStyle="#2b2114";c.beginPath();c.moveTo(x-8.5,y-12.6);c.quadraticCurveTo(x,y-11,x+8.5,y-12.6);c.lineTo(x+8,y-11);c.quadraticCurveTo(x,y-9.8,x-8,y-11);c.closePath();c.fill()}
+
 function drawJpCastle(c,x,y){c.lineWidth=.8;poly(c,[[x-24,y],[x+24,y],[x+19,y-11],[x-19,y-11]],"#a8a190",INK);c.strokeStyle="rgba(60,50,35,.5)";c.lineWidth=.5;c.beginPath();for(let k=1;k<4;k++){c.moveTo(x-24+k*1.3,y-k*2.8);c.lineTo(x+24-k*1.3,y-k*2.8)}c.stroke();
   poly(c,[[x-19,y-11],[x+19,y-11],[x+19,y-12.5],[x-19,y-12.5]],"#c9c2ae",INK);
   const t=[[30,8],[22,6.5],[15,6],[9,5]];let yy=y-12.5;for(const [s,h] of t){drawAsian(c,x,yy,{L:s,D:s*.7,H:h,R:3+s*.1,ang:0,roof:"jp",wall:"jpw"});yy-=h+1.6}
@@ -318,9 +317,56 @@ function drawVolcano(c,x,y,w,h,rng){c.lineWidth=.9;const g=c.createLinearGradien
   c.beginPath();c.moveTo(x-w,y);c.quadraticCurveTo(x-w*.35,y-h*.55,x-w*.18,y-h);c.lineTo(x+w*.18,y-h);c.quadraticCurveTo(x+w*.35,y-h*.55,x+w,y);c.closePath();c.fill();c.stroke();
   c.fillStyle="#d8542a";c.beginPath();c.ellipse(x,y-h,w*.18,w*.06,0,0,7);c.fill();c.strokeStyle="#f0a040";c.lineWidth=1.4;for(let k=0;k<3;k++){const sx=x+(rng()-.5)*w*.2;c.beginPath();c.moveTo(sx,y-h+1);c.quadraticCurveTo(sx+(rng()-.5)*w*.5,y-h*.5,sx+(rng()-.5)*w*.8,y-h*.12);c.stroke()}
   for(let i=0;i<5;i++){const px=x+i*3+(rng()-.5)*3,py=y-h-4-i*6,r=3+i*1.5;c.fillStyle="#2e2a2c";c.beginPath();c.arc(px,py,r+.8,0,7);c.fill();c.fillStyle="#6e6468";c.beginPath();c.arc(px,py,r,0,7);c.fill()}}
-function drawRuin(c,x,y,rng){c.lineWidth=.7;for(let i=0;i<5;i++){const px=x+(i-2)*4.2,h=3+rng()*8;poly(c,[[px-1.3,y+(i%2)],[px+1.3,y+(i%2)],[px+1.3,y-h],[px-1.3,y-h+1]],i%2?"#c9c2b0":"#a8a294",INK)}poly(c,[[x-9,y-8],[x-1,y-9],[x-1,y-7.6],[x-9,y-6.6]],"#d6cfbd",INK);c.fillStyle="rgba(120,140,70,.6)";c.beginPath();c.arc(x+5,y,2,0,7);c.fill()}
-function drawStones(c,x,y,rng){const n=7;for(let i=0;i<n;i++){const a=i/n*6.2832,px=x+Math.cos(a)*8,py=y+Math.sin(a)*8*TILT,h=4+rng()*3;poly(c,[[px-1.2,py],[px+1.2,py],[px+1,py-h],[px-1,py-h]],"#b7b1a2",INK)}}
-function drawTotem(c,x,y){c.lineWidth=.8;poly(c,[[x-1.6,y],[x+1.6,y],[x+1.6,y-16],[x-1.6,y-16]],"#7a5432",INK);c.fillStyle="#a8352a";c.fillRect(x-1.6,y-14,3.2,2);c.fillStyle="#efe6cb";c.beginPath();c.arc(x,y-17.5,2.4,0,7);c.fill();c.stroke();c.fillStyle=INK;c.fillRect(x-1.2,y-18,.9,.9);c.fillRect(x+.3,y-18,.9,.9)}
+// ajudantes de perspectiva (usam as de assets.js quando carregadas)
+const PF=(x,y,ang)=>{const ca=Math.cos(ang),sa=Math.sin(ang);return (a,b,h)=>[x+ca*a-sa*b,y+(sa*a+ca*b)*TILT-(h||0)]};
+const PRZ=(c,x,y,L,D,H,ang,wall,top)=>window.AtlasAssets?AtlasAssets.prism(c,x,y,L,D,H,ang,wall,top):poly(c,[[x-L/2,y],[x+L/2,y],[x+L/2,y-H],[x-L/2,y-H]],wall[0],INK);
+function drawRuin(c,x,y,rng){const ang=-.35+rng()*.2,P=PF(x,y,ang),W=["#c9c2b0","#8f897a"];c.lineWidth=.7;
+  c.fillStyle="rgba(20,22,6,.22)";c.beginPath();c.ellipse(x+1.5,y+1,11,4.5,0,0,7);c.fill();
+  poly(c,[P(-9,-5),P(7,-5),P(7,5),P(-9,5)],"rgba(150,140,110,.35)",null);
+  const parts=[];for(let i=0;i<5;i++)parts.push({u:-8+i*3.6,v:-4.5,L:3.4,D:1.6,H:3+rng()*7});for(let i=0;i<3;i++)parts.push({u:-8.6,v:-2+i*3,L:1.6,D:2.8,H:2+rng()*5});parts.push({u:4,v:3,L:2,D:2,H:1.4});parts.push({u:-2,v:3.6,L:3,D:1.4,H:1});
+  parts.sort((a,b)=>(P(a.u,a.v)[1])-(P(b.u,b.v)[1]));for(const q of parts){const b=P(q.u,q.v);PRZ(c,b[0],b[1],q.L,q.D,q.H,ang,W)}
+  const arch=P(-1,-4.5);c.strokeStyle=INK;c.lineWidth=.8;c.fillStyle="#2b2418";c.beginPath();c.moveTo(arch[0]-1.4,arch[1]-.2);c.lineTo(arch[0]-1.4,arch[1]-3);c.arc(arch[0],arch[1]-3,1.4,3.1416,0);c.lineTo(arch[0]+1.4,arch[1]-.2);c.fill();
+  c.fillStyle="rgba(110,140,60,.75)";for(let i=0;i<4;i++){const q=P(-6+rng()*12,-3+rng()*7);c.beginPath();c.arc(q[0],q[1]-.5,1+rng()*1.2,0,7);c.fill()}}
+function drawStones(c,x,y,rng){const n=8,W=["#c2bcad","#7d7768"],st=[];for(let i=0;i<n;i++){const a=i/n*6.2832+.2,px=x+Math.cos(a)*9,py=y+Math.sin(a)*9*TILT;st.push({px,py,h:4.5+rng()*3,a})}
+  c.fillStyle="rgba(20,22,6,.2)";c.beginPath();c.ellipse(x+1,y+.6,11,11*TILT,0,0,7);c.fill();c.fillStyle="rgba(170,160,120,.35)";c.beginPath();c.ellipse(x,y,6,6*TILT,0,0,7);c.fill();
+  const alt=()=>PRZ(c,x,y+.4,4,2.4,1.4,.3,["#b9b3a2","#77705f"]);let alDone=false;
+  st.sort((a,b)=>a.py-b.py);for(const q of st){if(!alDone&&q.py>y){alt();alDone=true}PRZ(c,q.px,q.py,2.2,1.5,q.h,q.a+1.5708,W)}if(!alDone)alt();
+  const a=st[1],b=st[2];if(a&&b&&a.py<y&&b.py<y){const h=Math.min(a.h,b.h);poly(c,[[a.px-1,a.py-h-1.4],[b.px+1,b.py-h-1.4],[b.px+1,b.py-h],[a.px-1,a.py-h]],"#cfc9ba",INK)}}
+function drawTotem(c,x,y){const cy_=(window.AtlasAssets&&AtlasAssets.cyl);c.fillStyle="rgba(20,22,6,.25)";c.beginPath();c.ellipse(x+1,y+.5,3,1.3,0,0,7);c.fill();
+  if(cy_){cy_(c,x,y,1.7,16,["#9a6a3e","#5e3e22"],.9,[[3,5,"#a8352a"],[8,9.5,"#efe6cb"],[12,13.5,"#3f6f8f"]])}else poly(c,[[x-1.6,y],[x+1.6,y],[x+1.6,y-16],[x-1.6,y-16]],"#7a5432",INK);
+  c.lineWidth=.6;poly(c,[[x-1.4,y-10.5],[x-6,y-12.5],[x-5.4,y-10],[x-1.4,y-9]],"#c98f45",INK);poly(c,[[x+1.4,y-10.5],[x+6,y-12.5],[x+5.4,y-10],[x+1.4,y-9]],"#a87436",INK);
+  c.fillStyle="#efe6cb";c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.ellipse(x,y-17.2,2.3,2.6,0,0,7);c.fill();c.stroke();c.fillStyle=INK;c.fillRect(x-1.2,y-17.8,.8,.8);c.fillRect(x+.4,y-17.8,.8,.8);c.fillRect(x-.6,y-16.2,1.2,.5)}
+function drawTorii(c,x,y){const r=["#d0412f","#8f2a1e"],ang=-.25,P=PF(x,y,ang),cy_=(window.AtlasAssets&&AtlasAssets.cyl);c.fillStyle="rgba(20,22,6,.22)";c.beginPath();c.ellipse(x+1,y+.6,8,2.4,ang*TILT,0,7);c.fill();
+  const L=P(-5,0),R=P(5,0);for(const b of [L,R]){if(cy_)cy_(c,b[0],b[1],.75,11,r,1);else poly(c,[[b[0]-.6,b[1]],[b[0]+.6,b[1]],[b[0]+.6,b[1]-11],[b[0]-.6,b[1]-11]],r[0],INK)}
+  PRZ(c,P(0,0)[0],P(0,0)[1]-8,15,1,1,ang,r);
+  const a=P(-8.6,0,12.4),b=P(8.6,0,12.4),m=P(0,0,11.2);c.fillStyle="#2b2114";c.strokeStyle=INK;c.lineWidth=.6;c.beginPath();c.moveTo(a[0],a[1]-1.2);c.quadraticCurveTo(m[0],m[1]+.6,b[0],b[1]-1.2);c.lineTo(b[0]-.3,b[1]+.4);c.quadraticCurveTo(m[0],m[1]+2,a[0]+.3,a[1]+.4);c.closePath();c.fill();c.stroke();
+  PRZ(c,P(0,0)[0],P(0,0)[1]-10.6,16,1.2,.8,ang,r)}
+function drawGraves(c,x,y,race){const ang=-.2,P=PF(x,y,ang),asian=race==="japones"||race==="chines";c.lineWidth=.6;
+  poly(c,[P(-10,-6),P(10,-6),P(10,6),P(-10,6)],"rgba(120,130,70,.45)",null);
+  const fence=(u0,v0,u1,v1)=>{const n=Math.max(2,Math.round(Math.hypot(u1-u0,v1-v0)/2.4));c.strokeStyle="#5e4630";c.lineWidth=.6;c.beginPath();for(let k=0;k<=n;k++){const u=lerp(u0,u1,k/n),v=lerp(v0,v1,k/n),a=P(u,v),b=P(u,v,2.2);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1])}const a=P(u0,v0,1.8),b=P(u1,v1,1.8);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke()};
+  fence(-10,-6,10,-6);fence(-10,-6,-10,6);fence(10,-6,10,6);
+  const G=[];for(let i=0;i<4;i++)for(let j=0;j<3;j++)G.push([-7+i*4.6,-3.5+j*3.6]);G.sort((a,b)=>P(a[0],a[1])[1]-P(b[0],b[1])[1]);
+  for(const [u,v] of G){const b=P(u,v),k=(Math.abs(u*7+v*3)|0)%3;poly(c,[P(u-1.4,v+.4),P(u+1.4,v+.4),P(u+1.4,v+2.4),P(u-1.4,v+2.4)],"rgba(110,90,60,.45)",null);
+    if(asian||k===0)PRZ(c,b[0],b[1],1.6,.8,3,ang,["#c4beb0","#86806f"]);else if(k===1){c.strokeStyle=INK;c.lineWidth=1.3;c.beginPath();c.moveTo(b[0],b[1]);c.lineTo(b[0],b[1]-4);c.moveTo(b[0]-1.3,b[1]-2.8);c.lineTo(b[0]+1.3,b[1]-2.8);c.stroke();c.strokeStyle="#d6d0c0";c.lineWidth=.6;c.stroke()}
+    else{c.fillStyle="#b9b3a4";c.strokeStyle=INK;c.lineWidth=.5;c.beginPath();c.moveTo(b[0]-1.1,b[1]);c.lineTo(b[0]-1.1,b[1]-2.2);c.arc(b[0],b[1]-2.2,1.1,3.14,0);c.lineTo(b[0]+1.1,b[1]);c.closePath();c.fill();c.stroke()}}
+  fence(-10,6,10,6)}
+function drawShrine(c,x,y,race){if(race==="japones"||race==="chines"){drawAsian(c,x,y,{L:5,D:4,H:3,R:2.6,ang:0,roof:race==="chines"?"cn":"jp",wall:race==="chines"?"red":"jpw"});return}
+  if(race==="indiano"){drawShikhara(c,x+2,y,3);return}
+  const ang=-.3,P=PF(x,y,ang);c.fillStyle="rgba(20,22,6,.22)";c.beginPath();c.ellipse(x+1,y+.6,5,2,0,0,7);c.fill();
+  PRZ(c,x,y,5.4,4,1.2,ang,["#b9b3a2","#77705f"]);PRZ(c,x,y-1.2,3.4,2.6,1,ang,["#c9c2b0","#8f897a"]);
+  const cy_=(window.AtlasAssets&&AtlasAssets.cyl);if(cy_)cy_(c,x,y-2.2,1,4.6,["#d6cfbd","#8f897a"],.8);c.fillStyle="#d6cfbd";c.strokeStyle=INK;c.lineWidth=.6;c.beginPath();c.arc(x,y-7.8,1.3,0,7);c.fill();c.stroke();
+  for(const [u,v] of [[2.2,1.4],[-2.2,1.4]]){const q=P(u,v,1.2);c.fillStyle="#efe6cb";c.fillRect(q[0]-.3,q[1]-1.2,.6,1.2);c.fillStyle="#f0c060";c.beginPath();c.arc(q[0],q[1]-1.6,.45,0,7);c.fill()}
+  c.fillStyle="#a8352a";const f=P(0,2.4,1.2);c.beginPath();c.arc(f[0]+2.2,f[1],.7,0,7);c.fill()}
+function drawMine(c,x,y){c.lineWidth=.8;c.fillStyle="#9a8f78";c.strokeStyle=INK;c.beginPath();c.moveTo(x-12,y+1);c.quadraticCurveTo(x-7,y-12,x+2,y-11);c.quadraticCurveTo(x+10,y-9,x+12,y+1);c.closePath();c.fill();c.stroke();
+  c.strokeStyle="rgba(60,50,30,.4)";c.lineWidth=.5;c.beginPath();for(let i=0;i<6;i++){c.moveTo(x-9+i*3.4,y-2-i%2);c.lineTo(x-7+i*3.4,y-6-i%3)}c.stroke();
+  const ang=0,P=PF(x,y-.5,ang);poly(c,[P(-3,0,0),P(3,0,0),P(3,0,6),P(-3,0,6)],"#1e1914",INK);
+  const beam=(u)=>{const a=P(u,0,0),b=P(u,0,6.6);c.strokeStyle=INK;c.lineWidth=1.9;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.strokeStyle="#7a5432";c.lineWidth=1.1;c.stroke()};beam(-3.3);beam(3.3);
+  PRZ(c,P(0,0)[0],P(0,0)[1]-6.4,8.4,1.4,1.2,ang,["#8a6440","#5e4026"]);
+  const R=PF(x,y+.5,0);c.strokeStyle="#4a3524";c.lineWidth=.6;c.beginPath();for(const u of [-1.3,1.3]){const a=R(u,0),b=R(u+u*.4,10);c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1])}for(let k=1;k<6;k++){const a=R(-1.3-.4*k/5*1.3,k*2),b=R(1.3+.4*k/5*1.3,k*2);c.moveTo(a[0]-.4,a[1]);c.lineTo(b[0]+.4,b[1])}c.stroke();
+  if(window.AtlasAssets&&AtlasAssets.cart){const q=R(0,7);c.save();c.translate(q[0],q[1]);c.scale(.55,.55);AtlasAssets.cart(c,0,0,1.5708,false);c.restore()}
+  const lp=P(4.6,1);c.strokeStyle="#4a3524";c.lineWidth=.6;c.beginPath();c.moveTo(lp[0],lp[1]);c.lineTo(lp[0],lp[1]-5);c.stroke();c.fillStyle="#f0c060";c.beginPath();c.arc(lp[0],lp[1]-5.4,.8,0,7);c.fill()}
+
+
 function drawCave(c,x,y,snow,rng){rng=rng||Math.random;const rc=snow?["#e2e6ea","#a2abb3"]:["#b5ad9a","#7a7262"];c.lineJoin="round";
   const pts=[];for(let i=0;i<=10;i++){const a=3.1416+i/10*3.1416,r=1+(rng()-.5)*.3;pts.push([x+Math.cos(a)*12*r,y+Math.sin(a)*11*r])}
   const g=c.createLinearGradient(x-12,y-11,x+12,y);g.addColorStop(0,rc[0]);g.addColorStop(1,rc[1]);c.fillStyle=g;c.globalAlpha=.92;c.beginPath();c.moveTo(pts[0][0],pts[0][1]+1);for(const q of pts)c.lineTo(q[0],q[1]);c.lineTo(pts[pts.length-1][0],pts[pts.length-1][1]+1);c.closePath();c.fill();c.globalAlpha=1;
@@ -337,16 +383,11 @@ function drawCave0(c,x,y,snow){c.lineWidth=.8;const g=c.createLinearGradient(x-1
 function drawCamp(c,x,y,race,rng){const col=race==="orc"?["#7a5d40","#5a4430"]:race==="mongol"?["#efe6d2","#c2b79f"]:["#d8c9a0","#a8976c"];c.lineWidth=.7;
   for(const [dx,dy,s] of [[-7,-2,1],[6,-3,.9],[0,3,1.1]]){const tx=x+dx,ty=y+dy;if(race==="mongol"){drawRound(c,tx,ty,3.4*s,2.6*s,2.2*s,{wall:"felt",roof:"felt",yurt:1});continue}poly(c,[[tx-4*s,ty],[tx,ty-6*s],[tx+1.5*s,ty-.5]],col[0],INK);poly(c,[[tx+1.5*s,ty-.5],[tx,ty-6*s],[tx+4.5*s,ty-1.2]],col[1],INK);c.fillStyle="#3a2c1b";c.beginPath();c.moveTo(tx-.6,ty-.2);c.lineTo(tx+.8,ty-3.6);c.lineTo(tx+1,ty-.3);c.fill()}
   c.fillStyle="#3a2c1b";c.fillRect(x-.8,y-1,1.6,1);c.fillStyle="#e07a2a";c.beginPath();c.moveTo(x-1.4,y-.8);c.lineTo(x,y-3.6);c.lineTo(x+1.4,y-.8);c.fill();c.fillStyle="#f0c050";c.beginPath();c.moveTo(x-.6,y-.8);c.lineTo(x,y-2.4);c.lineTo(x+.6,y-.8);c.fill()}
-function drawGraves(c,x,y,race){c.lineWidth=.6;c.strokeStyle="#6b5136";c.beginPath();c.moveTo(x-9,y+3);c.lineTo(x+9,y+3);c.lineTo(x+9,y-5);c.moveTo(x-9,y+3);c.lineTo(x-9,y-5);c.lineTo(x+9,y-5);c.stroke();
-  const asian=race==="japones"||race==="chines";for(let i=0;i<3;i++)for(let j=0;j<2;j++){const gx=x-5.5+i*5.5,gy=y-2.5+j*4;if(asian){poly(c,[[gx-.9,gy],[gx+.9,gy],[gx+.9,gy-3],[gx-.9,gy-3]],"#b9b3a4",INK)}else if((i+j)%2){c.strokeStyle=INK;c.lineWidth=.8;c.beginPath();c.moveTo(gx,gy);c.lineTo(gx,gy-3.6);c.moveTo(gx-1.2,gy-2.6);c.lineTo(gx+1.2,gy-2.6);c.stroke()}else{c.fillStyle="#b9b3a4";c.beginPath();c.moveTo(gx-1.1,gy);c.lineTo(gx-1.1,gy-2.2);c.arc(gx,gy-2.2,1.1,3.14,0);c.lineTo(gx+1.1,gy);c.closePath();c.fill();c.strokeStyle=INK;c.lineWidth=.5;c.stroke()}}}
-function drawShrine(c,x,y,race){if(race==="japones"||race==="chines"){drawAsian(c,x,y,{L:5,D:4,H:3,R:2.6,ang:0,roof:race==="chines"?"cn":"jp",wall:race==="chines"?"red":"jpw"});return}
-  if(race==="indiano"){drawShikhara(c,x+2,y,3);return}c.lineWidth=.7;poly(c,[[x-2.4,y],[x+2.4,y],[x+2.4,y-2],[x-2.4,y-2]],"#a8a294",INK);poly(c,[[x-1.2,y-2],[x+1.2,y-2],[x+1,y-7],[x-1,y-7]],"#c9c2b0",INK);c.fillStyle="#c9c2b0";c.beginPath();c.arc(x,y-8.2,1.4,0,7);c.fill();c.stroke();c.fillStyle="#a8352a";c.beginPath();c.arc(x+2.8,y-.6,.8,0,7);c.fill()}
+
+
 function drawWatch(c,x,y){c.strokeStyle="#5a4128";c.lineWidth=1;c.beginPath();c.moveTo(x-3.4,y);c.lineTo(x-2.4,y-14);c.moveTo(x+3.4,y);c.lineTo(x+2.4,y-14);c.moveTo(x-3,y-4);c.lineTo(x+3,y-9);c.moveTo(x+3,y-4);c.lineTo(x-3,y-9);c.stroke();
   poly(c,[[x-4,y-14],[x+4,y-14],[x+4,y-17],[x-4,y-17]],"#a37c4c",INK);poly(c,[[x-5,y-17],[x,y-22],[x+5,y-17]],"#8d6c46",INK);c.fillStyle="#a8352a";c.fillRect(x-.3,y-26,.6,4);c.beginPath();c.moveTo(x+.3,y-26);c.lineTo(x+3,y-25);c.lineTo(x+.3,y-24);c.fill()}
-function drawMine(c,x,y){c.lineWidth=.8;c.fillStyle="#9a8f78";c.strokeStyle=INK;c.beginPath();c.moveTo(x-11,y+1);c.quadraticCurveTo(x-6,y-11,x+2,y-10);c.quadraticCurveTo(x+9,y-8,x+11,y+1);c.closePath();c.fill();c.stroke();
-  c.fillStyle="#1e1914";c.fillRect(x-3,y-6,6,6.5);c.strokeStyle="#6b4a2a";c.lineWidth=1.3;c.beginPath();c.moveTo(x-3.4,y+.5);c.lineTo(x-3.4,y-6.6);c.lineTo(x+3.4,y-6.6);c.lineTo(x+3.4,y+.5);c.stroke();
-  c.strokeStyle="#5a4128";c.lineWidth=.6;c.beginPath();c.moveTo(x-1.4,y+.5);c.lineTo(x-4,y+7);c.moveTo(x+1.4,y+.5);c.lineTo(x+1,y+7);for(let k=1;k<4;k++){c.moveTo(lerp(x-1.4,x-4,k/4)-.6,y+.5+k*1.6);c.lineTo(lerp(x+1.4,x+1,k/4)+.6,y+.5+k*1.6)}c.stroke();
-  poly(c,[[x-3.6,y+4.2],[x-.4,y+4.2],[x-.8,y+6],[x-3.2,y+6]],"#6b4a2a",INK);c.fillStyle="#555";c.beginPath();c.ellipse(x-2,y+3.8,1.4,.6,0,0,7);c.fill()}
+
 function drawTower(c,x,y,w,h,rh,roof,wall,cren){
   const a=[.87*w,-.43*w],b=[-.87*w,-.43*w];c.lineWidth=.8;c.lineJoin="round";
   const F=[x,y],R=[x+a[0],y+a[1]],L=[x+b[0],y+b[1]],up=(p,k)=>[p[0],p[1]-k],top=[x,y+a[1]-h-rh],B=[x,y+2*a[1]];
@@ -1034,8 +1075,8 @@ function render(W,canvas,stamps){
     else if(q.k===9)drawWaterWall(c,q.a,q.b,5.5,q.fz);
     else if(q.k===5&&q.fz==="asian"){drawAsian(c,q.x,q.y+2,{L:q.g?10:5,D:q.g?7:5,H:q.g?7:5,R:q.g?4:3,ang:0,roof:"jp",wall:"jpw",base:q.g?1:0})}
     else if(q.k===5){if(q.fz==="palisade")drawTower(c,q.x,q.y+2,q.g?4:3.4,q.g?11:9,q.g?5:4,ROOF.hide,WALL.wooddark,false);else if(q.fz==="hedge"){if(q.g){c.strokeStyle=INK;c.fillStyle="#5f7e35";c.lineWidth=.8;c.beginPath();c.arc(q.x,q.y-4,3.4,0,7);c.fill();c.stroke()}}else drawTower(c,q.x,q.y+2,q.g?4.4:3.8,q.g?12:9.5,q.g?6:0,ROOF.dark,q.fz==="sand"?WALL.sand:WALL.stone,!q.g)}
-    else if(q.k===6){c.lineWidth=.6;poly(c,[[q.x-3,q.y-2.6],[q.x+3,q.y-4],[q.x+3,q.y-1.9],[q.x-3,q.y-.5]],q.col,INK);c.strokeStyle=INK;c.beginPath();c.moveTo(q.x-3,q.y-.5);c.lineTo(q.x-3,q.y+1.2);c.moveTo(q.x+3,q.y-1.9);c.lineTo(q.x+3,q.y);c.stroke()}
-    else if(q.k===7){c.fillStyle="#9a9484";c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.ellipse(q.x,q.y,3,1.8,0,0,7);c.fill();c.stroke();c.fillStyle="#4e6067";c.beginPath();c.ellipse(q.x,q.y,1.7,.9,0,0,7);c.fill()}
+    else if(q.k===6){if(window.AtlasAssets){c.save();c.translate(q.x,q.y);c.scale(.8,.8);AtlasAssets.draw(c,0,0,"stall",q.race||"humano",((q.x*7+q.y)%10)/10,-.2);c.restore()}}
+    else if(q.k===7){if(window.AtlasAssets){c.save();c.translate(q.x,q.y);c.scale(.8,.8);AtlasAssets.draw(c,0,0,"well",q.race||"humano",.5,0);c.restore()}}
     else if(q.k===10)drawCliff(c,q.x,q.ty,q.w,q.h,rng);
     else if(q.k===11){const w=(q.wide?34:18)*q.s,h=(q.wide?24:14)*q.s;c.drawImage(q.st,q.x-w/2,q.y-h*.85,w,h)}
     else if(q.k===12){const w=20*q.s,h=15*q.s;c.drawImage(q.st,q.x-w/2,q.y-h*.85,w,h)}
@@ -1092,8 +1133,8 @@ function objThumb(v,stamps,S){S=S||72;const cv=document.createElement("canvas");
     else if(v==="b_temple")sc(()=>drawBig(c,{k:2,x:36,y:50,race,v:.2,sz:1}),1.25,36,50);else if(v==="b_castle")sc(()=>drawBig(c,{k:3,x:36,y:56,race,v:.6,sz:1}),.85,36,56);
     else if(v==="b_tower")sc(()=>drawTower(c,36,56,4.4,12,6,ROOF.dark,WALL.stone,false),2.6,36,56);else if(v==="b_mill")sc(()=>drawMill(c,36,54,.4),2,36,54);
     else if(v==="b_tent")sc(()=>drawTent(c,36,52,race,1,false,true),3.6,36,52);else if(v==="b_cmd")sc(()=>drawTent(c,34,54,race,1,true),2.2,34,54);else if(v==="b_fire")sc(()=>drawFire(c,36,50),6,36,50);
-    else if(v==="b_stall")sc(()=>{c.lineWidth=.6;poly(c,[[33,47.4],[39,46],[39,48.1],[33,49.5]],"#b5473a",INK);c.strokeStyle=INK;c.beginPath();c.moveTo(33,49.5);c.lineTo(33,51.2);c.moveTo(39,48.1);c.lineTo(39,50);c.stroke()},6,36,49);
-    else if(v==="b_well")sc(()=>{c.fillStyle="#9a9484";c.strokeStyle=INK;c.lineWidth=.7;c.beginPath();c.ellipse(36,46,3,1.8,0,0,7);c.fill();c.stroke();c.fillStyle="#4e6067";c.beginPath();c.ellipse(36,46,1.7,.9,0,0,7);c.fill()},7,36,46)}
+    else if(v==="b_stall")sc(()=>AtlasAssets.draw(c,36,52,"stall",race,.1,-.2),4.4,36,52);
+    else if(v==="b_well")sc(()=>AtlasAssets.draw(c,36,56,"well",race,.5,0),3.6,36,56)}
   else sc(()=>{const x=36,y=50;if(v==="cave")drawCave(c,x,y,false,rng);else if(v==="ruin")drawRuin(c,x,y,rng);else if(v==="stones")drawStones(c,x,y,rng);else if(v==="totem")drawTotem(c,x,y);else if(v==="torii")drawTorii(c,x,y);else if(v==="watch")drawWatch(c,x,y);else if(v==="camp")drawCamp(c,x,y,"humano",rng);else if(v==="graves")drawGraves(c,x,y,"humano");else if(v==="shrine")drawShrine(c,x,y,"humano");else if(v==="mine")drawMine(c,x,y)},{watch:1.65,totem:2.2,shrine:2.6,graves:2.6,stones:2.4,torii:1.9,camp:2.2,ruin:2,cave:2.2,mine:2.2}[v]||2,36,v==="watch"||v==="totem"||v==="torii"?66:52);
   return cv}
 
