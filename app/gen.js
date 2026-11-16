@@ -502,7 +502,11 @@ function drawBig(c,q){if(q.k===3&&window.AtlasAssets&&AtlasAssets.fortress){Atla
       else if(rc==="halfling")drawMound(c,q.x,q.y-3,{L:20*m,D:16*m,H:11*m,door:2,chim:1});
       else if(rc==="orc"||rc==="tribal")drawRound(c,q.x,q.y-3,9*m,6*m,12*m,{wall:rc==="orc"?"wooddark":"mud",roof:rc==="orc"?"hide":"thatch",spike:rc==="orc"});
       else if(rc==="pantano")drawBuilding(c,q.x,q.y-3,{form:"stilt",L:20*m,D:10*m,H:5.5*m,R:6*m,ang:0,roof:"thatch",wall:"wood",door:2,win:1});
-      else if(rc==="japones"){drawAsian(c,q.x-4*m,q.y-2,{L:16*m,D:10*m,H:5*m,R:6*m,ang:0,roof:"jp",wall:"jpw",base:1.5});drawPagoda(c,q.x+12*m,q.y-6*m,q.big?5:3,9*m,"jp","red");drawTorii(c,q.x-4*m,q.y+9*m)}
+      else if(rc==="japones"){// patio de cascalho, pagode atras, salao no fundo, lanternas e torii na frente do caminho
+        c.fillStyle="#e3dcc6";c.strokeStyle="rgba(60,50,35,.45)";c.lineWidth=.6;c.beginPath();c.ellipse(q.x,q.y+3*m,24*m,11*m,0,0,7);c.fill();c.stroke();c.fillStyle="#cfc5a8";c.fillRect(q.x-4*m,q.y+2*m,4*m,13*m);
+        drawPagoda(c,q.x+13*m,q.y-8*m,q.big?5:3,8*m,"jp","red");drawAsian(c,q.x-5*m,q.y-4*m,{L:17*m,D:9*m,H:5*m,R:6*m,ang:0,roof:"jp",wall:"jpw",base:1.5});
+        for(const dx of[-9,5]){const lx=q.x+dx*m,ly=q.y+9*m;c.fillStyle="#a8a294";c.strokeStyle=INK;c.lineWidth=.6;c.fillRect(lx-.8*m,ly-3.2*m,1.6*m,3.2*m);c.strokeRect(lx-.8*m,ly-3.2*m,1.6*m,3.2*m);c.fillStyle="#8f897a";c.beginPath();c.moveTo(lx-2*m,ly-3.2*m);c.lineTo(lx,ly-4.6*m);c.lineTo(lx+2*m,ly-3.2*m);c.closePath();c.fill();c.stroke()}
+        drawTorii(c,q.x-2*m,q.y+16*m)}
       else if(rc==="chines"){drawAsian(c,q.x-3*m,q.y-2,{L:18*m,D:10*m,H:5.5*m,R:6*m,ang:0,roof:"cny",wall:"red",base:2});drawPagoda(c,q.x+13*m,q.y-6*m,q.big?7:5,8*m,"cn","red")}
       else if(rc==="indiano")drawShikhara(c,q.x+4*m,q.y-2,8*m);
       else if(rc==="meso")drawPyramid(c,q.x,q.y+2,15*m,q.big?6:4);
