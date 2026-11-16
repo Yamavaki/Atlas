@@ -301,3 +301,7 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .psub{font-family:var(--display);font-weight:400;color:var(--gold);font-size:15px;letter-spacing:.06em;margin:var(--s3) 0 0;border-top:1px solid var(--line);padding-top:var(--s3)}
 .chk{display:flex;align-items:center;gap:6px}
 .ctx textarea.tin{min-height:30px;min-width:180px;resize:vertical;padding:4px 8px;font:inherit;font-size:14px}
+.cnts{display:flex;flex-direction:column;gap:4px}
+.cnts p{margin:0 0 4px;font-size:12px}
+.crow{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.crow span{font-size:14px}.crow input{width:70px;min-height:30px;padding:2px 6px}
