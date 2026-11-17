@@ -23,8 +23,8 @@ const BG=[[[150,154,74],[178,170,84]],[[124,138,82],[146,154,92]],[[222,228,234]
 const BF=[[62,78,36],[42,60,40],[150,164,172],[112,120,92],[176,142,92],[140,128,68],[38,70,30],[66,82,50],[82,64,50]];
 const BFOR=[1,1.15,.5,.22,.05,.3,1.45,.8,.35];
 // culturas
-const RACES=["humano","anao","elfo","orc","deserto","norte","halfling","pantano","tribal","japones","chines","indiano","meso","mongol"];
-const RACE_PT={humano:"Humanos",anao:"Anões",elfo:"Elfos",orc:"Orcs",deserto:"Povo do deserto",norte:"Nórdicos",halfling:"Halflings",pantano:"Povo do pântano",tribal:"Tribais",japones:"Japoneses",chines:"Chineses",indiano:"Indianos",meso:"Mesoamericanos",mongol:"Povos da estepe"};
+const RACES=["humano","anao","elfo","orc","deserto","norte","halfling","pantano","tribal","japones","chines","indiano","meso","mongol","eslavo","mediterraneo","bizantino","egipcio","celta","andino","gnomo","pirata"],RACES0=RACES.slice(0,14);
+const RACE_PT={humano:"Humanos",anao:"Anões",elfo:"Elfos",orc:"Orcs",deserto:"Povo do deserto",norte:"Nórdicos",halfling:"Halflings",pantano:"Povo do pântano",tribal:"Tribais",japones:"Japoneses",chines:"Chineses",indiano:"Indianos",meso:"Mesoamericanos",mongol:"Povos da estepe",eslavo:"Eslavos",mediterraneo:"Mediterrâneos",bizantino:"Bizantinos",egipcio:"Egípcios",celta:"Celtas",andino:"Andinos",gnomo:"Gnomos",pirata:"Piratas"};
 const CUL={
   humano:{roof:["tile","tile2","tileb","dark","thatch","slate","moss"],wall:["daub","daub","daub2","daub3","brick","stone"],form:"gable",fence:"stone",st:"stone",rf:"dark"},
   anao:{roof:["slate","dark","slate","tileb"],wall:["darkstone","stone","brick"],form:"gable",low:1,fence:"stone",st:"darkstone",rf:"slate"},
@@ -39,7 +39,15 @@ const CUL={
   indiano:{roof:["terra"],wall:["ochre","pink","white","sand"],form:"flat",fence:"sand",st:"sand2",rf:"terra"},
   meso:{roof:["thatch"],wall:["lime","lime","mud"],form:"flat",fence:"stone",st:"lime",rf:"thatch"},
   mongol:{roof:["felt"],wall:["felt"],form:"yurt",fence:"palisade",st:"wood",rf:"felt"},
-  tribal:{roof:["thatch","old","moss"],wall:["mud","daub"],form:"round",fence:"palisade",st:"mud",rf:"thatch"}};
+  tribal:{roof:["thatch","old","moss"],wall:["mud","daub"],form:"round",fence:"palisade",st:"mud",rf:"thatch"},
+  eslavo:{roof:["shingle","shingle","thatch","leaf","old"],wall:["wood","wood","daub","white"],form:"gable",steep:1,fence:"palisade",st:"white",rf:"leaf"},
+  mediterraneo:{roof:["terra","tile2","terra"],wall:["white","white","ochre","pink","daub2"],form:"gable",lowR:1,fence:"stone",st:"white",rf:"terra"},
+  bizantino:{roof:["terra","tile2","tileb"],wall:["brick","ochre","stone","daub2"],form:"gable",lowR:1,fence:"stone",st:"brick",rf:"terra"},
+  egipcio:{roof:["sandtop"],wall:["sand","sand2","sand","white"],form:"flat",fence:"sand",st:"sand2",rf:"sandtop"},
+  celta:{roof:["thatch","thatch","old"],wall:["daub","mud","wood"],form:"round",fence:"palisade",st:"daub",rf:"thatch",trees:1},
+  andino:{roof:["thatch","thatch","old"],wall:["darkstone","stone","darkstone"],form:"gable",steep:1,fence:"stone",st:"darkstone",rf:"thatch"},
+  gnomo:{roof:["blue","teal","gold","tile2","blue"],wall:["white","pink","ochre","daub3"],form:"gable",steep:1,low:1,fence:"hedge",st:"white",rf:"blue"},
+  pirata:{roof:["shingle","old","thatch","tile"],wall:["wood","wooddark","ochre","daub"],form:"gable",fence:"palisade",st:"wood",rf:"shingle"}};
 
 // ---------- dimensoes ----------
 const MX=46,MY=64,TILT=0.7,K=112,G=8,O=4;
@@ -258,6 +266,8 @@ function drawJpCastle(c,x,y){c.lineWidth=.8;poly(c,[[x-24,y],[x+24,y],[x+19,y-11
   poly(c,[[x-19,y-11],[x+19,y-11],[x+19,y-12.5],[x-19,y-12.5]],"#c9c2ae",INK);
   const t=[[30,8],[22,6.5],[15,6],[9,5]];let yy=y-12.5;for(const [s,h] of t){drawAsian(c,x,yy,{L:s,D:s*.7,H:h,R:3+s*.1,ang:0,roof:"jp",wall:"jpw"});yy-=h+1.6}
   c.fillStyle="#c9a24c";c.fillRect(x-4,yy-4,1.4,2.4);c.fillRect(x+2.6,yy-4,1.4,2.4)}
+function onion(c,x,y,r,col){c.lineWidth=.7;c.strokeStyle=INK;const bulb=()=>{c.beginPath();c.moveTo(x-r*.5,y);c.bezierCurveTo(x-r*1.3,y-r*.7,x-r*.85,y-r*1.7,x,y-r*2.5);c.bezierCurveTo(x+r*.85,y-r*1.7,x+r*1.3,y-r*.7,x+r*.5,y);c.closePath()};
+  bulb();c.fillStyle=col[0];c.fill();c.save();bulb();c.clip();c.fillStyle=col[1];c.fillRect(x+r*.15,y-r*3,r*2,r*3.2);c.restore();bulb();c.stroke();c.strokeStyle="#3a2c1b";c.lineWidth=.7;c.beginPath();c.moveTo(x,y-r*2.5);c.lineTo(x,y-r*3.4);c.moveTo(x-r*.4,y-r*3);c.lineTo(x+r*.4,y-r*3);c.stroke()}
 function drawPyramid(c,x,y,w,n){c.lineWidth=.75;for(let i=0;i<n;i++){const s=w*(1-i/(n+1)),h=4.6,yy=y-i*h;poly(c,[[x-s,yy],[x,yy+s*.42],[x,yy+s*.42-h],[x-s,yy-h]],"#c9bb98",INK);poly(c,[[x,yy+s*.42],[x+s,yy],[x+s,yy-h],[x,yy+s*.42-h]],"#a2957a",INK);poly(c,[[x-s,yy-h],[x,yy-h-s*.42],[x+s,yy-h],[x,yy+s*.42-h]],"#ddd2b2",INK)}
   const top=y-n*4.6,st=w*.16;poly(c,[[x-st*.5,y+w*.42*0+2],[x+st*.5,y+2],[x+st*.25,top+w*.1],[x-st*.25,top+w*.1]],"#b9ab88",INK);c.strokeStyle="rgba(60,50,35,.6)";c.lineWidth=.5;c.beginPath();for(let k=0;k<n*2;k++){const yy=y+2-k*(y+2-top-w*.1)/(n*2),ww=lerp(st*.5,st*.25,k/(n*2));c.moveTo(x-ww,yy);c.lineTo(x+ww,yy)}c.stroke();
   drawFlat(c,x,top+w*.08,{L:w*.34,D:w*.34,H:5,ang:.7854,wall:"lime"});c.fillStyle="#a8352a";c.fillRect(x-1.2,top+w*.08-8.6,2.4,1.4)}
@@ -487,7 +497,7 @@ const SPEC={hut:{L:[7,9],D:[5,6],H:[3.2,4],R:[3.4,4.4],roof:["thatch","old"],wal
 // casa pronta para drawBuilding, na cultura e no tipo pedidos (usada nos objetos manuais e no mapa de cidade)
 function mkHouse(race,type,rng,ang,dim){const sp=SPEC[type]||SPEC.town,C=CUL[race]||CUL.humano,R2=a=>a[0]+rng()*(a[1]-a[0]),pick=a=>a[(rng()*a.length)|0];let L=R2(sp.L),D=R2(sp.D),H=R2(sp.H)*.72,R=R2(sp.R)*.8,form=C.form;
   if(dim){H*=clamp(Math.sqrt(dim.L*dim.D/(L*D)),.8,1.25);L=dim.L;D=dim.D}
-  if(form==="round"||form==="mound"||form==="yurt"){const m=(L+D)/2;L=m*.95;D=m*.95;if(form!=="mound")H*=.8}if(form==="asian"){H*=.85;R*=1.15}if(C.low&&!dim){L*=1.12}if(C.low)H*=.8;if(C.steep)R*=1.5;if(form==="flat")R=0;if(form==="long"&&type!=="shed"&&!dim)L*=1.3;
+  if(form==="round"||form==="mound"||form==="yurt"){const m=(L+D)/2;L=m*.95;D=m*.95;if(form!=="mound")H*=.8}if(form==="asian"){H*=.85;R*=1.15}if(C.low&&!dim){L*=1.12}if(C.low)H*=.8;if(C.steep)R*=1.5;if(C.lowR)R*=.55;if(form==="flat")R=0;if(form==="long"&&type!=="shed"&&!dim)L*=1.3;
   const rural=type==="hut"||type==="shed"||type==="barn"||type==="farm",roof=rural&&form==="gable"&&race==="humano"&&rng()<.6?pick(sp.roof):dim&&dim.roof||pick(C.roof),wall=rural&&race==="humano"&&rng()<.5?pick(sp.wall):dim&&dim.wall||pick(C.wall);
   const big=type==="rich"||type==="manor"||type==="tavern",urb=type==="town"||type==="row"||big;H*=form==="gable"&&urb?.82+rng()*.45:.9+rng()*.2;
   let wing=null,tower=null,dorm=null;const ca=Math.cos(ang),sa=Math.sin(ang);
@@ -513,6 +523,16 @@ function drawBig(c,q){if(q.k===3&&window.AtlasAssets&&AtlasAssets.fortress){Atla
       else if(rc==="chines"){drawAsian(c,q.x-3*m,q.y-2,{L:18*m,D:10*m,H:5.5*m,R:6*m,ang:0,roof:"cny",wall:"red",base:2});drawPagoda(c,q.x+13*m,q.y-6*m,q.big?7:5,8*m,"cn","red")}
       else if(rc==="indiano")drawShikhara(c,q.x+4*m,q.y-2,8*m);
       else if(rc==="meso")drawPyramid(c,q.x,q.y+2,15*m,q.big?6:4);
+      else if(rc==="eslavo"){drawHouse(c,q.x,q.y,{L:15*m,D:9*m,H:7*m,R:5*m,roof:sw||"leaf",wall:"white",win:1,door:2});const tw=[[q.x-9*m,q.y-6*m,2.4*m,10*m,["#6f9ec8","#3d6890"]],[q.x+9*m,q.y-6*m,2.4*m,10*m,["#6f9ec8","#3d6890"]],[q.x+1*m,q.y-8*m,3.2*m,15*m,["#e0b84e","#a8842c"]]].sort((a,b)=>a[1]-b[1]);
+        for(const [x,y,w,h,col] of tw){drawTower(c,x,y,w,h,0,ROOF.slate,WALL.white,false);onion(c,x,y-.43*w-h,w*.95,col)}}
+      else if(rc==="bizantino"){drawFlat(c,q.x,q.y,{L:19*m,D:14*m,H:7*m,ang:0,wall:"brick",dome:1,domeCol:["#5f9a86","#3d6b5b"],win:1});for(const dx of[-12,12])drawTower(c,q.x+dx*m,q.y-3*m,2.2*m,13*m,0,ROOF.terra,WALL.ochre,true)}
+      else if(rc==="egipcio"){drawFlat(c,q.x+3*m,q.y-6*m,{L:16*m,D:12*m,H:5*m,ang:0,wall:"sand",win:0});for(const dx of[-7,7])drawFlat(c,q.x+dx*m,q.y+2*m,{L:7*m,D:4.5*m,H:11*m,ang:0,wall:"sand2",win:0});c.fillStyle="#3a2c1b";c.fillRect(q.x-1.4*m,q.y-2*m,2.8*m,4.4*m);
+        for(const dx of[-12,12]){const x=q.x+dx*m,y=q.y+6*m;poly(c,[[x-1.1*m,y],[x+1.1*m,y],[x+.6*m,y-13*m],[x,y-14.6*m],[x-.6*m,y-13*m]],"#e6c892",INK);c.fillStyle="#b8955c";c.beginPath();c.moveTo(x+.1*m,y);c.lineTo(x+1.1*m,y);c.lineTo(x+.6*m,y-13*m);c.lineTo(x,y-14.6*m);c.closePath();c.fill()}}
+      else if(rc==="celta"){const st_=[];for(let k=0;k<12;k++){const a=k/12*6.2832;st_.push([q.x+Math.cos(a)*15*m,q.y+Math.sin(a)*15*m*TILT])}st_.sort((a,b)=>a[1]-b[1]);
+        c.fillStyle="#a7b36a";c.beginPath();c.ellipse(q.x,q.y,18*m,18*m*TILT,0,0,7);c.fill();const back=st_.filter(p=>p[1]<q.y),front=st_.filter(p=>p[1]>=q.y),stone=(x,y)=>{poly(c,[[x-1.4*m,y],[x+1.4*m,y],[x+1.2*m,y-6.5*m],[x-1.2*m,y-6.5*m]],"#b4ada0",INK);c.fillStyle="#8a847a";c.fillRect(x+.2*m,y-6.5*m,1*m,6.5*m)};
+        for(const p of back)stone(p[0],p[1]);drawRound(c,q.x,q.y-1,6*m,4*m,6*m,{wall:"daub",roof:"thatch"});for(const p of front)stone(p[0],p[1])}
+      else if(rc==="andino"){drawPyramid(c,q.x,q.y+2,14*m,3);drawHouse(c,q.x,q.y-12*m,{L:8*m,D:6*m,H:4*m,R:3*m,roof:"thatch",wall:"darkstone",win:0,door:2})}
+      else if(rc==="gnomo"){drawHouse(c,q.x-3*m,q.y,{L:14*m,D:9*m,H:6*m,R:7*m,roof:"blue",wall:"pink",win:1,door:2});drawTower(c,q.x+10*m,q.y-5*m,3*m,24*m,11*m,ROOF.gold,WALL.white);c.fillStyle="#f6e7b0";c.strokeStyle=INK;c.lineWidth=.6;c.beginPath();c.arc(q.x+8.6*m,q.y-23*m,1.5*m,0,7);c.fill();c.stroke()}
       else if(rc==="mongol"){drawRound(c,q.x,q.y-2,9*m,4.2*m,4*m,{wall:"felt",roof:"felt",yurt:1});drawTotem(c,q.x+11*m,q.y+1)}
       else if(window.AtlasAssets&&AtlasAssets.church){const vv=((q.v||0)*2)%1,rf=sw||(vv<.4?"tile":vv<.7?"slate":"dark");c.restore();c.save();AtlasAssets.church(c,q.x,q.y,(q.ang||0)+.34+((q.v||0)<.5?0:Math.PI),m*.85,{race:rc,roof:rf,wall:vv>.55?"stone":"daub"},vv,sw)}
       else{const vv=((q.v||0)*2)%1,rf=sw||(vv<.4?"tile":vv<.7?"slate":"dark"),wl=vv>.55?"stone":"daub";
@@ -553,7 +573,7 @@ function drawTent(c,x,y,race,s,big,flag){const T=TENT[race]||TENT.humano,[c0,c1]
     if(race==="japones"||race==="chines"){poly(c,[[px,py-ph],[px+2.6,py-ph],[px+2.6,py-ph+8],[px,py-ph+8]],race==="chines"?"#b8352a":"#f3eee2",INK);c.fillStyle=T.tr;c.beginPath();c.arc(px+1.3,py-ph+3,.8,0,7);c.fill()}
     else poly(c,[[px,py-ph],[px+6,py-ph+1.6],[px,py-ph+3.6]],T.tr==="#e8e0c8"||T.tr==="#f0e2b4"||T.tr==="#f6ead0"?"#a8352a":T.tr,INK)}}
 function drawFire(c,x,y){c.fillStyle="#3a2c1b";c.beginPath();c.ellipse(x,y,2,.9,0,0,7);c.fill();c.fillStyle="#e07a2a";c.beginPath();c.moveTo(x-1.4,y-.2);c.quadraticCurveTo(x-.6,y-2,x,y-3.8);c.quadraticCurveTo(x+.8,y-2,x+1.4,y-.2);c.fill();c.fillStyle="#f6c04a";c.beginPath();c.moveTo(x-.6,y-.2);c.lineTo(x,y-2.2);c.lineTo(x+.6,y-.2);c.fill()}
-function generate(P){if(!["europa","leste","sul","meso","estepe","misto"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
+function generate(P){if(!["europa","leste","sul","meso","estepe","misto","eslava","mediter","antigo","celta","andes","fantasia"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
   setScale(P.size||1);
   const seed=hashStr(P.seed),rng=mulberry(seed),fbm=makeNoise(seed^0x9e37),fbm2=makeNoise(seed^0x51f1);
   const pick=a=>a[(rng()*a.length)|0];
@@ -660,6 +680,12 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto"].includ
     else if(reg==="meso")opts=b===2||b===3?["norte","meso"]:b===4?["meso","deserto"]:["meso","meso","meso","tribal"];
     else if(reg==="estepe")opts=b===6||b===7?["chines","tribal"]:b===4?["mongol","deserto"]:["mongol","mongol","mongol","norte"];
     else if(reg==="misto")opts=b===4?["deserto","mongol","indiano"]:b===5?["tribal","mongol","indiano"]:b===6?["tribal","meso","chines","elfo"]:b===7?["pantano","chines","orc"]:b===8?["orc","orc"]:b===2||b===3?["norte","anao","japones","mongol"]:b===1?["norte","japones","elfo","anao"]:["humano","japones","chines","indiano","meso","elfo","anao","halfling"];
+    else if(reg==="eslava")opts=b===2||b===3?["eslavo","norte"]:b===4?["mongol","eslavo"]:["eslavo","eslavo","eslavo","humano"];
+    else if(reg==="mediter")opts=b===4?["egipcio","mediterraneo"]:b===2||b===3?["mediterraneo","bizantino"]:["mediterraneo","mediterraneo","bizantino","pirata"];
+    else if(reg==="antigo")opts=b===4?["egipcio","egipcio","deserto"]:["bizantino","egipcio","mediterraneo"];
+    else if(reg==="celta")opts=b===2||b===3?["celta","norte"]:["celta","celta","celta","humano"];
+    else if(reg==="andes")opts=b===6||b===7?["meso","andino"]:["andino","andino","andino","meso"];
+    else if(reg==="fantasia")opts=b===2||b===3?["anao","gnomo"]:b===1?["elfo","gnomo"]:["gnomo","elfo","halfling","pirata","humano"];
     if(reg!=="europa"){let race=opts[0];if(reg==="misto"&&e>.3&&rng()<.4)race="anao";else if(rng()<.35+div*.65)race=pick(opts);t.race=race;if(t.wall==null&&(race==="mongol"||race==="halfling"))t.wall=false;continue}
     if(b===4)opts=["deserto","deserto","tribal"];else if(b===5)opts=["tribal","deserto","humano"];else if(b===6)opts=["tribal","elfo","elfo"];else if(b===7)opts=["pantano","pantano","orc"];else if(b===8)opts=["orc","orc","humano"];
     else if(b===2||b===3)opts=["norte","norte","anao"];else if(b===1)opts=["norte","humano","elfo","anao"];else opts=["humano","humano","humano","halfling","elfo","anao"];
@@ -757,7 +783,7 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto"].includ
     if(top){const H=top[0],R=top[1],hd=D/2,ca=Math.cos(a),sa=Math.sin(a);for(const u of[-L*.42,0,L*.42])for(const v of[-hd,-hd/2,0,hd/2,hd]){const hh=(H+R*(1-Math.abs(v)/hd))*.9/TILT,x=cx+ca*u-sa*v,y=cy+sa*u+ca*v;for(const f of[.5,1]){if(occAt(x,y-hh*f)===1)return false}}}return true};
   const takeRect=(cx,cy,a,L,D,v)=>{for(const q of rectPts(cx,cy,a,L,D,2.6))disc(q[0],q[1],1.9,v||2,false)};
   const house=(t,cx,cy,a,type)=>{const sp=SPEC[type],race=(t&&t.race)||"humano",C=CUL[race],cold=snowAt(cx,cy)>.5;let L=R2(sp.L),D=R2(sp.D),H=R2(sp.H)*.72,R=R2(sp.R)*.8,form=C.form;
-    if(form==="round"||form==="mound"||form==="yurt"){const m=(L+D)/2;L=m*.95;D=m*.95;if(form!=="mound")H*=.8}if(form==="asian"){H*=.85;R*=1.15}if(C.low){L*=1.12;H*=.8}if(C.steep)R*=1.5;if(form==="flat")R=0;if(form==="long"&&type!=="shed"){L*=1.3}
+    if(form==="round"||form==="mound"||form==="yurt"){const m=(L+D)/2;L=m*.95;D=m*.95;if(form!=="mound")H*=.8}if(form==="asian"){H*=.85;R*=1.15}if(C.low){L*=1.12;H*=.8}if(C.steep)R*=1.5;if(C.lowR)R*=.55;if(form==="flat")R=0;if(form==="long"&&type!=="shed"){L*=1.3}
     if(form==="stilt"&&wet(cx,cy))return false;
     if(!freeRect(cx,cy,a,L,D,[H,R]))return false;takeRect(cx,cy,a,L,D);
     const rural=type==="hut"||type==="shed"||type==="barn"||type==="farm";const pl=t&&t.pal,pk2=(a,all)=>{const r=rng();return r<.72?a[0]:r<.94?a[1]:pick(all)};let roof=rural&&form==="gable"&&race==="humano"&&rng()<.6?pick(sp.roof):pl?pk2(pl.r,C.roof):pick(C.roof),wall=rural&&race==="humano"&&rng()<.5?pick(sp.wall):pl?pk2(pl.w,C.wall):pick(C.wall);if(cold&&form!=="flat"&&form!=="mound")roof="snow";
@@ -1207,5 +1233,5 @@ function objThumb(v,stamps,S){S=S||72;const cv=document.createElement("canvas");
   return cv}
 
 const DEFLY=[{id:"chao",name:"Chão"},{id:"base",name:"Principal"},{id:"frente",name:"Frente"}];
-window.AtlasGen={DEFLY,sampleGrid,objThumb,mkHouse,kit:{drawFlat,mixc,drawBuilding0,drawMound,drawBuilding,drawHouseA,drawHouse,drawBig,drawTent,drawFire,drawTower,drawWall,drawWaterWall,drawPalisade,drawHedge,drawAsian,drawRound,drawShip,drawMill,drawSmoke,drawWatch,drawTorii,drawPagoda,poly,banner,puff,CUL,ROOF,WALL,INK,SPEC,TENT},CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["misto","Mundo misto"]],BIOMES,RACES,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
+window.AtlasGen={DEFLY,sampleGrid,objThumb,mkHouse,kit:{drawFlat,mixc,drawBuilding0,drawMound,drawBuilding,drawHouseA,drawHouse,drawBig,drawTent,drawFire,drawTower,drawWall,drawWaterWall,drawPalisade,drawHedge,drawAsian,drawRound,drawShip,drawMill,drawSmoke,drawWatch,drawTorii,drawPagoda,poly,banner,puff,CUL,ROOF,WALL,INK,SPEC,TENT},CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["eslava","Leste europeu (eslavos)"],["mediter","Mediterrâneo"],["antigo","Mundo antigo (Egito, Bizâncio)"],["celta","Terras celtas"],["andes","Andes"],["fantasia","Fantasia (gnomos, elfos, anões, piratas)"],["misto","Mundo misto"]],BIOMES,RACES,RACES0,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
 })();

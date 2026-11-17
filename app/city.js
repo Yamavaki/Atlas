@@ -197,7 +197,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
      if((P.faith==null?.5:P.faith)<.15){for(const p of inner)if(p.type==="templo"&&p!==plaza){p.type="moradia";break}}}
     if(nP>=20){const m=rest.filter(p=>p.type==="moradia"||p.type==="mercadores");if(m.length)m[(m.length/2)|0].type="universidade"}
     if(nP>=14&&P.green>.15){const m=rest.filter(p=>p.type==="moradia"&&p.dn>.3&&p.dn<.75);if(m.length)pick(m).type="parque"}
-    const fr=P.foreign==="nao"?null:P.foreign==="auto"?(nP>=14&&rng()<.75?pick(A.RACES.filter(r=>r!==P.culture&&r!=="halfling"&&r!=="pantano")):null):P.foreign;
+    const fr=P.foreign==="nao"?null:P.foreign==="auto"?(nP>=14&&rng()<.75?pick(A.RACES0.filter(r=>r!==P.culture&&r!=="halfling"&&r!=="pantano")):null):P.foreign;
     if(fr&&fr!==P.culture){const m=rest.filter(p=>(p.type==="moradia"||p.type==="artesaos"||p.type==="mercadores")&&p.dn>.35);if(m.length){const p=pick(m);p.race=fr;p.foreign=true}}
     if(P.site!=="interior")for(const p of patches){if(!p.sea||p.inner||!nbs(p).some(z=>z.inner)||p.dn>1.4)continue;if(wetFrac(p)<.86&&p.poly.filter(v=>land(v[0],v[1])>.04).length>=2){p.sea=false;p.shore=true;p.type="mato"}}
     for(const p of patches){if(p.inner||p.sea)continue;const nearCity=nbs(p).some(z=>z.inner),onRoad=roads.some(r=>r.some((v,i)=>i>0&&i<22&&inPoly(p.poly,v[0],v[1])));
