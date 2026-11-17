@@ -681,7 +681,7 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto"].includ
   // floresta
   const thr=.76-P.forest*.4;
   for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const x=i*G,y=j*G,k=j*GW+i;const v=fbm2(x/250+11,y/250+5,4)*.8+elev[k]*.42+slope[k]*2;
-    let f=clamp((v-thr)*7,0,1)*bfor[k];f*=sstep(14,46,dist[k]+fbm(x/40,y/40,2)*30);
+    let f=clamp((v-thr)*7,0,1)*bfor[k]*Math.min(1,(P.forest==null?.5:P.forest)*2.2);f*=sstep(14,46,dist[k]+fbm(x/40,y/40,2)*30);
     for(const t of towns){if(Math.abs(t.x-x)>t.rmax*2.6+60||Math.abs(t.y-y)>t.rmax*2.6+90)continue;const rl=Math.min(t.rel(x,y),t.rel(x,y-34))+(fbm(x/60,y/60,2)-.5)*.45;f*=sstep(1.25,1.95+(t.kind==="village"?.4:0),rl)}
     forest[k]=land[k]<.02?0:clamp(f+fadd[k],0,1)}
   for(const t of towns)if(t.race&&CUL[t.race].trees)for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const k=j*GW+i,rl=t.rel(i*G,j*G);if(rl<.95)forest[k]=Math.max(forest[k],0)}
@@ -1084,7 +1084,7 @@ function render(W,canvas,stamps){
       else{const sc=.7+rng()*.45;if(!blocked(p[0]-9*sc,p[1]-13*sc,p[0]+9*sc,p[1],p[1]))obj.push({k:12,x:p[0],y:p[1],s:sc,st:stamps.bush[(rng()*stamps.bush.length)|0]})}}}
   const sx=8,syw=sx/TILT;
   for(let y=4;y<WY-2;y+=syw)for(let x=2;x<WX-2;x+=sx){const px=x+(rng()-.5)*sx*1.1,py=y+(rng()-.5)*syw*1.1;if(px<1||py<1||px>=WX-1||py>=WY-1)continue;
-    const i=(py|0)*WX+(px|0),fo=F[i];const lone=rng()<.009&&sampleGrid(W.dist,px,py)>20&&LF[i]>.05;
+    const i=(py|0)*WX+(px|0),fo=F[i];const lone=rng()<.009*Math.min(1,(W.P.forest==null?.5:W.P.forest)*2)&&sampleGrid(W.dist,px,py)>20&&LF[i]>.05;
     if(!(fo>.32&&rng()<fo*1.15)&&!lone)continue;if(occAt(px,py)||sampleGrid(W.vmask,px,py)>.2)continue;
     const p=pj(px,py);if(!vis(px,py,p))continue;const sc=(lone?.82:.64)+rng()*.36,w=34*sc,h=38*sc;if(blocked(p[0]-w*.32,p[1]-h*.85,p[0]+w*.32,p[1],p[1]))continue;
     const bb=W.bAt(px+(rng()-.5)*20,py+(rng()-.5)*20),sn=sampleGrid(W.snow,px,py),pk=a=>a[(rng()*a.length)|0];let st;

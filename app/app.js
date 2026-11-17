@@ -487,13 +487,14 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;o.params=Object.ass
   function fill(){par.replaceChildren(h("h2",{},"Parâmetros da cidade"));const FZ=!!o.params.frozen,nEd=Object.keys(o.params.ovr||{}).length+Object.keys(o.params.wards||{}).length+Object.keys(o.params.nodes||{}).length;
     par.append(h("div",{class:"frz"+(FZ?" on":"")},h("label",{class:"cf"},h("input",{type:"checkbox",checked:FZ,onchange:e=>{snap();o.params.frozen=e.target.checked;Store.save("maps",o);fill();toast(e.target.checked?"Mapa congelado: suas edições ficam protegidas.":"Mapa descongelado.")}})," Congelar mapa"),
       h("p",{class:"cf"},FZ?"A estrutura está travada: as edições não se perdem. Estação, nomes e legenda continuam livres.":nEd?"Mudar terreno, tamanho, semente e outros itens estruturais pode desfazer "+nEd+" edições. Congele para protegê-las.":"Congele depois de editar para não perder nada ao mexer nos parâmetros.")));
-    for(const [k,label,kind,a,b] of AC.PARAMS){const id="c_"+k;let inp,val=h("span",{});const LOCK=FZ&&!["season","labels","legend"].includes(k);const ch=v=>{snap();o.params[k]=v;if(k==="seed"||k==="site"||k==="size"){o.params.wards={};o.params.nodes={};o.params.gates={add:[],del:[]}}regen()};
+    for(const [k,label,kind,a,b] of AC.PARAMS){const id="c_"+k;let inp,val=h("span",{});const LOCK=FZ&&!["season","labels","legend"].includes(k);const ch=v=>{snap();o.params[k]=v;if(k==="seed"||k==="site"||k==="size"){o.params.wards={};o.params.nodes={};o.params.gates={add:[],del:[]}}if(k==="site")fill();regen()};
       if(kind==="select"){inp=h("select",{id,onchange:e=>ch(e.target.value)},a.map(([v,t])=>h("option",{value:v},t)));inp.value=String(o.params[k])}
       else if(kind==="text")inp=h("input",{id,type:"text",value:o.params[k],autocomplete:"off",onchange:e=>ch(e.target.value.trim()||"atlas")});
       else if(kind==="bool"){inp=h("select",{id,onchange:e=>ch(e.target.value==="1")},h("option",{value:"1"},"Sim"),h("option",{value:"0"},"Não"));inp.value=o.params[k]?"1":"0"}
       else if(kind==="pct"){inp=h("input",{id,type:"range",min:0,max:100,value:Math.round(o.params[k]*100),oninput:e=>val.textContent=e.target.value+"%",onchange:e=>ch(e.target.value/100)});val.textContent=Math.round(o.params[k]*100)+"%"}
       else{inp=h("input",{id,type:"range",min:a,max:b,value:o.params[k],oninput:e=>val.textContent=e.target.value,onchange:e=>ch(+e.target.value)});val.textContent=o.params[k]}
-      if(LOCK){inp.disabled=true;inp.title="Mapa congelado"}par.append(h("div",{class:"fld"+(LOCK?" lock":"")},h("label",{for:id},label,val),inp))}
+      const NA=k==="river"&&["rio","ilha","ilhas","arquipelago"].includes(o.params.site)?(o.params.site==="rio"?"O terreno Beira de rio já tem rio":"Ilhas não têm rio"):"";if(NA){inp.disabled=true;inp.title=NA}
+      if(LOCK){inp.disabled=true;inp.title="Mapa congelado"}par.append(h("div",{class:"fld"+(LOCK||NA?" lock":"")},h("label",{for:id,title:NA||""},NA?label+" (não se aplica)":label,val),inp))}
     decoPanel(par,()=>o.params.deco||(o.params.deco={}),()=>{Store.save("maps",o);full()},"Cidade de "+o.name.replace(/^Cidade de /i,""),true);par.append(cntBox);drawCounts()}
   const cntBox=h("div",{class:"cnts"});
   function drawCounts(){cntBox.replaceChildren();if(!C)return;const FZ=!!o.params.frozen,CN=o.params.counts||{},have={},SKIP=new Set(["stall","markettent","goods","bench","lamp","crates","woodpile","cart","wagon","haystack","flowerbed","ruinhouse","guardpost","beehives","well","statue","fountain","obelisk","trainingyard","barracks","gatehouse"]);
@@ -743,12 +744,13 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     par.append(h("div",{class:"frz"+(FZ?" on":"")},h("label",{class:"cf"},h("input",{type:"checkbox",checked:FZ,onchange:e=>{snap();o.params.frozen=e.target.checked;Store.save("maps",o);fill();toast(e.target.checked?"Mapa congelado: suas edições ficam protegidas.":"Mapa descongelado.")}})," Congelar mapa"),
       h("p",{class:"cf"},FZ?"Os parâmetros que geram o mapa estão travados: as edições não se perdem. Estação e nuvens continuam livres.":nEd?"Mudar os parâmetros pode desfazer "+nEd+" edições de objetos. Congele para protegê-las.":"Congele depois de editar para não perder nada ao mexer nos parâmetros.")));
     for(const [k,label,kind,a,b] of PARAMS){const id="p_"+k;let inp,val=h("span",{});const LOCK=FZ&&!["season","clouds"].includes(k);
-      const ch=v=>{snap();o.params[k]=v;if(STRUCT.has(k)){o.lock=null;o.vec=null}if(k==="form")o.edits=[];regen()};
+      const ch=v=>{snap();o.params[k]=v;if(STRUCT.has(k)){o.lock=null;o.vec=null}if(k==="form"){o.edits=[];fill()}regen()};
       if(kind==="select"){inp=h("select",{id,onchange:e=>ch(typeof a[0][0]==="number"?+e.target.value:e.target.value)},a.map(([v,t])=>h("option",{value:v},t)));inp.value=String(o.params[k])}
       else if(kind==="text")inp=h("input",{id,type:"text",value:o.params[k],autocomplete:"off",onchange:e=>ch(e.target.value.trim()||"atlas")});
       else if(kind==="pct"){inp=h("input",{id,type:"range",min:0,max:100,value:Math.round(o.params[k]*100),oninput:e=>val.textContent=e.target.value+"%",onchange:e=>ch(e.target.value/100)});val.textContent=Math.round(o.params[k]*100)+"%"}
       else{inp=h("input",{id,type:"range",min:a,max:b,value:o.params[k],oninput:e=>val.textContent=e.target.value,onchange:e=>ch(+e.target.value)});val.textContent=o.params[k]}
-      if(LOCK){inp.disabled=true;inp.title="Mapa congelado"}par.append(h("div",{class:"fld"+(LOCK?" lock":"")},h("label",{for:id},label,val),inp))}
+      const NA=k==="sea"&&o.params.form==="regiao"?"Região interior não tem mar: escolha Costa, Península, Ilha, Arquipélago ou Continente":"";if(NA){inp.disabled=true;inp.title=NA}
+      if(LOCK){inp.disabled=true;inp.title="Mapa congelado"}par.append(h("div",{class:"fld"+(LOCK||NA?" lock":"")},h("label",{for:id,title:NA||""},NA?label+" (não se aplica)":label,val),inp))}
     decoPanel(par,()=>o.params.deco||(o.params.deco={}),()=>{Store.save("maps",o);recompose()},o.name,false)}
   ov.st.onChange=drawCtx;ov.st.onSnap=snap;fill();body.append(h("div",{class:"mwrap"},view,busy,pal,ctx,zbox,lypR,lywR,hint),par);
   main.append(h("div",{class:"mapv"},head,body,status));setTool("move");fitWrap();onFit(view,()=>{const k0=view._bw;fitWrap();fitTall(view,stage,mc);if(Z.k===1&&view._bw!==k0)Z.x=(view.clientWidth-view._bw)/2;applyZ()});applyZ();
