@@ -24,6 +24,11 @@ const SPEC={mercado:[["markethall",.5,1],["statue",.4,1],["clocktower",.35,1],["
   producao:[["tannery",.8,1],["sawmill",.6,1],["granary",.6,1],["smithy",.8,1],["brewery",.5,1],["watermill",.7,1]],universidade:[["university",1,1],["library",1,1],["observatory",.6,1],["school",.6,1]],
   militar:[["barracks",1,2],["trainingyard",1,1],["stable",.8,1],["prison",.5,1],["guardpost",.8,2],["smithy",.6,1]],moradia:[["chapel",.4,1],["school",.3,1],["well",.8,1],["bakery",.4,1],["inn",.3,1],["wayshrine",.4,1],["woodpile",.5,2]],pobre:[["well",.8,1],["gallows",.25,1],["tannery",.3,1],["woodpile",.6,2],["wayshrine",.3,1]],
   porto:[["warehouse",1,2],["fishery",.9,1],["shipwright",.7,1],["inn",.7,1],["crane",.8,2],["lighthouse",.6,1]],parque:[["garden",1,1],["statue",.6,1],["fountain",.5,1],["gazebo",.6,1],["obelisk",.3,1]],arrabalde:[["inn",.35,1],["stable",.3,1],["smithy",.3,1],["well",.5,1],["dovecote",.35,1],["beehives",.35,1],["wayshrine",.35,1],["woodpile",.4,1]]};
+// identidade da cidade: paletas, telhados, altura, detalhes e marco
+const PALS={vermelho:{n:"Telha vermelha e reboco",r:["tile","dark","tileb"],w:["daub","daub2","lime"]},ardosia:{n:"Ardósia e pedra cinza",r:["slate","slate","dark"],w:["stone","darkstone","lime"]},verde:{n:"Telha verde e madeira escura",r:["teal","moss","teal"],w:["wood","wooddark","daub"]},
+  terracota:{n:"Terracota e ocre",r:["terra","tile2","terra"],w:["ochre","sand","daub2"]},azul:{n:"Azul e cal",r:["blue","slate","blue"],w:["white","lime","white"]},palha:{n:"Palha e barro",r:["thatch","old","thatch"],w:["daub","mud","wood"]},tijolo:{n:"Tijolo e telha escura",r:["tileb","dark","slate"],w:["brick","brick","red"]},colorida:{n:"Fachadas coloridas",r:["terra","tile2","tile"],w:["pink","ochre","daub3","white"]}};
+const MARKS={nenhum:null,estatua:["statue",2.4],arvore:["eldertree",1.5],torre:["clocktower",1.6],obelisco:["obelisk",2.1],fonte:["fountain",1.8],cristal:["crystal",2.1],dragao:["dragonstatue",1.7]};
+const IDOPT={pal:[["auto","Sorteada"],["cultura","Da cultura"]].concat(Object.entries(PALS).map(([k,v])=>[k,v.n])),roofH:[["auto","Sorteado"],["0.8","Baixos"],["1","Normais"],["1.3","Íngremes"]],houseH:[["auto","Sorteada"],["0.82","Baixas"],["1","Normais"],["1.22","Altas"]],detail:[["auto","Sorteados"],["0.15","Poucos"],["0.5","Normal"],["0.9","Muitos"]],mark:[["auto","Sorteado"],["nenhum","Nenhum"],["estatua","Estátua colossal"],["arvore","Árvore anciã"],["torre","Torre do relógio alta"],["obelisco","Obelisco"],["fonte","Grande fonte"],["cristal","Cristal gigante"],["dragao","Estátua de dragão"]]};
 const MAGIC=[["wizard","nobre"],["wizard","universidade"],["arcane","universidade"],["alchemist","artesaos"],["alchemist","mercadores"],["arcane","parque"],["crystal","mercado"],["crystal","moradia"],["dragonstatue","nobre"],["golem","militar"],["golem","castelo"],["eldertree","parque"],["eldertree","arrabalde"],["portal","castelo"],["arcane","templo"]];
 const TCACHE=new Map();
 // ---------- geometria ----------
@@ -45,7 +50,8 @@ const sat=(A,B)=>{for(const P of[A,B])for(let i=0;i<4;i++){const a=P[i],b=P[(i+1
 function fitRect(lot,c,ang,L,D){const ca=Math.cos(ang),sa=Math.sin(ang);for(let k=0;k<10;k++){const pts=[[-L/2,-D/2],[L/2,-D/2],[L/2,D/2],[-L/2,D/2]].map(([u,v])=>[c[0]+ca*u-sa*v,c[1]+sa*u+ca*v]);if(pts.every(q=>inPoly(lot,q[0],q[1])))return [L,D];L*=.92;D*=.93;if(L<6||D<5)return null}return null}
 
 function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="reta";if(P.wall===false)P.wall="nenhuma";const WALLON=P.wall!=="nenhuma";
-  const seed=A.hashStr(String(P.seed)+"|"+P.site),RS0=A.mulberry(seed);let RS=RS0;const rng=()=>RS(),reseed=k=>{RS=A.mulberry((seed^Math.imul(k+1,2654435761))>>>0)},WPO=p=>(P.wards&&P.wards[p.i])||{},WRS=p=>(WPO(p).rs||0)*1000003,pick=a=>a[(rng()*a.length)|0];
+  const seed=A.hashStr(String(P.seed)+"|"+P.site),RS0=A.mulberry(seed);const ridn=A.mulberry((seed^0x1d7e5^Math.imul(P.idSeed||0,40503))>>>0),PKI=a=>a[(ridn()*a.length)|0],ID={pal:P.pal&&P.pal!=="auto"?P.pal:PKI(Object.keys(PALS)),rf:P.roofH&&P.roofH!=="auto"?+P.roofH:PKI([.82,1,1,1.25]),hf:P.houseH&&P.houseH!=="auto"?+P.houseH:PKI([.85,1,1,1.18]),det:P.detail&&P.detail!=="auto"?+P.detail:PKI([.25,.5,.75]),mark:P.mark&&P.mark!=="auto"?P.mark:PKI(["nenhum","nenhum","estatua","arvore","torre","obelisco","fonte"].concat(P.magic>.45?["cristal","dragao"]:[]))};
+  let RS=RS0;const rng=()=>RS(),reseed=k=>{RS=A.mulberry((seed^Math.imul(k+1,2654435761))>>>0)},WPO=p=>(P.wards&&P.wards[p.i])||{},WRS=p=>(WPO(p).rs||0)*1000003,pick=a=>a[(rng()*a.length)|0];
   const NT=new Float32Array(65536);for(let i=0;i<65536;i++)NT[i]=rng();
   const vn=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),h=(a,b)=>NT[((a&255)+((b&255)<<8))&65535];return lerp(lerp(h(xi,yi),h(xi+1,yi),u),lerp(h(xi,yi+1),h(xi+1,yi+1),u),v)};
   const fbm=(x,y,o)=>{let s=0,a=.5,n=0;for(let i=0;i<o;i++){s+=vn(x,y)*a;n+=a;x=x*2.03+17.1;y=y*2.03+9.7;a*=.5}return s/n};
@@ -297,7 +303,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
     const style=P.plazaStyle&&P.plazaStyle!=="auto"?P.plazaStyle:pick(["feira","fonte","monumento","relogio","festa"]),sqo=squares.find(z=>z.poly===sq);plaza.style=style;if(sqo){sqo.c=c;sqo.style=style}
     const put=(id,x,y,ang,r,extra)=>{if(!inPoly(sqi,x,y)||hit(x,y,r*.8)||wet(x,y,3))return false;props.push(Object.assign({id,x,y,race:P.culture,v:rng(),ang},extra||{}));addOcc(x,y,r);return true};
     const center=style==="festa"?"maypole":style==="fonte"?(rng()<P.magic*.6?"crystal":"fountain"):style==="monumento"?(rng()<P.magic*.5?"dragonstatue":pick(["statue","obelisk","statue"])):style==="relogio"?"marketcross":"fountain";
-    SPB.push({id:center,x:c[0],y:c[1],race:P.culture,v:.5,r:14});addOcc(c[0],c[1],style==="fonte"?20:16);
+    {const mk=MARKS[ID.mark];if(mk){SPB.push({id:mk[0],x:c[0],y:c[1],race:P.culture,v:.5,r:14*mk[1],s:mk[1],mark:1});addOcc(c[0],c[1],16*mk[1])}else{SPB.push({id:center,x:c[0],y:c[1],race:P.culture,v:.5,r:14});addOcc(c[0],c[1],style==="fonte"?20:16)}}
     const R=Math.sqrt(area(sq)/Math.PI);
     if(style==="feira"){for(let v=-R;v<=R;v+=34)for(const dv of[-6,6]){for(let u=-R;u<=R;u+=14){if(Math.abs(u)<26&&Math.abs(v+dv)<24)continue;const x=c[0]+ca*u-sn*(v+dv),y=c[1]+sn*u+ca*(v+dv);if(rng()<.88)put(rng()<.12?"markettent":"stall",x,y,a0+(dv>0?0:3.1416)+(rng()-.5)*.25,7)}
         const e=c[0]+ca*(R*.9)-sn*v,f=c[1]+sn*(R*.9)+ca*v;put(rng()<.5?"cart":"wagon",e,f,a0,8)}}
@@ -378,7 +384,7 @@ function generate(P0){const P=Object.assign({},DEF,P0);if(P.wall===true)P.wall="
   for(let i=bunting.length-1;i>=0;i--){const z=bunting[i];let w=false;for(let t=0;t<=1.0001&&!w;t+=.1)if(wet(lerp(z.a[0],z.b[0],t),lerp(z.a[1],z.b[1],t),2))w=true;if(w)bunting.splice(i,1)}
   {const K=(t,o,id)=>t+":"+id+":"+Math.round(o.x)+":"+Math.round(o.y);for(const b of B){b.key=K("h",b,b.type);b.kx=b.x;b.ky=b.y}for(const q of SPB)q.key=K("s",q,q.id||("k"+q.k));for(const q of props)q.key=K("p",q,q.id);const KA=(t,a)=>t+":"+Math.round(a[0])+":"+Math.round(a[1]);for(const t of trees)t.key=KA("t",t);for(const t of NAT)t.key=KA("n",t);for(const q of ships)q.key=K("sh",q,"ship");for(const q of boats)q.key=K("bt",q,"boat");for(const z of bunting)z.key="bu:"+Math.round(z.a[0])+":"+Math.round(z.a[1])+":"+Math.round(z.b[0])+":"+Math.round(z.b[1]);for(const f of fields)f.key=KA("f",f.c);const PC=pl=>{let x=0,y=0;for(const v of pl){x+=v[0];y+=v[1]}return [x/pl.length,y/pl.length]};for(const z of squares){z.key=KA("sq",PC(z.poly));if(plaza&&z.poly===plaza.square)z.main=1}for(const z of yards)z.key=KA("y",PC(z.poly));
     const OV=P.ovr||{};if(Object.keys(OV).length){const CC={B,SPB,props,trees,NAT,ships,boats,bunting,fields,squares,yards},all=[];for(const n of ARR)for(const q of CC[n])if(OV[q.key])all.push(q);for(const q of all)applyOv(CC,q,OV[q.key]);const hit_=new Set(all.map(q=>q.key));ORPH=Object.keys(OV).filter(k=>!hit_.has(k))}}
-  return {ORPH,GANG,NAT,bunting,farmPaths,LEG,AVE,LINES,RK,P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON,bridgesR}}
+  return {ID,ORPH,GANG,NAT,bunting,farmPaths,LEG,AVE,LINES,RK,P,seed,rng,fbm,land,elev,rd,rw,river,EG,LG,RG,sg,patches,inner,nodes,edges:[...edges.values()],mainE,gates:gatesN,roads,B,SPB,yards,fields,trees,squares,piers,ships,boats,props,districts,plaza,castle,cx,cy,Rc,title,walls,quays,bridgesW,WALLON,bridgesR}}
 
 // ---------- texturas de chao (padroes ja achatados pela inclinacao) ----------
 function mkPat(c,kind){const w=48,h=Math.round(48*TILT),cv=document.createElement("canvas");cv.width=w;cv.height=h;const x=cv.getContext("2d"),r=A.mulberry(A.hashStr(kind));
@@ -504,6 +510,10 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
         if(hum&&!b.prf&&SEAS!=="inverno"){if(AR==="pedra"){if(r2()<.92)o.wall=VK(WALL,r2()<.5?"stone":"darkstone",r2,.05);if(r2()<.85)o.roof=VK(ROOF,r2()<.6?"slate":"dark",r2,.06)}
           else if(AR==="enxaimel"){if(r2()<.8)o.roof=VK(ROOF,r2()<.6?"tile":"terra",r2,.06)}
           else if(AR==="colonial"){o.wall=VK(WALL,["white","ochre","pink","white","ochre"][(r2()*5)|0],r2,.06);o.roof=VK(ROOF,r2()<.7?"terra":"tile2",r2,.06)}}}
+      {const ID=C.ID;if(ID){const pl=PALS[ID.pal],gab=o.form==="gable"||o.form==="long";if(pl&&gab&&!b.arch&&(!P.arch||P.arch==="misto")&&!b.prf){if(SEAS!=="inverno"&&r2()<.74)o.roof=VK(ROOF,pl.r[(r2()*pl.r.length)|0],r2,.06);if(!o.timber&&r2()<.66)o.wall=VK(WALL,pl.w[(r2()*pl.w.length)|0],r2,.06)}
+        if(gab||o.form==="asian")o.R*=ID.rf;o.H*=ID.hf;const urbH=b.type==="town"||b.type==="row"||b.type==="rich"||b.type==="tavern"||b.type==="manor";
+        if(gab&&urbH){if(!o.chim&&r2()<ID.det*.55)o.chim=true;if(r2()<ID.det*.5)o.flowers=["#c4473a","#d8b14a","#e8e0f0","#b06ab0"][(r2()*4)|0];if(r2()<ID.det*.22)o.ivy=r2()<.5?-1:1}
+        if(gab&&!urbH&&r2()<ID.det*.18)o.ivy=r2()<.5?-1:1}}
       if(b.roofK&&ROOF[b.roofK]&&SEAS!=="inverno")o.roof=VK(ROOF,b.roofK,r2,.05);if(b.wallK&&WALL[b.wallK])o.wall=VK(WALL,b.wallK,r2,.05);
       {const cA=Math.cos(b.ang),sA=Math.sin(b.ang),cor=[[1,1],[1,-1],[-1,1],[-1,-1]].map(([su,sv])=>{const u=su*b.L/2,v=sv*b.D/2;return {dx:(u*cA-v*sA)/Z,dy:(u*sA+v*cA)*TILT/Z,wy:u*sA+v*cA}}).sort((p_,q_)=>q_.wy-p_.wy),R0=ROOF[o.roof]?o.roof:"dark";
         const tw=(k,hk)=>({dx:cor[k].dx,dy:cor[k].dy,w:Math.max(3,Math.min(o.L,o.D)*.3),h:o.H*hk+1,r:Math.max(3.6,o.R*.95),back:cor[k].wy<0});
@@ -662,5 +672,5 @@ function applyOv(C,q,o){const isA=Array.isArray(q),own=ARR.find(n=>C[n]&&C[n].in
   if(o.a!=null){q.ang=o.a;q.wing=null}if(o.v!=null)q.v=o.v;if(o.vs!=null)q.vs=o.vs;if(o.id)q.id=o.id;if(o.type)q.type=o.type;if(o.ms!=null)q.ms=o.ms;if(o.big!=null)q.big=o.big;if(o.ly!=null)q.ly=o.ly;
   if(isA){if(o.s!=null)q[2]=o.s;if(o.kind){const tree=o.kind==="tree"||o.kind==="wild",dst=tree?"trees":"NAT";q[3]=o.kind==="wild"?1:tree?0:o.kind;if(dst!==own){C[own].splice(C[own].indexOf(q),1);C[dst].push(q)}}}}
 const DEFLY=[{id:"chao",name:"Chão"},{id:"base",name:"Principal"},{id:"frente",name:"Frente"}],FLATLY=new Set(["flowerbed","garden"]);
-window.AtlasCity={Z,TILT,DEFLY,FLATLY,applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
+window.AtlasCity={PALS,MARKS,IDOPT,Z,TILT,DEFLY,FLATLY,applyOv,renderTop,gridOver,generate,render,patchAt,DEF,PARAMS,SITES,WTYPES,CW,CH};
 })();

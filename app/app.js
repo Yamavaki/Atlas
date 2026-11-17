@@ -232,7 +232,7 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;o.params=Object.ass
   const snap=()=>{undo.push(JSON.stringify({params:o.params,objs:o.objs,erase:o.erase,realms:o.realms}));if(undo.length>30)undo.shift()};
   const toWorld=ev=>{const r=mc.getBoundingClientRect(),cx=(ev.clientX-r.left)*AC.CW/r.width,cy=(ev.clientY-r.top)*AC.CH/r.height;if(!info)return null;const w=info.unproject(cx,cy);return {x:w[0],y:w[1],cx,cy}};
   function draw(){if(!C)return;const t0=performance.now();info=AC.render(C,mc,{objs:o.objs,erase:o.erase,uimg:uimgs(),layers:LYS(),deco:o.params.deco,eov:o.params.eov,wov:o.params.wov,gov:o.params.gov,dlab:o.params.dlab,alab:o.params.alab,texts:o.texts,scale:SC,fast:true,snap:true});updWarn();ov.draw();drawSel();return performance.now()-t0}
-  function regen(){busy.hidden=false;setTimeout(()=>{const t0=performance.now();try{C=AC.generate(Object.assign({},o.params,{title:o.name.replace(/^Cidade de /i,"")}));o.places=cityPlaces(o,C);draw();drawCounts();syncTown(o);Store.save("maps",o);
+  function regen(){busy.hidden=false;setTimeout(()=>{const t0=performance.now();try{C=AC.generate(Object.assign({},o.params,{title:o.name.replace(/^Cidade de /i,"")}));o.places=cityPlaces(o,C);draw();drawCounts();drawId();syncTown(o);Store.save("maps",o);
       status.textContent=C.inner.length+" bairros, "+C.districts.length+" distritos, "+info.houses+" construções, "+C.gates.length+" portões, "+Math.round(performance.now()-t0)+" ms"}
     catch(e){console.error(e);status.textContent="Não foi possível gerar esta cidade. Tente outra semente. ("+e.message+")"}busy.hidden=true;drawCtx();
     if(flash&&info){const f=flash;flash=null;let p=null;if(typeof f==="object"&&f.x!=null)p=[f.x,f.y];else{const nm=typeof f==="string"?f:f&&f.name,pl=(o.places||[]).find(q=>norm(q.name)===norm(nm));if(pl)p=[pl.x,pl.y]}
@@ -495,7 +495,14 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;o.params=Object.ass
       else{inp=h("input",{id,type:"range",min:a,max:b,value:o.params[k],oninput:e=>val.textContent=e.target.value,onchange:e=>ch(+e.target.value)});val.textContent=o.params[k]}
       const NA=k==="river"&&["rio","ilha","ilhas","arquipelago"].includes(o.params.site)?(o.params.site==="rio"?"O terreno Beira de rio já tem rio":"Ilhas não têm rio"):"";if(NA){inp.disabled=true;inp.title=NA}
       if(LOCK){inp.disabled=true;inp.title="Mapa congelado"}par.append(h("div",{class:"fld"+(LOCK||NA?" lock":"")},h("label",{for:id,title:NA||""},NA?label+" (não se aplica)":label,val),inp))}
+    par.append(idBox);drawId();
     decoPanel(par,()=>o.params.deco||(o.params.deco={}),()=>{Store.save("maps",o);full()},"Cidade de "+o.name.replace(/^Cidade de /i,""),true);par.append(cntBox);drawCounts()}
+  const idBox=h("div",{class:"cnts"});
+  function drawId(){idBox.replaceChildren();const ID=C&&C.ID,O=AC.IDOPT,nm=(k,v)=>{const it=O[k].find(z=>z[0]===String(v));return it?it[1]:""},near=(k,v)=>{let b=null,bd=1e9;for(const [z,n] of O[k]){if(isNaN(+z))continue;const d=Math.abs(+z-v);if(d<bd){bd=d;b=n}}return b||""};
+    const cur={pal:ID?(AC.PALS[ID.pal]||{}).n||"":"",roofH:ID?near("roofH",ID.rf):"",houseH:ID?near("houseH",ID.hf):"",detail:ID?near("detail",ID.det):"",mark:ID?nm("mark",ID.mark):""};
+    const set=(k,v)=>{snap();o.params[k]=v;Store.save("maps",o);regen()},row=(k,label)=>h("div",{class:"fld"},h("label",{},label),h("select",{onchange:e=>set(k,e.target.value)},O[k].map(([v,n])=>h("option",{value:v,selected:String(o.params[k]||"auto")===v},v==="auto"&&cur[k]?n+" ("+cur[k].toLowerCase()+")":n))));
+    idBox.append(h("h3",{class:"psub"},"Identidade da cidade"),h("p",{class:"cf"},"Cada semente sorteia um jeito próprio. Escolha para fixar."),row("pal","Cores de telhados e paredes"),row("roofH","Telhados"),row("houseH","Altura das casas"),row("detail","Detalhes nas casas"),row("mark","Marco da praça"),
+      h("button",{type:"button",class:"ghost",onclick:()=>{snap();for(const k of["pal","roofH","houseH","detail","mark"])delete o.params[k];o.params.idSeed=(o.params.idSeed||0)+1;Store.save("maps",o);regen()}},"Sortear outra identidade"))}
   const cntBox=h("div",{class:"cnts"});
   function drawCounts(){cntBox.replaceChildren();if(!C)return;const FZ=!!o.params.frozen,CN=o.params.counts||{},have={},SKIP=new Set(["stall","markettent","goods","bench","lamp","crates","woodpile","cart","wagon","haystack","flowerbed","ruinhouse","guardpost","beehives","well","statue","fountain","obelisk","trainingyard","barracks","gatehouse"]);
     for(const q of C.SPB.concat(C.props))if(q.id&&!SKIP.has(q.id))have[q.id]=(have[q.id]||0)+1;have.tavern=C.B.filter(b=>b.type==="tavern").length;
