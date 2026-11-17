@@ -55,3 +55,21 @@ window.QAS.overWater=function(C){const Z=1.55,AS=window.AtlasAssets,wet=(x,y)=>C
   for(const q of C.props){if(["boat","cargo","crane","crates","barrel"].includes(q.id))continue;const r=((AS.SIZE[q.id]||[4])[0])*Z*(q.s||1)*.4;const pts=[[q.x,q.y]];for(let k=0;k<6;k++)pts.push([q.x+Math.cos(k*1.05)*r,q.y+Math.sin(k*1.05)*r]);if(pts.some(z=>wet(z[0],z[1]))){o.p++;if(o.ex.length<8)o.ex.push([q.id,Math.round(q.x),Math.round(q.y)])}}
   return o};
 window.QAS.basinBr=function(C){const segD=(x,y,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1;let t=((x-a[0])*dx+(y-a[1])*dy)/l;t=t<0?0:t>1?1:t;return Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy)};let n=0;for(const b of (C.WLS||[]).filter(l=>l.basin).map(l=>l.basin))for(const z of C.bridgesR||[])if(segD(b[0],b[1],z.a,z.b)<b[2]+1)n++;return n};
+// v0.43: pegadas inteiras (tamanho desenhado) contra agua e contra pontes
+(function(){
+const Z=1.55;
+const obb=(x,y,a,L,D)=>{const c=Math.cos(a),s=Math.sin(a),l=L/2,d=D/2;return [[x+c*l-s*d,y+s*l+c*d],[x-c*l-s*d,y-s*l+c*d],[x-c*l+s*d,y-s*l-c*d],[x+c*l+s*d,y+s*l-c*d]]};
+const sat=(A,B)=>{for(const P of[A,B])for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],nx=b[1]-a[1],ny=a[0]-b[0];let a0=1e9,a1=-1e9,b0=1e9,b1=-1e9;for(const q of A){const d=q[0]*nx+q[1]*ny;a0=Math.min(a0,d);a1=Math.max(a1,d)}for(const q of B){const d=q[0]*nx+q[1]*ny;b0=Math.min(b0,d);b1=Math.max(b1,d)}if(a1<=b0||b1<=a0)return false}return true};
+const fps=C=>{const AS=window.AtlasAssets,o=[];
+  for(const b of C.B){if(b.k||b.form==="stilt")continue;o.push(["casa",b,obb(b.x,b.y,b.ang,b.L*.92,b.D*.92)])}
+  for(const q of C.SPB){if(q.k===13||q.k===14||q.k===8||q.k===3)continue;if(["lighthouse","crane","fishery","shipwright","cargo","boat","ship"].includes(q.id))continue;
+    if(q.k===2){const r=q.big?52:40;o.push(["templo",q,obb(q.x,q.y,q.ang||0,r*1.0,r*.66)]);continue}
+    const sz=((AS.SIZE[q.id]||[8])[0])*Z,fp=q.fp||[sz*1.4,sz*1.0];o.push([q.id||"k"+q.k,q,obb(q.x,q.y,q.fp?0:(q.ang||0)+.34,fp[0]*.85,fp[1]*.85)])}
+  for(const q of C.props){if(["boat","cargo","crane","crates","barrel","stairs"].includes(q.id))continue;const sz=((AS.SIZE[q.id]||[4])[0])*Z*(q.s||1);o.push([q.id,q,obb(q.x,q.y,q.ang||0,sz*.9,sz*.65)])}
+  return o};
+window.QAS.fpWater=function(C){const wet=(x,y)=>C.land(x,y)<.04||C.rw&&C.rd(x,y)<C.rw+.5,r={n:0,ex:[]};
+  for(const [t,q,P] of fps(C)){if(t==="watermill")continue;const pts=P.slice();for(let i=0;i<4;i++){const a=P[i],b=P[(i+1)%4];pts.push([(a[0]+b[0])/2,(a[1]+b[1])/2])}if(pts.some(z=>wet(z[0],z[1]))){r.n++;if(r.ex.length<8)r.ex.push([t,Math.round(q.x),Math.round(q.y)])}}return r};
+window.QAS.onBridge=function(C){const r={n:0,ex:[]},BR=(C.bridgesR||[]).map(z=>[z.a,z.b,z.wd||6]);
+  const dk=BR.map(([a,b,w])=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;return obb((a[0]+b[0])/2,(a[1]+b[1])/2,Math.atan2(uy,ux),L+12,w+2)});
+  for(const [t,q,P] of fps(C)){if(dk.some(D=>sat(P,D))){r.n++;if(r.ex.length<8)r.ex.push([t,Math.round(q.x),Math.round(q.y)])}}return r};
+})();
