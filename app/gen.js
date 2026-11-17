@@ -390,14 +390,23 @@ function drawMine(c,x,y){c.lineWidth=.8;c.fillStyle="#9a8f78";c.strokeStyle=INK;
   const lp=P(4.6,1);c.strokeStyle="#4a3524";c.lineWidth=.6;c.beginPath();c.moveTo(lp[0],lp[1]);c.lineTo(lp[0],lp[1]-5);c.stroke();c.fillStyle="#f0c060";c.beginPath();c.arc(lp[0],lp[1]-5.4,.8,0,7);c.fill()}
 
 
-function drawCave(c,x,y,snow,rng){rng=rng||Math.random;const rc=snow?["#e2e6ea","#a2abb3"]:["#b5ad9a","#7a7262"];c.lineJoin="round";
-  const pts=[];for(let i=0;i<=10;i++){const a=3.1416+i/10*3.1416,r=1+(rng()-.5)*.3;pts.push([x+Math.cos(a)*12*r,y+Math.sin(a)*11*r])}
-  const g=c.createLinearGradient(x-12,y-11,x+12,y);g.addColorStop(0,rc[0]);g.addColorStop(1,rc[1]);c.fillStyle=g;c.globalAlpha=.92;c.beginPath();c.moveTo(pts[0][0],pts[0][1]+1);for(const q of pts)c.lineTo(q[0],q[1]);c.lineTo(pts[pts.length-1][0],pts[pts.length-1][1]+1);c.closePath();c.fill();c.globalAlpha=1;
-  c.strokeStyle=INK;c.lineWidth=.8;c.beginPath();for(let i=1;i<pts.length-1;i++){i===1?c.moveTo(pts[i][0],pts[i][1]):c.lineTo(pts[i][0],pts[i][1])}c.stroke();
-  c.strokeStyle="rgba(60,50,35,.5)";c.lineWidth=.6;c.beginPath();for(let k=0;k<9;k++){const px=x-10+rng()*20,py=y-9+rng()*7;c.moveTo(px,py);c.lineTo(px+.8,py+2.2+rng()*2)}c.stroke();
-  c.fillStyle="#17120e";c.beginPath();c.moveTo(x-5,y+.5);c.lineTo(x-4.6,y-4);c.quadraticCurveTo(x-3,y-8.5,x+.5,y-8.4);c.quadraticCurveTo(x+4.2,y-8,x+4.8,y-3.5);c.lineTo(x+5.2,y+.5);c.closePath();c.fill();
-  c.strokeStyle="rgba(240,230,200,.55)";c.lineWidth=.7;c.beginPath();c.moveTo(x-4.6,y-4.4);c.quadraticCurveTo(x-3,y-8.9,x+.5,y-8.8);c.stroke();
-  c.fillStyle=rc[1];for(let k=0;k<5;k++){c.beginPath();c.ellipse(x+(rng()-.5)*16,y+1+rng()*3,1+rng()*1.4,.7,0,0,7);c.fill()}}
+// rochedo isometrico: blocos de pedra chanfrados, tampo de grama (ou neve) e uma boca na face de quem olha
+function drawRockMass(c,x,y,o){const s=o.s||1,ca=Math.cos(o.ang||0),sa=Math.sin(o.ang||0),P0=(u,v,h)=>[x+(ca*u-sa*v)*s,y+(sa*u+ca*v)*TILT*s-(h||0)*s],fl=P0(0,1)[1]>=P0(0,0)[1]?1:-1,P=(u,v,h)=>P0(u,v*fl,h);
+  const RC=o.snow?["#d8dee3","#9ea8b0"]:["#b3aa96","#6f6858"],TOP=o.snow?"#f1f4f6":"#9cad5c",lt=(nx,ny)=>clamp(.5+.62*(-nx*.85+ny*.3),0,1);
+  const BL=[[-2,-4,20,11,11],[6,-6,11,8,15],[-8,0,9,8,7],[1,2.2,17,6.5,8.5],[10,1,6,5,4]].map(b=>({b,sy:P(b[0],b[1])[1]})).sort((p,q)=>p.sy-q.sy);c.lineJoin="round";c.lineWidth=.8;
+  c.fillStyle="rgba(20,22,6,.28)";c.beginPath();c.ellipse(x+2*s,y+2*s,17*s,7.5*s,0,0,7);c.fill();
+  for(const {b} of BL){const [u,v,L,D,H]=b,hl=L/2,hd=D/2,bv=2.4,cs=[[-hl,-hd],[hl,-hd],[hl,hd],[-hl,hd]],ci=[[-hl+bv,-hd+bv],[hl-bv,-hd+bv],[hl-bv,hd-bv],[-hl+bv,hd-bv]],fn=[[0,-1],[1,0],[0,1],[-1,0]];
+    for(let k=0;k<4;k++){const a=cs[k],b2=cs[(k+1)%4],nx=(ca*fn[k][0]-sa*fn[k][1]*fl),ny=(sa*fn[k][0]+ca*fn[k][1]*fl);if(ny<=-.02)continue;const col=mixc(RC[1],RC[0],lt(nx,ny));poly(c,[P(u+a[0],v+a[1],0),P(u+b2[0],v+b2[1],0),P(u+b2[0],v+b2[1],H-bv),P(u+a[0],v+a[1],H-bv)],col,INK);
+      const ai=ci[k],bi=ci[(k+1)%4];poly(c,[P(u+a[0],v+a[1],H-bv),P(u+b2[0],v+b2[1],H-bv),P(u+bi[0],v+bi[1],H),P(u+ai[0],v+ai[1],H)],mixc(RC[0],TOP,.25+.3*lt(nx,ny)),INK);
+      c.strokeStyle="rgba(40,34,26,.35)";c.lineWidth=.5;c.beginPath();for(let t=.2;t<1;t+=.27){const p1=P(u+lerp(a[0],b2[0],t),v+lerp(a[1],b2[1],t),H*.15),p2=P(u+lerp(a[0],b2[0],t+.06),v+lerp(a[1],b2[1],t+.06),H*.75);c.moveTo(p1[0],p1[1]);c.lineTo(p2[0],p2[1])}c.stroke();c.lineWidth=.8}
+    poly(c,ci.map(q=>P(u+q[0],v+q[1],H)),TOP,INK)}
+  // boca na face da frente do bloco mais a frente
+  const fb=[1,2.2,17,6.5,8.5],vf=fb[1]+fb[3]/2+.05,arch=[];arch.push(P(-3.4,vf,0));for(let k=0;k<=10;k++){const t=Math.PI-Math.PI*k/10;arch.push(P(Math.cos(t)*3.4,vf,4.2+Math.sin(t)*3.2))}arch.push(P(3.4,vf,0));poly(c,arch,"#17120e",INK);
+  if(o.mine){c.lineWidth=1.1;for(const u of[-3.7,3.7]){const a=P(u,vf+.2,0),b=P(u,vf+.2,7.6);c.strokeStyle=INK;c.lineWidth=2.4;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.strokeStyle="#7a5530";c.lineWidth=1.4;c.stroke()}{const a=P(-4.6,vf+.2,7.6),b=P(4.6,vf+.2,7.6);c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.strokeStyle="#8a6238";c.lineWidth=1.6;c.stroke()}
+    for(const u of[-5.4,5.4]){const q=P(u,vf+.4,5.4);c.fillStyle="rgba(255,200,90,.35)";c.beginPath();c.arc(q[0],q[1],2.6,0,7);c.fill();c.fillStyle="#f6c04a";c.beginPath();c.arc(q[0],q[1],.8,0,7);c.fill()}}
+  else{c.fillStyle="rgba(120,110,95,.9)";for(const u of[-2,0,1.8]){const a=P(u-.5,vf+.02,7),b=P(u+.5,vf+.02,7),t=P(u,vf+.02,5.6);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(t[0],t[1]);c.fill()}}
+  return P}
+function drawCave(c,x,y,snow,rng){rng=rng||Math.random;drawRockMass(c,x,y-2,{s:.72,ang:rng()*6.283,snow});}
 function drawCave0(c,x,y,snow){c.lineWidth=.8;const g=c.createLinearGradient(x-12,0,x+12,0);g.addColorStop(0,snow?"#e6eaee":"#b3ab98");g.addColorStop(1,snow?"#a9b2ba":"#7d7565");c.fillStyle=g;c.strokeStyle=INK;
   c.beginPath();c.moveTo(x-13,y+1);c.quadraticCurveTo(x-11,y-9,x-4,y-12);c.quadraticCurveTo(x+3,y-15,x+8,y-9);c.quadraticCurveTo(x+13,y-5,x+13,y+1);c.closePath();c.fill();c.stroke();
   c.fillStyle="#1e1914";c.beginPath();c.moveTo(x-4.5,y+1);c.quadraticCurveTo(x-4.5,y-7,x,y-7.5);c.quadraticCurveTo(x+4.5,y-7,x+4.5,y+1);c.closePath();c.fill();
@@ -1233,5 +1242,5 @@ function objThumb(v,stamps,S){S=S||72;const cv=document.createElement("canvas");
   return cv}
 
 const DEFLY=[{id:"chao",name:"Chão"},{id:"base",name:"Principal"},{id:"frente",name:"Frente"}];
-window.AtlasGen={DEFLY,sampleGrid,objThumb,mkHouse,kit:{drawFlat,mixc,drawBuilding0,drawMound,drawBuilding,drawHouseA,drawHouse,drawBig,drawTent,drawFire,drawTower,drawWall,drawWaterWall,drawPalisade,drawHedge,drawAsian,drawRound,drawShip,drawMill,drawSmoke,drawWatch,drawTorii,drawPagoda,poly,banner,puff,CUL,ROOF,WALL,INK,SPEC,TENT},CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["eslava","Leste europeu (eslavos)"],["mediter","Mediterrâneo"],["antigo","Mundo antigo (Egito, Bizâncio)"],["celta","Terras celtas"],["andes","Andes"],["fantasia","Fantasia (gnomos, elfos, anões, piratas)"],["misto","Mundo misto"]],BIOMES,RACES,RACES0,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
+window.AtlasGen={DEFLY,sampleGrid,objThumb,mkHouse,kit:{drawRockMass,drawFlat,mixc,drawBuilding0,drawMound,drawBuilding,drawHouseA,drawHouse,drawBig,drawTent,drawFire,drawTower,drawWall,drawWaterWall,drawPalisade,drawHedge,drawAsian,drawRound,drawShip,drawMill,drawSmoke,drawWatch,drawTorii,drawPagoda,poly,banner,puff,CUL,ROOF,WALL,INK,SPEC,TENT},CULTURES:[["europa","Europa medieval"],["leste","Leste asiático (Japão, China)"],["sul","Sul da Ásia (Índia)"],["meso","Mesoamérica"],["estepe","Estepes"],["eslava","Leste europeu (eslavos)"],["mediter","Mediterrâneo"],["antigo","Mundo antigo (Egito, Bizâncio)"],["celta","Terras celtas"],["andes","Andes"],["fantasia","Fantasia (gnomos, elfos, anões, piratas)"],["misto","Mundo misto"]],BIOMES,RACES,RACES0,RACE_PT,simp,generate,render,makeStamps,mulberry,hashStr,setScale,MX,MY,TILT,G,NAMES,get CW(){return CW},get CH(){return CH},get MW(){return MW},get MH(){return MH},get WX(){return WX},get WY(){return WY},get SC(){return SC}};
 })();
