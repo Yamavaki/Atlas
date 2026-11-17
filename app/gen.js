@@ -414,11 +414,11 @@ function drawWall(c,p,q,h,fz){const lit=(q[1]-p[1])*(q[0]-p[0])>0,sd=fz==="sand"
   poly(c,[[p[0],p[1]-h],[q[0],q[1]-h],[q[0],q[1]-h-2.2],[p[0],p[1]-h-2.2]],"#ddd6c4",INK);
   c.strokeStyle="rgba(60,50,35,.5)";c.lineWidth=.5;c.beginPath();c.moveTo(p[0],p[1]-h*.5);c.lineTo(q[0],q[1]-h*.5);c.stroke();
   c.strokeStyle=INK;c.lineWidth=1.5;c.setLineDash([1.8,1.8]);c.beginPath();c.moveTo(p[0],p[1]-h-3);c.lineTo(q[0],q[1]-h-3);c.stroke();c.setLineDash([])}
-function drawWaterWall(c,p,q,h,fz){const lit=(q[1]-p[1])*(q[0]-p[0])>0;
+function drawWaterWall(c,p,q,h,fz){const lit=(q[1]-p[1])*(q[0]-p[0])>0,cust=fz&&fz.c;if(cust)fz="stone";
   if(fz==="palisade"){const n=Math.max(3,Math.round(Math.hypot(q[0]-p[0],q[1]-p[1])/3));c.lineWidth=.6;for(let i=0;i<=n;i++){if(i%3===1)continue;const x=lerp(p[0],q[0],i/n),y=lerp(p[1],q[1],i/n);poly(c,[[x-1,y+1.5],[x+1,y+1.5],[x+1,y-h],[x,y-h-1.4],[x-1,y-h]],i%2?"#8d6a44":"#7a5a38",INK)}
     poly(c,[[p[0],p[1]-h*.55],[q[0],q[1]-h*.55],[q[0],q[1]-h*.55-1.6],[p[0],p[1]-h*.55-1.6]],"#a37c4c",INK);return}
   if(fz==="hedge"){c.lineWidth=.7;poly(c,[[p[0],p[1]-2.6],[q[0],q[1]-2.6],[q[0],q[1]-1.2],[p[0],p[1]-1.2]],"#a37c4c",INK);for(let i=0;i<=4;i++){const x=lerp(p[0],q[0],i/4),y=lerp(p[1],q[1],i/4);c.fillStyle="#6f8d40";c.beginPath();c.arc(x,y-3.6,1.4,0,7);c.fill()}c.strokeStyle="#4f6a2a";c.beginPath();c.moveTo(p[0],p[1]-3.4);c.quadraticCurveTo((p[0]+q[0])/2,(p[1]+q[1])/2-6,q[0],q[1]-3.4);c.stroke();return}
-  const pal=fz==="sand"?["#e2c48e","#b8955c","#efd8a8"]:fz==="asian"?["#ece5d3","#bdb4a0","#4a525c"]:["#cfc8b6","#a59f8e","#ddd6c4"];
+  const pal=cust?cust:fz==="sand"?["#e2c48e","#b8955c","#efd8a8"]:fz==="asian"?["#ece5d3","#bdb4a0","#4a525c"]:["#cfc8b6","#a59f8e","#ddd6c4"];
   c.lineWidth=.8;poly(c,[p,q,[q[0],q[1]-h],[p[0],p[1]-h]],lit?pal[0]:pal[1],INK);
   const n=Math.max(1,Math.round(Math.hypot(q[0]-p[0],q[1]-p[1])/7));c.fillStyle="#26323a";
   for(let i=0;i<n;i++){const m=[lerp(p[0],q[0],(i+.5)/n),lerp(p[1],q[1],(i+.5)/n)];c.beginPath();c.moveTo(m[0]-1.7,m[1]);c.lineTo(m[0]-1.7,m[1]-h*.42);c.arc(m[0],m[1]-h*.42,1.7,3.1416,0);c.lineTo(m[0]+1.7,m[1]);c.closePath();c.fill()}
