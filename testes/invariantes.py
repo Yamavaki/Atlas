@@ -29,8 +29,8 @@ async def main():
         b=await p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox","--allow-file-access-from-files"])
         pg=await b.new_page();errs=[];pg.on("pageerror",lambda e:errs.append(str(e)))
         await pg.goto("file:///"+__import__('os').path.abspath(__import__('os').path.dirname(__file__))+"/qa_grade.html")
-        if len(sys.argv)>1:await pg.evaluate("s=>{(0,eval)(s)}",open(sys.argv[1]).read())
-        tot=collections.Counter();n=0;ex={};IDS=collections.Counter()
+        if len(sys.argv)>1 and sys.argv[1]!="-v":await pg.evaluate("s=>{(0,eval)(s)}",open(sys.argv[1]).read())
+        tot=collections.Counter();n=0;ex={};IDS=collections.Counter();ALL=[]
         sites=["interior","rio","costa","ilha","lago","peninsula","colina","delta"];cults=["humano","orc","japones","deserto","pantano","anao","elfo","vapor"]
         for i in range(48):
             P={"site":sites[i%8],"seed":f"inv-{i}","size":[16,22,28,34,40,44][i%6],"culture":cults[(i*3)%8],"relief":[.2,.5,.8,1][i%4],"terraces":i%3!=0,"wall":["curva","reta","curva","nenhuma"][i%4],"labels":False}
@@ -38,10 +38,13 @@ async def main():
             except Exception as e:print("ERRO",P["seed"],str(e)[:200]);continue
             n+=1
             for x in r:
-                tot[x[0]]+=1;ex.setdefault(x[0],(P["seed"],P["site"],x[1:]))
+                tot[x[0]]+=1;ex.setdefault(x[0],(P["seed"],P["site"],x[1:]));ALL.append((x[0],P["seed"],P["site"],P["size"],P["culture"],P["relief"],P["terraces"],P["wall"],[round(v) if isinstance(v,float) else v for v in x[1:]]))
                 if x[0]=="prédio sem rua na frente":IDS[x[3]]+=1
         print(f"== invariantes: {n} cidades, erros de página {len(errs)}")
         for k,v in tot.most_common():print(f"  {k}: {v}   ex: {ex[k]}")
         if IDS:print("   prédios sem rua:",IDS.most_common(14))
+        if "-v" in sys.argv:
+            for a in ALL:
+                if "prédio" not in a[0]:print("   ",a)
         await b.close()
 asyncio.run(main())

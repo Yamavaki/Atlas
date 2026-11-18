@@ -61,7 +61,7 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   for(const z of C.SCON||[])G.faixa([z.a,z.b],z.w||6,k=>{if(G.uso[k]<USO.rua)G.uso[k]=USO.rua});
   // 3. estruturas: pontes, cais, escadas, muralha, portoes
   for(const b of C.bridgesR||[]){const n=G.obj({tipo:"ponte",nome:"Ponte",key:b.key});G.faixa([b.a,b.b],b.wd||6,set(USO.ponte,n))}
-  for(const q of C._qsegs||[]){if(q.off)continue;const n=G.obj({tipo:"cais",nome:"Cais",key:q.key});G.faixa([q.a,q.b],3,set(USO.cais,n))}
+  for(const q of(C._qsegs&&C._qsegs.length?C._qsegs:C.QSEGS)||[]){if(q.off)continue;const n=G.obj({tipo:"cais",nome:"Cais",key:q.key});G.faixa([q.a,q.b],3,set(USO.cais,n))}
   for(const q of C.quays||[]){if(!q.sea)continue;const n=G.obj({tipo:"cais",nome:"Cais do mar"});G.faixa([q.a,q.b],4,set(USO.cais,n))}
   for(const [a,b] of C.piers||[]){const n=G.obj({tipo:"pier",nome:"Píer"});G.faixa([a,b],5,set(USO.cais,n))}
   for(const z of C.STR||[]){const n=G.obj({tipo:z.ramp?"rampa":"escada",nome:z.ramp?"Rampa":"Escada"});if(z.ramp)G.faixa([[z.x-z.dx*8,z.y-z.dy*8],[z.x+z.dx*8,z.y+z.dy*8]],z.w||7,set(USO.escada,n));else G.circ(z.x,z.y,(z.w||7)/2,set(USO.escada,n))}
