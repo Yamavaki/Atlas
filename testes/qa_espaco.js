@@ -65,7 +65,7 @@ const fps=C=>{const AS=window.AtlasAssets,o=[];
   for(const q of C.SPB){if(q.k===13||q.k===14||q.k===8||q.k===3)continue;if(["lighthouse","crane","fishery","shipwright","cargo","boat","ship"].includes(q.id))continue;
     if(q.k===2){const r=q.big?52:40;o.push(["templo",q,obb(q.x,q.y,q.ang||0,r*1.0,r*.66)]);continue}
     const sz=((AS.SIZE[q.id]||[8])[0])*Z,fp=q.fp||[sz*1.4,sz*1.0];o.push([q.id||"k"+q.k,q,obb(q.x,q.y,q.fp?0:(q.ang||0)+.34,fp[0]*.85,fp[1]*.85)])}
-  for(const q of C.props){if(["boat","cargo","crane","crates","barrel","stairs"].includes(q.id))continue;const sz=((AS.SIZE[q.id]||[4])[0])*Z*(q.s||1);o.push([q.id,q,obb(q.x,q.y,q.ang||0,sz*.9,sz*.65)])}
+  for(const q of C.props){if(["boat","cargo","crane","crates","barrel","stairs","wreck"].includes(q.id))continue;const sz=((AS.SIZE[q.id]||[4])[0])*Z*(q.s||1);o.push([q.id,q,obb(q.x,q.y,q.ang||0,sz*.9,sz*.65)])}
   return o};
 window.QAS.fpWater=function(C){const wet=(x,y)=>C.land(x,y)<.04||C.rw&&C.rd(x,y)<C.rw+.5,r={n:0,ex:[]};
   for(const [t,q,P] of fps(C)){if(t==="watermill")continue;const pts=P.slice();for(let i=0;i<4;i++){const a=P[i],b=P[(i+1)%4];pts.push([(a[0]+b[0])/2,(a[1]+b[1])/2])}if(pts.some(z=>wet(z[0],z[1]))){r.n++;if(r.ex.length<8)r.ex.push([t,Math.round(q.x),Math.round(q.y)])}}return r};
