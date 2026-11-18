@@ -210,7 +210,7 @@ function drawHouseA(c,x,y,o){
       else{L_(-hd,hd,H*.5,H*.5,0);L_(0,0,0,H,0);L_(-hd,0,H*.5,H,0);L_(hd,0,H*.5,H,0)}}
     c.stroke();
     if(f.kind!=="roof"){c.fillStyle="#3a2c1b";const win=(a,b,h,w)=>{const p=f.kind==="long"?P(a,f.s*hd,h):P(f.s*hl,b,h),q=f.kind==="long"?P(a+w,f.s*hd,h):P(f.s*hl,b+w,h);c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-1.8);c.lineTo(p[0],p[1]-1.8);c.closePath();c.fill()};
-      if(f.kind==="long"){if(o.win){const n=Math.max(1,Math.round(o.L/5));for(let i=0;i<n;i++){const a=-hl+o.L*(i+.5)/n-.7;win(a,0,H*.62,1.4);if(H>7)win(a,0,H*.22+1.6,1.4)}}if(o.door){const p=P(hl*.15,f.s*hd,0),q=P(hl*.15+(o.door>1?2.4:1.8),f.s*hd,0),h=o.door>1?3.8:2.8;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-h);c.lineTo(p[0],p[1]-h);c.closePath();c.fill()}}
+      if(f.kind==="long"){if(o.win){const n=Math.max(1,Math.round(o.L/5));for(let i=0;i<n;i++){const a=-hl+o.L*(i+.5)/n-.7;win(a,0,H*.62,1.4);if(H>7)win(a,0,H*.22+1.6,1.4)}}if(o.door&&(!o.fr||o.fr===f.s)){const p=P(hl*.15,f.s*hd,0),q=P(hl*.15+(o.door>1?2.4:1.8),f.s*hd,0),h=o.door>1?3.8:2.8;c.beginPath();c.moveTo(p[0],p[1]);c.lineTo(q[0],q[1]);c.lineTo(q[0],q[1]-h);c.lineTo(p[0],p[1]-h);c.closePath();c.fill()}}
       else if(o.win)win(0,-.7,H*.6,1.4)}}
   if(o.dorm&&R>3.5){for(const s2 of[-1,1]){if(s2*ca*R+TILT*hd<=0)continue;for(const u of o.dorm){const b0=P(u-1.4,s2*hd*.55,H+R*.45),b1=P(u+1.4,s2*hd*.55,H+R*.45),tp=P(u,s2*hd*.45,H+R*.45+2.6),bs=P(u,s2*hd*.62,H+R*.38);poly(c,[b0,b1,[b1[0],b1[1]+1.6],[b0[0],b0[1]+1.6]],wall[0],INK);poly(c,[b0,tp,b1],roof[0],INK);c.fillStyle="#3a2c1b";c.fillRect(bs[0]-.6,bs[1]-.2,1.2,1.4)}}}
   if(o.chim){const p=P(hl*.42,0,H+R-.6);c.fillStyle="#9a8f80";c.strokeStyle=INK;c.lineWidth=.6;c.fillRect(p[0]-1.1,p[1]-3.2,2.2,3.8);c.strokeRect(p[0]-1.1,p[1]-3.2,2.2,3.8)}
@@ -1203,6 +1203,10 @@ function render(W,canvas,stamps){
       const ly=(o&&o.ly)||(q.mref&&q.mref.ly);q.ly=LI.has(ly)?ly:LI.has("base")?"base":LYS[0].id;out.push(q)}
     {const seen=new Set();for(const q of objD)if(q.key)seen.add(q.key);API.orph=Object.keys(OV).filter(k=>!seen.has(k))}
     objD=out}
+  // 0.61: tudo o que o desenho espalha (arvores das matas, arbustos, juncos, pedras, arvores e arbustos colocados a mao) fica registrado em coordenadas do mundo para a grade
+  {const D=[];const yW=(x,sy)=>{let y=sy/TILT;for(let k=0;k<4;k++)y=(sy+eAt(x,y)*K)/TILT;return y};for(const q of objD){if(q.x==null||q.y==null)continue;let t=null,r=0;const sc=q.s||1;
+      if(q.k===0){t="arvore";r=(q.st&&q.st.lw?q.st.lw:34)*sc*.36}else if(q.k===12){t=q.st&&stamps.reed&&stamps.reed.includes(q.st)?"junco":"mato";r=(q.st&&q.st.lw?q.st.lw:20)*sc*.38}else if(q.k===11){t="pedra";r=(q.st&&q.st.lw?q.st.lw:18)*sc*(q.wide?.5:.4)}else if(q.k===30){t=q.v==="bush"?"mato":"arvore";r=(q.v==="bush"?8:12)*sc}else if(q.k===31){t="pedra";r=7*sc}
+      if(!t)continue;D.push([t,q.x,yW(q.x,q.y),Math.max(1,r)])}W._DECO=D}
   objD.sort((a,b)=>(LI.get(a.ly)-LI.get(b.ly))||(a.y-b.y));const smoke=[];
   const seedQ=q=>{rngS=mulberry((Math.imul((q.x||0)*4|0,73856093)^Math.imul((q.y||0)*4|0,19349663)^q.k*83492791)>>>0)};
   const drawQ=(c,q,pk)=>{const _sc=q.man&&(q.k>=16&&q.k<=28||q.k<=8||q.k>=32)&&q.s&&q.s!==1,_os=q.os&&q.os!==1;if(_os){c.save();c.translate(q.x,q.y);c.scale(q.os,q.os);c.translate(-q.x,-q.y)}if(_sc){c.save();c.translate(q.x,q.y);c.scale(q.s,q.s);c.translate(-q.x,-q.y)}try{

@@ -18,7 +18,7 @@ const RUAOK=new Set(["lamp","bench","stall","markettent","goods","crates","cargo
 function inPoly(P,x,y){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
 
 function Grade(W,H){const w=Math.ceil(W/CS)+1,h=Math.ceil(H/CS)+1,n=w*h;
-  const G={cs:CS,w,h,W,H,alt:new Float32Array(n),andar:new Int8Array(n).fill(-1),bairro:new Int16Array(n).fill(-1),agua:new Uint8Array(n),uso:new Uint8Array(n),dono:new Int32Array(n).fill(-1),reserva:new Uint8Array(n),
+  const G={cs:CS,w,h,W,H,alt:new Float32Array(n),andar:new Int8Array(n).fill(-1),bairro:new Int16Array(n).fill(-1),agua:new Uint8Array(n),uso:new Uint8Array(n),dono:new Int32Array(n).fill(-1),reserva:new Uint8Array(n),copa:new Uint8Array(n),
     objs:[],conf:new Map(),
     idx(x,y){const i=Math.floor(x/CS),j=Math.floor(y/CS);return i<0||j<0||i>=w||j>=h?-1:j*w+i},
     // pinta um poligono: chama fn(k,x,y) para cada celula cujo centro cai dentro
@@ -31,7 +31,7 @@ function Grade(W,H){const w=Math.ceil(W/CS)+1,h=Math.ceil(H/CS)+1,n=w*h;
     faixa(pts,lw,fn){if(!pts||pts.length<2)return;const hw=lw/2;for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(l<1e-6)continue;const nx=-(b[1]-a[1])/l*hw,ny=(b[0]-a[0])/l*hw;G.poly([[a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny]],fn)}for(const p of pts)G.circ(p[0],p[1],hw,fn)},
     obj(o){o.n=G.objs.length;G.objs.push(o);return o.n},
     conflito(tipo,a,b,k){const key=tipo+"|"+a+"|"+(b==null?"":b);let c=G.conf.get(key);if(!c){c={tipo,a,b,n:0,x:0,y:0};G.conf.set(key,c)}c.n++;if(c.n===1){c.x=(k%w+.5)*CS;c.y=(Math.floor(k/w)+.5)*CS}},
-    em(x,y){const k=G.idx(x,y);if(k<0)return null;const d=G.dono[k];return {uso:USON[G.uso[k]],agua:AGUAN[G.agua[k]],alt:+G.alt[k].toFixed(3),andar:G.andar[k],bairro:G.bairro[k],dono:d>=0?G.objs[d]:null,reserva:G.reserva[k]}},
+    em(x,y){const k=G.idx(x,y);if(k<0)return null;const d=G.dono[k];return {uso:USON[G.uso[k]],agua:AGUAN[G.agua[k]],alt:+G.alt[k].toFixed(3),andar:G.andar[k],bairro:G.bairro[k],dono:d>=0?G.objs[d]:null,reserva:G.reserva[k],copa:G.copa[k]===1?"copa de árvore":G.copa[k]===2?"arbusto ou pedra":null}},
     // a forma cabe aqui? (para o editor): devolve a lista de impedimentos
     cabe(P,tipo,ignorar){const imp=new Map();G.poly(P,k=>{const u=G.uso[k],d=G.dono[k];let r=null;if(G.agua[k]&&!AGUAOK.has(tipo))r="água";else if(u===USO.muralha||u===USO.portao)r="muralha";else if(u===USO.ponte)r="ponte";else if((u===USO.rua||u===USO.estrada)&&!RUAOK.has(tipo))r="rua";else if(u===USO.construcao&&d!==ignorar)r="construção";if(r)imp.set(r,(imp.get(r)||0)+1)});return imp},
     lista(){return [...G.conf.values()].filter(c=>c.n>=2).sort((a,b)=>b.n-a.n)},
@@ -92,13 +92,14 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
     if(F&&F.pegada.length)for(const P of pegada(q,F,z))pinta(P,n,tipo,USO.construcao);else G.circ(q.x,q.y,(q.r||12)*.7,k=>{pinta([[q.x-.1,q.y-.1],[q.x+.1,q.y-.1],[q.x,q.y+.1]],n,tipo,USO.construcao)})}
   for(const q of C.props||[]){if(!q.id)continue;const n=G.obj({tipo:q.id,nome:NAME[q.id]||q.id,key:q.key,ref:q});let F=null;if(AS&&AS.ficha)F=AS.ficha(q.id,q.race,q.v,q.ang||0,q.aov);const z=(q.s||1)*Z*(q.street?.85:1);
     if(F&&F.pegada.length)for(const P of pegada(q,F,z))pinta(P,n,q.id,USO.detalhe);else G.circ(q.x,q.y,3,k=>{if(G.uso[k]<USO.construcao){G.uso[k]=USO.detalhe;G.dono[k]=n}})}
-  for(const t of C.trees||[]){const n=G.obj({tipo:"arvore",nome:"Árvore",ref:t}),r=1.6*(t[2]||1);const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
+  for(const t of C.trees||[]){const n=G.obj({tipo:"arvore",nome:"Árvore",ref:t}),r=1.6*(t[2]||1);G.circ(t[0],t[1],34*1.25*(t[2]||1)*.36,k=>{G.copa[k]=1});const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
   // vegetacao baixa e pedras soltas (mato), caminhos de fazenda, escadas do cais e bandeirolas (no ar: so registradas)
-  for(const z of C.NAT||[]){const n=G.obj({tipo:z[3]==="rock"?"pedra":"mato",nome:z[3]==="rock"?"Pedra":"Mato",ref:z}),r=1.2*(z[2]||1);const P=[];for(let a=0;a<8;a++)P.push([z[0]+Math.cos(a*.785)*r,z[1]+Math.sin(a*.785)*r]);pinta(P,n,"mato",USO.arvore)}
+  for(const z of C.NAT||[]){const n=G.obj({tipo:z[3]==="rock"?"pedra":"mato",nome:z[3]==="rock"?"Pedra":"Mato",ref:z}),r=1.2*(z[2]||1);G.circ(z[0],z[1],(z[3]==="rock"?18*.55*.4:20*.75*.38)*(z[2]||1),k=>{if(!G.copa[k])G.copa[k]=2});const P=[];for(let a=0;a<8;a++)P.push([z[0]+Math.cos(a*.785)*r,z[1]+Math.sin(a*.785)*r]);pinta(P,n,"mato",USO.arvore)}
   for(const fp of C.farmPaths||[]){const n=G.obj({tipo:"caminho",nome:"Caminho",ref:fp});G.faixa(fp,3,k=>{if(G.uso[k]<USO.rua&&!G.agua[k]){G.uso[k]=USO.estrada;G.dono[k]=n}})}
   for(const z of C.QST||[]){const n=G.obj({tipo:"escada",nome:"Escada do cais",key:z.key,ref:z});G.circ(z.x,z.y,3,k=>{if(G.uso[k]<USO.construcao){G.uso[k]=USO.escada;G.dono[k]=n}})}
   for(const z of C.bunting||[])G.obj({tipo:"bandeirolas",nome:"Bandeirolas",key:z.key,ref:z,aereo:1,a:z.a,b:z.b});
-  for(const s of(C.ships||[]).concat(C.boats||[])){const n=G.obj({tipo:"barco",nome:"Barco"});G.circ(s.x,s.y,4,k=>{G.uso[k]=USO.barco;G.dono[k]=n})}
+  // navios e barcos: casco como retangulo girado (navio grande ~32 x 9, navio ~24 x 7, barco ~8 x 3)
+  for(const [L,nav] of[[C.ships||[],1],[C.boats||[],0]])for(const s of L){const n=G.obj({tipo:nav?"navio":"barco",nome:nav?"Navio":"Barco",ref:s}),Lh=nav?(s.big?32:24):8,Dh=nav?(s.big?9:7):3.2,a=s.ang||0,c=Math.cos(a),sn=Math.sin(a);G.poly([[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[s.x+c*i*Lh/2-sn*j*Dh/2,s.y+sn*i*Lh/2+c*j*Dh/2]),k=>{G.uso[k]=USO.barco;G.dono[k]=n})}
 
   // 5. areas (campos e pomares): o que ficou por cima delas depois de tudo pintado
   for(const [L,nm] of[[CAMPOS,"campo"],[QUINT,"quintal"]])for(const n of L){const f=G.objs[n].ref;if(!f.poly||f.poly.length<3)continue;G.poly(f.poly,k=>{const u=G.uso[k];if(u===USO.muralha||u===USO.portao)G.conflito(nm+" na muralha",n,null,k);else if(u===USO.rua||u===USO.estrada)G.conflito(nm+" na estrada",n,null,k);else if(G.agua[k]&&u!==USO.ponte&&u!==USO.cais)G.conflito(nm+" na água",n,null,k)})}
@@ -107,7 +108,9 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
 // grade de uma regiao (0.61): agua, estradas, ruas das vilas, pontes, muralhas, campos, hortas, lagoas e todas as construcoes
 function deRegiao(W,AS){const AG=window.AtlasGen,WX=W.WX||1440,WY=W.WY||1500,G=Grade(WX,WY),w=G.w,h=G.h,sg=AG.sampleGrid,sst=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
   const wet=(x,y)=>{const l=sg(W.land,x,y);return l<.04||sg(W.rdist,x,y)<12.5*(1+1.7*sst(.16,-.02,l))};
-  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const k=j*w+i,x=(i+.5)*CS,y=(j+.5)*CS;if(i%3===0&&j%3===0)G.alt[k]=sg(W.elev,x,y);else G.alt[k]=G.alt[Math.floor(j/3)*3*w+Math.floor(i/3)*3];const l=sg(W.land,x,y);if(l<.04)G.agua[k]=AGUA.mar;else if(wet(x,y))G.agua[k]=AGUA.rio}
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const k=j*w+i,x=(i+.5)*CS,y=(j+.5)*CS;if(i%3===0&&j%3===0)G.alt[k]=sg(W.elev,x,y);else G.alt[k]=G.alt[Math.floor(j/3)*3*w+Math.floor(i/3)*3];const l=sg(W.land,x,y);if(l<.04)G.agua[k]=AGUA.mar}
+  // rio: a faixa desenhada (largura do rio no desenho), nao a margem de seguranca do gerador
+  for(const rv of W.rivers||[]){if(rv.pts&&rv.pts.length>1&&rv.pts[0][0]!=null)G.faixa(rv.pts,rv.w||16,k=>{if(!G.agua[k])G.agua[k]=AGUA.rio})}
   for(const p of W.ponds||[]){const n=G.obj({tipo:"lagoa",nome:"Lagoa",ref:p}),c=Math.cos(p.a||0),s=Math.sin(p.a||0),P=[];for(let a=0;a<16;a++){const u=Math.cos(a*.3927)*p.w/2,v=Math.sin(a*.3927)*p.h/2;P.push([p.x+c*u-s*v,p.y+s*u+c*v])}G.poly(P,k=>{G.agua[k]=AGUA.lago})}
   const set=(u,dono)=>(k)=>{G.uso[k]=u;if(dono!=null)G.dono[k]=dono};
   const CAMPOS=[];for(const f of W.fieldsP||[]){if(!f.poly||f.poly.length<3)continue;const n=G.obj({tipo:"campo",nome:"Campo",ref:f});CAMPOS.push(n);G.poly(f.poly,set(USO.campo,n))}
@@ -132,6 +135,8 @@ function deRegiao(W,AS){const AG=window.AtlasGen,WX=W.WX||1440,WY=W.WY||1500,G=G
     if((b.k===2||b.k===3)&&AS&&AS.fichaDe&&AG.kit&&AG.kit.drawBig){const qq=Object.assign({},b,{x:0,y:0});const F=AS.fichaDe("rbig|"+b.k+"|"+b.race+"|"+(b.v||0).toFixed(2)+"|"+(b.ang||0).toFixed(2)+"|"+(b.big?1:0)+"|"+(b.ms||1)+"|"+(b.sz||1),c=>AG.kit.drawBig(c,qq)),n=G.obj({tipo:b.k===2?"templo":"castelo",nome:KN[b.k],ref:b});if(F&&F.pegada.length)for(const P of F.pegada)pinta(P.map(v=>[b.x+v[0],b.y+v[1]]),n,b.k===2?"templo":"castelo",USO.construcao);continue}
     const r=(b.r||RR[b.k]||5)*.65,n=G.obj({tipo:NAT.has(b.k)?"natural":AGUAK.has(b.k)?"barco":"k"+b.k,nome:KN[b.k]||("Objeto "+b.k),ref:b}),P=[];for(let a=0;a<10;a++)P.push([b.x+Math.cos(a*.628)*r,b.y+Math.sin(a*.628)*r]);
     if(AGUAK.has(b.k)){G.circ(b.x,b.y,r,k=>{G.uso[k]=USO.barco;G.dono[k]=n});continue}pinta(P,n,NAT.has(b.k)?"natural":"k"+b.k,b.k===6||b.k===7||b.k===34||b.k===35||b.k===36||b.k===32?USO.detalhe:USO.construcao)}
+  // o que o desenho espalhou (matas, arbustos, juncos, pedras): o tronco/base conta como ocupacao; a copa vai na camada "copa"
+  if(W._DECO)for(const [tp,x,y,r] of W._DECO){const n=G.obj({tipo:tp,nome:{arvore:"Árvore",mato:"Arbusto",junco:"Junco",pedra:"Pedra"}[tp]||tp,x,y,r});G.circ(x,y,r,k=>{G.copa[k]=tp==="arvore"?1:2;if(G.uso[k]<USO.rua&&!G.agua[k]){if(tp==="pedra"||Math.hypot((k%w+.5)*CS-x,(Math.floor(k/w)+.5)*CS-y)<Math.max(1.2,r*.25)){G.uso[k]=USO.arvore;G.dono[k]=n}}})}
   for(const t of W.extra||[]){if(!Array.isArray(t))continue;const n=G.obj({tipo:"arvore",nome:"Árvore",ref:t}),r=1.4*(t[2]||1);const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
   for(const [L,nm] of[[CAMPOS,"campo"],[QUINT,"horta"]])for(const n of L){const f=G.objs[n].ref,pl=f.poly||f._poly;if(!pl)continue;G.poly(pl,k=>{const u=G.uso[k];if(u===USO.muralha||u===USO.portao)G.conflito(nm+" na muralha",n,null,k);else if(u===USO.rua||u===USO.estrada)G.conflito(nm+" na estrada",n,null,k);else if(G.agua[k]&&u!==USO.ponte&&u!==USO.cais)G.conflito(nm+" na água",n,null,k)})}
   return G}
