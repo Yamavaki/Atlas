@@ -50,11 +50,11 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   if(G.bairro.every(v=>v<0))C.inner.forEach((p,ix)=>{if(!p.sea&&p.poly)G.poly(p.poly,k=>{G.bairro[k]=ix})});
   const set=(u,dono)=>(k)=>{G.uso[k]=u;if(dono!=null)G.dono[k]=dono};
   // 2. areas abertas: campos, quintais, pracas; dentro da cidade o que nao e quarteirao e rua
-  for(const f of C.fields||[])G.poly(f.poly,set(USO.campo));
+  const CAMPOS=[];for(const f of C.fields||[]){const n=G.obj({tipo:"campo",nome:f.orch?"Pomar":"Campo",ref:f});CAMPOS.push(n);G.poly(f.poly,set(USO.campo,n))}
   const BL=[];for(const p of C.patches||[]){if(p.sea)continue;for(const b of(p.blocks&&p.blocks.length?p.blocks:p.block?[p.block]:[]))if(b&&b.length>2)BL.push(b)}
   for(const p of C.inner||[]){if(p.sea||!p.poly)continue;G.poly(p.poly,(k,x,y)=>{if(!G.agua[k])G.uso[k]=USO.rua})}
   for(const b of BL)G.poly(b,k=>{if(G.uso[k]===USO.rua)G.uso[k]=USO.livre});
-  for(const y_ of C.yards||[])G.poly(y_.poly,set(USO.quintal));
+  const QUINT=[];for(const y_ of C.yards||[]){const n=G.obj({tipo:"quintal",nome:"Quintal",ref:y_});QUINT.push(n);G.poly(y_.poly,set(USO.quintal,n))}
   for(const q of C.squares||[])G.poly(q.poly,set(USO.praca));
   for(const r of C.roads||[])G.faixa(r,6.6,k=>{if(!G.agua[k]&&G.uso[k]<USO.rua)G.uso[k]=USO.estrada});
   for(const l of C.LINES||[])if(l.t==="road")G.faixa(l.pts,7.6,k=>{if(!G.agua[k]&&G.uso[k]<USO.rua)G.uso[k]=USO.estrada});
@@ -93,7 +93,15 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   for(const q of C.props||[]){if(!q.id)continue;const n=G.obj({tipo:q.id,nome:NAME[q.id]||q.id,key:q.key,ref:q});let F=null;if(AS&&AS.ficha)F=AS.ficha(q.id,q.race,q.v,q.ang||0,q.aov);const z=(q.s||1)*Z*(q.street?.85:1);
     if(F&&F.pegada.length)for(const P of pegada(q,F,z))pinta(P,n,q.id,USO.detalhe);else G.circ(q.x,q.y,3,k=>{if(G.uso[k]<USO.construcao){G.uso[k]=USO.detalhe;G.dono[k]=n}})}
   for(const t of C.trees||[]){const n=G.obj({tipo:"arvore",nome:"Árvore",ref:t}),r=1.6*(t[2]||1);const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
+  // vegetacao baixa e pedras soltas (mato), caminhos de fazenda, escadas do cais e bandeirolas (no ar: so registradas)
+  for(const z of C.NAT||[]){const n=G.obj({tipo:z[3]==="rock"?"pedra":"mato",nome:z[3]==="rock"?"Pedra":"Mato",ref:z}),r=1.2*(z[2]||1);const P=[];for(let a=0;a<8;a++)P.push([z[0]+Math.cos(a*.785)*r,z[1]+Math.sin(a*.785)*r]);pinta(P,n,"mato",USO.arvore)}
+  for(const fp of C.farmPaths||[]){const n=G.obj({tipo:"caminho",nome:"Caminho",ref:fp});G.faixa(fp,3,k=>{if(G.uso[k]<USO.rua&&!G.agua[k]){G.uso[k]=USO.estrada;G.dono[k]=n}})}
+  for(const z of C.QST||[]){const n=G.obj({tipo:"escada",nome:"Escada do cais",key:z.key,ref:z});G.circ(z.x,z.y,3,k=>{if(G.uso[k]<USO.construcao){G.uso[k]=USO.escada;G.dono[k]=n}})}
+  for(const z of C.bunting||[])G.obj({tipo:"bandeirolas",nome:"Bandeirolas",key:z.key,ref:z,aereo:1,a:z.a,b:z.b});
   for(const s of(C.ships||[]).concat(C.boats||[])){const n=G.obj({tipo:"barco",nome:"Barco"});G.circ(s.x,s.y,4,k=>{G.uso[k]=USO.barco;G.dono[k]=n})}
+
+  // 5. areas (campos e pomares): o que ficou por cima delas depois de tudo pintado
+  for(const [L,nm] of[[CAMPOS,"campo"],[QUINT,"quintal"]])for(const n of L){const f=G.objs[n].ref;if(!f.poly||f.poly.length<3)continue;G.poly(f.poly,k=>{const u=G.uso[k];if(u===USO.muralha||u===USO.portao)G.conflito(nm+" na muralha",n,null,k);else if(u===USO.rua||u===USO.estrada)G.conflito(nm+" na estrada",n,null,k);else if(G.agua[k]&&u!==USO.ponte&&u!==USO.cais)G.conflito(nm+" na água",n,null,k)})}
   return G}
 
 window.AtlasMundo={CS,USO,USON,AGUA,AGUAN,COR,AGUAOK,RUAOK,Grade,deCidade,inPoly};
