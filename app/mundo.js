@@ -66,7 +66,10 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   for(const [a,b] of C.piers||[]){const n=G.obj({tipo:"pier",nome:"Píer"});G.faixa([a,b],5,set(USO.cais,n))}
   for(const z of C.STR||[]){const n=G.obj({tipo:z.ramp?"rampa":"escada",nome:z.ramp?"Rampa":"Escada"});if(z.ramp)G.faixa([[z.x-z.dx*8,z.y-z.dy*8],[z.x+z.dx*8,z.y+z.dy*8]],z.w||7,set(USO.escada,n));else G.circ(z.x,z.y,(z.w||7)/2,set(USO.escada,n))}
   for(const wl of C.walls||[]){if(!wl.pts)continue;const n=G.obj({tipo:"muralha",nome:"Muralha"});const P=wl.closed?wl.pts.concat([wl.pts[0]]):wl.pts;G.faixa(P,4.5,(k)=>{G.uso[k]=USO.muralha;G.dono[k]=n})}
-  for(const g of C.gates||[]){const nd=C.nodes[g];if(!nd)continue;const n=G.obj({tipo:"portao",nome:"Portão"});G.circ(nd.x,nd.y,6.5,set(USO.portao,n));G.circ(nd.x,nd.y,14,k=>{G.reserva[k]|=1})}
+  for(const g of C.gates||[]){const n0=C.nodes[g];if(!n0)continue;let nd={x:n0.x,y:n0.y};
+    // o portao fica preso na linha da muralha, como no desenho (o no da rua pode ficar ate 24 unidades fora dela)
+    if(C.WALLON){let bd=24;for(const w of C.walls||[]){if(!w.pts)continue;const W2=w.pts,m=W2.length;for(let i=0;i<m-(w.closed?0:1);i++){const a=W2[i],b=W2[(i+1)%m],dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((n0.x-a[0])*dx+(n0.y-a[1])*dy)/l)),q={x:a[0]+dx*tt,y:a[1]+dy*tt},d=Math.hypot(q.x-n0.x,q.y-n0.y);if(d<bd){bd=d;nd=q}}}}
+    const n=G.obj({tipo:"portao",nome:"Portão"});G.circ(nd.x,nd.y,6.5,set(USO.portao,n));G.circ(nd.x,nd.y,14,k=>{G.reserva[k]|=1})}
   for(const b of C.bridgesR||[])for(const e of[b.a,b.b])G.circ(e[0],e[1],7,k=>{G.reserva[k]|=2});
   // 4. construcoes: casas (retangulo girado exato, mais a ala), especiais e adereços pela ficha (pegada no chao)
   const obbP=(x,y,a,L,D)=>{const c=Math.cos(a),s=Math.sin(a);return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[x+c*i*L/2-s*j*D/2,y+s*i*L/2+c*j*D/2])};
@@ -76,9 +79,9 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
         else if(u===USO.muralha||u===USO.portao)G.conflito("construção na muralha",n,null,k);
         else if(u===USO.ponte)G.conflito("construção na ponte",n,null,k);
         else if(G.agua[k]&&!AGUAOK.has(tipo)&&u!==USO.cais)G.conflito("construção na água",n,null,k)}
-      else if(uso===USO.detalhe){if(u===USO.construcao&&d>=0&&d!==n)G.conflito("adereço sobre construção",d,n,k);else if(G.agua[k]&&!AGUAOK.has(tipo)&&u!==USO.cais&&u!==USO.ponte)G.conflito("adereço na água",n,null,k);else if(u===USO.muralha)G.conflito("adereço na muralha",n,null,k)}
+      else if(uso===USO.detalhe){if(u===USO.construcao&&d>=0&&d!==n)G.conflito("adereço sobre construção",d,n,k);else if(G.agua[k]&&!AGUAOK.has(tipo)&&u!==USO.cais&&u!==USO.ponte)G.conflito("adereço na água",n,null,k);else if(u===USO.muralha||u===USO.portao)G.conflito("adereço na muralha",n,null,k);else if((G.reserva[k]&1)&&tipo!=="lamp")G.conflito("adereço na frente do portão",n,null,k)}
       else if(uso===USO.arvore){if(u===USO.construcao&&d>=0)G.conflito("árvore em construção",d,n,k);else if(u===USO.rua&&!opt.arvRua)G.conflito("árvore na rua",n,null,k)}
-      if(uso!==USO.arvore||u<USO.construcao){G.uso[k]=uso;G.dono[k]=n}})};
+      if((uso!==USO.arvore&&uso!==USO.detalhe)||u<USO.construcao){G.uso[k]=uso;G.dono[k]=n}})};
   const NAME=(AS&&AS.NAME)||{};
   for(const b of C.B||[]){if(b.k||!b.L)continue;const tp=b.form==="stilt"?"palafita":"casa",n=G.obj({tipo:tp,nome:b.form==="stilt"?"Casa sobre palafitas":"Casa",key:b.key,ref:b});pinta(obbP(b.x,b.y,b.ang||0,b.L,b.D),n,tp,USO.construcao);if(b.wing){const wg=b.wing;pinta(obbP(wg.x,wg.y,wg.ang||0,wg.L,wg.D),n,"casa",USO.construcao)}}
   const pegada=(q,F,z)=>{const L=[];for(const P of F.pegada)L.push(P.map(v=>[q.x+v[0]*z,q.y+v[1]*z]));return L};
@@ -89,7 +92,7 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
     if(F&&F.pegada.length)for(const P of pegada(q,F,z))pinta(P,n,tipo,USO.construcao);else G.circ(q.x,q.y,(q.r||12)*.7,k=>{pinta([[q.x-.1,q.y-.1],[q.x+.1,q.y-.1],[q.x,q.y+.1]],n,tipo,USO.construcao)})}
   for(const q of C.props||[]){if(!q.id)continue;const n=G.obj({tipo:q.id,nome:NAME[q.id]||q.id,key:q.key,ref:q});let F=null;if(AS&&AS.ficha)F=AS.ficha(q.id,q.race,q.v,q.ang||0,q.aov);const z=(q.s||1)*Z*(q.street?.85:1);
     if(F&&F.pegada.length)for(const P of pegada(q,F,z))pinta(P,n,q.id,USO.detalhe);else G.circ(q.x,q.y,3,k=>{if(G.uso[k]<USO.construcao){G.uso[k]=USO.detalhe;G.dono[k]=n}})}
-  for(const t of C.trees||[]){const n=G.obj({tipo:"arvore",nome:"Árvore"}),r=1.6*(t[2]||1);const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
+  for(const t of C.trees||[]){const n=G.obj({tipo:"arvore",nome:"Árvore",ref:t}),r=1.6*(t[2]||1);const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
   for(const s of(C.ships||[]).concat(C.boats||[])){const n=G.obj({tipo:"barco",nome:"Barco"});G.circ(s.x,s.y,4,k=>{G.uso[k]=USO.barco;G.dono[k]=n})}
   return G}
 
