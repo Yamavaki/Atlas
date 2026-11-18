@@ -595,7 +595,7 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto","eslava
   for(const e of P.edits||[]){if(e.t==="biome"){bEd.push(e);continue}if(e.t==="erase"){erList.push(e);continue}const tgt=e.t==="land"||e.t==="sea"?ladd:e.t==="up"||e.t==="down"?hadd:fadd,sg=(e.t==="land"||e.t==="up"||e.t==="forest")?1:-1,amt=tgt===ladd?1.5:tgt===hadd?.22:1;
     const i0=Math.max(0,((e.x-e.r)/G)|0),i1=Math.min(GW-1,((e.x+e.r)/G|0)+1),j0=Math.max(0,((e.y-e.r)/G)|0),j1=Math.min(GH-1,((e.y+e.r)/G|0)+1);
     for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const d=Math.hypot(i*G-e.x,j*G-e.y);if(d<e.r)tgt[j*GW+i]+=sg*amt*sstep(e.r,e.r*.35,d)}}
-  const form=P.form||"regiao",side=(rng()*4)|0,blobs=[],bays=[],lakes=[],cx0=WX*(.42+rng()*.16),cy0=WY*(.4+rng()*.14),edge=[[0,cy0],[WX,cy0],[cx0,0],[cx0,WY]][side];
+  const form=P.form||"regiao",side0=(rng()*4)|0,SS_={oeste:0,leste:1,norte:2,sul:3},side=SS_[P.seaSide]!=null?SS_[P.seaSide]:P.seaSide==="auto"?((mulberry((seed^0x5ea51)>>>0)()*4)|0):side0,blobs=[],bays=[],lakes=[],cx0=WX*(.42+rng()*.16),cy0=WY*(.4+rng()*.14),edge=[[0,cy0],[WX,cy0],[cx0,0],[cx0,WY]][side];
   const D0=Math.min(WX,WY),R1=()=>rng(),fbmW=makeNoise(seed^0x3c6e),fbmC=makeNoise(seed^0x91b2);
   // cadeia de massas ao longo de uma espinha curva (peninsulas, ilhas alongadas, bracos de continente)
   const spine=(x,y,ang,len,r0,r1,n,isl)=>{let a=ang;for(let i=0;i<n;i++){const t=i/Math.max(1,n-1),r=lerp(r0,r1,t)*(.75+R1()*.5);blobs.push([x,y,r*(1+R1()*.6),r*(.6+R1()*.5),R1()*3.14,isl?1:0]);a+=(R1()-.5)*1.1;const st=len/n;x+=Math.cos(a)*st;y+=Math.sin(a)*st}};
@@ -642,7 +642,12 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto","eslava
   const nRiv=P.rivers==null?1:P.rivers;
   const VR=P.vec&&P.vec.rivers;if(VR)for(const r of VR)if(r&&r.c&&r.c.length>1)addR(r.c,r.w||10);
   if(!VR&&form==="regiao"&&nRiv>0){const river=[];let x=-40,y=WY*(.3+.4*rng()),t=0;const p1=rng()*6.28,p2=rng()*6.28,M=.35+P.meander*1.05,cy=WY*.5;
-    while(x<WX+40&&t<1600){const th=M*(Math.sin(t*.034+p1)*1.15+Math.sin(t*.0125+p2)*.95)-(y-cy)*.0026;x+=Math.cos(th)*6;y+=Math.sin(th)*6;river.push([x,y]);t++}addR(simp(river,9),16)}
+    // direcao do rio principal: classico (oeste->leste) ou sorteada/escolhida entre 8 direcoes; o rio atravessa o mapa passando perto do centro
+    const RD_={"leste":0,"oeste":3.1416,"sul":1.5708,"norte":-1.5708,"sudeste":.7854,"nordeste":-.7854,"sudoeste":2.356,"noroeste":-2.356},rdA=RD_[P.riverDir]!=null?RD_[P.riverDir]:P.riverDir==="auto"?(mulberry((seed^0x41d77)>>>0)()*6.2832):null;
+    if(rdA==null){while(x<WX+40&&t<1600){const th=M*(Math.sin(t*.034+p1)*1.15+Math.sin(t*.0125+p2)*.95)-(y-cy)*.0026;x+=Math.cos(th)*6;y+=Math.sin(th)*6;river.push([x,y]);t++}}
+    else{const dx=Math.cos(rdA),dy=Math.sin(rdA),c0=[WX/2+(y-WY/2)*-dy*.6,WY/2+(y-WY/2)*dx*.6],Lh=Math.abs(dx)*WX/2+Math.abs(dy)*WY/2+60;x=c0[0]-dx*Lh;y=c0[1]-dy*Lh;
+      let inn=false;while(t<2000){const ins=x>-80&&y>-80&&x<WX+80&&y<WY+80;if(ins)inn=true;else if(inn)break;const off=(x-c0[0])*-dy+(y-c0[1])*dx,th=rdA+M*(Math.sin(t*.034+p1)*1.15+Math.sin(t*.0125+p2)*.95)-off*.0026;x+=Math.cos(th)*6;y+=Math.sin(th)*6;river.push([x,y]);t++}}
+    addR(simp(river,9),16)}
   for(let n=0,nt=VR?0:form==="regiao"?Math.max(0,nRiv-1):nRiv;n<nt;n++){let best=-1,bv=-1;
     for(let q=0;q<400;q++){const i=3+((rng()*(GW-6))|0),j=3+((rng()*(GH-6))|0),k=j*GW+i;if(land[k]<.2||rdist[k]<170||sd[k]*G<100)continue;const v=elev[k]+rng()*.2;if(v>bv){bv=v;best=k}}
     if(best<0)continue;const g=new Float32Array(N).fill(1e9),from=new Int32Array(N).fill(-1),done=new Uint8Array(N),H=heap();g[best]=0;H.push(0,best);let end=-1;
