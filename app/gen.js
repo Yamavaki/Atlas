@@ -591,7 +591,33 @@ function drawTent(c,x,y,race,s,big,flag){const T=TENT[race]||TENT.humano,[c0,c1]
     if(race==="japones"||race==="chines"){poly(c,[[px,py-ph],[px+2.6,py-ph],[px+2.6,py-ph+8],[px,py-ph+8]],race==="chines"?"#b8352a":"#f3eee2",INK);c.fillStyle=T.tr;c.beginPath();c.arc(px+1.3,py-ph+3,.8,0,7);c.fill()}
     else poly(c,[[px,py-ph],[px+6,py-ph+1.6],[px,py-ph+3.6]],T.tr==="#e8e0c8"||T.tr==="#f0e2b4"||T.tr==="#f6ead0"?"#a8352a":T.tr,INK)}}
 function drawFire(c,x,y){c.fillStyle="#3a2c1b";c.beginPath();c.ellipse(x,y,2,.9,0,0,7);c.fill();c.fillStyle="#e07a2a";c.beginPath();c.moveTo(x-1.4,y-.2);c.quadraticCurveTo(x-.6,y-2,x,y-3.8);c.quadraticCurveTo(x+.8,y-2,x+1.4,y-.2);c.fill();c.fillStyle="#f6c04a";c.beginPath();c.moveTo(x-.6,y-.2);c.lineTo(x,y-2.2);c.lineTo(x+.6,y-.2);c.fill()}
-function generate(P){if(!["europa","leste","sul","meso","estepe","misto","eslava","mediter","antigo","celta","andes","fantasia","industrial","piratas"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
+// regiao (gerador 61): conferencia final pela grade do mundo. Campo e horta que invadem agua, estrada, rua ou muralha sao cortados;
+// casa ou construcao que caiu em rua, agua, muralha, ponte ou em outra construcao procura um lugar livre perto, ou sai. Templo e castelo ficam.
+function verificaRegiao(W){const AM=window.AtlasMundo,AS=window.AtlasAssets;if(!AM||!AM.deRegiao)return null;const G=AM.deRegiao(W,AS),U=AM.USO;let mov=0,tir=0,cort=0,tirC=0;
+  const ruimA=k=>G.agua[k]||G.uso[k]===U.rua||G.uso[k]===U.estrada||G.uso[k]===U.muralha||G.uso[k]===U.portao||G.uso[k]===U.ponte;
+  const celsA=pl=>{const L=[];G.poly(pl,(k,x,y)=>{if(ruimA(k))L.push([x,y])});return L};
+  const clipH=(P_,mx,my,nx,ny)=>{const o=[],n=P_.length;for(let k=0;k<n;k++){const a=P_[k],b=P_[(k+1)%n],da=(a[0]-mx)*nx+(a[1]-my)*ny,db=(b[0]-mx)*nx+(b[1]-my)*ny;if(da<=0){o.push(a);if(db>0){const t=da/(da-db);o.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}else if(db<=0){const t=da/(da-db);o.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}return o};
+  const area=P_=>{let s=0;for(let i=0,j=P_.length-1;i<P_.length;j=i++)s+=(P_[j][0]+P_[i][0])*(P_[j][1]-P_[i][1]);return Math.abs(s/2)},cen=P_=>{let x=0,y=0;for(const v of P_){x+=v[0];y+=v[1]}return [x/P_.length,y/P_.length]};
+  for(let fi=(W.fieldsP||[]).length-1;fi>=0;fi--){const f=W.fieldsP[fi];if(!f.poly||f.poly.length<3)continue;let pl=f.poly,ok=true;const a0=area(pl);
+    for(let it=0;it<4;it++){const B_=celsA(pl);if(!B_.length)break;const c=cen(pl);let bx=0,by=0;for(const v of B_){bx+=v[0];by+=v[1]}bx/=B_.length;by/=B_.length;let nx=bx-c[0],ny=by-c[1];const l=Math.hypot(nx,ny);if(l<.5){ok=false;break}nx/=l;ny/=l;let hi=-1e9,lo=1e9;for(const v of pl){const d=(v[0]-c[0])*nx+(v[1]-c[1])*ny;hi=Math.max(hi,d);lo=Math.min(lo,d)}let best=null;for(let t=hi;t>lo;t-=2){const q=clipH(pl,c[0]+nx*t,c[1]+ny*t,nx,ny);if(q.length<3)break;const bb=celsA(q);if(!bb.length||bb.length<B_.length*.3){best=q;break}}if(!best){ok=false;break}pl=best}
+    if(ok&&celsA(pl).length>2)ok=false;if(!ok||area(pl)<a0*.35){W.fieldsP.splice(fi,1);tirC++}else if(pl!==f.poly){f.poly=pl;cort++}}
+  // hortas (retangulos): encolhem ate caber; se nao couber, saem. Arvores soltas na rua ou na agua saem.
+  const ret=(g,f)=>{const c=Math.cos(g.a||0),n=Math.sin(g.a||0);return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[g.x+c*i*g.w*f/2-n*j*g.h*f/2,g.y+n*i*g.w*f/2+c*j*g.h*f/2])};
+  for(let i=(W.gardens||[]).length-1;i>=0;i--){const g=W.gardens[i];if(!celsA(ret(g,1)).length)continue;let f=null;for(const z of[.85,.7,.55])if(!celsA(ret(g,z)).length){f=z;break}if(f){g.w*=f;g.h*=f;cort++}else{W.gardens.splice(i,1);tirC++}}
+  if(W.extra){const L=W.extra.filter(t=>{if(!Array.isArray(t))return true;const k=G.idx(t[0],t[1]);if(k<0)return true;const u=G.uso0?G.uso0[k]:G.uso[k];return !(u===U.rua||u===U.estrada||G.agua[k])});W.extra.length=0;W.extra.push(...L)}
+  const NATK=new Set([2,3,13,15,21,25,26,27,28,37]),RR={8:6,16:12,17:12,18:4,19:6,20:9,22:12,23:8,24:4,7:2.4,6:2.6,32:3,33:6,34:2,35:2,36:2};
+  const forma=(b,dx,dy)=>{if(b.k===1&&b.L){const c=Math.cos(b.ang||0),s=Math.sin(b.ang||0);const L_=[[[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[b.x+dx+c*i*b.L/2-s*j*b.D/2,b.y+dy+s*i*b.L/2+c*j*b.D/2])];if(b.wing&&b.wing.L){const w=b.wing,c2=Math.cos(w.ang!=null?w.ang:(b.ang||0)),s2=Math.sin(w.ang!=null?w.ang:(b.ang||0)),wx=b.x+dx+(w.dx||0),wy=b.y+dy+(w.dy||0);L_.push([[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[wx+c2*i*w.L/2-s2*j*w.D/2,wy+s2*i*w.L/2+c2*j*w.D/2]))}return L_}if(b.k===40&&b.id&&AS&&AS.ficha){const F=AS.ficha(b.id,b.race,b.vv,b.ang||0);if(F&&F.pegada.length)return F.pegada.map(P_=>P_.map(v=>[b.x+dx+v[0],b.y+dy+v[1]]))}const r=(b.r||RR[b.k]||5)*.65,P_=[];for(let a=0;a<10;a++)P_.push([b.x+dx+Math.cos(a*.628)*r,b.y+dy+Math.sin(a*.628)*r]);return [P_]};
+  const ehDetalhe=b=>b.k===40||b.k===6||b.k===7||b.k===32||b.k===34||b.k===35||b.k===36;
+  // dono de cada celula contado de novo pelas formas (a grade guarda so o ultimo pintado; aqui sobreposicao conta)
+  const OW=new Int32Array(G.w*G.h).fill(-1),NC=new Uint8Array(G.w*G.h),NB=new Map();for(const o of G.objs){if(!o.ref||o.ref.k==null||NATK.has(o.ref.k)&&o.ref.k!==2&&o.ref.k!==3)continue;NB.set(o.ref,o.n)}
+  const regO=(L,n)=>{for(const P_ of L)G.poly(P_,k=>{if(OW[k]!==n){if(OW[k]<0)OW[k]=n;else NC[k]=Math.min(250,NC[k]+1)}})};for(const [b,n] of NB){const pl=G.objs[n].polys;regO(pl&&pl.length?pl:forma(b,0,0),n)}
+  const cabe=(L,n,det)=>{let ok=true;for(const P_ of L)G.poly(P_,k=>{if(!ok)return;const u=G.uso0?G.uso0[k]:G.uso[k];if(G.agua[k]&&u!==U.cais&&u!==U.ponte||u===U.muralha||u===U.portao||u===U.ponte||(OW[k]>=0&&(OW[k]!==n||NC[k]>0))||(!det&&(u===U.rua||u===U.estrada)))ok=false});return ok};
+  const mexer=new Map();for(const c of G.lista()){if(!/^construção|^adereço/.test(c.tipo))continue;let n=c.tipo==="construção sobre construção"?c.b:c.tipo==="adereço sobre construção"?c.b:c.a;let o=G.objs[n];if(c.tipo==="construção sobre construção"&&o&&o.ref&&NATK.has(o.ref.k)){n=c.a;o=G.objs[n]}if(o&&o.ref&&!NATK.has(o.ref.k))mexer.set(n,o.ref)}
+  const fora=new Set();for(const [n,b] of mexer){const det=ehDetalhe(b);let feito=false;for(const d of[2,3,4,6,8,10,13])for(let a=0;a<12&&!feito;a++){const dx=Math.cos(a*.5236)*d,dy=Math.sin(a*.5236)*d,L=forma(b,dx,dy);if(cabe(L,n,det)){for(const P_ of forma(b,0,0))G.poly(P_,k=>{if(OW[k]===n&&!NC[k])OW[k]=-1;else if(NC[k]>0)NC[k]--});b.x+=dx;b.y+=dy;if(b.cy!=null)b.cy+=dy;regO(L,n);feito=true}}if(feito)mov++;else{fora.add(b);tir++}}
+  if(fora.size){const L=W.B.filter(b=>!fora.has(b));W.B.length=0;W.B.push(...L)}
+  return {mov,tir,cort,tirC}}
+function generate(P){const W=generate0(P);if((P.gv==null?61:P.gv)>=61&&W&&W.B){try{W.VERIF=verificaRegiao(W)}catch(e){console.warn("verificaRegiao",e)}}return W}
+function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslava","mediter","antigo","celta","andes","fantasia","industrial","piratas"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
   setScale(P.size||1);
   const seed=hashStr(P.seed),rng=mulberry(seed),fbm=makeNoise(seed^0x9e37),fbm2=makeNoise(seed^0x51f1);
   const pick=a=>a[(rng()*a.length)|0];
@@ -1026,7 +1052,7 @@ function generate(P){if(!["europa","leste","sul","meso","estepe","misto","eslava
     for(const [b] of order){const poly=fp(b),gx=(b.x/40)|0,gy=(b.y/40)|0,grp=b.k===40||b.k===6||b.k===7?"p"+b.ti:null;let bad=false;for(let a=-2;a<=2&&!bad;a++)for(let c2=-2;c2<=2&&!bad;c2++)for(const z of G.get((gx+a)+"_"+(gy+c2))||[]){if(grp&&z.grp===grp)continue;if(satN(poly,z.poly)){bad=true;break}}
       if(bad&&pri(b)<8){drop.add(b);continue}const k=gx+"_"+gy;(G.get(k)||G.set(k,[]).get(k)).push({poly,grp})}
     for(let i=B.length-1;i>=0;i--)if(drop.has(B[i]))B.splice(i,1)}
-  return {vmask,mmask,lava,erList,ponds,biome,snow,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP:(()=>{for(const fp of fieldsP){let x=0,y=0;for(const p of fp.poly){x+=p[0];y+=p[1]}fp.key="fp:"+Math.round(x/fp.poly.length)+":"+Math.round(y/fp.poly.length)}return fieldsP})(),piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
+  return {WX,WY,vmask,mmask,lava,erList,ponds,biome,snow,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP:(()=>{for(const fp of fieldsP){let x=0,y=0;for(const p of fp.poly){x+=p[0];y+=p[1]}fp.key="fp:"+Math.round(x/fp.poly.length)+":"+Math.round(y/fp.poly.length)}return fieldsP})(),piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
 }
 
 // ---------- desenho ----------

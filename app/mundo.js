@@ -104,5 +104,36 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   for(const [L,nm] of[[CAMPOS,"campo"],[QUINT,"quintal"]])for(const n of L){const f=G.objs[n].ref;if(!f.poly||f.poly.length<3)continue;G.poly(f.poly,k=>{const u=G.uso[k];if(u===USO.muralha||u===USO.portao)G.conflito(nm+" na muralha",n,null,k);else if(u===USO.rua||u===USO.estrada)G.conflito(nm+" na estrada",n,null,k);else if(G.agua[k]&&u!==USO.ponte&&u!==USO.cais)G.conflito(nm+" na água",n,null,k)})}
   return G}
 
-window.AtlasMundo={CS,USO,USON,AGUA,AGUAN,COR,AGUAOK,RUAOK,Grade,deCidade,inPoly};
+// grade de uma regiao (0.61): agua, estradas, ruas das vilas, pontes, muralhas, campos, hortas, lagoas e todas as construcoes
+function deRegiao(W,AS){const AG=window.AtlasGen,WX=W.WX||1440,WY=W.WY||1500,G=Grade(WX,WY),w=G.w,h=G.h,sg=AG.sampleGrid,sst=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+  const wet=(x,y)=>{const l=sg(W.land,x,y);return l<.04||sg(W.rdist,x,y)<12.5*(1+1.7*sst(.16,-.02,l))};
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const k=j*w+i,x=(i+.5)*CS,y=(j+.5)*CS;if(i%3===0&&j%3===0)G.alt[k]=sg(W.elev,x,y);else G.alt[k]=G.alt[Math.floor(j/3)*3*w+Math.floor(i/3)*3];const l=sg(W.land,x,y);if(l<.04)G.agua[k]=AGUA.mar;else if(wet(x,y))G.agua[k]=AGUA.rio}
+  for(const p of W.ponds||[]){const n=G.obj({tipo:"lagoa",nome:"Lagoa",ref:p}),c=Math.cos(p.a||0),s=Math.sin(p.a||0),P=[];for(let a=0;a<16;a++){const u=Math.cos(a*.3927)*p.w/2,v=Math.sin(a*.3927)*p.h/2;P.push([p.x+c*u-s*v,p.y+s*u+c*v])}G.poly(P,k=>{G.agua[k]=AGUA.lago})}
+  const set=(u,dono)=>(k)=>{G.uso[k]=u;if(dono!=null)G.dono[k]=dono};
+  const CAMPOS=[];for(const f of W.fieldsP||[]){if(!f.poly||f.poly.length<3)continue;const n=G.obj({tipo:"campo",nome:"Campo",ref:f});CAMPOS.push(n);G.poly(f.poly,set(USO.campo,n))}
+  const QUINT=[];for(const g of W.gardens||[]){const n=G.obj({tipo:"quintal",nome:"Horta",ref:g}),c=Math.cos(g.a||0),s=Math.sin(g.a||0),P=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[g.x+c*i*g.w/2-s*j*g.h/2,g.y+s*i*g.w/2+c*j*g.h/2]);g._poly=P;QUINT.push(n);G.poly(P,set(USO.quintal,n))}
+  for(const r of W.roads||[]){const n=G.obj({tipo:"estrada",nome:"Estrada",ref:r});G.faixa(r,5,k=>{if(!G.agua[k]){G.uso[k]=USO.estrada;G.dono[k]=n}})}
+  (W.towns||[]).forEach((t,ti)=>{for(const st of t.streets||[]){const n=G.obj({tipo:"rua",nome:"Rua de "+(t.name||"vila"),ref:st});G.faixa(st,4,k=>{if(!G.agua[k]){G.uso[k]=USO.rua;G.dono[k]=n}})}});
+  for(const b of W.bridges||[]){const n=G.obj({tipo:"ponte",nome:"Ponte",ref:b});G.faixa([b[0],b[1]],6,set(USO.ponte,n));for(const e of b)G.circ(e[0],e[1],6,k=>{G.reserva[k]|=2})}
+  for(const wl of W.walls||[]){const n=G.obj({tipo:"muralha",nome:"Muralha",ref:wl});for(const z of wl.segs||[]){if(z.sea)continue;if(z.gate){const m=[(z.a[0]+z.b[0])/2,(z.a[1]+z.b[1])/2],g=G.obj({tipo:"portao",nome:"Portão"});G.circ(m[0],m[1],5,set(USO.portao,g));G.circ(m[0],m[1],11,k=>{G.reserva[k]|=1});continue}G.faixa([z.a,z.b],3.5,k=>{G.uso[k]=USO.muralha;G.dono[k]=n})}}
+  for(const p of W.piers||[]){const n=G.obj({tipo:"pier",nome:"Píer",ref:p});const L=Array.isArray(p)?p:(p.pts||[p.a,p.b]);if(L&&L.length>1&&L[0])G.faixa(L,4,set(USO.cais,n))}
+  G.uso0=G.uso.slice();// chao antes das construcoes (rua, estrada, muralha, ponte ficam conhecidas mesmo debaixo de uma casa)
+  const obbP=(x,y,a,L,D)=>{const c=Math.cos(a),s=Math.sin(a);return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[x+c*i*L/2-s*j*D/2,y+s*i*L/2+c*j*D/2])};
+  const pinta=(P,n,tipo,uso)=>{(G.objs[n].polys=G.objs[n].polys||[]).push(P);G.poly(P,k=>{const u=G.uso[k],d=G.dono[k];
+      if(uso===USO.construcao){if(u===USO.construcao&&d!==n&&d>=0)G.conflito("construção sobre construção",Math.min(d,n),Math.max(d,n),k);else if((u===USO.rua||u===USO.estrada)&&!RUAOK.has(tipo))G.conflito("construção na rua",n,null,k);else if(u===USO.muralha||u===USO.portao)G.conflito("construção na muralha",n,null,k);else if(u===USO.ponte)G.conflito("construção na ponte",n,null,k);else if(G.agua[k]&&!AGUAOK.has(tipo)&&u!==USO.cais)G.conflito("construção na água",n,null,k)}
+      else if(uso===USO.detalhe){if(u===USO.construcao&&d>=0&&d!==n)G.conflito("adereço sobre construção",d,n,k);else if(G.agua[k]&&!AGUAOK.has(tipo)&&u!==USO.cais&&u!==USO.ponte)G.conflito("adereço na água",n,null,k);else if(u===USO.muralha)G.conflito("adereço na muralha",n,null,k)}
+      else if(uso===USO.arvore){if(u===USO.construcao&&d>=0)G.conflito("árvore em construção",d,n,k);else if(u===USO.rua)G.conflito("árvore na rua",n,null,k)}
+      if((uso!==USO.arvore&&uso!==USO.detalhe)||u<USO.construcao){G.uso[k]=uso;G.dono[k]=n}})};
+  const NAME=(AS&&AS.NAME)||{},KN={1:"Casa",2:"Templo",3:"Castelo",6:"Estátua",7:"Poço",8:"Torre de vigia",13:"Barco",15:"Vulcão",16:"Ruína",17:"Ruína",18:"Totem",19:"Moinho",20:"Santuário",21:"Pedra",22:"Mina",23:"Acampamento",24:"Marco",25:"Arco",26:"Arco",27:"Agulhas",28:"Rochedo",32:"Tenda",33:"Comando",34:"Fogueira",35:"Cavalos",36:"Boneco de treino"},RR={2:14,8:6,16:12,17:12,18:4,19:6,20:9,21:5,22:12,23:8,24:4,25:10,26:14,27:14,28:14,7:2.4,6:2.6,32:3,33:6,34:2,35:2,36:2};
+  const NAT=new Set([15,21,25,26,27,28]),AGUAK=new Set([13]);
+  for(const b of W.B||[]){if(b.k===37)continue;
+    if(b.k===1&&b.L){const n=G.obj({tipo:"casa",nome:"Casa",ref:b});pinta(obbP(b.x,b.y,b.ang||0,b.L,b.D),n,"casa",USO.construcao);if(b.wing&&b.wing.L){const wg=b.wing;pinta(obbP(b.x+(wg.dx||0),b.y+(wg.dy||0),wg.ang!=null?wg.ang:(b.ang||0),wg.L,wg.D),n,"casa",USO.construcao)}continue}
+    if(b.k===40&&b.id&&AS&&AS.ficha){const n=G.obj({tipo:b.id,nome:NAME[b.id]||b.id,ref:b}),F=AS.ficha(b.id,b.race,b.vv,b.ang||0);if(F&&F.pegada.length){for(const P of F.pegada)pinta(P.map(v=>[b.x+v[0],b.y+v[1]]),n,b.id,USO.detalhe)}else G.circ(b.x,b.y,3,k=>{});continue}
+    if((b.k===2||b.k===3)&&AS&&AS.fichaDe&&AG.kit&&AG.kit.drawBig){const qq=Object.assign({},b,{x:0,y:0});const F=AS.fichaDe("rbig|"+b.k+"|"+b.race+"|"+(b.v||0).toFixed(2)+"|"+(b.ang||0).toFixed(2)+"|"+(b.big?1:0)+"|"+(b.ms||1)+"|"+(b.sz||1),c=>AG.kit.drawBig(c,qq)),n=G.obj({tipo:b.k===2?"templo":"castelo",nome:KN[b.k],ref:b});if(F&&F.pegada.length)for(const P of F.pegada)pinta(P.map(v=>[b.x+v[0],b.y+v[1]]),n,b.k===2?"templo":"castelo",USO.construcao);continue}
+    const r=(b.r||RR[b.k]||5)*.65,n=G.obj({tipo:NAT.has(b.k)?"natural":AGUAK.has(b.k)?"barco":"k"+b.k,nome:KN[b.k]||("Objeto "+b.k),ref:b}),P=[];for(let a=0;a<10;a++)P.push([b.x+Math.cos(a*.628)*r,b.y+Math.sin(a*.628)*r]);
+    if(AGUAK.has(b.k)){G.circ(b.x,b.y,r,k=>{G.uso[k]=USO.barco;G.dono[k]=n});continue}pinta(P,n,NAT.has(b.k)?"natural":"k"+b.k,b.k===6||b.k===7||b.k===34||b.k===35||b.k===36||b.k===32?USO.detalhe:USO.construcao)}
+  for(const t of W.extra||[]){if(!Array.isArray(t))continue;const n=G.obj({tipo:"arvore",nome:"Árvore",ref:t}),r=1.4*(t[2]||1);const P=[];for(let a=0;a<8;a++)P.push([t[0]+Math.cos(a*.785)*r,t[1]+Math.sin(a*.785)*r]);pinta(P,n,"arvore",USO.arvore)}
+  for(const [L,nm] of[[CAMPOS,"campo"],[QUINT,"horta"]])for(const n of L){const f=G.objs[n].ref,pl=f.poly||f._poly;if(!pl)continue;G.poly(pl,k=>{const u=G.uso[k];if(u===USO.muralha||u===USO.portao)G.conflito(nm+" na muralha",n,null,k);else if(u===USO.rua||u===USO.estrada)G.conflito(nm+" na estrada",n,null,k);else if(G.agua[k]&&u!==USO.ponte&&u!==USO.cais)G.conflito(nm+" na água",n,null,k)})}
+  return G}
+window.AtlasMundo={deRegiao,CS,USO,USON,AGUA,AGUAN,COR,AGUAOK,RUAOK,Grade,deCidade,inPoly};
 })();
