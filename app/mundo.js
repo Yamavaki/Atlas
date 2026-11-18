@@ -68,7 +68,7 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   for(const wl of C.walls||[]){if(!wl.pts)continue;const n=G.obj({tipo:"muralha",nome:"Muralha"});const P=wl.closed?wl.pts.concat([wl.pts[0]]):wl.pts;G.faixa(P,4.5,(k)=>{G.uso[k]=USO.muralha;G.dono[k]=n})}
   for(const g of C.gates||[]){const n0=C.nodes[g];if(!n0)continue;let nd={x:n0.x,y:n0.y};
     // o portao fica preso na linha da muralha, como no desenho (o no da rua pode ficar ate 24 unidades fora dela)
-    if(C.WALLON){let bd=24;for(const w of C.walls||[]){if(!w.pts)continue;const W2=w.pts,m=W2.length;for(let i=0;i<m-(w.closed?0:1);i++){const a=W2[i],b=W2[(i+1)%m],dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((n0.x-a[0])*dx+(n0.y-a[1])*dy)/l)),q={x:a[0]+dx*tt,y:a[1]+dy*tt},d=Math.hypot(q.x-n0.x,q.y-n0.y);if(d<bd){bd=d;nd=q}}}}
+    if(C.WALLON){let bd=C.GATESNAP||24;for(const w of C.walls||[]){if(!w.pts)continue;const W2=w.pts,m=W2.length;for(let i=0;i<m-(w.closed?0:1);i++){const a=W2[i],b=W2[(i+1)%m],dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((n0.x-a[0])*dx+(n0.y-a[1])*dy)/l)),q={x:a[0]+dx*tt,y:a[1]+dy*tt},d=Math.hypot(q.x-n0.x,q.y-n0.y);if(d<bd){bd=d;nd=q}}}}
     const n=G.obj({tipo:"portao",nome:"Portão"});G.circ(nd.x,nd.y,6.5,set(USO.portao,n));G.circ(nd.x,nd.y,14,k=>{G.reserva[k]|=1})}
   for(const b of C.bridgesR||[])for(const e of[b.a,b.b])G.circ(e[0],e[1],7,k=>{G.reserva[k]|=2});
   // 4. construcoes: casas (retangulo girado exato, mais a ala), especiais e adereços pela ficha (pegada no chao)
