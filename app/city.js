@@ -797,13 +797,6 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
       for(const op2 of runs){if(op2.length<4)continue;C._moat.push(op2);const cl=CL&&runs.length===1&&op2.length>n,pthM=()=>{c.beginPath();op2.forEach((q,i)=>{const z=pjB(q[0],q[1]);i?c.lineTo(z[0],z[1]):c.moveTo(z[0],z[1])});if(cl)c.closePath()};c.lineJoin="round";c.lineCap="round";pthM();c.strokeStyle="#5a5040";c.lineWidth=17;c.stroke();pthM();c.strokeStyle="#6d98a3";c.lineWidth=13;c.stroke();pthM();c.strokeStyle="rgba(220,236,236,.35)";c.lineWidth=1;c.setLineDash([4,7]);c.stroke();c.setLineDash([])}}}
   if(false){for(const w of []){const op=[];
     c.lineJoin="round";path(op,true);c.strokeStyle="#5a5040";c.lineWidth=17;c.stroke();path(op,true);c.strokeStyle="#6d98a3";c.lineWidth=13;c.stroke();path(op,true);c.strokeStyle="rgba(220,236,236,.35)";c.lineWidth=1;c.setLineDash([4,7]);c.stroke();c.setLineDash([])}}
-  // steampunk: encanamentos ao longo de algumas ruas, em cima de estacas, com valvulas e juntas
-  if(P.culture==="vapor"){const rp=A.mulberry((C.seed^0x919)>>>0);for(const e of C.edges){if(!(e.in>0)||e.sea||e.bridge||e.len<30||rp()>.45)continue;const a=[C.nodes[e.a].x,C.nodes[e.a].y],b=[C.nodes[e.b].x,C.nodes[e.b].y],L=e.len,ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L,sd=rp()<.5?1:-1,o=(C.mainE.has(e)?6:4.6)*sd,ox=-uy*o,oy=ux*o,t0=6,t1=L-6;
-      const pt=(t,h)=>{const x=a[0]+ux*t+ox,y=a[1]+uy*t+oy,q=pjB?pjB(x,y):pj(x,y);return [q[0],q[1]-h]};if(C.rw&&[.2,.5,.8].some(f=>C.rd(a[0]+ux*L*f+ox,a[1]+uy*L*f+oy)<C.rw+3))continue;
-      for(let t=t0;t<=t1;t+=11){const g=pt(t,0),h=pt(t,3.2);c.strokeStyle=INK;c.lineWidth=1.6;c.beginPath();c.moveTo(g[0],g[1]);c.lineTo(h[0],h[1]);c.stroke();c.strokeStyle="#4a4d50";c.lineWidth=.8;c.stroke()}
-      const two=rp()<.5;for(const [dh,col] of two?[[3.2,"#a8623a"],[4.8,"#7c8086"]]:[[3.6,rp()<.5?"#a8623a":"#9a6a32"]]){const A_=pt(t0,dh),B_=pt(t1,dh);c.lineCap="round";c.strokeStyle=INK;c.lineWidth=2.6;c.beginPath();c.moveTo(A_[0],A_[1]);c.lineTo(B_[0],B_[1]);c.stroke();c.strokeStyle=col;c.lineWidth=1.6;c.stroke();c.strokeStyle="rgba(255,255,255,.28)";c.lineWidth=.5;c.beginPath();c.moveTo(A_[0],A_[1]-.5);c.lineTo(B_[0],B_[1]-.5);c.stroke();c.lineCap="butt";
-        for(let t=t0+5;t<t1;t+=16){const q=pt(t,dh);c.fillStyle="#5a3a24";c.fillRect(q[0]-.7,q[1]-1.3,1.4,2.6)}}
-      if(L>50){const q=pt(L/2,3.6);c.fillStyle="#c9a24a";c.strokeStyle=INK;c.lineWidth=.5;c.beginPath();c.arc(q[0],q[1]-1.8,1.3,0,7);c.fill();c.stroke()}}}
   // 5. agua por cima (recorta o que caiu na agua), cais, pontes e pieres; o tampo dos patamares fica na frente da agua mais baixa
   if(TER&&C.TBL&&C.TBL.length){const tc=document.createElement("canvas");tc.width=wc.width;tc.height=wc.height;const g=tc.getContext("2d");g.drawImage(wc,0,0);g.globalCompositeOperation="destination-out";g.fillStyle="#000";for(const b of C.TBL){g.beginPath();b.poly.forEach((v,i)=>{const q=PE(v[0],v[1],b.h);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.closePath();g.fill()}c.drawImage(tc,0,0)}else c.drawImage(wc,0,0);
   // cais dos rios e canais na cidade: muro de pedra na margem de tras (face virada para quem olha), beirada de pedra na margem da frente;
@@ -935,7 +928,26 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
       if(cov>area*.5)drop.add(b.q)}window.__drop=drop.size;
     for(let i=obj.length-1;i>=0;i--)if(drop.has(obj[i]))obj.splice(i,1)}
   for(const m of opt.objs||[]){if(STM.has(m)||QSM.has(m)){const z=STM.get(m)||QSM.get(m);obj.push(Object.assign({},z,{k:"M",m,st:z}));continue}const p=pj(m.x,m.y);obj.push({k:"M",m,src:m,x:p[0],y:p[1],d:m.y})}
-  for(const z of STO)if(!STM.has(z.src))obj.push(z);for(const z of QSO)if(!QSM.has(z.src))obj.push(z);
+  for(const z of STO)if(!STM.has(z.src))obj.push(z);
+  // steampunk: encanamentos na beira de algumas ruas, sobre estacas; so onde a rua e plana e livre; nas pontas o cano faz curva e desce para o chao
+  // (ou entra na parede da casa mais perto); entram na ordem de profundidade em pedacos, para casas e muros ficarem certos na frente ou atras
+  if(P.culture==="vapor"){const rp=A.mulberry((C.seed^0x919)>>>0),WSG=[];if(C.WALLON)for(const w of C.walls){if(!w.pts)continue;const n_=w.pts.length;for(let i=0;i<n_-(w.closed?0:1);i++)WSG.push([w.pts[i],w.pts[(i+1)%n_]])}
+    const blocked=(x,y)=>C.land(x,y)<.08||(C.rw&&C.rd(x,y)<C.rw+5)||WSG.some(([a,b])=>segD(x,y,a,b)<12)||(C.bridgesR||[]).some(z=>segD(x,y,z.a,z.b)<14)||C.B.some(h=>!h.k&&Math.abs(h.x-x)<30&&Math.abs(h.y-y)<30&&Math.hypot(h.x-x,h.y-y)<Math.min(h.L,h.D)*.45)||C.SPB.some(q=>Math.abs(q.x-x)<40&&Math.abs(q.y-y)<40&&Math.hypot(q.x-x,q.y-y)<(q.k===2?40:q.k===3?70:((AS.SIZE[q.id]||[8])[0])*Z*.45));
+    for(const e of C.edges){if(!(e.in>0)||e.sea||e.bridge||e.len<34||rp()>.4)continue;const a=[C.nodes[e.a].x,C.nodes[e.a].y],b=[C.nodes[e.b].x,C.nodes[e.b].y],L=e.len,ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L,sd=rp()<.5?1:-1,o=((C.GRAND&&C.GRAND.has(e))?12:C.mainE.has(e)?7.5:5.4)*sd,ox=-uy*o,oy=ux*o;
+      const wp=t=>[a[0]+ux*t+ox,a[1]+uy*t+oy];let t0=9,t1=L-9;// so o trecho continuo livre e no mesmo nivel
+      const h0=BASE(...wp(L/2));let best=null,run0=null;for(let t=t0;t<=t1+.01;t+=3){const q=wp(t),ok=!blocked(q[0],q[1])&&Math.abs(BASE(q[0],q[1])-h0)*KE<.6;if(ok&&run0==null)run0=t;if((!ok||t>t1-3)&&run0!=null){const e_=ok?t:t-3;if(!best||e_-run0>best[1]-best[0])best=[run0,e_];run0=null}}
+      if(!best||best[1]-best[0]<24)continue;[t0,t1]=best;const two=rp()<.4,cols=two?[[3.4,"#a8623a"],[5,"#7c8086"]]:[[3.8,rp()<.5?"#a8623a":"#9a6a32"]],pt=(t,hh)=>{const q=wp(t),z=PE(q[0],q[1],h0);return [z[0],z[1]-hh]};
+      // ponta: entra na parede de uma casa ao lado se houver, senao desce para o chao com curva
+      const endK=t=>{const q=wp(t),sx=-uy*sd,sy=ux*sd;for(const d of[5,7,9]){const x=q[0]+sx*d,y=q[1]+sy*d;if(C.B.some(h=>!h.k&&Math.hypot(h.x-x,h.y-y)<Math.min(h.L,h.D)*.5))return {wall:[x,y]}}return null},E0=endK(t0),E1=endK(t1);
+      const N=Math.max(1,Math.ceil((t1-t0)/18));for(let k=0;k<N;k++){const a_=t0+(t1-t0)*k/N,b_=t0+(t1-t0)*(k+1)/N,qa=wp(a_),qb=wp(b_),first=k===0,last=k===N-1;
+        obj.push({k:"PIPE",T:1,d:Math.max(qa[1],qb[1])+.5,y:Math.max(pt(a_,0)[1],pt(b_,0)[1]),x:(pt(a_,0)[0]+pt(b_,0)[0])/2,draw:c=>{
+          for(let t=Math.ceil((a_-t0)/11)*11+t0;t<=b_;t+=11){const g=pt(t,0),hh=pt(t,cols[cols.length-1][0]+.4);c.strokeStyle=INK;c.lineWidth=1.6;c.beginPath();c.moveTo(g[0],g[1]);c.lineTo(hh[0],hh[1]);c.stroke();c.strokeStyle="#4a4d50";c.lineWidth=.8;c.stroke()}
+          for(const [dh,col] of cols){const A_=pt(a_,dh),B_=pt(b_,dh),seg=pts=>{c.lineCap="round";c.lineJoin="round";c.beginPath();pts.forEach((z,i)=>z.length===4?c.quadraticCurveTo(z[0],z[1],z[2],z[3]):i?c.lineTo(z[0],z[1]):c.moveTo(z[0],z[1]));c.strokeStyle=INK;c.lineWidth=2.6;c.stroke();c.strokeStyle=col;c.lineWidth=1.6;c.stroke()};
+            const L_=[];if(first){if(E0){const z=PE(E0.wall[0],E0.wall[1],h0);L_.push([z[0],z[1]-dh-1.5],A_)}else{const g=pt(a_,0),cq=pt(a_,dh),e_=pt(Math.min(b_,a_+4),dh);L_.push(g,[cq[0],cq[1],e_[0],e_[1]])}}else L_.push(A_);
+            if(last){if(E1){const z=PE(E1.wall[0],E1.wall[1],h0);L_.push(B_,[z[0],z[1]-dh-1.5])}else{const s_=pt(Math.max(a_,b_-4),dh),cq=pt(b_,dh),g=pt(b_,0);L_.push(s_,[cq[0],cq[1],g[0],g[1]])}}else L_.push(B_);
+            seg(L_);c.strokeStyle="rgba(255,255,255,.28)";c.lineWidth=.5;c.beginPath();c.moveTo(A_[0],A_[1]-.5);c.lineTo(B_[0],B_[1]-.5);c.stroke();c.lineCap="butt";
+            for(const [t,E] of[[a_,first?E0:1],[b_,last?E1:1]])if(E===null){const z=pt(t,0);c.fillStyle="#3d3f42";c.strokeStyle=INK;c.lineWidth=.5;c.beginPath();c.ellipse(z[0],z[1],2.2,1.1,0,0,7);c.fill();c.stroke()}}
+          if(N>2&&k===(N>>1)){const q=pt((a_+b_)/2,cols[0][0]);c.fillStyle="#c9a24a";c.strokeStyle=INK;c.lineWidth=.5;c.beginPath();c.arc(q[0],q[1]-1.8,1.3,0,7);c.fill();c.stroke()}}})}}}for(const z of QSO)if(!QSM.has(z.src))obj.push(z);
   for(const q of obj)q.ly=lyOf(q.src&&q.src.ly,q.id);
   if(C._moat&&C._moat.length){const ML=C._moat,inM=(x,y,r)=>ML.some(L=>{for(let i=0;i+1<L.length;i++)if(Math.abs(L[i][0]-x)<40&&Math.abs(L[i][1]-y)<40&&segD(x,y,L[i],L[i+1])<r)return true;return false});
     for(let i=obj.length-1;i>=0;i--){const q=obj[i],sr=q.src;if(!sr||q.k===40||q.gate||q.m||q.T||sr.x==null)continue;if(inM(sr.x,sr.y,9))obj.splice(i,1)}}
@@ -972,7 +984,7 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
   const drawPod=(c,q)=>{const P_=q.pod,h=q.hz,n=P_.length,WCp=["#c4bcaa","#8f8878"],top=P_.map(v=>PE(v[0],v[1],h)),bot=P_.map(v=>PE(v[0],v[1],Math.min(h,BASE(v[0],v[1]))));c.lineWidth=.6;
     for(let k=0;k<n;k++){const k2=(k+1)%n,a=P_[k],b=P_[k2],nx=(b[1]-a[1]),ny=-(b[0]-a[0]),cc=[q.wx-a[0],q.wy-a[1]];const sgn=(nx*cc[0]+ny*cc[1])>0?-1:1;if(ny*sgn<=0)continue;if(bot[k][1]-top[k][1]<.6&&bot[k2][1]-top[k2][1]<.6)continue;K.poly(c,[top[k],top[k2],bot[k2],bot[k]],K.mixc(WCp[1],WCp[0],clamp(.5-nx*sgn/Math.hypot(nx,ny)*.6,0,1)),INK)}
     K.poly(c,top,PAT_.laje||"#d9d1bd","rgba(60,48,28,.5)")};
-  const drawQ=(c,q,pk)=>{if(q.k==="ST"||q.st){if(pk)K.poly(c,(q.st||q).pk,"#e2dac6",INK);return}if(q.k==="M"){drawM(c,q.m,q.x,q.y);return}if(q.pod&&q.hz!=null&&TER)drawPod(c,q);
+  const drawQ=(c,q,pk)=>{if(q.k==="PIPE"){if(!pk)q.draw(c);return}if(q.k==="ST"||q.st){if(pk)K.poly(c,(q.st||q).pk,"#e2dac6",INK);return}if(q.k==="M"){drawM(c,q.m,q.x,q.y);return}if(q.pod&&q.hz!=null&&TER)drawPod(c,q);
     if(q.k===1){c.save();c.translate(q.x,q.cy);c.scale(Z,Z);K.drawBuilding(c,0,0,q.o);c.restore();if(q.smoke&&!pk)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3])}
     else if(q.k===0){const set=q.wild?wildSet:(P.culture==="japones"||P.culture==="chines")&&rng()<.6?stamps.sakura:treeSet,st=set[(((rng()*set.length)|0)+q.vs)%set.length],wd=(st.lw||st.width)*q.s*1.25,hg=(st.lh||st.height)*q.s*1.25;c.drawImage(st,q.x-wd/2,q.y-hg*.9,wd,hg)}
     else if(q.k===15){const set=q.nk==="rock"?stamps.rocks:SEAS==="inverno"?stamps.bare:stamps.bush,st=set[(((rng()*set.length)|0)+q.vs)%set.length],f=q.nk==="rock"?.55:.75,wd=(st.lw||st.width)*q.s*f,hg=(st.lh||st.height)*q.s*f;c.drawImage(st,q.x-wd/2,q.y-hg*.85,wd,hg)}
