@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;background:#222"><canvas id="c"></canvas><script src="../app/gen.js"></script><script src="../app/assets.js"></script><script src="../app/city.js"></script><script src="../app/mundo.js"></script><script>
+// grade do mundo de uma cidade: conflitos por tipo (contados em objetos, e em celulas de 2x2 unidades)
+window.run=function(P){try{const C=AtlasCity.generate(Object.assign({},AtlasCity.DEF,P)),r=AtlasCity.render(C,document.getElementById('c'));window.C=C;const t0=performance.now(),G=AtlasMundo.deCidade(C,AtlasAssets),ms=performance.now()-t0;const L=G.lista(),por={},cel={},ex=[];
+  for(const c of L){por[c.tipo]=(por[c.tipo]||0)+1;cel[c.tipo]=(cel[c.tipo]||0)+c.n;if(ex.length<4)ex.push([c.tipo,G.objs[c.a].tipo,c.b!=null&&G.objs[c.b]?G.objs[c.b].tipo:null,c.n,Math.round(c.x),Math.round(c.y)])}
+  return {ms:Math.round(ms),objs:G.objs.length,por,cel,ex}}catch(e){return {err:e.message,stack:String(e.stack).slice(0,300)}}};
+</script></body></html>

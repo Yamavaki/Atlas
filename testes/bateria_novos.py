@@ -36,7 +36,12 @@ def summ(L,name):
     for r in L:
         for o in r.get('ov',[]):c[tuple(sorted([str(o[0]).split(':')[0],str(o[1]).split(':')[0]]))]+=1
         for o in r.get('dup',[]):d[o[0]]+=1
-    print(f"== {name}: {len(L)} mapas, erros {len(err)}, sobreposições {ov}, duplicados {du}, árvores em construção {tr}")
+    print(f"== {name}: {len(L)} mapas, erros {len(err)}, sobreposições {ov} (caixas aproximadas), duplicados {du}, árvores em construção {tr}")
+    if any(r.get('ovx') is not None for r in L):
+        ox=sum(len(r.get('ovx') or []) for r in L);tx=sum(len(r.get('trx') or []) for r in L);cx=collections.Counter()
+        for r in L:
+            for o in r.get('ovx') or []:cx[tuple(sorted([str(o[0]),str(o[1])]))]+=1
+        print(f"   exato pela grade (forma da ficha): sobreposições {ox}, árvores em construção {tx}; pares: {cx.most_common(8)}")
     for e in err[:3]:print("  ERR",e['err'],e['P'])
     print("  pares:",c.most_common(14));print("  dups:",d.most_common(10))
 summ(out["city"],"cidades");summ(out["reg"],"regiões");print(errs[:3])

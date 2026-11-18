@@ -20,7 +20,9 @@ window.QA={city(C){const AS=window.AtlasAssets,Z=1.55,it=[];
     const r=check(it,150);const tr=[];// arvores sobre construcoes
     const solid=it.filter(o=>!/^(stall|markettent|goods|lamp|bench|crates|woodpile|haystack|cart|wagon|flowerbed|scarecrow)$/.test(o.id));const G=new Map();solid.forEach(o=>{const k=((o.x/40)|0)+"_"+((o.y/40)|0);G.has(k)?G.get(k).push(o):G.set(k,[o])});
     for(const t of C.trees){const gx=(t[0]/40)|0,gy=(t[1]/40)|0;let hit=null;for(let a=-1;a<=1&&!hit;a++)for(let b=-1;b<=1&&!hit;b++)for(const o of G.get((gx+a)+"_"+(gy+b))||[]){if(sat(o.poly,obb(t[0],t[1],0,4*(t[2]||1),4*(t[2]||1)))){hit=o;break}}if(hit)tr.push([hit.id,Math.round(t[0]),Math.round(t[1])])}
-    return {ov:r.ov,dup:r.dup,tree:tr,n:it.length}},
+    // medida exata (0.55): a grade do mundo pinta a pegada da ficha de cada prédio e o retângulo de cada casa
+    let ovx=null,trx=null;if(window.AtlasMundo){const G=AtlasMundo.deCidade(C,AS);ovx=[];trx=[];for(const c of G.lista()){if(c.tipo==="construção sobre construção")ovx.push([G.objs[c.a].tipo,G.objs[c.b].tipo,Math.round(c.x),Math.round(c.y),c.n]);else if(c.tipo==="árvore em construção")trx.push([G.objs[c.a].tipo,Math.round(c.x),Math.round(c.y),c.n])}}
+    return {ov:r.ov,dup:r.dup,tree:tr,n:it.length,ovx,trx}},
   region(W){const it=[];const R={2:14,3:26,8:6,16:12,17:12,18:4,19:6,20:9,21:8,22:12,23:8,24:4,25:10,26:14,27:14,28:14,7:2.4,6:2.6,13:8,32:3,33:6,34:2,35:2,36:2,37:0,21:5};
     for(const b of W.B){if(b.k===1){it.push({id:"casa",x:b.x,y:b.y,a:b.ang,L:b.L,D:b.D});continue}if(b.k===37||b.k===13)continue;
       if(b.k===40){const sz=((AtlasAssets.SIZE[b.id]||[6])[0])*.55;it.push({id:b.id,x:b.x,y:b.y,a:0,L:sz*2,D:sz*1.4,grp:"praca"+b.ti});continue}

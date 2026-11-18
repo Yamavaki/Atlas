@@ -350,8 +350,10 @@ const NULO=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>0:NULO,
 const FICHAS=new Map();
 function fechoConvexo(P){const p=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]),cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];for(const q of p){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q)}for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q)}lo.pop();up.pop();return lo.concat(up)}
 // ficha(id,cultura,v,ang,ov): solidos [{t,pts,z0,z1}], pegada (os que tocam o chao), aereo (acima de 2), chao (desenho no chao), alt, raio, caixa, casco
-function ficha(id,race,v,ang,ov){const key=id+"|"+(race||"humano")+"|"+Math.round((v==null?.5:v)*50)+"|"+Math.round((ang||0)*100)+"|"+(ov?JSON.stringify(ov):"");let F=FICHAS.get(key);if(F)return F;
-  const R0=REC,A0=ANG_;REC={ox:0,oy:0,dx:0,dy:0,m:1,pp:[],S:[],G:[]};try{draw(NULO,0,0,id,race,v,ang,ov)}catch(e){REC.err=e.message}const R=REC;REC=R0;ANG_=A0;
+function ficha(id,race,v,ang,ov){const key=id+"|"+(race||"humano")+"|"+Math.round((v==null?.5:v)*50)+"|"+Math.round((ang||0)*100)+"|"+(ov?JSON.stringify(ov):"");return fichaDe(key,c=>draw(c,0,0,id,race,v,ang,ov),id)}
+// ficha de qualquer desenho feito na origem (templos e castelos do gerador, por exemplo)
+function fichaDe(key,fn,id){let F=FICHAS.get(key);if(F)return F;
+  const R0=REC,A0=ANG_;REC={ox:0,oy:0,dx:0,dy:0,m:1,pp:[],S:[],G:[]};try{fn(NULO)}catch(e){REC.err=e.message}const R=REC;REC=R0;ANG_=A0;
   let alt=0,raio=0,x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const peg=[],aer=[],todos=[];for(const s of R.S){s.z0=Math.max(0,s.z0);if(s.z1>alt)alt=s.z1;(s.z0<2?peg:aer).push(s);if(s.z0<2)for(const q of s.pts){todos.push(q);const d=Math.hypot(q[0],q[1]);if(d>raio)raio=d;if(q[0]<x0)x0=q[0];if(q[0]>x1)x1=q[0];if(q[1]<y0)y0=q[1];if(q[1]>y1)y1=q[1]}}
   F={id,solidos:R.S.map(s=>({t:s.t,pts:s.pts,z0:s.z0,z1:s.z1})),pegada:peg.map(s=>s.pts),aereo:aer.map(s=>({pts:s.pts,z0:s.z0})),chao:R.G,alt,raio,caixa:peg.length?[x0,y0,x1,y1]:[0,0,0,0],casco:todos.length>2?fechoConvexo(todos):[],erro:R.err||null};
   if(FICHAS.size>4000)FICHAS.clear();FICHAS.set(key,F);return F}
@@ -743,5 +745,5 @@ const SIZE={factory:[30,30],smokestack:[5,34],gasometer:[14,16],boiler:[10,12],p
   markethall:[17,16],inn:[18,22],shop:[8,14],bakery:[10,14],alchemist:[8,18],warehouse:[19,16],stall:[6,8],smithy:[12,16],stable:[15,14],watermill:[11,14],tannery:[12,10],brewery:[14,16],sawmill:[12,12],granary:[14,16],
   lighthouse:[7,44],shipwright:[20,18],fishery:[13,10],crane:[8,24],ship:[18,32],boat:[6,4],cargo:[10,6],arena:[23,14],theater:[17,12],baths:[16,16],garden:[18,10],wizard:[10,50],arcane:[15,16],portal:[10,28],eldertree:[14,48],dragonstatue:[9,24],crystal:[8,30],golem:[8,20],
   statue:[4,16],fountain:[9,12],well:[4,12],gallows:[6,16],cart:[6,8],wagon:[10,12],crates:[7,6],haystack:[6,10],scarecrow:[4,12],lamp:[4,12],bench:[4,3]};
-window.AtlasAssets={LIST,NAME,SIZE,draw,ficha,fechoConvexo,semFx:v=>{SEMFX=!!v},templo,torreQ,pagode,cena,ordemPecas,naFrente,frenteRet,cart,shipIso,boat,shipV,boatV,SHIPT,crate,barrel,horse,prism,cyl,cone,church,mosque,hipRoof,fortress};
+window.AtlasAssets={LIST,NAME,SIZE,draw,ficha,fichaDe,fechoConvexo,semFx:v=>{SEMFX=!!v},templo,torreQ,pagode,cena,ordemPecas,naFrente,frenteRet,cart,shipIso,boat,shipV,boatV,SHIPT,crate,barrel,horse,prism,cyl,cone,church,mosque,hipRoof,fortress};
 })();

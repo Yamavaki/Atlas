@@ -305,3 +305,15 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .cnts p{margin:0 0 4px;font-size:12px}
 .crow{display:flex;align-items:center;gap:8px;justify-content:space-between}
 .crow span{font-size:14px}.crow input{width:70px;min-height:30px;padding:2px 6px}
+
+#mg{position:absolute;inset:0;height:100%;pointer-events:none;opacity:.82}
+.gpan{position:absolute;left:10px;bottom:62px;z-index:6;max-width:360px;padding:8px 10px;background:rgba(27,23,17,.95);border:1px solid var(--line);color:#e8dcc0;font-size:13px;display:flex;flex-direction:column;gap:6px}
+.gpan .gleg{display:flex;flex-wrap:wrap;gap:4px 10px}.gpan .gleg span{display:flex;align-items:center;gap:4px;font-size:12px}.gpan .gleg i{display:inline-block;width:11px;height:11px;border:1px solid rgba(0,0,0,.4)}
+.gtip{position:absolute;z-index:7;pointer-events:none;padding:3px 7px;background:rgba(20,17,12,.92);color:#f3e3c3;font-size:12px;border:1px solid #c9a24a;white-space:nowrap}
+.tamv{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block;text-align:right;opacity:.8}
+.gpan .glist{margin:0;padding-left:1.6em;max-height:180px;overflow:auto;font-size:12px;line-height:1.35}
+.gpan .seg{display:flex;gap:6px;flex-wrap:wrap}
+.gpan .ghead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gpan .ghead .icb{padding:0 8px;min-height:24px}
+.gpan details summary{cursor:pointer;font-size:12.5px}
+.gpan.min{gap:2px}
