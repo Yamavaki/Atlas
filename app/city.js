@@ -886,7 +886,7 @@ function render(C,canvas,opt){opt=opt||{};const {P,fbm,land,elev,rd,rw,EG,LG,RG,
       if(b.race==="vapor"){o.chim=true;if(r2()<.55)o.smoke=true;o.timber=0}
       if(b.prf&&o.form==="gable"&&SEAS!=="inverno"){o.roof=b.prf;if(b.pwl)o.wall=b.pwl}
       if(b.poor&&SEAS!=="inverno"&&(o.form==="gable"||o.form==="long")){const VP=b.race==="vapor",PI=b.race==="pirata";if(r2()<.65)o.roof=VK(ROOF,VP?(r2()<.6?"rust":"patch"):PI?"patch":r2()<.5?"thatch":"old",r2,.08);if(r2()<.5)o.wall=VK(WALL,VP?(r2()<.5?"rust":"soot"):PI?"tar":r2()<.5?"mud":"wood",r2,.06);o.H*=.88;o.dorm=null;o.tower=null}
-      if(b.wing){const w=b.wing;o.wing={dx:(w.x-b.x)/Z,dy:((w.y-b.y)*TILT-(elev(w.x,w.y)-elev(b.x,b.y))*KE)/Z,L:w.L/Z,D:w.D/Z,h:.86,ang:w.ang,front:w.y>b.y}}
+      if(b.wing){const w=b.wing;o.wing={dx:(w.x-b.x)/Z,dy:((w.y-b.y)*TILT-(elev(w.x,w.y)-elev(b.x,b.y))*KE)/Z,L:w.L/Z,D:w.D/Z,h:.86,ang:w.ang,front:(f=>f?f>0:w.y>b.y)(AS.frenteRet?AS.frenteRet(w,b):0)}}
       if(o.form==="asian"&&(b.type==="town"||b.type==="row"||b.type==="rich")&&r2()<.45)o.veranda=1;if(o.form==="flat"&&(b.type==="town"||b.type==="row"||b.type==="tavern")&&r2()<.55){o.awning=["#b5473a","#3f6f8f","#5f7e35","#c9a24a","#efe6cb"][(r2()*5)|0];if(r2()<.5)o.roofTerr=1}
       {const AR=b.arch||P.arch||"misto",hum=(b.race==="humano"||b.race==="anao")&&o.form==="gable",urb=b.type==="town"||b.type==="row"||b.type==="tavern"||b.type==="rich";
         if(hum){o.timber=0;if((urb||AR==="enxaimel")&&r2()<(AR==="enxaimel"?.9:AR==="misto"?.5:AR==="pedra"?.1:0)){o.timber=1;if(r2()<.6)o.wall=VK(WALL,"daub",r2,.06)}}
