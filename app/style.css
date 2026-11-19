@@ -357,6 +357,23 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .bt-arte canvas{width:44px;height:44px}.bt-arte span{width:100%;text-align:center;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .bt-arte:hover{border-color:var(--line)}.bt-arte[aria-selected=true]{border-color:var(--gold);background:#3b2f1c}.bt-arte[aria-selected=true] span{color:var(--text)}
 .bt-msg{color:#e9dfc6;padding:24px;font:16px "Alegreya",serif}
+.bt [hidden]{display:none!important}
+.bt-busca{width:100%;min-height:32px;margin:0 0 6px;padding:2px 10px;background:var(--bg);border:1px solid var(--line);border-radius:999px;font-size:14px}
+.bt-chips{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 8px}
+.bt-chip{min-height:26px;padding:1px 9px;gap:5px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2);font:12.5px var(--body);letter-spacing:0;color:var(--muted)}
+.bt-chip:hover{color:var(--text)}.bt-chip[aria-pressed=true]{background:#3b2f1c;border-color:var(--gold);color:var(--text)}
+.bt-bola{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.5);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+.bt-matw{margin:0 0 8px}
+.bt-mat{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);letter-spacing:0;text-align:left;font:14px var(--body)}
+.bt-mat[aria-expanded=true]{border-color:var(--gold)}
+.bt-amw{display:block;width:40px;height:40px;flex:none;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.6)}.bt-amw canvas{display:block}
+.bt-mt{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.2}.bt-mt small{color:var(--muted);font-size:12px}.bt-mt b{font-weight:500;color:var(--text)}
+.bt-car{color:var(--muted)}
+.bt-mats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:6px;padding:6px;background:#15110c;border:1px solid var(--line);border-radius:6px}
+.bt-mo{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:0;padding:3px;border:1px solid transparent;border-radius:5px;background:none;font:11px var(--body);letter-spacing:0;color:var(--muted);white-space:nowrap}
+.bt-mo canvas{width:56px;height:56px;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.6)}.bt-mo span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.bt-mo:hover{border-color:var(--line)}.bt-mo[aria-pressed=true]{border-color:var(--gold);background:#3b2f1c;color:var(--text)}
+.bt-troca{margin-top:8px}
 @media (min-width:761px){.bt-bar{flex-wrap:nowrap}}
 @media (max-width:760px){
   .bt-meio{flex-direction:column}.bt-ferr{flex-direction:row;border-right:0;border-bottom:1px solid var(--line);padding:4px 8px}

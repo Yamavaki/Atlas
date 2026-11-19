@@ -4,12 +4,16 @@ import {gerarArtes,materialDe,objetoDe} from "./arte.js";
 import {malhaAndar,VERT,N_OBJ,escreveObjeto,escreveLuz} from "./malha.js";
 import {deB64} from "./formato.js";
 const VS=`#version 300 es
-layout(location=0) in vec2 aP;layout(location=1) in vec2 aU;layout(location=2) in float aL;layout(location=3) in vec4 aC;
-uniform vec4 uCam;uniform vec2 uRes;out vec2 vU;out float vL;out vec4 vC;
-void main(){vec2 p=(aP-uCam.xy)*uCam.z*2./uRes;gl_Position=vec4(p.x,-p.y,0.,1.);vU=aU;vL=aL;vC=aC;}`;
+layout(location=0) in vec2 aP;layout(location=1) in vec2 aU;layout(location=2) in float aL;layout(location=3) in vec4 aC;layout(location=4) in vec3 aA;
+uniform vec4 uCam;uniform vec2 uRes;out vec2 vU;out float vL;out vec4 vC;flat out vec3 vA;
+void main(){vec2 p=(aP-uCam.xy)*uCam.z*2./uRes;gl_Position=vec4(p.x,-p.y,0.,1.);vU=aU;vL=aL;vC=aC;vA=aA;}`;
 const FS=`#version 300 es
-precision mediump float;precision mediump sampler2DArray;in vec2 vU;in float vL;in vec4 vC;uniform sampler2DArray uT;uniform float uEsc;out vec4 o;
-void main(){vec4 c=vec4(vC.rgb*vC.a,vC.a);if(vL>-.5)c*=texture(uT,vec3(vU,vL));o=vec4(c.rgb*uEsc,c.a);}`;
+precision mediump float;precision mediump sampler2DArray;in vec2 vU;in float vL;in vec4 vC;flat in vec3 vA;uniform sampler2DArray uT;uniform float uEsc;out vec4 o;
+vec3 aHsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.*d+1e-6)),d/(q.x+1e-6),q.x);}
+vec3 deHsv(vec3 c){vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.);return c.z*mix(vec3(1.),clamp(p-1.,0.,1.),c.y);}
+void main(){vec4 c=vec4(vC.rgb*vC.a,vC.a);if(vL>-.5){vec4 t=texture(uT,vec3(vU,vL));
+ if(vA.x!=0.||vA.y!=1.||vA.z!=1.){vec3 r=t.a>.001?t.rgb/t.a:vec3(0.);vec3 h=aHsv(r);h.x=fract(h.x+vA.x+1.);h.y=clamp(h.y*vA.y,0.,1.);t.rgb=clamp(deHsv(h)*vA.z,0.,1.)*t.a;}
+ c*=t;}o=vec4(c.rgb*uEsc,c.a);}`;
 const VT=`#version 300 es
 layout(location=0) in vec2 aP;uniform vec4 uCam;uniform vec2 uRes;out vec2 vW;
 void main(){vec2 p=(aP-uCam.xy)*uCam.z*2./uRes;gl_Position=vec4(p.x,-p.y,0.,1.);vW=aP;}`;
@@ -18,10 +22,12 @@ precision mediump float;precision mediump sampler2DArray;in vec2 vW;uniform samp
 void main(){vec4 w=texture(uS,vW/uTam);float s=w.r+w.g+w.b+w.a;if(s<.004){w=vec4(1.,0.,0.,0.);s=1.;}w/=s;vec2 u=vW*.5;
  vec3 c=texture(uT,vec3(u,uLay.x)).rgb*w.r+texture(uT,vec3(u,uLay.y)).rgb*w.g+texture(uT,vec3(u,uLay.z)).rgb*w.b+texture(uT,vec3(u,uLay.w)).rgb*w.a;o=vec4(c*uEsc,1.);}`;
 const VL=`#version 300 es
-layout(location=0) in vec2 aP;layout(location=1) in vec2 aQ;layout(location=2) in vec4 aC;uniform vec4 uCam;uniform vec2 uRes;out vec2 vQ;out vec4 vC;
-void main(){vec2 p=(aP-uCam.xy)*uCam.z*2./uRes;gl_Position=vec4(p.x,-p.y,0.,1.);vQ=aQ;vC=aC;}`;
+layout(location=0) in vec2 aP;layout(location=1) in vec2 aQ;layout(location=2) in vec4 aC;layout(location=3) in float aK;uniform vec4 uCam;uniform vec2 uRes;out vec2 vQ;out vec4 vC;flat out float vK;
+void main(){vec2 p=(aP-uCam.xy)*uCam.z*2./uRes;gl_Position=vec4(p.x,-p.y,0.,1.);vQ=aQ;vC=aC;vK=aK;}`;
+// luz plena ate o nucleo; depois a penumbra, que cai suave ate o alcance
 const FL=`#version 300 es
-precision mediump float;in vec2 vQ;in vec4 vC;out vec4 o;void main(){float d=length(vQ),a=clamp(1.-d,0.,1.);a=a*a*(3.-2.*a);o=vec4(vC.rgb*a*vC.a,1.);}`;
+precision mediump float;in vec2 vQ;in vec4 vC;flat in float vK;out vec4 o;
+void main(){float d=length(vQ);if(d>=1.)discard;float k=vK,nuc=1.-smoothstep(k-.06,k+.04,d),t=clamp((d-k)/max(1.-k,.001),0.,1.),pen=.62*(1.-t)*(1.-t)*(1.-t*.35),a=max(nuc,pen);o=vec4(vC.rgb*a*vC.a,1.);}`;
 const VC=`#version 300 es
 layout(location=0) in vec2 aP;out vec2 vU;void main(){gl_Position=vec4(aP,0.,1.);vU=aP*.5+.5;}`;
 const FC=`#version 300 es
@@ -46,8 +52,8 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   // monta (ou refaz) um andar: malha, luzes e terreno
   function refazAndar(i){const A=M.andares[i];solta(AND[i]);const m=malhaAndar(A,M.texturas,ART.indice,ART.recorte),o={n:m.n,nl:m.nl,terr:null,amb:A.ambiente,cpu:m.verts,onde:m.onde,luzes:m.luzes,ondeLuz:m.ondeLuz};
     o.vao=gl.createVertexArray();gl.bindVertexArray(o.vao);o.buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.buf);gl.bufferData(gl.ARRAY_BUFFER,m.verts,gl.DYNAMIC_DRAW);const S=VERT*4;
-    gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,S,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,S,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,S,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,S,20);
-    if(m.nl){o.vaoL=gl.createVertexArray();gl.bindVertexArray(o.vaoL);o.bufL=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.bufL);gl.bufferData(gl.ARRAY_BUFFER,m.luzes,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,32,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,32,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16)}
+    gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,S,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,S,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,S,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,S,20);gl.enableVertexAttribArray(4);gl.vertexAttribPointer(4,3,gl.FLOAT,false,S,36);
+    if(m.nl){o.vaoL=gl.createVertexArray();gl.bindVertexArray(o.vaoL);o.bufL=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.bufL);gl.bufferData(gl.ARRAY_BUFFER,m.luzes,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,36,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,36,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,36,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,1,gl.FLOAT,false,36,32)}
     if(A.terreno){const T=A.terreno,px=deB64(T.splat);o.splat=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,o.splat);gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,T.w,T.h,0,gl.RGBA,gl.UNSIGNED_BYTE,px.subarray(0,T.w*T.h*4));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);o.terr=T.tex.map(camArte)}
     AND[i]=o;return m.n}
   function carregar(mapa){AND.forEach(solta);AND=[];M=mapa;const t=performance.now();let verts=0;for(let i=0;i<mapa.andares.length;i++)verts+=refazAndar(i);

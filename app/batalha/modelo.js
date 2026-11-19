@@ -9,6 +9,15 @@ export const MATERIAIS_NOME={grama:"Grama",trevo:"Trevo",selva:"Selva",terra:"Te
 export const ARTES={arvore:["Árvore",3,3,400],arvoreEscura:["Árvore escura",3,3,400],pinheiro:["Pinheiro",2.5,2.5,400],palmeira:["Palmeira",3,3,400],arbusto:["Arbusto",1.5,1.5,300],samambaia:["Samambaia",1,1,200],capim:["Capim",1,1,100],flor:["Flor",.5,.5,100],cogumelo:["Cogumelo",.5,.5,100],
   pedra:["Pedra",1.5,1.5,200],seixos:["Seixos",1,1,100],tronco:["Tronco",2,1,200],toco:["Toco",1,1,200],raiz:["Raiz",1.5,1.5,100],cipo:["Cipó",2,1,300],cristal:["Cristal",1,1,200],teia:["Teia",1.5,1.5,300],ossos:["Ossos",1,1,100],pilar:["Pilar",1,1,300],ondas:["Ondas",2,1,50],vitoria:["Vitória-régia",1,1,100],
   mesa:["Mesa",2,1,200],mesaRedonda:["Mesa redonda",1.5,1.5,200],cadeira:["Cadeira",.6,.6,200],cama:["Cama",1,2,200],barril:["Barril",.8,.8,200],caixote:["Caixote",1,1,200],bau:["Baú",1,.7,200],estante:["Estante",2,.6,200],fogo:["Fogueira",1,1,200],luminaria:["Luminária",.5,.5,300],tapete:["Tapete",2,3,50],escada:["Escada",1,2,100],loucaBranca:["Louça",.7,.7,200],movel:["Móvel",1.5,.8,200],navio:["Navio",4,8,200],generico:["Marcador",1,1,200]};
+// categorias da biblioteca
+export const CATEGORIAS=[["natureza","Natureza"],["pedras","Pedras e ruínas"],["moveis","Móveis"],["recipientes","Baús e caixas"],["luz","Fogo e luz"],["outros","Outros"]];
+const CAT={natureza:"arvore arvoreEscura pinheiro palmeira arbusto samambaia capim flor cogumelo cipo raiz tronco toco vitoria ondas",pedras:"pedra seixos cristal pilar ossos teia",moveis:"mesa mesaRedonda cadeira cama estante movel tapete escada loucaBranca",recipientes:"barril caixote bau",luz:"fogo luminaria",outros:"navio generico"};
+export const categoriaDe=k=>{for(const c in CAT)if(CAT[c].split(" ").includes(k))return c;return "outros"};
+export const semAcento=t=>(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+// luzes prontas: alcance (penumbra ate), luz plena, forca, cor
+export const LUZES=[["vela","Vela",2,.8,.85,[1,.72,.38]],["tocha","Tocha",6,2.5,1,[1,.62,.25]],["lareira","Lareira",8,3.5,1.2,[1,.5,.18]],["lampiao","Lampião",5,2.5,1,[1,.88,.62]],["magica","Mágica",6,2,1.1,[.5,.7,1]],["lua","Luar",12,6,.6,[.72,.78,1]],["veneno","Veneno",4,1.5,1,[.45,1,.4]]];
+// ambientes prontos (a cor que a luz do andar tem sem nenhuma luz acesa)
+export const AMBIENTES=[["dia","Dia",[1,1,1]],["tarde","Fim de tarde",[.95,.74,.55]],["noite","Noite",[.2,.25,.42]],["interior","Interior",[.42,.38,.33]],["caverna","Caverna",[.08,.08,.11]],["breu","Breu",[0,0,0]]];
 // --- medidas ---
 export function cantos(o){const c=Math.cos(o.r),s=Math.sin(o.r),hw=o.w/2,hh=o.h/2;return [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([a,b])=>[o.x+a*c-b*s,o.y+a*s+b*c])}
 export function caixa(k,e){if(k==="objetos")return caixaPts(cantos(e));if(k==="luzes")return [e.x-.4,e.y-.4,e.x+.4,e.y+.4];return caixaPts(e.p,k==="caminhos"?(e.larg||.5)/2:k==="paredes"?.15:0)}
@@ -25,7 +34,7 @@ export function poe(e,st){for(const k in e)if(!(k in st))delete e[k];Object.assi
 // T = {f:(x,y)=>[x,y], rot:radianos, s:escala}
 export function transforma(k,e,T){const rot=T.rot||0,s=T.s==null?1:T.s;
   if(e.p){e.p=e.p.map(p=>T.f(p[0],p[1]));if(k==="caminhos"&&s!==1)e.larg=(e.larg||.5)*s;return}
-  const q=T.f(e.x,e.y);e.x=q[0];e.y=q[1];if(k==="objetos"){e.r+=rot;e.w*=s;e.h*=s}else if(k==="luzes")e.raio*=s;else if(k==="portais"){const c=Math.cos(rot),n=Math.sin(rot),dx=e.dx,dy=e.dy;e.dx=dx*c-dy*n;e.dy=dx*n+dy*c;e.r=(e.r||0)+rot;e.raio*=s}}
+  const q=T.f(e.x,e.y);e.x=q[0];e.y=q[1];if(k==="objetos"){e.r+=rot;e.w*=s;e.h*=s}else if(k==="luzes"){e.raio*=s;if(e.claro!=null)e.claro*=s}else if(k==="portais"){const c=Math.cos(rot),n=Math.sin(rot),dx=e.dx,dy=e.dy;e.dx=dx*c-dy*n;e.dy=dx*n+dy*c;e.r=(e.r||0)+rot;e.raio*=s}}
 // --- mapa ---
 export function texDe(M,nome){let i=M.texturas.indexOf(nome);if(i<0){i=M.texturas.length;M.texturas.push(nome)}return i}
 const b64=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return typeof btoa==="function"?btoa(s):Buffer.from(s,"binary").toString("base64")};
