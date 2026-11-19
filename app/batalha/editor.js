@@ -164,7 +164,8 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     if(mudou){H.esquece();sujo=true;painel(true);agendaSalvar()}};
   // ---------- desenho ----------
   const ajusta=()=>{const r=caixaCv.getBoundingClientRect(),w=Math.max(2,Math.round(r.width*dpr())),h=Math.max(2,Math.round(r.height*dpr()));if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;ov.width=w;ov.height=h;sujo=true}};
-  const enquadra=()=>{ajusta();cam.z=Math.min(cv.width/(M.larg+2),cv.height/(M.alt+2));cam.x=M.larg/2;cam.y=M.alt/2;sujo=true};
+  const enquadra=()=>{ajusta();let pl=0,pt=0;try{if(getComputedStyle(ferrs).position==="absolute"){const c=caixaCv.getBoundingClientRect(),f=ferrs.getBoundingClientRect();if(f.height>f.width)pl=Math.max(0,f.right-c.left+8)*dpr();else pt=Math.max(0,f.bottom-c.top+8)*dpr()}}catch(e){}
+    cam.z=Math.min((cv.width-pl)/(M.larg+2),(cv.height-pt)/(M.alt+2));cam.x=M.larg/2-pl/2/cam.z;cam.y=M.alt/2-pt/2/cam.z;sujo=true};
   const tracado=(k,e)=>{g.beginPath();if(k==="objetos"){const C=MD.cantos(e).map(p=>tela(p[0],p[1]));g.moveTo(C[0][0],C[0][1]);for(let i=1;i<4;i++)g.lineTo(C[i][0],C[i][1]);g.closePath()}
     else if(k==="luzes"){const p=tela(e.x,e.y);g.arc(p[0],p[1],e.raio*cam.z,0,7)}
     else if(k==="textos"){const C=MD.cantos({x:e.x,y:e.y,r:e.r||0,w:Math.max(.3,e.lw||1),h:(e.lh||e.tam*1.15)}).map(p=>tela(p[0],p[1]));g.moveTo(C[0][0],C[0][1]);for(let i=1;i<4;i++)g.lineTo(C[i][0],C[i][1]);g.closePath()}
