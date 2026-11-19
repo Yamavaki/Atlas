@@ -6,11 +6,11 @@ const hip=Math.hypot;
 export function limpa(P,laco){const O=[];for(const p of P){const u=O[O.length-1];if(!u||hip(p[0]-u[0],p[1]-u[1])>1e-6)O.push(p)}
   if(laco&&O.length>1){const a=O[0],b=O[O.length-1];if(hip(a[0]-b[0],a[1]-b[1])<1e-6)O.pop()}return O}
 // troca cada canto por um arco de raio r (limitado a 45% do trecho mais curto que chega nele)
-export function arredonda(P,r,laco){P=limpa(P,laco);const n=P.length;if(!(r>0)||n<3)return P;const O=[];
-  for(let i=0;i<n;i++){const b=P[i];if(!laco&&(i===0||i===n-1)){O.push(b);continue}
+export function arredonda(P,r,laco,raios){P=limpa(P,laco);const n=P.length,temR=raios&&raios.some(x=>x>0);if((!(r>0)&&!temR)||n<3)return P;const O=[];
+  for(let i=0;i<n;i++){const b=P[i],rc=raios&&raios[i]!=null?raios[i]:r;if((!laco&&(i===0||i===n-1))||!(rc>0)){O.push(b);continue}
     const a=P[(i+n-1)%n],c=P[(i+1)%n];let ux=a[0]-b[0],uy=a[1]-b[1],vx=c[0]-b[0],vy=c[1]-b[1];const d1=hip(ux,uy),d2=hip(vx,vy);ux/=d1;uy/=d1;vx/=d2;vy/=d2;
     const th=Math.acos(Math.max(-1,Math.min(1,ux*vx+uy*vy)));if(th>Math.PI-.03||th<.05){O.push(b);continue}
-    const tg=Math.tan(th/2),t=Math.min(r/tg,.45*Math.min(d1,d2)),rr=t*tg;let bx=ux+vx,by=uy+vy;const bl=hip(bx,by);bx/=bl;by/=bl;
+    const tg=Math.tan(th/2),t=Math.min(rc/tg,.45*Math.min(d1,d2)),rr=t*tg;let bx=ux+vx,by=uy+vy;const bl=hip(bx,by);bx/=bl;by/=bl;
     const dc=rr/Math.sin(th/2),cx=b[0]+bx*dc,cy=b[1]+by*dc,p1x=b[0]+ux*t,p1y=b[1]+uy*t,p2x=b[0]+vx*t,p2y=b[1]+vy*t,a0=Math.atan2(p1y-cy,p1x-cx);
     let da=Math.atan2(p2y-cy,p2x-cx)-a0;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;
     const k=Math.max(2,Math.ceil(Math.abs(da)/(Math.PI/14)));for(let j=0;j<=k;j++){const an=a0+da*j/k;O.push([cx+Math.cos(an)*rr,cy+Math.sin(an)*rr])}}
@@ -30,3 +30,12 @@ export function dentro(P,x,y){let c=false;for(let i=0,j=P.length-1;i<P.length;j=
 export function caixaPts(P,f){f=f||0;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const p of P){if(p[0]<x0)x0=p[0];if(p[0]>x1)x1=p[0];if(p[1]<y0)y0=p[1];if(p[1]>y1)y1=p[1]}return [x0-f,y0-f,x1+f,y1+f]}
 // maior virada entre dois trechos seguidos, em graus (para os testes)
 export function maiorVirada(P,laco){let m=0;const n=P.length;for(let i=laco?0:1;i<n-(laco?0:1);i++){const a=P[(i+n-1)%n],b=P[i],c=P[(i+1)%n],d=Math.atan2(c[1]-b[1],c[0]-b[0])-Math.atan2(b[1]-a[1],b[0]-a[0]);let t=Math.abs(d);if(t>Math.PI)t=2*Math.PI-t;m=Math.max(m,t)}return m*180/Math.PI}
+// medidas ao longo da linha (portas e janelas ficam presas a parede pela distancia desde o primeiro ponto)
+export function comprimento(P,laco){let L=0;const n=P.length;for(let i=0;i<n-(laco?0:1);i++){const a=P[i],b=P[(i+1)%n];L+=hip(b[0]-a[0],b[1]-a[1])}return L}
+export function pontoEm(P,laco,d){const n=P.length;let x=P[0][0],y=P[0][1],dx=1,dy=0;for(let i=0;i<n-(laco?0:1);i++){const a=P[i],b=P[(i+1)%n],L=hip(b[0]-a[0],b[1]-a[1]);if(L<1e-9)continue;dx=(b[0]-a[0])/L;dy=(b[1]-a[1])/L;if(d<=L){return [a[0]+dx*d,a[1]+dy*d,dx,dy]}d-=L;x=b[0];y=b[1]}return [x,y,dx,dy]}
+export function projeta(P,laco,x,y){const n=P.length;let m={d:0,dist:1e9,seg:0},acc=0;for(let i=0;i<n-(laco?0:1);i++){const a=P[i],b=P[(i+1)%n],dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,L=Math.sqrt(l2);if(L<1e-9)continue;let t=((x-a[0])*dx+(y-a[1])*dy)/l2;t=Math.max(0,Math.min(1,t));const ds=hip(x-a[0]-dx*t,y-a[1]-dy*t);if(ds<m.dist)m={d:acc+t*L,dist:ds,seg:i,ini:acc,fim:acc+L};acc+=L}return m}
+// formas prontas (pontos no sentido horario da tela)
+export function formaPontos(modo,a,b,lados){const x0=Math.min(a[0],b[0]),x1=Math.max(a[0],b[0]),y0=Math.min(a[1],b[1]),y1=Math.max(a[1],b[1]);
+  if(modo==="ret")return [[x0,y0],[x1,y0],[x1,y1],[x0,y1]];if(modo==="tri")return [[(x0+x1)/2,y0],[x1,y1],[x0,y1]];
+  const R=hip(b[0]-a[0],b[1]-a[1]);if(R<1e-6)return [];const n=modo==="circ"?Math.max(16,Math.min(96,Math.ceil(2*Math.PI*R/.45))):Math.max(3,lados||6),a0=modo==="circ"?0:Math.atan2(b[1]-a[1],b[0]-a[0]),O=[];
+  for(let i=0;i<n;i++){const an=a0+i*2*Math.PI/n;O.push([+(a[0]+Math.cos(an)*R).toFixed(4),+(a[1]+Math.sin(an)*R).toFixed(4)])}return O}

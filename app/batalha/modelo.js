@@ -1,8 +1,10 @@
 // Atlas - Modo Batalha: o que existe num andar e como cada coisa se mede, se acerta com o clique e se transforma.
 // Sem DOM. O editor, o gerador e (depois) o Modo Claude falam com o mapa por aqui e pelos comandos.
-import {distPoli,dentro,caixaPts} from "./vetor.js";
-export const TIPOS=["objetos","luzes","paredes","caminhos","padroes"];
-export const NOME={objetos:["objeto","objetos"],luzes:["luz","luzes"],paredes:["parede","paredes"],caminhos:["caminho","caminhos"],padroes:["forma","formas"]};
+import {distPoli,dentro,caixaPts,pontoEm,projeta,distSeg,arredonda,RAIO_PADRAO} from "./vetor.js";
+// o caminho que a parede desenha (com os cantos arredondados): portas e janelas andam sobre ele
+export const trajeto=w=>arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios);
+export const TIPOS=["objetos","luzes","paredes","portais","caminhos","padroes"];
+export const NOME={objetos:["objeto","objetos"],luzes:["luz","luzes"],paredes:["parede","paredes"],portais:["porta ou janela","portas e janelas"],caminhos:["caminho","caminhos"],padroes:["forma","formas"]};
 export const FUNDO={paredes:1,caminhos:1,padroes:1}; // clicar seleciona; arrastar sem estar selecionado abre a caixa de selecao
 export const MATERIAIS_NOME={grama:"Grama",trevo:"Trevo",selva:"Selva",terra:"Terra",lama:"Lama",areia:"Areia",pedra:"Pedra",rocha:"Rocha",concreto:"Concreto",madeira:"Madeira",madeiraEscura:"Madeira escura",agua:"Água",aguaFunda:"Água funda",ladrilho:"Ladrilho",tapete:"Tapete",metal:"Metal",asfalto:"Asfalto",neve:"Neve",telha:"Telha",neutro:"Neutro"};
 // artes proprias: nome na tela, tamanho padrao em quadrados e camada padrao
@@ -20,12 +22,19 @@ export const LUZES=[["vela","Vela",2,.8,.85,[1,.72,.38]],["tocha","Tocha",6,2.5,
 export const AMBIENTES=[["dia","Dia",[1,1,1]],["tarde","Fim de tarde",[.95,.74,.55]],["noite","Noite",[.2,.25,.42]],["interior","Interior",[.42,.38,.33]],["caverna","Caverna",[.08,.08,.11]],["breu","Breu",[0,0,0]]];
 // --- medidas ---
 export function cantos(o){const c=Math.cos(o.r),s=Math.sin(o.r),hw=o.w/2,hh=o.h/2;return [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([a,b])=>[o.x+a*c-b*s,o.y+a*s+b*c])}
-export function caixa(k,e){if(k==="objetos")return caixaPts(cantos(e));if(k==="luzes")return [e.x-.4,e.y-.4,e.x+.4,e.y+.4];return caixaPts(e.p,k==="caminhos"?(e.larg||.5)/2:k==="paredes"?.15:0)}
+export function caixa(k,e){if(k==="objetos")return caixaPts(cantos(e));if(k==="portais")return caixaPts([[e.x-e.dx*e.raio,e.y-e.dy*e.raio],[e.x+e.dx*e.raio,e.y+e.dy*e.raio]],.15);if(k==="luzes")return [e.x-.4,e.y-.4,e.x+.4,e.y+.4];return caixaPts(e.p,k==="caminhos"?(e.larg||.5)/2:k==="paredes"?.15:0)}
 export function uneCaixas(L){let b=[1e9,1e9,-1e9,-1e9];for(const c of L){b[0]=Math.min(b[0],c[0]);b[1]=Math.min(b[1],c[1]);b[2]=Math.max(b[2],c[2]);b[3]=Math.max(b[3],c[3])}return b}
 export function acerta(k,e,x,y,tol){if(k==="objetos"){const c=Math.cos(-e.r),s=Math.sin(-e.r),dx=x-e.x,dy=y-e.y,lx=dx*c-dy*s,ly=dx*s+dy*c;return Math.abs(lx)<=Math.max(e.w/2,tol)&&Math.abs(ly)<=Math.max(e.h/2,tol)}
-  if(k==="luzes")return Math.hypot(x-e.x,y-e.y)<=Math.max(.35,tol*1.6);if(k==="paredes")return distPoli(e.p,x,y,e.laco)<=.15+tol;if(k==="caminhos")return distPoli(e.p,x,y,e.laco)<=Math.max((e.larg||.5)/2,.12)+tol;
+  if(k==="luzes")return Math.hypot(x-e.x,y-e.y)<=Math.max(.35,tol*1.6);if(k==="portais")return distSeg(x,y,[e.x-e.dx*e.raio,e.y-e.dy*e.raio],[e.x+e.dx*e.raio,e.y+e.dy*e.raio])<=.2+tol;if(k==="paredes")return distPoli(e.p,x,y,e.laco)<=.15+tol;if(k==="caminhos")return distPoli(e.p,x,y,e.laco)<=Math.max((e.larg||.5)/2,.12)+tol;
   return e.p.length>2&&dentro(e.p,x,y)}
-export const camada=(k,e)=>k==="luzes"?1e4:k==="paredes"?500:e.l||0;
+export const camada=(k,e)=>k==="luzes"?1e4:k==="portais"?510:k==="paredes"?500:e.l||0;
+// portas, janelas e pisos presos a uma parede seguem a parede (posicao derivada, recalculada depois de cada mudanca)
+export function sincroniza(A){if(!A.paredes||!A.paredes.length)return;const W=new Map();for(const w of A.paredes)if(w.id!=null)W.set(w.id,w);
+  for(const q of A.portais||[]){if(q.d==null)continue;const w=W.get(q.parede);if(!w)continue;const p=pontoEm(trajeto(w),w.laco,q.d);q.x=p[0];q.y=p[1];q.dx=p[2];q.dy=p[3];q.r=Math.atan2(p[3],p[2])}
+  for(const f of A.padroes||[]){if(f.parede==null)continue;const w=W.get(f.parede);if(w&&f.p!==w.p)f.p=w.p}}
+// prende a parede os portais importados (guardam so x, y)
+export function prendePortais(A){const W=new Map();for(const w of A.paredes||[])if(w.id!=null)W.set(w.id,w);for(const q of A.portais||[]){if(q.d!=null||q.parede==null)continue;const w=W.get(q.parede);if(!w)continue;const m=projeta(trajeto(w),w.laco,q.x,q.y);if(m.dist<.6)q.d=+m.d.toFixed(4)}}
+export const anexos=(A,ids)=>{const L=[];for(const k of["portais","padroes"])for(const e of A[k]||[])if(e.parede!=null&&ids.has(e.parede))L.push({k,e});return L};
 // ponto de referencia para o encaixe na grade
 export const ancora=(k,e)=>e.p?[e.p[0][0],e.p[0][1]]:[e.x,e.y];
 // estado guardado para desfazer: copia rasa (as listas de pontos nunca sao alteradas no lugar, sempre trocadas)

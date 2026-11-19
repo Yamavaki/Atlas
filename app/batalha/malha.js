@@ -30,14 +30,23 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   const suaviza=(P,s)=>{if(!s||P.length<3)return P;const O=[];for(let i=0;i<P.length-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)];for(let k=0;k<6;k++){const t=k/6,t2=t*t,t3=t2*t;O.push([.5*(2*p1[0]+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),.5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)])}}O.push(P[P.length-1]);return O};
   const add=(l,fn)=>itens.push([l,ordem++,fn]);
   for(const z of A.pisos||[])add(-50,()=>{const [i,j,t,c]=z;quadM([i,j],[i+1,j],[i+1,j+1],[i,j+1],mat(t),c||BR)});
-  for(const p of A.padroes||[])add(p.l,()=>{const T=triangula(p.p),l=mat(p.t),c=p.c||BR;for(const k of T){const q=p.p[k];v(q[0],q[1],q[0]*.5,q[1]*.5,l,c)}});
+  const PAR=new Map();for(const w of A.paredes||[])if(w.id!=null)PAR.set(w.id,w);
+  // pisos de comodo seguem a parede (com os mesmos cantos arredondados); textura com escala, giro e deslocamento
+  for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),P=w?arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,true,w.raios):p.p,T=triangula(P),l=mat(p.t),c=p.c||BR,es=.5/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
+    for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es,w2=(-q[0]*sr+q[1]*cr)*es;v(q[0],q[1],u,w2,l,c)}});
   for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco);if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
       const fino=/fence|rail|rope|chain|vine|web/.test(n);if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)});
   const onde=new Map();
   for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,l=lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,o,l,REC[l]);onde.set(o,off);nv+=12});
-  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco),g=w.larg||.18;faixa(P,g+.12,-1,TINTA,w.laco,true);faixa(P,g,mat(w.t),w.c||[.86,.84,.8,1],w.laco,true)});
-  for(const q of A.portais||[])add(510,()=>{const n=nome(q.t),jan=/window|sill|glass/.test(n),L=q.raio,h=.2,dx=q.dx,dy=q.dy,nx=-dy*h,ny=dx*h,a=[q.x-dx*L,q.y-dy*L],b=[q.x+dx*L,q.y+dy*L],c=jan?[.62,.82,.9,1]:[.55,.36,.2,1];
-      quadM([a[0]+nx*1.3,a[1]+ny*1.3],[b[0]+nx*1.3,b[1]+ny*1.3],[b[0]-nx*1.3,b[1]-ny*1.3],[a[0]-nx*1.3,a[1]-ny*1.3],-1,TINTA);quadM([a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny],-1,c)});
+  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios),g=w.larg||.18;faixa(P,g+.12,-1,TINTA,w.laco,true);faixa(P,g,mat(w.t),w.c||[.86,.84,.8,1],w.laco,true)});
+  // portas e janelas: tipo proprio (porta, dupla, janela) ou pelo nome da arte importada; porta aberta gira na dobradica
+  const rect=(cx,cy,ux,uy,hl,hw,l,c)=>{const nx=-uy,ny=ux;quadM([cx-ux*hl+nx*hw,cy-uy*hl+ny*hw],[cx+ux*hl+nx*hw,cy+uy*hl+ny*hw],[cx+ux*hl-nx*hw,cy+uy*hl-ny*hw],[cx-ux*hl-nx*hw,cy-uy*hl-ny*hw],l,c)};
+  const MAD=[.55,.36,.2,1],VID=[.62,.82,.9,1];
+  for(const q of A.portais||[])add(510,()=>{const tp=q.tipo||(/window|sill|glass/.test(nome(q.t))?"janela":"porta"),L=q.raio,dx=q.dx,dy=q.dy,ab=q.fechado===false;
+    if(tp==="janela"){rect(q.x,q.y,dx,dy,L+.04,.13,-1,TINTA);rect(q.x,q.y,dx,dy,L-.02,.08,-1,VID);rect(q.x,q.y,dx,dy,L-.02,.012,-1,[.95,.98,1,1]);return}
+    const folhas=tp==="dupla"?[[-L,L],[L,L]]:[[-L,2*L]];rect(q.x,q.y,dx,dy,L,.16,-1,[.16,.12,.09,.9]);
+    for(const [o,c] of folhas){const hx=q.x+dx*o,hy=q.y+dy*o,s=o<0?1:-1;if(ab){const ux=-dy,uy=dx;rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2,.07,-1,TINTA);rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2-.03,.045,-1,MAD)}
+      else{rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2,.11,-1,TINTA);rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2-.04,.075,-1,MAD)}}});
   itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);for(const it of itens)it[2]();
   // luzes: x, y, lx, ly, r, g, b, forca
   const Lz=[],ondeLuz=new Map();for(const l of A.luzes||[]){ondeLuz.set(l,Lz.length);escreveLuz(Lz,Lz.length,l)}

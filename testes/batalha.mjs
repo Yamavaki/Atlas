@@ -21,6 +21,11 @@ const IND={};let k=0;for(const n in MATERIAIS)IND['m:'+n]=k++;for(const n in OBJ
  H.exec([{op:'mapa',de:{larg:12,alt:8},para:{larg:20,alt:10}},{op:'andar',a:0,de:{terreno:A.terreno},para:{terreno:MD.terrenoRedim(A.terreno,20,10)}}]);ok(M.larg===20&&A.terreno.w===80,'tamanho do mapa');
  const meio=JSON.stringify(M.andares);for(let i=0;i<5;i++)H.desfazer();ok(JSON.stringify(M.andares)===antes&&M.larg===12,'desfazer tudo volta ao começo');for(let i=0;i<5;i++)H.refazer();ok(JSON.stringify(M.andares)===meio,'refazer tudo volta ao fim');
  {const B=new Float32Array(N_OBJ);escreveObjeto(B,0,{x:1,y:1,r:0,w:2,h:1,s:1,mz:90,sat:.5,bri:1.2},3);ok(B[8]>0&&B[12*6+9]===.25&&B[12*6+10]===.5&&Math.abs(B[12*6+11]-1.2)<1e-6&&B[0]-B[12*6]>0,'objeto com sombra e ajustes de cor')}
+ // 0.75: paredes por forma, cantos por ponto, portas presas, piso que segue a parede
+ {const F=V.formaPontos('ret',[1,1],[5,4]),C=V.formaPontos('circ',[0,0],[3,0]),T=V.formaPontos('tri',[0,0],[4,4]),P6=V.formaPontos('poli',[0,0],[2,0],6);ok(F.length===4&&T.length===3&&P6.length===6&&C.length>=16,'formas prontas');
+  ok(V.arredonda(F,0,true,[0,2,0,0]).length>4&&V.arredonda(F,0,true).length===4,'raio so de um canto');
+  const B={paredes:[{id:1,p:F,laco:true}],portais:[{id:2,parede:1,d:2,raio:.5}],padroes:[{id:3,parede:1,p:[]}]};MD.sincroniza(B);ok(B.padroes[0].p===F&&Math.abs(B.portais[0].y-1)<1e-6,'porta e piso seguem a parede');
+  B.paredes[0].p=F.map(q=>[q[0]+3,q[1]]);MD.sincroniza(B);ok(Math.abs(B.portais[0].x-B.paredes[0].p[0][0]-2)<.2,'porta acompanha a parede movida')}
  const m=malhaAndar(A,M.texturas,IND);ok(m.onde.size===A.objetos.length&&m.verts.length===m.n*VERT,'malha guarda onde esta cada objeto')}
 for(const f of process.argv.slice(2)){const t=Date.now(),M=importarDD(JSON.parse(fs.readFileSync(f,'utf8')),{nome:f});let v=0,obj=0;for(const A of M.andares){const m=malhaAndar(A,M.texturas,IND);v+=m.n;obj+=A.objetos.length;ok(m.verts.length===m.n*VERT&&!m.verts.some(x=>!isFinite(x)),'malha com numero invalido em '+A.nome)}
   ok(M.andares.length>0&&M.larg>0,'mapa vazio '+f);console.log(f.split('/').pop(),M.larg+'x'+M.alt,M.andares.length+' andares',obj+' objetos',v+' vertices',(Date.now()-t)+' ms')}
