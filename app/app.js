@@ -11,25 +11,28 @@ let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;
 
 // ---------- estado ----------
 const S={notes:new Map(),maps:new Map(),sec:"home",note:null,map:null,mode:"read",q:"",place:null};
-const TYPES={livre:"Nota livre",local:"Local",personagem:"Personagem",faccao:"Facção",item:"Item",missao:"Missão",sessao:"Sessão"};
+const TYPES={livre:"Nota livre",local:"Lugar",personagem:"Personagem",faccao:"Facção",item:"Item",missao:"Missão",sessao:"Sessão",campanha:"Campanha"};
 const TPL={
   livre:"",
   local:"---\ntipo: local\n---\n\n## Descrição\n\n\n## Quem vive aqui\n\n\n## Ganchos\n\n- [ ] \n\n> [!segredo] Só para o mestre\n> \n",
   personagem:"---\ntipo: personagem\n---\n\n## Aparência\n\n\n## O que quer\n\n\n## O que esconde\n\n\n## Ligações\n\n",
   faccao:"---\ntipo: faccao\n---\n\n## Objetivo\n\n\n## Membros\n\n\n## Recursos\n\n\n## Inimigos e aliados\n\n",
   item:"---\ntipo: item\n---\n\n## Descrição\n\n\n## Efeito\n\n\n## História\n\n",
-  missao:"---\ntipo: missao\nstatus: aberta\n---\n\n## Objetivo\n\n\n## Etapas\n\n- [ ] \n\n## Complicações\n\n\n> [!segredo] O que realmente está acontecendo\n> \n",
+  missao:"---\ntipo: missao\nstatus: aberta\npeso: principal\n---\n\n## Objetivo\n\n\n## Objetivos\n\n- [ ] \n\n## Complicações\n\n\n> [!segredo] O que realmente está acontecendo\n> \n",
+  campanha:"---\ntipo: campanha\nestado: andamento\n---\n\n## Resumo\n\n\n## Arcos\n\n1. \n\n## Ganchos para os jogadores\n\n- \n\n> [!segredo] O que só o mestre sabe\n> \n",
   sessao:"---\ntipo: sessao\n---\n\n## Onde paramos\n\n\n## Cenas previstas\n\n- [ ] \n\n## NPCs em jogo\n\n\n## Anotações\n\n"};
-const FIELDS={personagem:[["raca","Raça"],["papel","Papel"],["faccao","Facção","link"],["local","Onde vive","link"],["situacao","Situação","sel",["","vivo","morto","desaparecido","desconhecido"]],["data","Data"]],
-  local:[["categoria","Tipo"],["populacao","População"],["governante","Quem governa","link"],["cultura","Cultura"],["regiao","Fica em","link"],["data","Fundação"]],
+const FIELDS={personagem:[["quem","É","sel",[["","NPC"],["jogador","Personagem de jogador"]]],["lado","Lado","sel",[["","—"],["aliado","Aliado"],["neutro","Neutro"],["inimigo","Inimigo"]]],["raca","Raça"],["papel","Papel"],["faccao","Facção","link"],["local","Onde vive","link"],["situacao","Situação","sel",["","vivo","morto","desaparecido","desconhecido"]],["data","Data"]],
+  local:[["categoria","Tipo","selx",[["","—"],["regiao","Região"],["cidade","Cidade"],["vila","Vila"],["masmorra","Masmorra"],["ponto","Ponto de interesse"],["outro","Outro"]]],["mapa","Mapa do Atlas","mapa"],["populacao","População"],["governante","Quem governa","link"],["cultura","Cultura"],["regiao","Fica em","link"],["data","Fundação"]],
   faccao:[["lider","Líder","link"],["sede","Sede","link"],["aliados","Aliados","links"],["inimigos","Inimigos","links"],["data","Fundação"]],
-  item:[["dono","Dono","link"],["onde","Onde está","link"],["data","Data"]],missao:[["status","Situação","sel",[["aberta","Aberta"],["andamento","Em andamento"],["concluida","Concluída"],["falhou","Falhou"]]],["local","Onde acontece","links"],["contratante","Quem dá","link"],["recompensa","Recompensa"],["requer","Depende de","links"],["libera","Leva a","links"],["data","Data"]],sessao:[["data","Data"],["jogadores","Quem jogou"],["lugares","Lugares visitados","links"]],livre:[["data","Data"]]};
+  item:[["dono","Dono","link"],["onde","Onde está","link"],["data","Data"]],missao:[["status","Situação","sel",[["oculta","Oculta"],["aberta","Disponível"],["andamento","Em andamento"],["concluida","Concluída"],["falhou","Falhou"],["abandonada","Abandonada"]]],["peso","Peso","sel",[["principal","Principal"],["secundaria","Secundária"]]],["campanha","Campanha","link"],["arco","Arco"],["prioridade","Prioridade","sel",[["","—"],["alta","Alta"],["media","Média"],["baixa","Baixa"]]],
+    ["contratante","Quem dá","link"],["local","Onde acontece","links"],["envolvidos","Quem está envolvido","links"],["itens","Itens","links"],["recompensa","Recompensa"],["requer","Precisa de","links"],["libera","Abre","links"],["sessoes","Sessões","links"],["data","Data"]],
+  campanha:[["estado","Estado","sel",[["planejada","Planejada"],["andamento","Em andamento"],["pausada","Pausada"],["concluida","Concluída"]]],["principal","Campanha principal","sel",[["","Não"],["sim","Sim"]]],["jogadores","Jogadores"],["inicio","Começou em"],["regiao","Onde se passa","links"]],sessao:[["data","Data"],["jogadores","Quem jogou"],["lugares","Lugares visitados","links"]],livre:[["data","Data"]]};
 const TCOL={missao:"#d4a64a",livre:"#b3a486",local:"#8db06a",personagem:"#e0776b",faccao:"#a88bd6",item:"#e39a4f",sessao:"#7fa9cc",campanha:"#e6bc62"},TICO={missao:"missao",livre:"livre",local:"lugar",personagem:"personagem",faccao:"faccao",item:"item",sessao:"sessao",campanha:"campanha"};
 function setProps(o,ch){const {props,body}=fm(o.content);Object.assign(props,ch);for(const k in props)if(props[k]==null||props[k]==="")delete props[k];const ks=Object.keys(props).sort((a,b)=>(a==="tipo"?-1:b==="tipo"?1:0));
   o.content=(ks.length?"---\n"+ks.map(k=>k+": "+props[k]).join("\n")+"\n---\n\n":"")+body.replace(/^\n+/,"");o.updated=now();Store.save("notes",o)}
 const splitL=v=>String(v||"").split(/\s*[,;]\s*/).map(x=>x.replace(/^\[\[|\]\]$/g,"").trim()).filter(Boolean);
 function shrinkImg(file,max){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);res(cv.toDataURL("image/jpeg",.84))};im.onerror=rej;im.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
-const FOLD={local:"Locais",personagem:"Personagens",faccao:"Facções",item:"Itens",missao:"Missões",sessao:"Sessões",livre:""};
+const FOLD={campanha:"Campanhas",local:"Locais",personagem:"Personagens",faccao:"Facções",item:"Itens",missao:"Missões",sessao:"Sessões",livre:""};
 const GVR=71;
 const DEF={gv:GVR,rvar:true,riverDir:"auto",seaSide:"auto",smooth:.2,plains:.3,poi:.5,culture:"europa",size:1,temp:.5,humid:.5,climVar:.5,waste:.1,races:.5,form:"regiao",seed:"sasau-1403",sea:.5,islands:0,lakes:0,rivers:1,relief:.65,forest:.5,fields:.65,towns:6,meander:.6,clouds:.38,plan:"mixed",season:"verao"};
 const PARAMS=[["size","Tamanho do mapa","select",[[1,"Região (normal)"],[1.5,"Grande (2× a área)"],[2,"Continente (4× a área)"]]],["form","Formação","select",[["regiao","Região interior"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["arquipelago","Arquipélago"],["continente","Continente"]]],
@@ -173,8 +176,10 @@ function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChil
   const dl=h("datalist",{id:"dl-notes"},[...S.notes.values()].map(n=>h("option",{value:n.title})),[...new Set([...S.maps.values()].flatMap(m=>(m.places||[]).filter(p=>p.k==="d"||p.k==="b").map(p=>p.name)))].map(n=>h("option",{value:n}))),dlf=h("datalist",{id:"dl-fold"},[...new Set([...S.notes.values()].map(n=>n.folder).filter(Boolean))].map(f=>h("option",{value:f})));
   // ficha
   const fields=FIELDS[type]||FIELDS.livre,grid=h("div",{class:"fgrid"});
-  for(const [k,label,kind,opts] of fields){const chips=h("span",{class:"fchips"}),drawChips=()=>{chips.replaceChildren();if(kind!=="link"&&kind!=="links")return;for(const nm of splitL(fm(o.content).props[k])){const ex=findNote(nm)||findPlace(nm);chips.append(h("button",{type:"button",class:"fl"+(ex?"":" miss"),title:ex?"Abrir":"Criar nota",onclick:()=>openTitle(nm)},nm))}};
-    let inp;const val=fm(o.content).props[k]||"";if(kind==="sel"){inp=h("select",{"aria-label":label,onchange:e=>setProps(o,{[k]:e.target.value})},opts.map(v=>Array.isArray(v)?v:[v,v||"—"]).map(([v,l])=>h("option",{value:v,selected:v===val},l)))}
+  for(const [k,label,kind,opts] of fields){const chips=h("span",{class:"fchips"}),drawChips=()=>{if(kind==="mapa")return;chips.replaceChildren();if(kind!=="link"&&kind!=="links")return;for(const nm of splitL(fm(o.content).props[k])){const ex=findNote(nm)||findPlace(nm);chips.append(h("button",{type:"button",class:"fl"+(ex?"":" miss"),title:ex?"Abrir":"Criar nota",onclick:()=>openTitle(nm)},nm))}};
+    let inp;const val=fm(o.content).props[k]||"";if(kind==="mapa"){const nomes=[...S.maps.values()].filter(m=>m.type!=="assets").map(m=>m.name);inp=h("select",{"aria-label":label,onchange:e=>{setProps(o,{[k]:e.target.value});drawNote()}},h("option",{value:""},"—"),[...new Set(nomes.concat(val?[val]:[]))].map(n=>h("option",{value:n,selected:n===val},n)));const mp=[...S.maps.values()].find(m=>m.name===val);if(mp)chips.append(h("button",{type:"button",class:"fl",onclick:()=>openMap(mp.id)},icone("mapas",13),"Abrir o mapa"))}
+    else if(kind==="selx"){const L=opts.slice();if(val&&!L.some(x=>x[0]===val))L.push([val,val]);inp=h("select",{"aria-label":label,onchange:e=>setProps(o,{[k]:e.target.value})},L.map(([v,l])=>h("option",{value:v,selected:v===val},l)))}
+    else if(kind==="sel"){inp=h("select",{"aria-label":label,onchange:e=>setProps(o,{[k]:e.target.value})},opts.map(v=>Array.isArray(v)?v:[v,v||"—"]).map(([v,l])=>h("option",{value:v,selected:v===val},l)))}
     else inp=h("input",{type:"text",value:val,"aria-label":label,list:kind==="link"||kind==="links"?"dl-notes":null,placeholder:kind==="links"?"Nomes separados por vírgula":kind==="link"?"Nome de uma nota":k==="data"?"ex.: 1272, ou 1272-05-03":"",onchange:e=>{setProps(o,{[k]:e.target.value.trim()});drawChips()}});
     grid.append(h("label",{class:"fld"+(kind==="links"?" wide":"")},h("span",{},label),inp,chips));drawChips()}
   const pic=h("div",{class:"pic"+(o.img?" has":""),tabindex:"0",role:"button","aria-label":o.img?"Trocar imagem":"Adicionar imagem",title:"Clique ou arraste uma imagem"});if(o.img)pic.append(h("img",{src:o.img,alt:""}));else pic.append(h("span",{},type==="personagem"?"Retrato":"Imagem"));
@@ -890,7 +895,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
 // ---------- missoes, fronteiras e lugares nos mapas ----------
 const RCOL=["#a8352a","#3f6f8f","#5f7e35","#8a4a7a","#c98f45","#2f7f74","#6b5a3a","#b5476f"];
 const RKIND=[["reino","Reino"],["ducado","Ducado ou condado"],["cidade","Cidade ou bairro"],["regiao","Região"],["perigo","Zona de perigo"]];
-const QST=[["aberta","Aberta"],["andamento","Em andamento"],["concluida","Concluída"],["falhou","Falhou"]];
+const QST=[["oculta","Oculta"],["aberta","Disponível"],["andamento","Em andamento"],["concluida","Concluída"],["falhou","Falhou"],["abandonada","Abandonada"]];
 const quests=()=>[...S.notes.values()].filter(n=>fm(n.content).props.tipo==="missao");
 const qState=n=>fm(n.content).props.status||"aberta";
 function qWaits(n){const t=norm(n.title),out=[];for(const x of splitL(fm(n.content).props.requer)){const q=findNote(x);if(q&&qState(q)!=="concluida")out.push(q)}for(const q of quests()){if(q.id!==n.id&&qState(q)!=="concluida"&&splitL(fm(q.content).props.libera).some(x=>norm(x)===t)&&!out.includes(q))out.push(q)}return out}
