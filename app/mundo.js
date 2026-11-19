@@ -90,7 +90,7 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
   const pegada=(q,F,z)=>{const L=[];for(const P of F.pegada)L.push(P.map(v=>[q.x+v[0]*z,q.y+v[1]*z]));return L};
   for(const q of C.SPB||[]){let F=null,z=1,tipo=q.id||(q.k===2?"templo":q.k===3?"castelo":"especial");
     if(q.id&&AS&&AS.ficha){F=AS.ficha(q.id,q.race,q.v,q.ang||0,q.aov);z=(q.s||1)*Z}
-    else if((q.k===2||q.k===3)&&AS&&AS.fichaDe&&window.AtlasGen){const zz=q.k===3?2:(q.big?2.2:1.8),qq=Object.assign({},q,{x:0,y:0,sz:1});F=AS.fichaDe("big|"+q.k+"|"+q.race+"|"+(q.v||0).toFixed(2)+"|"+(q.ang||0).toFixed(2)+"|"+(q.big?1:0)+"|"+(q.ms||1)+"|"+(q.tv||0)+(q.cv?"|c"+q.cv:""),c=>AtlasGen.kit.drawBig(c,qq));z=zz}
+    else if((q.k===2||q.k===3)&&AS&&AS.fichaDe&&window.AtlasGen){const zz=q.k===3?2:(q.big?2.2:1.8),qq=Object.assign({},q,{x:0,y:0,sz:1});F=AS.fichaDe("big|"+q.k+"|"+q.race+"|"+(q.v||0).toFixed(2)+"|"+(q.ang||0).toFixed(2)+"|"+(q.big?1:0)+"|"+(q.ms||1)+"|"+(q.tv||0)+(q.cv?"|c"+q.cv:"")+(q.cst?"|"+q.cst:""),c=>AtlasGen.kit.drawBig(c,qq));z=zz}
     const n=G.obj({tipo,nome:q.name||NAME[q.id]||tipo,key:q.key,ref:q});
     if(F&&F.pegada.length)for(const P of pegada(q,F,z))pinta(P,n,tipo,USO.construcao);else G.circ(q.x,q.y,(q.r||12)*.7,k=>{pinta([[q.x-.1,q.y-.1],[q.x+.1,q.y-.1],[q.x,q.y+.1]],n,tipo,USO.construcao)})}
   for(const q of C.props||[]){if(!q.id)continue;const n=G.obj({tipo:q.id,nome:NAME[q.id]||q.id,key:q.key,ref:q});let F=null;if(AS&&AS.ficha)F=AS.ficha(q.id,q.race,q.v,q.ang||0,q.aov);const z=(q.s||1)*Z*(q.street?.85:1);
