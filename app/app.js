@@ -166,7 +166,7 @@ function openNote(id,mode){S.sec="notes";S.view=null;S.note=id;const o=S.notes.g
 function openTitle(t){const o=findNote(t);if(o)return openNote(o.id);const pl=findPlace(t);if(pl)return openMap(pl.map.id,pl.x!=null?{x:pl.x,y:pl.y,name:pl.name}:null);openNote(newNote("livre",t).id,"edit")}
 function linksOf(n){const out=new Set(),re=/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g;let m;const src=n.content||"";while((m=re.exec(src)))if(!/^img:/.test(m[1]))out.add(norm(m[1]));const {props}=fm(src),ty=props.tipo||"livre";for(const [k,,kind] of FIELDS[ty]||[])if(kind==="link"||kind==="links")for(const x of splitL(props[k]))out.add(norm(x));return out}
 function backlinks(o){const t=norm(o.title),out=[];if(!t)return out;for(const n of S.notes.values()){if(n.id!==o.id&&linksOf(n).has(t))out.push(n)}return out}
-function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();
+function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();if(o.kind==="canvas")return drawQuadro(o,main);
   const {props}=fm(o.content),type=props.tipo&&TYPES[props.tipo]?props.tipo:"livre";
   const title=h("input",{class:"title",type:"text",value:o.title,"aria-label":"Título da nota",onchange:e=>{const v=e.target.value.trim()||"Sem título",ex=findNote(v);if(ex&&ex.id!==o.id){toast("Já existe uma nota com esse título.");e.target.value=o.title;return}const old=o.title;o.title=v;Store.save("notes",o);renameLinks(old,v);drawSide()}});
   const typeSel=h("select",{class:"tsel","aria-label":"Tipo da nota",onchange:e=>{setProps(o,{tipo:e.target.value==="livre"?"":e.target.value});if(!o.folder||Object.values(FOLD).includes(o.folder)){o.folder=FOLD[e.target.value]||"";Store.save("notes",o)}drawNote();drawSide()}},Object.entries(TYPES).map(([k,v])=>h("option",{value:k,selected:k===type},v)));typeSel.style.borderColor=TCOL[type];
@@ -1006,7 +1006,7 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
 // ---------- lista lateral ----------
 function drawSide(){const side=$("#side");side.replaceChildren();for(const b of document.querySelectorAll(".rail button"))b.classList.toggle("on",b.dataset.sec===S.sec);
   $("#app").classList.toggle("no-side",S.sec==="home");if(S.sec==="home")return;
-  if(S.sec==="notes"){const nova=h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>{const o=newNote(k,k==="livre"?"":TYPES[k]);openNote(o.id,"edit")}})))},icone("mais",16),"Nova");
+  if(S.sec==="notes"){const nova=h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,[{ic:"quadro",cor:"#a88bd6",txt:"Quadro",det:"Cartões, imagens e linhas, como no Obsidian",fn:novoQuadro},{sep:true},...Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>{const o=newNote(k,k==="livre"?"":TYPES[k]);openNote(o.id,"edit")}}))])},icone("mais",16),"Nova");
     const V=S.view||"list",views=h("div",{class:"vtabs seg",role:"tablist","aria-label":"Ver notas como"},[["list","Lista","lista"],["quests","Missões","missao"],["graph","Grafo","grafo"],["time","Tempo","tempo"]].map(([v,l,ic])=>h("button",{type:"button",role:"tab","aria-selected":String(V===v),class:V===v?"on":"",onclick:()=>{S.view=v==="list"?null:v;drawAll()}},l)));
     const q=h("input",{type:"search",placeholder:"Buscar (título, texto ou ficha)",value:S.q,"aria-label":"Buscar notas",oninput:e=>{S.q=e.target.value;drawList()}}),list=h("div",{class:"list"});
     const all0=[...S.notes.values()],tyOf=n=>fm(n.content).props.tipo||"livre",tags=new Map();for(const n of all0)for(const t of tagsOf(n))tags.set(t,(tags.get(t)||0)+1);
@@ -1015,12 +1015,32 @@ function drawSide(){const side=$("#side");side.replaceChildren();for(const b of 
     const drawList=()=>{list.replaceChildren();const qq=norm(S.q),all=visNotes().filter(n=>!qq||norm(n.title).includes(qq)||norm(n.content).includes(qq)).sort((a,b)=>(a.folder||"").localeCompare(b.folder||"")||a.title.localeCompare(b.title));
       if(!all.length){list.append(h("p",{class:"empty"},qq||S.ft||S.tag?"Nada encontrado.":"Nenhuma nota ainda."));return}let g=null;
       for(const n of all){if((n.folder||"")!==g){g=n.folder||"";list.append(h("div",{class:"grp"},g||"Sem pasta"))}const ty=tyOf(n),pr=fm(n.content).props,sub=ty==="missao"?(QST.find(x=>x[0]===(pr.status||"aberta"))||["",""])[1]:pr.papel||pr.categoria||"";
-        list.append(h("button",{class:"item"+(n.id===S.note?" on":""),type:"button",onclick:()=>openNote(n.id)},h("i",{class:"tic",style:"color:"+(TCOL[ty]||TCOL.livre)},icone(TICO[ty]||"livre",17)),h("span",{class:"it"},n.title),sub&&norm(sub)!==norm(n.title)?h("small",{},sub):null))}};
+        const qd=n.kind==="canvas";list.append(h("button",{class:"item"+(n.id===S.note?" on":""),type:"button",draggable:qd?null:"true",ondragstart:e=>{e.dataTransfer.setData("text/x-atlas-nota",n.title);e.dataTransfer.effectAllowed="copy"},onclick:()=>openNote(n.id)},h("i",{class:"tic",style:"color:"+(qd?"#a88bd6":TCOL[ty]||TCOL.livre)},icone(qd?"quadro":TICO[ty]||"livre",17)),h("span",{class:"it"},n.title),sub&&norm(sub)!==norm(n.title)?h("small",{},sub):null))}};
     side.append(h("div",{class:"shead"},h("h2",{},"Notas"),nova),views,q,flt,list);drawList()}
   else{const list=h("div",{class:"list"}),all=[...S.maps.values()].filter(m=>m.type!=="assets").sort((a,b)=>a.name.localeCompare(b.name));
     if(!all.length)list.append(h("p",{class:"empty"},"Nenhum mapa ainda."));
     const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};for(const m of all){const mi=MIC[m.type]||["regiao","#8db06a"];list.append(h("button",{class:"item"+(m.id===S.map?" on":""),type:"button",onclick:()=>openMap(m.id)},h("i",{class:"tic",style:"color:"+mi[1]},icone(mi[0],17)),h("span",{class:"it"},m.name),h("small",{},m.type==="battle"?"batalha":m.type==="city"?"cidade":(m.lock||[]).length?(m.lock.length+" povoados"):"região")))}
     side.append(h("div",{class:"shead"},h("h2",{},"Mapas"),h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,itensNovoMapa())},icone("mais",16),"Novo")),batalhaLado(),list)}}
+// ---------- quadro (canvas) ----------
+function novoQuadro(){const o=newNote("livre","Quadro",{content:""});o.kind="canvas";o.canvas={nodes:[],edges:[]};o.folder="Quadros";Store.save("notes",o);openNote(o.id)}
+const resumoMd=t=>String(t||"").replace(/\n## Ligações\n[\s\S]*$/,"").replace(/^---[\s\S]*?---\n?/,"").replace(/%%[\s\S]*?%%/g,"").replace(/> \[![^\]]*\][^\n]*\n(>.*\n?)*/g,"").replace(/[#>*_`]/g,"").replace(/\[\[([^\]|]+)(\|[^\]]+)?\]\]/g,"$1").replace(/!\[[^\]]*\]\([^)]*\)/g,"").replace(/\s+/g," ").trim().slice(0,240);
+function resumoNota(t){const n=findNote(t);if(!n||n.kind==="canvas")return n?{titulo:n.title,ic:"quadro",cor:"#a88bd6",trecho:"Quadro",chips:[]}:null;const {props,body}=fm(n.content),ty=props.tipo&&TYPES[props.tipo]?props.tipo:"livre",ch=[];
+  if(ty==="missao"){const q=QST.find(x=>x[0]===(props.status||"aberta"));if(q)ch.push({txt:q[1],cor:{concluida:"#8db06a",falhou:"#e0776b",andamento:"#7fa9cc",oculta:"#95886e",abandonada:"#95886e"}[q[0]]||"#d4a64a"});if(props.peso)ch.push({txt:props.peso==="secundaria"?"Secundária":"Principal"})}
+  if(ty==="personagem"){if(props.lado)ch.push({txt:{aliado:"Aliado",neutro:"Neutro",inimigo:"Inimigo"}[props.lado]||props.lado,cor:{aliado:"#8db06a",inimigo:"#e0776b"}[props.lado]});if(props.papel)ch.push({txt:props.papel})}
+  if(ty==="local"&&props.categoria)ch.push({txt:props.categoria});if(ty==="campanha"&&props.estado)ch.push({txt:props.estado});
+  return {titulo:n.title,ic:TICO[ty]||"livre",cor:TCOL[ty]||TCOL.livre,trecho:resumoMd(body),chips:ch}}
+function ligarNotas(de,para,rot){const n=findNote(de);if(!n)return;let c=n.content||"";const linha="- [["+para+"]]"+(rot?" — "+rot:"");if(c.includes("[["+para+"]]")&&c.includes(linha))return;
+  if(/\n## Ligações\n/.test("\n"+c))c=c.replace(/(\n?## Ligações\n(?:- .*\n?)*)/,m=>m.replace(/\n?$/,"\n")+linha+"\n");else c=c.replace(/\s*$/,"")+"\n\n## Ligações\n"+linha+"\n";n.content=c;n.updated=now();Store.save("notes",n)}
+function drawQuadro(o,main){const AQ=window.AtlasQuadro,area=h("div",{class:"qd-area"}),nome=h("input",{type:"text",class:"title qd-titulo",value:o.title,"aria-label":"Nome do quadro",onchange:e=>{const v=e.target.value.trim()||o.title,ex=findNote(v);if(ex&&ex.id!==o.id){toast("Já existe uma nota com esse nome.");e.target.value=o.title;return}o.title=v;Store.save("notes",o);drawSide()}});
+  let armed=false;const del=h("button",{type:"button",class:"ghost sm",onclick:()=>{if(!armed){armed=true;del.textContent="Confirmar";setTimeout(()=>{armed=false;del.textContent="Excluir"},3000);return}Store.remove("notes",o.id);S.note=null;drawAll()}},"Excluir");
+  const exp=h("button",{type:"button",class:"sm",title:"Baixar como .canvas (abre no Obsidian)",onclick:()=>saveFile(safe(o.title)+".canvas",new Blob([JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1)],{type:"application/json"}))},icone("exportar",16),".canvas");
+  main.append(h("div",{class:"qd-top"},h("i",{class:"tic",style:"color:#a88bd6"},icone("quadro",22)),nome,h("span",{class:"grow"}),exp,del),area);
+  if(!AQ){area.append(h("p",{class:"empty",style:"padding:24px"},"O quadro não carregou neste navegador."));return}
+  const MIC={battle:["batalha","Mapa de batalha"],city:["cidade","Mapa de cidade"]};
+  S.quadro=AQ.abrirQuadro(area,{dados:o.canvas||(o.canvas={nodes:[],edges:[]}),salvar:D=>{o.canvas=D;o.updated=now();Store.save("notes",o)},resumoNota,ligarNotas,aviso:toast,
+    notas:()=>[...S.notes.values()].filter(n=>n.kind!=="canvas").map(n=>{const ty=fm(n.content).props.tipo||"livre";return {titulo:n.title,ic:TICO[ty]||"livre",cor:TCOL[ty],tipo:TYPES[ty]||"Nota"}}).sort((a,b)=>a.titulo.localeCompare(b.titulo)),
+    mapas:()=>[...S.maps.values()].filter(m=>m.type!=="assets").map(m=>{const mi=MIC[m.type]||["regiao","Mapa de região"];return {id:m.id,nome:m.name,ic:mi[0],det:mi[1]}}),
+    abrirNota:t=>openTitle(t),criarNota:t=>openTitle(t),abrirMapa:id=>{if(S.maps.has(id))openMap(id);else toast("Esse mapa foi apagado.")}})}
 // menu "Novo mapa": regiao, cidade, batalha, importar e exemplos de batalha
 function itensNovoMapa(){const BT=window.AtlasBatalha,L=[{ic:"regiao",cor:"#8db06a",txt:"Mapa de região",fn:()=>openMap(newMap().id)},{ic:"cidade",cor:"#d4a64a",txt:"Mapa de cidade",fn:()=>openMap(newCity().id)}];
   if(BT){L.push({ic:"batalha",cor:"#e0776b",txt:"Mapa de batalha",fn:async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}},{sep:true},{ic:"importar",txt:"Importar mapa de batalha",det:".dungeondraft_map ou .atlasmap",fn:()=>{const i=document.querySelector("input[accept='.dungeondraft_map,.json,.atlasmap']");if(i)i.click()}});
@@ -1041,6 +1061,7 @@ function batalhaLado(){const BT=window.AtlasBatalha;if(!BT)return null;const inp
   const sel=h("select",{"aria-label":"Abrir exemplo de mapa de batalha",onchange:async e=>{const k=e.target.value;e.target.value="";if(!k)return;try{novoBatalha(await BT.importarExemplo(k))}catch(er){toast(er.message||"Exemplo indisponível.")}}},h("option",{value:""},"Abrir exemplo de batalha…"),BT.EXEMPLOS.map(([k,n])=>h("option",{value:k},n)));
   return h("div",{class:"bt-lado",hidden:true},inp,sel)}
 window.addEventListener("atlas-batalha",()=>{try{if(S.sec==="maps")drawSide()}catch(e){}});
+window.addEventListener("atlas-quadro",()=>{try{const o=S.notes.get(S.note);if(S.sec==="notes"&&o&&o.kind==="canvas")drawMain()}catch(e){}});
 function drawWelcome(){return drawHome()}
 // tela de Inicio: comecar e recentes
 function drawHome(){const main=$("#main");main.replaceChildren();const notas=[...S.notes.values()],mapas=[...S.maps.values()].filter(m=>m.type!=="assets"),vazio=!notas.length&&!mapas.length;
@@ -1052,7 +1073,7 @@ function drawHome(){const main=$("#main");main.replaceChildren();const notas=[..
   const quando=t0=>{const t=typeof t0==="number"?t0:Date.parse(t0);if(!t)return"";const d=(Date.now()-t)/6e4;return d<2?"agora":d<60?"há "+Math.round(d)+" min":d<1440?"há "+Math.round(d/60)+" h":"há "+Math.round(d/1440)+" dias"};
   const MIC={battle:["batalha","#e0776b","Mapa de batalha"],city:["cidade","#d4a64a","Mapa de cidade"]};
   const itens=rec.map(r=>{if(r.k==="m"){const mi=MIC[r.o.type]||["regiao","#8db06a","Mapa de região"];return h("button",{type:"button",class:"hrec",onclick:()=>openMap(r.o.id)},h("i",{class:"tic",style:"color:"+mi[1]},icone(mi[0],20)),h("span",{class:"hrt"},h("b",{},r.o.name),h("small",{},mi[2]+(r.t?" · "+quando(r.t):""))))}
-    const ty=fm(r.o.content).props.tipo||"livre";return h("button",{type:"button",class:"hrec",onclick:()=>openNote(r.o.id)},h("i",{class:"tic",style:"color:"+(TCOL[ty]||TCOL.livre)},icone(TICO[ty]||"livre",20)),h("span",{class:"hrt"},h("b",{},r.o.title),h("small",{},(TYPES[ty]||"Nota")+(r.t?" · "+quando(r.t):""))))});
+    const ty=fm(r.o.content).props.tipo||"livre",qd=r.o.kind==="canvas";return h("button",{type:"button",class:"hrec",onclick:()=>openNote(r.o.id)},h("i",{class:"tic",style:"color:"+(qd?"#a88bd6":TCOL[ty]||TCOL.livre)},icone(qd?"quadro":TICO[ty]||"livre",20)),h("span",{class:"hrt"},h("b",{},r.o.title),h("small",{},(qd?"Quadro":TYPES[ty]||"Nota")+(r.t?" · "+quando(r.t):""))))});
   main.append(h("div",{class:"home"},h("h1",{},vazio?"Seu mundo começa aqui":"Seu mundo"),h("p",{class:"hsub"},vazio?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":notas.length+" nota"+(notas.length===1?"":"s")+" e "+mapas.length+" mapa"+(mapas.length===1?"":"s")+". Continue de onde parou ou comece algo novo."),
     h("h2",{},"Começar"),h("div",{class:"hcards"},cards),vazio?h("div",{class:"row"},h("button",{type:"button",onclick:sample},icone("estrela",16),"Criar mundo de exemplo")):null,
     rec.length?h("h2",{},"Recentes"):null,rec.length?h("div",{class:"hrecs"},itens):null))}
@@ -1070,7 +1091,7 @@ function drawAll(flash){drawSide();drawMain(flash)}
 const safe=s=>String(s||"sem-nome").replace(/[\\/:*?"<>|]+/g,"-").trim()||"sem-nome";
 function crc32(u){let crc=-1;for(let i=0;i<u.length;i++){let c=(crc^u[i])&255;for(let k=0;k<8;k++)c=c&1?(c>>>1)^0xEDB88320:c>>>1;crc=(crc>>>8)^c}return(crc^-1)>>>0}
 function zip(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
-  for(const f of files){const n=enc.encode(f.name),d=enc.encode(f.data),crc=crc32(d),hd=new DataView(new ArrayBuffer(30)),c=new DataView(new ArrayBuffer(46));
+  for(const f of files){const n=enc.encode(f.name),d=f.data instanceof Uint8Array?f.data:enc.encode(f.data),crc=crc32(d),hd=new DataView(new ArrayBuffer(30)),c=new DataView(new ArrayBuffer(46));
     hd.setUint32(0,0x04034b50,true);hd.setUint16(4,20,true);hd.setUint16(6,0x0800,true);hd.setUint16(12,0x21,true);hd.setUint32(14,crc,true);hd.setUint32(18,d.length,true);hd.setUint32(22,d.length,true);hd.setUint16(26,n.length,true);
     c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(14,0x21,true);c.setUint32(16,crc,true);c.setUint32(20,d.length,true);c.setUint32(24,d.length,true);c.setUint16(28,n.length,true);c.setUint32(42,off,true);
     parts.push(new Uint8Array(hd.buffer),n,d);cd.push(new Uint8Array(c.buffer),n);off+=30+n.length+d.length}
@@ -1081,10 +1102,14 @@ async function saveFile(name,blob){if(!blob){toast("Nada para salvar.");return}
   try{const a=h("a",{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();a.remove()}catch(e){toast("Este navegador não permitiu salvar o arquivo.")}}
 window.atlasSalvar=saveFile; // o Modo Batalha baixa arquivos pelo mesmo caminho (no artifact usa a permissao de download)
 function exportVault(players){const files=[],used=new Set();const put=(name,data)=>{let n=name,k=2;while(used.has(n.toLowerCase()))n=name.replace(/(\.[^.]+(\.json)?)$/," "+(k++)+"$1");used.add(n.toLowerCase());files.push({name:n,data})};
-  for(const n of S.notes.values()){let c=n.content||"";if(players)c=stripSecrets(c);c=c.replace(/!\[\[img:([\w-]+)\]\]/g,(m,id)=>n.images&&n.images[id]?"![]("+n.images[id]+")":"");put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".md",c)}
+  const caminhoNota=t=>{const o=findNote(t);return o?(o.folder?o.folder.split("/").map(safe).join("/")+"/":"")+safe(o.title)+".md":t+".md"};
+  for(const n of S.notes.values()){if(n.kind==="canvas"){const C=JSON.parse(JSON.stringify(n.canvas||{nodes:[],edges:[]}));for(const nd of C.nodes)if(nd.type==="file"&&/\.md$/i.test(nd.file||""))nd.file=caminhoNota(nd.file.split("/").pop().replace(/\.md$/i,""));put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".canvas",JSON.stringify(C,null,1));continue}let c=n.content||"";if(players)c=stripSecrets(c);c=c.replace(/!\[\[img:([\w-]+)\]\]/g,(m,id)=>n.images&&n.images[id]?"![]("+n.images[id]+")":"");put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".md",c)}
   if(!players)for(const m of S.maps.values())put("mapas/"+safe(m.name)+".map.json",JSON.stringify({name:m.name,type:m.type||"region",params:m.params,edits:m.edits||[],towns:m.lock||[],pins:m.pins||[],realms:m.realms||[],objs:m.objs||[]},null,2));
-  if(!files.length){toast("O vault está vazio.");return}saveFile(players?"atlas-jogadores.zip":"atlas-vault.zip",zip(files))}
-async function importFiles(list){let n=0;for(const f of list){try{const txt=await f.text(),title=f.name.replace(/\.(md|markdown|txt)$/i,"");const o=newNote("livre",title,{content:txt.replace(/\r/g,"")});o.folder="Importadas";Store.save("notes",o);n++}catch(e){}}
+  if(!files.length){toast("O vault está vazio.");return}
+  const imgs=[...S.notes.values()].filter(n=>n.kind==="canvas").flatMap(n=>((n.canvas||{}).nodes||[]).filter(x=>x.atlas&&x.atlas.img).map(x=>x.atlas.img));
+  (async()=>{if(imgs.length&&window.AtlasQuadro)for(const k of new Set(imgs)){try{const b=await window.AtlasQuadro.leImg(k);if(b)files.push({name:"imagens/"+k+".webp",data:new Uint8Array(await b.arrayBuffer())})}catch(e){}}saveFile(players?"atlas-jogadores.zip":"atlas-vault.zip",zip(files))})()}
+async function importFiles(list){let n=0;for(const f of list){try{const txt=await f.text(),title=f.name.replace(/\.(md|markdown|txt|canvas)$/i,"");
+      if(/\.canvas$/i.test(f.name)){const C=JSON.parse(txt);const o=newNote("livre",title,{content:""});o.kind="canvas";o.canvas={nodes:C.nodes||[],edges:C.edges||[]};o.folder="Quadros";Store.save("notes",o);n++;continue}const o=newNote("livre",title,{content:txt.replace(/\r/g,"")});o.folder="Importadas";Store.save("notes",o);n++}catch(e){}}
   S.sec="notes";drawAll();toast(n?n+" nota(s) importada(s).":"Nenhum arquivo pôde ser lido.")}
 
 const tagsOf=n=>{const out=new Set(),re=/(^|\s)#([\p{L}\d_\/-]+)/gu;let m;const b=fm(n.content).body.replace(/```[\s\S]*?```/g,"");while((m=re.exec(b)))out.add(m[2].toLowerCase());return out};
@@ -1107,7 +1132,7 @@ function drawQuests(){const main=$("#main");main.replaceChildren();const qs=ques
       col.append(card)}
     wrap.append(col)}}
 // grafo de ligacoes
-function drawGraph(){const main=$("#main");main.replaceChildren();const ns=visNotes();if(!ns.length){main.append(h("div",{class:"vwrap"},viewHead("Grafo","Crie notas e ligue umas às outras com [[Nome]] ou pelos campos da ficha.")));return}
+function drawGraph(){const main=$("#main");main.replaceChildren();const ns=visNotes().filter(n=>n.kind!=="canvas");if(!ns.length){main.append(h("div",{class:"vwrap"},viewHead("Grafo","Crie notas e ligue umas às outras com [[Nome]] ou pelos campos da ficha.")));return}
   const idx=new Map(ns.map((n,i)=>[norm(n.title),i])),E=[],ek=new Set();ns.forEach((n,i)=>{const pr=fm(n.content).props,lib=new Set(splitL(pr.libera).map(norm)),req=new Set(splitL(pr.requer).map(norm));for(const t of linksOf(n)){const j=idx.get(t);if(j==null||j===i)continue;const q=lib.has(t)?[i,j,1]:req.has(t)?[j,i,1]:[i,j,0],k=Math.min(i,j)+"-"+Math.max(i,j);if(ek.has(k)&&!q[2])continue;ek.add(k);E.push(q)}});
   const N=ns.length,P=ns.map((n,i)=>{const a=i*2.39996,r=40*Math.sqrt(i+1);return {x:Math.cos(a)*r,y:Math.sin(a)*r,vx:0,vy:0}}),deg=new Array(N).fill(0);E.forEach(([a,b])=>{deg[a]++;deg[b]++});
   const IT=N>300?120:260;for(let it=0;it<IT;it++){const t=1-it/IT;for(const p of P){p.vx=-p.x*.004;p.vy=-p.y*.004}for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){const a=P[i],b=P[j];let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy+.01;if(d2>160000)continue;const f=4200/d2;a.vx+=dx*f/Math.sqrt(d2);a.vy+=dy*f/Math.sqrt(d2);b.vx-=dx*f/Math.sqrt(d2);b.vy-=dy*f/Math.sqrt(d2)}
@@ -1135,7 +1160,7 @@ function drawTime(){const main=$("#main");main.replaceChildren();const items=vis
 const stripSecrets=src=>{const L=String(src||"").split("\n"),o=[];for(let i=0;i<L.length;i++){if(/^>\s*\[!(segredo|secret|mestre)\]/i.test(L[i])){while(i+1<L.length&&/^>/.test(L[i+1]))i++;continue}o.push(L[i])}return o.join("\n").replace(/%%[^%]*%%/g,"")};
 // Foundry VTT: um diario com uma pagina por nota
 function exportFoundry(players){const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",fid=()=>{let x="";for(let i=0;i<16;i++)x+=ch[(Math.random()*62)|0];return x};
-  const notes=[...S.notes.values()].sort((a,b)=>(a.folder||"").localeCompare(b.folder||"")||a.title.localeCompare(b.title)),ids=new Map(notes.map(n=>[norm(n.title),fid()]));if(!notes.length){toast("Não há notas para exportar.");return}
+  const notes=[...S.notes.values()].filter(n=>n.kind!=="canvas").sort((a,b)=>(a.folder||"").localeCompare(b.folder||"")||a.title.localeCompare(b.title)),ids=new Map(notes.map(n=>[norm(n.title),fid()]));if(!notes.length){toast("Não há notas para exportar.");return}
   const was=S.players;S.players=!!players;MDMODE="foundry";let pages;try{pages=notes.map((n,i)=>{CURIMG=n.images||null;let html=md(fm(players?stripSecrets(n.content):n.content).body);CURIMG=null;
     const sec=[];html=html.replace(/<span class="secret"[^>]*>([\s\S]*?)<\/span>/g,(_,x)=>{sec.push(x);return ""});
     html=html.replace(/<a class="wl[^"]*" data-t="([^"]*)">([\s\S]*?)<\/a>/g,(_,t,l)=>{const id=ids.get(norm(t.replace(/&amp;/g,"&")));return id?"@UUID[."+id+"]{"+l+"}":l});
@@ -1145,7 +1170,7 @@ function exportFoundry(players){const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl
     return {_id:ids.get(norm(n.title)),name:n.title,type:"text",title:{show:true,level:1},text:{format:1,content:html},sort:(i+1)*1e5,ownership:{default:players?2:-1},flags:{atlas:{folder:n.folder||"",tipo:ty}}}})}finally{MDMODE="";S.players=was;CURIMG=null}
   const entry={name:players?"Atlas (jogadores)":"Atlas",pages,folder:null,sort:0,ownership:{default:players?2:0},flags:{atlas:{exported:new Date().toISOString()}}};
   saveFile(players?"atlas-foundry-jogadores.json":"atlas-foundry.json",new Blob([JSON.stringify(entry)],{type:"application/json"}));toast("No Foundry: crie um diário, clique com o botão direito nele e use Importar dados.")}
-function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}const r=btn.getBoundingClientRect();
+function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}if(!btn||!btn.isConnected)btn=$("#bExp");const r=btn.getBoundingClientRect();
   m=h("div",{id:"expm",class:"mpop fixed exp",style:"left:"+Math.max(8,Math.min(innerWidth-330,r.right-320))+"px;top:"+(r.bottom+6)+"px"},h("button",{type:"button",class:"x","aria-label":"Fechar",onclick:()=>m.remove()},"×"),h("b",{},"Exportar"),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault()}},h("b",{},"Vault completo (.zip)"),h("small",{},"Markdown para o Obsidian, com segredos e mapas")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault(true)}},h("b",{},"Para os jogadores (.zip)"),h("small",{},"Sem segredos do mestre")),
@@ -1172,7 +1197,7 @@ function abrePaleta(){let P=$("#paleta");if(P){P.querySelector("input").focus();
     ...Object.entries(TYPES).map(([k,v])=>[TICO[k],TCOL[k],"Nova nota: "+v,()=>openNote(newNote(k,k==="livre"?"":TYPES[k]).id,"edit")]),["importar","","Importar notas",()=>$("#imp").click()],["exportar","","Exportar…",()=>exportMenu($("#bExp"))],["olho","","Alternar visão do mestre e dos jogadores",()=>$("#bPlay").click()],
     ["inicio","","Ir para o Início",()=>{S.sec="home";drawAll()}],["grafo","","Ver o grafo das notas",()=>{S.sec="notes";S.view="graph";drawAll()}],["missao","","Ver as missões",()=>{S.sec="notes";S.view="quests";drawAll()}]].filter(Boolean);
   const monta=()=>{const q=norm(inp.value.trim());lista=[];const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};
-    for(const n of S.notes.values())if(!q||norm(n.title).includes(q)){const ty=fm(n.content).props.tipo||"livre";lista.push({ic:TICO[ty]||"livre",cor:TCOL[ty],t:n.title,d:TYPES[ty]||"Nota",fn:()=>openNote(n.id),r:q&&norm(n.title).startsWith(q)?0:1})}
+    for(const n of S.notes.values())if(!q||norm(n.title).includes(q)){const ty=fm(n.content).props.tipo||"livre",qd=n.kind==="canvas";lista.push({ic:qd?"quadro":TICO[ty]||"livre",cor:qd?"#a88bd6":TCOL[ty],t:n.title,d:qd?"Quadro":TYPES[ty]||"Nota",fn:()=>openNote(n.id),r:q&&norm(n.title).startsWith(q)?0:1})}
     for(const m of S.maps.values())if(m.type!=="assets"&&(!q||norm(m.name).includes(q))){const mi=MIC[m.type]||["regiao","#8db06a"];lista.push({ic:mi[0],cor:mi[1],t:m.name,d:"Mapa",fn:()=>openMap(m.id),r:q&&norm(m.name).startsWith(q)?0:1})}
     for(const [ic,cor,t,fn] of acoes)if(!q||norm(t).includes(q))lista.push({ic,cor,t,d:"Ação",fn,r:2});
     if(!q)lista=lista.filter(x=>x.d==="Ação").concat(lista.filter(x=>x.d!=="Ação").slice(0,8));else lista.sort((a,b)=>a.r-b.r);lista=lista.slice(0,40);sel=Math.min(sel,Math.max(0,lista.length-1));
@@ -1183,5 +1208,5 @@ $("#imp").addEventListener("change",e=>{importFiles([...e.target.files]);e.targe
 $("#main").addEventListener("pointerdown",()=>$("#side").classList.remove("open"));
 drawSide();$("#main").append(h("div",{class:"welcome"},h("h1",{},"Abrindo o vault…")));
 Store.init();
-window.AtlasApp={S,Store};
+window.AtlasApp={S,Store,openNote};
 })();
