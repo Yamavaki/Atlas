@@ -15,8 +15,10 @@ export function criaHistorico(M,aoMudar,limite){limite=limite||200;const feitos=
     if(o.op==="muda"){const e=item(o.a,o.k,o.id);if(e)poe(e,s>0?o.para:o.de)}
     else if(o.op==="cria"||o.op==="apaga"){const poeItem=(o.op==="cria")===(s>0),L=A[o.k];idx.delete(o.a+o.k);if(poeItem){if(o.pos==null||o.pos>L.length)L.push(o.item);else L.splice(o.pos,0,o.item)}else{const i=L.indexOf(o.item);if(i>=0)L.splice(i,1)}}
     else if(o.op==="pos"){const L=A[o.k],i=L.indexOf(item(o.a,o.k,o.id));if(i>=0){const e=L.splice(i,1)[0];L.splice(Math.max(0,Math.min(L.length,s>0?o.para:o.de)),0,e)}}
-    else if(o.op==="andar")Object.assign(A,s>0?o.para:o.de);
-    else if(o.op==="mapa")Object.assign(M,s>0?o.para:o.de)}
+    else if(o.op==="andar"){Object.assign(A,s>0?o.para:o.de);idx.clear()}
+    else if(o.op==="mapa"){Object.assign(M,s>0?o.para:o.de);idx.clear()}
+    // pintura da mascara de uma camada: so o retangulo mexido (ret = x, y, largura, altura em pixels da mascara)
+    else if(o.op==="mascara"){const c=item(o.a,"camadas",o.id);if(c&&c.m){const [x,y,w,h]=o.ret,src=s>0?o.para:o.de;for(let j=0;j<h;j++)c.m.set(src.subarray(j*w,j*w+w),(y+j)*c.mw+x)}}}
   const roda=(lote,s)=>{const O=lote.ops;if(s>0)for(let i=0;i<O.length;i++)aplica(O[i],1);else for(let i=O.length-1;i>=0;i--)aplica(O[i],-1)};
   const guarda=lote=>{const u=feitos[feitos.length-1];
     // junta ajustes seguidos do mesmo campo (arrastar um controle) num passo so de desfazer
@@ -33,5 +35,5 @@ export function criaHistorico(M,aoMudar,limite){limite=limite||200;const feitos=
     pode:()=>[feitos.length,desfeitos.length],nomeDesfazer:()=>feitos.length?feitos[feitos.length-1].nome:"",nomeRefazer:()=>desfeitos.length?desfeitos[desfeitos.length-1].nome:""};
   return H}
 // o que um lote exige do desenho: quais andares mudaram e se basta reescrever objetos no lugar
-export function alcance(lote){const R={andares:new Set(),tudo:false,leve:true,objs:[]};for(const o of lote.ops){if(o.op==="mapa"){R.tudo=true;R.leve=false;continue}if(o.op==="andar"&&Object.keys(o.para).every(k=>k==="ambiente"))continue;R.andares.add(o.a);
+export function alcance(lote){const R={andares:new Set(),tudo:false,leve:true,objs:[]};for(const o of lote.ops){if(o.op==="mapa"){R.tudo=true;R.leve=false;continue}if(o.op==="andar"&&Object.keys(o.para).every(k=>k==="ambiente"||k==="camadas"))continue;if(o.op==="mascara"||o.k==="camadas"){R.camadas=true;continue}R.andares.add(o.a);
     if(o.op==="muda"&&o.k==="objetos"&&o.de.l===o.para.l&&o.de.t===o.para.t)R.objs.push(o);else if(o.op==="muda"&&o.k==="luzes")R.luz=true;else R.leve=false}return R}

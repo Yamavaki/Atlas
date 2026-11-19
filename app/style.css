@@ -374,6 +374,16 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .bt-mo canvas{width:56px;height:56px;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.6)}.bt-mo span{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .bt-mo:hover{border-color:var(--line)}.bt-mo[aria-pressed=true]{border-color:var(--gold);background:#3b2f1c;color:var(--text)}
 .bt-troca{margin-top:8px}
+.bt-cams{display:flex;flex-direction:column;gap:3px;max-height:260px;overflow:auto;padding:2px;background:#15110c;border:1px solid var(--line);border-radius:6px}
+.bt-cam{display:flex;align-items:center;gap:7px;padding:4px 6px;border:1px solid transparent;border-radius:5px;cursor:pointer}
+.bt-cam:hover{background:#221c13}.bt-cam[aria-selected=true]{background:#3b2f1c;border-color:var(--gold)}
+.bt-cams-mini{max-height:160px;margin-bottom:8px}.bt-cams-mini .bt-cam{cursor:default}
+.bt-olho{width:28px;height:28px;min-height:0;padding:0;justify-content:center;border:0;background:none;color:var(--muted)}.bt-olho svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.bt-olho:hover{color:var(--text)}
+.bt-am32{width:32px;height:32px}.bt-msk{background:#000}
+.bt-cn{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.2}.bt-cn b{font-weight:500;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bt-cn small{color:var(--muted);font-size:12px}
+.bt-cbar{display:flex;gap:4px;margin-top:6px}
+.bt-c input[type=text]{width:100%;min-height:32px;padding:2px 8px;background:var(--bg);border:1px solid var(--line);border-radius:4px;font-size:15px}
 @media (min-width:761px){.bt-bar{flex-wrap:nowrap}}
 @media (max-width:760px){
   .bt-meio{flex-direction:column}.bt-ferr{flex-direction:row;border-right:0;border-bottom:1px solid var(--line);padding:4px 8px}

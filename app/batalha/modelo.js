@@ -54,9 +54,29 @@ export function terrenoRedim(T,larg,alt){const w=larg*4,h=alt*4,a=deB64(T.splat)
 export function andarVazio(nome,terreno){return {nome,ambiente:[1,1,1,1],terreno,pisos:[],formas:[],padroes:[],paredes:[],portais:[],caminhos:[],objetos:[],luzes:[]}}
 export function novoMapa(o){o=o||{};const larg=Math.max(4,Math.min(200,Math.round(o.larg||30))),alt=Math.max(4,Math.min(200,Math.round(o.alt||20)));
   const M={v:1,nome:o.nome||"Novo mapa de batalha",larg,alt,origem:"atlas",grade:{cor:[0,0,0,.35]},texturas:[],pacotes:[],andares:[],avisos:[],sid:1};
-  M.andares.push(andarVazio("Térreo",terrenoLiso(larg,alt,texDe(M,"atlas:m/"+(o.chao||"grama")))));return M}
+  const A=andarVazio("Térreo",null);A.camadas=[novaCamada(M,{mat:o.chao||"grama",nome:MATERIAIS_NOME[o.chao||"grama"],cheia:true})];M.andares.push(A);return M}
 // todo item ganha um id proprio (as paredes importadas guardam o delas, que os portais usam)
-export function garanteIds(M){let mx=M.sid||1;const usados=new Set();for(const A of M.andares)for(const k of TIPOS)for(const e of A[k]||[])if(e.id!=null){if(usados.has(e.id)&&k!=="paredes")e.id=null;else{usados.add(e.id);if(typeof e.id==="number"&&e.id>=mx)mx=e.id+1}}
+export function garanteIds(M){for(const A of M.andares)if(A.camadas&&!TIPOS.includes("camadas"))for(const c of A.camadas)if(c.id==null)c.id=(M.sid=(M.sid||1)+1);let mx=M.sid||1;const usados=new Set();for(const A of M.andares)for(const k of TIPOS)for(const e of A[k]||[])if(e.id!=null){if(usados.has(e.id)&&k!=="paredes")e.id=null;else{usados.add(e.id);if(typeof e.id==="number"&&e.id>=mx)mx=e.id+1}}
   for(const A of M.andares)for(const k of TIPOS){if(!A[k])A[k]=[];for(const e of A[k])if(e.id==null)e.id=mx++}M.sid=mx;return M}
 export const novoId=M=>M.sid++;
 export function clona(M,k,e){const c=JSON.parse(JSON.stringify(e));c.id=novoId(M);return c}
+
+// ---------- camadas de textura do chao (como no Photoshop) ----------
+// camada: {id, nome, t (textura), vis, op (opacidade), modo (normal|multiplicar|clarear|somar), esc, gt (giro), ox, oy, mz, sat, bri, con, cor, m (mascara Uint8Array mw x mh, null = cheia)}
+export const MODOS=[["normal","Normal"],["multiplicar","Multiplicar"],["clarear","Clarear"],["somar","Somar"]];
+export const resolucao=M=>Math.max(2,Math.min(8,Math.floor(2048/Math.max(M.larg,M.alt))));
+export function novaCamada(M,o){o=o||{};const r=resolucao(M),c={id:novoId(M),nome:o.nome||"Camada",t:o.t!=null?o.t:texDe(M,"atlas:m/"+(o.mat||"terra")),vis:true,op:1,modo:"normal",esc:1,gt:0,ox:0,oy:0,mw:M.larg*r,mh:M.alt*r,m:null};
+  if(!o.cheia)c.m=new Uint8Array(c.mw*c.mh);return Object.assign(c,o.extra||{})}
+// muda a resolucao/tamanho de uma mascara guardando o desenho (canto de cima a esquerda fixo; area nova: cheia ou vazia)
+export function redimMascara(m,w,h,W,H,cheio){const u=new Uint8Array(W*H);if(cheio)u.fill(255);if(!m){if(!cheio)u.fill(255);return u}for(let y=0;y<Math.min(h,H);y++)u.set(m.subarray(y*w,y*w+Math.min(w,W)),y*W);return u}
+// novo tamanho do mapa: guarda o desenho no lugar (canto de cima a esquerda fixo); se a resolucao mudar, reamostra
+export function redimCamadas(L,larg0,larg,alt,r){return L.map(c=>{const W=larg*r,H=alt*r;if(!c.m)return Object.assign({},c,{mw:W,mh:H});const r0=c.mw/larg0;if(Math.abs(r0-r)<1e-9)return Object.assign({},c,{m:redimMascara(c.m,c.mw,c.mh,W,H,false),mw:W,mh:H});
+  const u=new Uint8Array(W*H);for(let y=0;y<H;y++){const oy=Math.floor(y*r0/r);if(oy>=c.mh)break;for(let x=0;x<W;x++){const ox=Math.floor(x*r0/r);if(ox<c.mw)u[y*W+x]=c.m[oy*c.mw+ox]}}return Object.assign({},c,{m:u,mw:W,mh:H})})}
+// troca o terreno antigo (4 texturas misturadas, do Dungeondraft) por camadas: a 1a cheia, as outras com a mascara do peso dela
+export function converteTerreno(M,A){if(!A.terreno||A.camadas)return false;const T=A.terreno,r=resolucao(M),W=M.larg*r,H=M.alt*r,sp=deB64(T.splat),L=[];
+  const usa=T.tex.map((t,i)=>t>=0||i===0);const peso=(x,y,k)=>{const sx=Math.min(T.w-1,Math.floor(x*T.w/W)),sy=Math.min(T.h-1,Math.floor(y*T.h/H)),j=(sy*T.w+sx)*4;return [sp[j],sp[j+1],sp[j+2],sp[j+3]]};
+  const ms=[1,2,3].map(()=>new Uint8Array(W*H));for(let y=0;y<H;y++)for(let x=0;x<W;x++){const p=peso(x,y);let s=p[0]||0;if(p[0]+p[1]+p[2]+p[3]<1){p[0]=255;s=255}for(let k=1;k<4;k++){s+=p[k];ms[k-1][y*W+x]=s>0?Math.round(255*p[k]/s):0}}
+  const nomeT=t=>t<0?"Base":(M.texturas[t]||"").split("/").pop().replace(/\.\w+$/,"").replace(/[_-]+/g," ");
+  L.push(novaCamada(M,{t:T.tex[0]<0?texDe(M,"atlas:m/neutro"):T.tex[0],nome:nomeT(T.tex[0]),cheia:true}));
+  for(let k=1;k<4;k++)if(T.tex[k]>=0&&ms[k-1].some(v=>v>0)){const c=novaCamada(M,{t:T.tex[k],nome:nomeT(T.tex[k]),cheia:true});c.m=ms[k-1];c.mw=W;c.mh=H;L.push(c)}
+  A.camadas=L;delete A.terreno;return true}
