@@ -30,7 +30,7 @@ function setProps(o,ch){const {props,body}=fm(o.content);Object.assign(props,ch)
 const splitL=v=>String(v||"").split(/\s*[,;]\s*/).map(x=>x.replace(/^\[\[|\]\]$/g,"").trim()).filter(Boolean);
 function shrinkImg(file,max){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);res(cv.toDataURL("image/jpeg",.84))};im.onerror=rej;im.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
 const FOLD={local:"Locais",personagem:"Personagens",faccao:"Facções",item:"Itens",missao:"Missões",sessao:"Sessões",livre:""};
-const GVR=65;
+const GVR=67;
 const DEF={gv:GVR,rvar:true,riverDir:"auto",seaSide:"auto",smooth:.2,plains:.3,poi:.5,culture:"europa",size:1,temp:.5,humid:.5,climVar:.5,waste:.1,races:.5,form:"regiao",seed:"sasau-1403",sea:.5,islands:0,lakes:0,rivers:1,relief:.65,forest:.5,fields:.65,towns:6,meander:.6,clouds:.38,plan:"mixed",season:"verao"};
 const PARAMS=[["size","Tamanho do mapa","select",[[1,"Região (normal)"],[1.5,"Grande (2× a área)"],[2,"Continente (4× a área)"]]],["form","Formação","select",[["regiao","Região interior"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["arquipelago","Arquipélago"],["continente","Continente"]]],
   ["seed","Semente","text"],["sea","Nível do mar","pct"],["islands","Ilhas extras","int",0,6],["lakes","Lagos","int",0,4],["rivers","Rios","int",0,3],
