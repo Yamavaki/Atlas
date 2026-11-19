@@ -150,7 +150,9 @@ function md(src){const L=String(src||"").replace(/\r/g,"").split("\n"),o=[];let 
     para.push(l);i++}
   flush();return o.join("\n")}
 let CURIMG=null,MDMODE="";
-function mdView(src,note){CURIMG=note&&note.images||null;const d=h("div",{class:"md",html:md(fm(src).body)});CURIMG=null;d.addEventListener("click",e=>{const a=e.target.closest("a.wl");if(a){e.preventDefault();openTitle(a.dataset.t)}});
+function mdView(src,note){CURIMG=note&&note.images||null;const d=h("div",{class:"md",html:md(fm(src).body)});CURIMG=null;
+  if(note&&!S.players&&S.notes.get(note.id)===note){d.querySelectorAll("li.task input").forEach((cb,k)=>{cb.disabled=false;cb.setAttribute("aria-label","Marcar");cb.addEventListener("change",()=>{const L=note.content.split("\n");let c=-1,ini=0;if(/^---\n/.test(note.content)){ini=L.indexOf("---",1)+1}
+    for(let i=ini;i<L.length;i++){if(/^\s*(?:>\s?)*(?:[-*+]|\d+\.)\s+\[( |x|X)\]/.test(L[i])&&++c===k){L[i]=L[i].replace(/\[( |x|X)\]/,cb.checked?"[x]":"[ ]");break}}note.content=L.join("\n");note.updated=now();Store.save("notes",note);const b=d.parentNode&&d.parentNode.querySelector(".qobj");if(b&&typeof barraObj==="function"){const nb=barraObj(note);if(nb)b.replaceWith(nb)}})})}d.addEventListener("click",e=>{const a=e.target.closest("a.wl");if(a){e.preventDefault();openTitle(a.dataset.t)}});
   d.addEventListener("mouseover",e=>{const a=e.target.closest("a.wl");if(a)hoverCard(a,a.dataset.t)});d.addEventListener("mouseout",e=>{if(e.target.closest("a.wl"))hoverCard(null)});return d}
 function hoverCard(a,t){let c=$("#hov");if(!a){if(c)c.hidden=true;return}if(!c){c=h("div",{id:"hov",class:"hov",role:"tooltip"});document.body.append(c)}const raw=String(t).replace(/&amp;/g,"&"),n=findNote(raw),pl=!n&&findPlace(raw);c.replaceChildren();
   if(n){const {props,body}=fm(n.content),ty=TYPES[props.tipo]||"Nota";if(n.img)c.append(h("img",{src:n.img,alt:""}));c.append(h("b",{},n.title),h("small",{},ty+(props.papel?" · "+props.papel:"")+(props.categoria?" · "+props.categoria:"")),h("p",{},body.replace(/!\[\[img:[\w-]+\]\]/g,"").replace(/%%[^%]*%%/g,"").replace(/[#>*_`\[\]|-]/g," ").replace(/\s+/g," ").trim().slice(0,220)||"Sem texto ainda."))}
@@ -191,7 +193,7 @@ function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChil
   let placeCard=null;const pl=o.place&&S.maps.get(o.place.map);if(pl){placeCard=h("button",{type:"button",class:"placecard",title:"Abrir no mapa",onclick:()=>openMap(pl.id,{x:o.place.x,y:o.place.y,name:o.place.name})},o.thumb?h("img",{src:o.thumb,alt:""}):null,h("span",{},h("b",{},o.place.name||o.title),h("small",{},pl.name),h("em",{},"Abrir no mapa →")))}
   else if(props.mapa){const mp=[...S.maps.values()].find(m=>norm(m.name)===norm(props.mapa));if(mp)placeCard=h("button",{type:"button",class:"placecard",onclick:()=>openMap(mp.id,props.pino||o.title)},h("span",{},h("b",{},props.pino||o.title),h("small",{},mp.name),h("em",{},"Abrir no mapa →")))}
   const head=h("div",{class:"row"},typeSel,folder,h("span",{class:"grow"}),tog,del);
-  const emptyF=type==="livre"&&!o.img&&!props.data&&S.mode!=="edit";const wrap=h("div",{class:"note t-"+type},title,head,emptyF&&!placeCard?null:h("div",{class:"ntop"},emptyF?h("span"):ficha,placeCard),dl,dlf);
+  const emptyF=type==="livre"&&!o.img&&!props.data&&S.mode!=="edit";const wrap=h("div",{class:"note t-"+type},title,head,type==="missao"?barraObj(o):null,emptyF&&!placeCard?null:h("div",{class:"ntop"},emptyF?h("span"):ficha,placeCard),dl,dlf);
   if(S.mode==="edit"){const sugg=h("div",{class:"sugg"}),ta=h("textarea",{class:"ed",spellcheck:"true","aria-label":"Conteúdo da nota",placeholder:"Escreva aqui. [[Nome]] liga a outra nota ou lugar do mapa · #etiqueta · %%segredo%% · arraste imagens para dentro."});ta.value=fm(o.content).body;
     const save=()=>{const {props}=fm(o.content),ks=Object.keys(props);o.content=(ks.length?"---\n"+ks.map(k=>k+": "+props[k]).join("\n")+"\n---\n\n":"")+ta.value;o.updated=now();Store.save("notes",o)};
     const wrapSel=(a,b,ph)=>{const s0=ta.selectionStart,s1=ta.selectionEnd,sel=ta.value.slice(s0,s1)||ph||"";ta.setRangeText(a+sel+b,s0,s1,"end");if(!ta.value.slice(s0,s1+a.length+b.length).length)return;ta.selectionStart=s0+a.length;ta.selectionEnd=s0+a.length+sel.length;ta.focus();save();suggest()};
@@ -1007,7 +1009,7 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
 function drawSide(){const side=$("#side");side.replaceChildren();for(const b of document.querySelectorAll(".rail button"))b.classList.toggle("on",b.dataset.sec===S.sec);
   $("#app").classList.toggle("no-side",S.sec==="home");if(S.sec==="home")return;
   if(S.sec==="notes"){const nova=h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,[{ic:"quadro",cor:"#a88bd6",txt:"Quadro",det:"Cartões, imagens e linhas, como no Obsidian",fn:novoQuadro},{sep:true},...Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>{const o=newNote(k,k==="livre"?"":TYPES[k]);openNote(o.id,"edit")}}))])},icone("mais",16),"Nova");
-    const V=S.view||"list",views=h("div",{class:"vtabs seg",role:"tablist","aria-label":"Ver notas como"},[["list","Lista","lista"],["quests","Missões","missao"],["graph","Grafo","grafo"],["time","Tempo","tempo"]].map(([v,l,ic])=>h("button",{type:"button",role:"tab","aria-selected":String(V===v),class:V===v?"on":"",onclick:()=>{S.view=v==="list"?null:v;drawAll()}},l)));
+    const V=S.view||"list",views=h("div",{class:"vtabs seg",role:"tablist","aria-label":"Ver notas como"},[["list","Lista","lista"],["quests","Missões","missao"],["graph","Grafo","grafo"],["time","Tempo","tempo"]].map(([v,l,ic])=>h("button",{type:"button",role:"tab","aria-selected":String(V===v),class:V===v?"on":"",onclick:()=>{S.view=v==="list"?null:v;drawAll();if(v!=="list")$("#side").classList.remove("open")}},l)));
     const q=h("input",{type:"search",placeholder:"Buscar (título, texto ou ficha)",value:S.q,"aria-label":"Buscar notas",oninput:e=>{S.q=e.target.value;drawList()}}),list=h("div",{class:"list"});
     const all0=[...S.notes.values()],tyOf=n=>fm(n.content).props.tipo||"livre",tags=new Map();for(const n of all0)for(const t of tagsOf(n))tags.set(t,(tags.get(t)||0)+1);
     const used=Object.entries(TYPES).filter(([k])=>all0.some(n=>tyOf(n)===k));
@@ -1080,8 +1082,10 @@ function drawHome(){const main=$("#main");main.replaceChildren();const notas=[..
 function sample(){const m=newMap();m.name="Vale do Sasau";m.params=Object.assign({},DEF);Store.save("maps",m);
   newNote("livre","Bem-vindo ao Atlas",{content:"# Bem-vindo ao Atlas\n\nEste vault de exemplo mostra o básico.\n\n- Abra **Mapas** e toque num povoado para criar a nota dele.\n- Em qualquer nota, escreva `[[Nome]]` para ligar a outra. Exemplo: [[Irmã Ludmila]].\n- No mapa, use as ferramentas para pintar terra, mar, relevo e floresta. A ferramenta **Fronteiras** desenha reinos.\n- Missões com **Onde acontece** aparecem como marcadores no mapa. Veja o quadro em **Notas › Missões**.\n- Texto entre %%dois sinais de porcentagem%% é segredo do mestre e some na **Visão dos jogadores**.\n"});
   const n=newNote("personagem","Irmã Ludmila",{content:"---\ntipo: personagem\nlocal: \n---\n\n## Aparência\n\nHábito gasto, mãos manchadas de tinta.\n\n## O que quer\n\nTerminar a crônica do mosteiro antes do inverno.\n\n## O que esconde\n\n> [!info] Só para o mestre\n> Ela sabe quem incendiou o celeiro.\n"});n.folder="Personagens";Store.save("notes",n);
-  const q1=newNote("missao","O celeiro queimado",{content:"---\ntipo: missao\nstatus: andamento\nlocal: Olshany\ncontratante: Irmã Ludmila\nrecompensa: 30 groschen e a gratidão do mosteiro\nlibera: A crônica perdida\ndata: 1403-08-12\n---\n\n## Objetivo\n\nDescobrir quem pôs fogo no celeiro do mosteiro.\n\n## Etapas\n\n- [x] Falar com a [[Irmã Ludmila]]\n- [ ] Examinar as cinzas\n\n> [!segredo] O que realmente está acontecendo\n> O próprio abade mandou queimar o celeiro para esconder o desvio de grãos. %%O abade paga os guardas da ponte.%%\n"});
-  newNote("missao","A crônica perdida",{content:"---\ntipo: missao\nstatus: aberta\nlocal: Tabor\nrequer: O celeiro queimado\nrecompensa: Um mapa antigo do vale\n---\n\n## Objetivo\n\nRecuperar a crônica que a Irmã Ludmila escondeu antes do incêndio.\n"});
+  const q1=newNote("missao","O celeiro queimado",{content:"---\ntipo: missao\nstatus: andamento\npeso: principal\ncampanha: \"[[A sombra sobre Sasau]]\"\narco: Ato I\nlocal: Olshany\ncontratante: Irmã Ludmila\nrecompensa: 30 groschen e a gratidão do mosteiro\nlibera: A crônica perdida\ndata: 1403-08-12\n---\n\n## Objetivo\n\nDescobrir quem pôs fogo no celeiro do mosteiro.\n\n## Etapas\n\n- [x] Falar com a [[Irmã Ludmila]]\n- [ ] Examinar as cinzas\n\n> [!segredo] O que realmente está acontecendo\n> O próprio abade mandou queimar o celeiro para esconder o desvio de grãos. %%O abade paga os guardas da ponte.%%\n"});
+  newNote("missao","A crônica perdida",{content:"---\ntipo: missao\nstatus: aberta\npeso: principal\ncampanha: \"[[A sombra sobre Sasau]]\"\narco: Ato I\nlocal: Tabor\nrequer: O celeiro queimado\nlibera: O abade corrupto\nrecompensa: Um mapa antigo do vale\n---\n\n## Objetivo\n\nRecuperar a crônica que a Irmã Ludmila escondeu antes do incêndio.\n"});
+  newNote("missao","Os guardas da ponte",{content:"---\ntipo: missao\nstatus: aberta\npeso: secundaria\ncampanha: \"[[A sombra sobre Sasau]]\"\narco: Ato I\nlocal: Olshany\nrecompensa: Passagem livre pela ponte\n---\n\n## Objetivo\n\nDescobrir por que os guardas da ponte andam com bolsas cheias.\n\n## Objetivos\n\n- [ ] Seguir o sargento até a taverna\n- [ ] Achar o livro de pedágios\n"});
+  newNote("campanha","A sombra sobre Sasau",{content:"---\ntipo: campanha\nestado: andamento\nprincipal: sim\njogadores: Ana, Bruno, Caio\ninicio: 1403-08-12\n---\n\n## Resumo\n\nUm incêndio num mosteiro do vale do Sasau esconde algo maior: alguém está desviando os grãos da região.\n\n## Arcos\n\n1. Ato I: o celeiro queimado\n2. Ato II: o abade\n"});
   newNote("sessao","Sessão 1",{content:"---\ntipo: sessao\ndata: 1403-08-12\njogadores: Ana, Bruno, Caio\nlugares: Olshany\n---\n\n## Onde paramos\n\nO grupo chegou a Olshany ao anoitecer e viu a fumaça do celeiro.\n\n## Missões\n\n- [[O celeiro queimado]]\n"});
   S.sec="notes";drawAll();toast("Mundo de exemplo criado.")}
 function drawMain(flash){if(S.sec==="home")return drawHome();if(S.sec==="notes"){if(S.view==="graph")drawGraph();else if(S.view==="time")drawTime();else if(S.view==="quests")drawQuests();else drawNote()}else drawMap(flash)}
@@ -1116,21 +1120,93 @@ const tagsOf=n=>{const out=new Set(),re=/(^|\s)#([\p{L}\d_\/-]+)/gu;let m;const 
 function visNotes(){return [...S.notes.values()].filter(n=>(!S.ft||(fm(n.content).props.tipo||"livre")===S.ft)&&(!S.tag||tagsOf(n).has(S.tag)))}
 function viewHead(title,sub,extra){return h("div",{class:"vhead"},h("h1",{},title),sub?h("p",{class:"dim"},sub):null,extra||null)}
 // quadro de missoes
-function drawQuests(){const main=$("#main");main.replaceChildren();const qs=quests().filter(n=>!S.tag||tagsOf(n).has(S.tag));
-  const add=h("button",{type:"button",class:"primary",onclick:()=>{const n=newNote("missao","Nova missão");openNote(n.id,"edit")}},"+ Nova missão");
-  const wrap=h("div",{class:"qboard"});main.append(h("div",{class:"vwrap"},viewHead("Missões",qs.length?"Arraste não é preciso: mude a situação no próprio cartão. Missões que dependem de outras aparecem com cadeado.":"Crie uma missão aqui, ou toque num lugar do mapa e use “+ Missão aqui”.",add),wrap));
-  for(const [st,label] of QST){const col=h("section",{class:"qcol q-"+st},h("h2",{},label,h("span",{class:"cnt"},String(qs.filter(n=>qState(n)===st).length))));
-    for(const n of qs.filter(n=>qState(n)===st).sort((a,b)=>a.title.localeCompare(b.title))){const p=fm(n.content).props,wt=st==="aberta"||st==="andamento"?qWaits(n):[],nx=splitL(p.libera);
-      const card=h("article",{class:"qcard"+(wt.length?" lock":"")},h("button",{type:"button",class:"qtitle",onclick:()=>openNote(n.id)},wt.length?"🔒 ":"",n.title),
-        p.local?h("div",{class:"qline"},h("span",{},"Onde"),splitL(p.local).map(t=>h("button",{type:"button",class:"fl"+(findNote(t)||findPlace(t)?"":" miss"),onclick:()=>openTitle(t)},t))):null,
-        p.contratante?h("div",{class:"qline"},h("span",{},"Quem dá"),h("button",{type:"button",class:"fl",onclick:()=>openTitle(p.contratante.replace(/^\[\[|\]\]$/g,""))},p.contratante.replace(/^\[\[|\]\]$/g,""))):null,
-        p.recompensa?h("div",{class:"qline"},h("span",{},"Recompensa"),h("em",{},p.recompensa)):null,
-        wt.length?h("div",{class:"qline warn"},h("span",{},"Espera"),wt.map(q=>h("button",{type:"button",class:"fl",onclick:()=>openNote(q.id)},q.title))):null,
-        nx.length?h("div",{class:"qline"},h("span",{},"Leva a"),nx.map(t=>h("button",{type:"button",class:"fl"+(findNote(t)?"":" miss"),onclick:()=>openTitle(t)},t))):null,
-        h("div",{class:"qfoot"},h("select",{"aria-label":"Situação de "+n.title,onchange:e=>{setProps(n,{status:e.target.value});drawQuests()}},QST.map(([v,l])=>h("option",{value:v,selected:v===st},l))),
-          p.local&&findPlace(splitL(p.local)[0])?h("button",{type:"button",class:"ghost",onclick:()=>openTitle(splitL(p.local)[0])},"Ver no mapa"):null));
-      col.append(card)}
-    wrap.append(col)}}
+// ---------- 0.86 campanhas e missoes ----------
+const QCOR={oculta:"#95886e",aberta:"#d4a64a",andamento:"#7fa9cc",concluida:"#8db06a",falhou:"#e0776b",abandonada:"#95886e"};
+const QNOME=Object.fromEntries(QST);
+const campanhas=()=>[...S.notes.values()].filter(n=>fm(n.content).props.tipo==="campanha").sort((a,b)=>(fm(b.content).props.principal==="sim")-(fm(a.content).props.principal==="sim")||a.title.localeCompare(b.title));
+const qCamp=n=>splitL(fm(n.content).props.campanha)[0]||"";
+const qPeso=n=>fm(n.content).props.peso==="secundaria"?"secundaria":"principal";
+const TASK=/^\s*(?:>\s?)*(?:[-*+]|\d+\.)\s+\[( |x|X)\]\s*(.*)$/;
+function objetivos(n){let f=0,t=0;for(const l of fm(n.content).body.split("\n")){const m=TASK.exec(l);if(m&&m[2].trim()){t++;if(m[1]!==" ")f++}}return {f,t}}
+function campAtual(){const cs=campanhas();if(!S.campEsc){const p=cs.find(c=>fm(c.content).props.principal==="sim");S.camp=p?p.title:""}if(S.camp&&S.camp!=="-"&&!cs.some(c=>c.title===S.camp))S.camp="";return S.camp}
+function questsDaCamp(){const c=campAtual();return quests().filter(n=>(!S.tag||tagsOf(n).has(S.tag))&&(!c||(c==="-"?!qCamp(n):norm(qCamp(n))===norm(c))))}
+function novaMissao(extra){const c=campAtual(),o=newNote("missao","Nova missão");const p=Object.assign({},extra||{});if(c&&c!=="-"&&!p.campanha)p.campanha="[["+c+"]]";setProps(o,p);openNote(o.id,"edit")}
+const qChip=(txt,cor,cls)=>h("span",{class:"qchip"+(cls?" "+cls:""),style:cor?"--c:"+cor:null},txt);
+function barraObj(n,mini){const o=objetivos(n);if(!o.t)return null;const pc=Math.round(o.f/o.t*100);return h("div",{class:"qobj"+(mini?" mini":""),title:o.f+" de "+o.t+" objetivos"},h("span",{class:"qobar"},h("i",{style:"width:"+pc+"%"})),h("small",{},o.f+"/"+o.t))}
+function drawQuests(){const main=$("#main");main.replaceChildren();const cs=campanhas(),c=campAtual(),qs=questsDaCamp(),V=S.qv||"situacao";
+  const sel=h("select",{class:"qcamp","aria-label":"Campanha",onchange:e=>{S.camp=e.target.value;S.campEsc=true;drawQuests()}},h("option",{value:""},"Todas as campanhas"),cs.map(x=>h("option",{value:x.title,selected:x.title===c},(fm(x.content).props.principal==="sim"?"★ ":"")+x.title)),h("option",{value:"-",selected:c==="-"},"Sem campanha"));
+  const tabs=h("div",{class:"seg qtabs",role:"tablist","aria-label":"Ver missões como"},[["situacao","Situação","colunas"],["lista","Lista","lista"],["arvore","Árvore","arvore"]].map(([k,t,i])=>h("button",{type:"button",role:"tab","aria-selected":String(V===k),class:V===k?"on":"",onclick:()=>{S.qv=k;drawQuests()}},icone(i,16),t)));
+  const acoes=h("div",{class:"qacoes"},sel,tabs,h("span",{class:"grow"}),h("button",{type:"button",class:"sm",onclick:()=>{const o=newNote("campanha","Nova campanha");if(!cs.length)setProps(o,{principal:"sim"});S.camp=o.title;openNote(o.id,"edit")}},icone("campanha",16),"Campanha"),h("button",{type:"button",class:"primary sm",onclick:()=>novaMissao()},icone("mais",16),"Missão"));
+  const wrap=h("div",{class:"vwrap qwrap"},h("div",{class:"vhead"},h("h1",{},"Missões")),acoes);main.append(wrap);
+  if(c&&c!=="-"){const co=findNote(c);if(co)wrap.append(resumoCamp(co,qs))}
+  if(!qs.length){wrap.append(h("div",{class:"qvazio"},icone("missao",34),h("b",{},c?"Nenhuma missão nesta campanha ainda.":"Nenhuma missão ainda."),h("p",{class:"dim"},"Crie uma missão aqui, ou toque num lugar do mapa e use “+ Missão aqui”. Missões guardam situação, objetivos, quem dá, onde acontece e o que liberam."),h("button",{type:"button",class:"primary",onclick:()=>novaMissao()},icone("mais",16),"Nova missão")));return}
+  if(V==="lista")wrap.append(listaMissoes(qs,!c));else if(V==="arvore")wrap.append(arvoreMissoes(qs));else wrap.append(quadroSituacao(qs,!c))}
+function resumoCamp(co,qs){const p=fm(co.content).props,pr=qs.filter(n=>qPeso(n)==="principal"&&qState(n)!=="oculta"),fe=pr.filter(n=>qState(n)==="concluida").length,pc=pr.length?Math.round(fe/pr.length*100):0;
+  const cont=["andamento","aberta","concluida","falhou"].map(s=>[s,qs.filter(n=>qState(n)===s).length]).filter(x=>x[1]);
+  return h("section",{class:"qresumo"},h("div",{class:"qrtop"},h("i",{class:"tic",style:"color:"+TCOL.campanha},icone("campanha",24)),h("button",{type:"button",class:"qrt",onclick:()=>openNote(co.id)},co.title),p.principal==="sim"?qChip("Principal","#d4a64a"):null,p.estado?qChip(({planejada:"Planejada",andamento:"Em andamento",pausada:"Pausada",concluida:"Concluída"})[p.estado]||p.estado):null,h("span",{class:"grow"}),p.jogadores?h("small",{class:"dim"},p.jogadores):null),
+    h("div",{class:"qrprog"},h("span",{class:"qobar big"},h("i",{style:"width:"+pc+"%"})),h("small",{},fe+" de "+pr.length+" missões principais concluídas")),
+    h("div",{class:"qrcont"},cont.map(([s,k])=>h("span",{class:"qrc"},h("i",{style:"background:"+QCOR[s]}),k+" "+QNOME[s].toLowerCase()))))}
+function cartaoMissao(n,mostraCamp){const p=fm(n.content).props,st=qState(n),wt=st==="aberta"||st==="andamento"?qWaits(n):[],nx=splitL(p.libera),peso=qPeso(n),cp=qCamp(n);
+  const fl=(t,ic)=>h("button",{type:"button",class:"fl"+(findNote(t)||findPlace(t)?"":" miss"),onclick:e=>{e.stopPropagation();openTitle(t)}},t);
+  const card=h("article",{class:"qcard2 p-"+peso+(wt.length?" lock":""),draggable:"true","data-id":n.id,ondragstart:e=>{e.dataTransfer.setData("text/x-atlas-missao",n.id);e.dataTransfer.setData("text/x-atlas-nota",n.title);e.dataTransfer.effectAllowed="move";card.classList.add("arr")},ondragend:()=>card.classList.remove("arr")},
+    h("button",{type:"button",class:"qtitle",onclick:()=>openNote(n.id)},wt.length?h("span",{class:"qcad",title:"Espera outra missão"},icone("chave",15)):null,h("span",{},n.title)),
+    h("div",{class:"qchips"},qChip(peso==="principal"?"Principal":"Secundária",peso==="principal"?"#d4a64a":"#e39a4f"),p.arco?qChip(p.arco):null,p.prioridade==="alta"?qChip("Prioridade alta","#e0776b"):null,mostraCamp&&cp?qChip(cp,TCOL.campanha):null),
+    barraObj(n),
+    p.local?h("div",{class:"qline"},h("span",{},"Onde"),splitL(p.local).map(t=>fl(t))):null,
+    p.contratante?h("div",{class:"qline"},h("span",{},"Quem dá"),splitL(p.contratante).map(t=>fl(t))):null,
+    p.recompensa?h("div",{class:"qline"},h("span",{},"Recompensa"),h("em",{},p.recompensa)):null,
+    wt.length?h("div",{class:"qline warn"},h("span",{},"Espera"),wt.map(q=>h("button",{type:"button",class:"fl",onclick:()=>openNote(q.id)},q.title))):null,
+    nx.length?h("div",{class:"qline"},h("span",{},"Abre"),nx.map(t=>fl(t))):null,
+    h("div",{class:"qfoot"},h("select",{"aria-label":"Situação de "+n.title,onchange:e=>{setProps(n,{status:e.target.value});drawSide();drawQuests()}},QST.map(([v,l])=>h("option",{value:v,selected:v===st},l))),
+      p.local&&findPlace(splitL(p.local)[0])?h("button",{type:"button",class:"ghost sm",onclick:()=>openTitle(splitL(p.local)[0])},icone("mapas",15),"Ver no mapa"):null));
+  return card}
+function quadroSituacao(qs,mostraCamp){const cols=S.qtodas?QST.map(x=>x[0]):["aberta","andamento","concluida","falhou"],ext=qs.filter(n=>!cols.includes(qState(n))).length;
+  const wrap=h("div",{class:"qsit"});
+  const board=h("div",{class:"qboard2",style:"--n:"+cols.length});
+  for(const st of cols){const its=qs.filter(n=>qState(n)===st).sort((a,b)=>(qPeso(a)==="principal"?0:1)-(qPeso(b)==="principal"?0:1)||a.title.localeCompare(b.title));
+    const col=h("section",{class:"qcol2","data-st":st,style:"--c:"+QCOR[st],ondragover:e=>{if([...e.dataTransfer.types].includes("text/x-atlas-missao")){e.preventDefault();col.classList.add("alvo")}},ondragleave:e=>{if(!col.contains(e.relatedTarget))col.classList.remove("alvo")},
+      ondrop:e=>{e.preventDefault();col.classList.remove("alvo");const id=e.dataTransfer.getData("text/x-atlas-missao"),n=S.notes.get(id);if(n&&qState(n)!==st){setProps(n,{status:st});toast("“"+n.title+"” agora está em "+QNOME[st].toLowerCase()+".");drawSide();drawQuests()}}},
+      h("h2",{},h("i",{class:"qdot"}),QNOME[st],h("span",{class:"cnt"},String(its.length))),its.map(n=>cartaoMissao(n,mostraCamp)),its.length?null:h("p",{class:"qcvazio"},"Arraste uma missão para cá"));
+    board.append(col)}
+  wrap.append(board,h("label",{class:"qtodas"},h("input",{type:"checkbox",checked:!!S.qtodas,onchange:e=>{S.qtodas=e.target.checked;drawQuests()}}),"Mostrar ocultas e abandonadas"+(ext&&!S.qtodas?" ("+ext+")":"")));return wrap}
+function listaMissoes(qs,mostraCamp){const F=S.qf||(S.qf={st:"",peso:"",arco:"",q:"",ord:"titulo",inv:false}),arcos=[...new Set(qs.map(n=>fm(n.content).props.arco).filter(Boolean))].sort();
+  const ordemSt=Object.fromEntries(QST.map((x,i)=>[x[0],i]));
+  const val={titulo:n=>n.title.toLowerCase(),status:n=>ordemSt[qState(n)],peso:n=>qPeso(n),arco:n=>(fm(n.content).props.arco||"~").toLowerCase(),local:n=>(splitL(fm(n.content).props.local)[0]||"~").toLowerCase(),obj:n=>{const o=objetivos(n);return o.t?o.f/o.t:-1},camp:n=>qCamp(n).toLowerCase()||"~"};
+  const corpo=h("tbody",{}),cont=h("small",{class:"dim"});
+  const monta=()=>{const t=norm(F.q),L=qs.filter(n=>(!F.st||qState(n)===F.st)&&(!F.peso||qPeso(n)===F.peso)&&(!F.arco||fm(n.content).props.arco===F.arco)&&(!t||norm(n.title+" "+(fm(n.content).props.local||"")+" "+(fm(n.content).props.contratante||"")).includes(t))).sort((a,b)=>{const x=val[F.ord](a),y=val[F.ord](b);return (x<y?-1:x>y?1:a.title.localeCompare(b.title))*(F.inv?-1:1)});
+    cont.textContent=L.length+(L.length===1?" missão":" missões");
+    corpo.replaceChildren(...L.map(n=>{const p=fm(n.content).props,st=qState(n),o=objetivos(n);return h("tr",{onclick:e=>{if(!e.target.closest("button,select"))openNote(n.id)}},
+      h("td",{class:"qtn"},h("button",{type:"button",class:"linkb",onclick:()=>openNote(n.id)},n.title)),
+      h("td",{},h("select",{class:"qsel","aria-label":"Situação de "+n.title,style:"--c:"+QCOR[st],onchange:e=>{setProps(n,{status:e.target.value});drawSide();monta()}},QST.map(([v,l])=>h("option",{value:v,selected:v===st},l)))),
+      h("td",{},qPeso(n)==="principal"?"Principal":"Secundária"),h("td",{},p.arco||""),h("td",{},splitL(p.local).join(", ")),
+      h("td",{},o.t?barraObj(n,true):h("span",{class:"dim"},"—")),mostraCamp?h("td",{},qCamp(n)):null)}));if(!L.length)corpo.append(h("tr",{},h("td",{colspan:"7",class:"dim"},"Nenhuma missão com esses filtros.")))};
+  const sl=(k,rot,ops)=>h("select",{"aria-label":rot,onchange:e=>{F[k]=e.target.value;monta()}},h("option",{value:""},rot),ops.map(([v,l])=>h("option",{value:v,selected:F[k]===v},l)));
+  const th=(k,t)=>h("th",{},h("button",{type:"button",class:"qth"+(F.ord===k?" on":""),onclick:()=>{if(F.ord===k)F.inv=!F.inv;else{F.ord=k;F.inv=false}cab.replaceWith(cab=cabeca());monta()}},t,F.ord===k?(F.inv?" ↑":" ↓"):""));
+  const cabeca=()=>h("thead",{},h("tr",{},th("titulo","Missão"),th("status","Situação"),th("peso","Peso"),th("arco","Arco"),th("local","Onde"),th("obj","Objetivos"),mostraCamp?th("camp","Campanha"):null));let cab=cabeca();
+  const filtros=h("div",{class:"qfiltros"},h("input",{type:"search",placeholder:"Buscar missão, lugar ou quem dá",value:F.q,"aria-label":"Buscar missão",oninput:e=>{F.q=e.target.value;monta()}}),sl("st","Toda situação",QST),sl("peso","Todo peso",[["principal","Principal"],["secundaria","Secundária"]]),arcos.length?sl("arco","Todo arco",arcos.map(a=>[a,a])):null,cont);
+  monta();return h("div",{class:"qlista"},filtros,h("div",{class:"qtab"},h("table",{},cab,corpo)))}
+// arvore: da esquerda para a direita seguindo "precisa de" e "abre"
+function arvoreMissoes(qs){const ids=new Map(qs.map(n=>[norm(n.title),n])),E=[],fant=new Map();
+  for(const n of qs){const p=fm(n.content).props;for(const t of splitL(p.requer)){const a=ids.get(norm(t));if(a&&a!==n)E.push({a:a.title,b:n.title,k:"requer"});else if(!a&&!findNote(t))fant.set(norm(t),t),E.push({a:t,b:n.title,k:"requer",f:1})}
+    for(const t of splitL(p.libera)){const b=ids.get(norm(t));if(b&&b!==n){if(!E.some(e=>e.a===n.title&&e.b===b.title))E.push({a:n.title,b:b.title,k:"abre"})}else if(!b&&!findNote(t))fant.set(norm(t),t),E.push({a:n.title,b:t,k:"abre",f:1})}}
+  {const vis=new Map();for(const e of E){const k=e.a+"\u0000"+e.b,o=vis.get(k);if(!o||o.k==="requer"&&e.k==="abre")vis.set(k,e)}E.splice(0,E.length,...vis.values())}
+  const nomes=[...qs.map(n=>n.title),...fant.values()],ligados=new Set(E.flatMap(e=>[e.a,e.b])),soltas=qs.filter(n=>!ligados.has(n.title));
+  const nivel=new Map(nomes.filter(t=>ligados.has(t)).map(t=>[t,0]));for(let k=0;k<nomes.length+2;k++){let mud=false;for(const e of E){const v=(nivel.get(e.a)||0)+1;if(v>(nivel.get(e.b)||0)&&v<nomes.length+2){nivel.set(e.b,v);mud=true}}if(!mud)break}
+  const cam=new Map();for(const [t,l] of nivel){if(!cam.has(l))cam.set(l,[]);cam.get(l).push(t)}const L=[...cam.keys()].sort((a,b)=>a-b),pos=new Map(),W=230,H=74,GX=90,GY=22;
+  for(const l of L){const arr=cam.get(l),bar=t=>{const ps=E.filter(e=>e.b===t&&pos.has(e.a)).map(e=>pos.get(e.a)[1]);return ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:1e9};const nq=t=>ids.get(norm(t));arr.sort((a,b)=>bar(a)-bar(b)||((nq(a)&&qPeso(nq(a))==="principal")?0:1)-((nq(b)&&qPeso(nq(b))==="principal")?0:1)||a.localeCompare(b));arr.forEach((t,i)=>pos.set(t,[l*(W+GX),i*(H+GY)]))}
+  const LW=Math.max(1,L.length)*(W+GX)-GX,LH=Math.max(1,...L.map(l=>cam.get(l).length))*(H+GY)-GY;
+  const leg=h("div",{class:"qleg"},h("span",{},h("i",{class:"lg lg-abre"}),"Abre"),h("span",{},h("i",{class:"lg lg-req"}),"Precisa de"),QST.filter(x=>x[0]!=="oculta").map(([s,l])=>h("span",{},h("i",{class:"qdot",style:"background:"+QCOR[s]}),l)));
+  const box=h("div",{class:"qarv"});if(!E.length){box.append(h("p",{class:"dim qarvd"},"Nenhuma missão está ligada a outra ainda. Use “Precisa de” e “Abre” na ficha da missão para montar o caminho da história."))}
+  else{const area=h("div",{class:"qarea",style:"width:"+(LW+40)+"px;height:"+(LH+40)+"px"}),svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.setAttribute("width",LW+40);svg.setAttribute("height",LH+40);svg.setAttribute("class","qlinhas");
+    const mk=(t,a)=>{const e=document.createElementNS("http://www.w3.org/2000/svg",t);for(const k in a)e.setAttribute(k,a[k]);return e};
+    for(const e of E){const A=pos.get(e.a),B=pos.get(e.b);if(!A||!B)continue;const x1=A[0]+W+20,y1=A[1]+H/2+20,x2=B[0]+20,y2=B[1]+H/2+20,dx=Math.max(30,(x2-x1)/2),cor=e.k==="requer"?"#e0776b":"#d4a64a";
+      svg.append(mk("path",{d:"M"+x1+","+y1+"C"+(x1+dx)+","+y1+" "+(x2-dx)+","+y2+" "+(x2-2)+","+y2,stroke:cor,"stroke-width":"2.2",fill:"none","stroke-dasharray":e.k==="requer"?"7 6":"none"}),mk("path",{d:"M"+x2+","+y2+"l-10,-5v10z",fill:cor}))}
+    area.append(svg);
+    for(const [t,p] of pos){const n=ids.get(norm(t)),st=n?qState(n):null,wt=n&&(st==="aberta"||st==="andamento")?qWaits(n):[];
+      area.append(n?h("button",{type:"button",class:"qno p-"+qPeso(n)+(wt.length?" lock":""),style:"left:"+(p[0]+20)+"px;top:"+(p[1]+20)+"px;width:"+W+"px;height:"+H+"px;--c:"+QCOR[st],onclick:()=>openNote(n.id),title:QNOME[st]},h("span",{class:"qnt"},wt.length?icone("chave",14):null,n.title),h("span",{class:"qns"},h("i",{class:"qdot"}),QNOME[st],qPeso(n)==="secundaria"?" · secundária":"",(()=>{const o=objetivos(n);return o.t?" · "+o.f+"/"+o.t:""})()))
+        :h("button",{type:"button",class:"qno fant",style:"left:"+(p[0]+20)+"px;top:"+(p[1]+20)+"px;width:"+W+"px;height:"+H+"px",title:"Criar esta missão",onclick:()=>{const o=newNote("missao",t);const c=campAtual();if(c&&c!=="-")setProps(o,{campanha:"[["+c+"]]"});openNote(o.id,"edit")}},h("span",{class:"qnt"},t),h("span",{class:"qns"},icone("mais",14),"Ainda não existe · criar")))}
+    box.append(area)}
+  return h("div",{class:"qarvw"},leg,box,soltas.length?h("div",{class:"qsoltas"},h("h3",{},"Missões soltas",h("span",{class:"cnt"},String(soltas.length))),h("div",{class:"qsgrid"},soltas.map(n=>h("button",{type:"button",class:"qno solto p-"+qPeso(n),style:"--c:"+QCOR[qState(n)],onclick:()=>openNote(n.id)},h("span",{class:"qnt"},n.title),h("span",{class:"qns"},h("i",{class:"qdot"}),QNOME[qState(n)]))))):null)}
 // grafo de ligacoes
 function drawGraph(){const main=$("#main");main.replaceChildren();const ns=visNotes().filter(n=>n.kind!=="canvas");if(!ns.length){main.append(h("div",{class:"vwrap"},viewHead("Grafo","Crie notas e ligue umas às outras com [[Nome]] ou pelos campos da ficha.")));return}
   const idx=new Map(ns.map((n,i)=>[norm(n.title),i])),E=[],ek=new Set();ns.forEach((n,i)=>{const pr=fm(n.content).props,lib=new Set(splitL(pr.libera).map(norm)),req=new Set(splitL(pr.requer).map(norm));for(const t of linksOf(n)){const j=idx.get(t);if(j==null||j===i)continue;const q=lib.has(t)?[i,j,1]:req.has(t)?[j,i,1]:[i,j,0],k=Math.min(i,j)+"-"+Math.max(i,j);if(ek.has(k)&&!q[2])continue;ek.add(k);E.push(q)}});

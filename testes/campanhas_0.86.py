@@ -1,0 +1,77 @@
+import asyncio,subprocess,time
+from playwright.async_api import async_playwright
+srv=subprocess.Popen(["python3","-m","http.server","8789","--bind","127.0.0.1"],cwd="/home/claude/app",stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(1)
+ok=[];falha=[]
+def chk(nome,c):(ok if c else falha).append(nome);print(("OK  " if c else "FALHA ")+nome)
+EV="()=>[...AtlasApp.S.notes.values()]"
+async def main():
+    try:
+        async with async_playwright() as p:
+            b=await p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+            ctx=await b.new_context(viewport={"width":1400,"height":860});pg=await ctx.new_page();errs=[];pg.on("pageerror",lambda e:errs.append(str(e.stack)[:400]))
+            await pg.goto("http://127.0.0.1:8789/index.html");await pg.wait_for_timeout(1500)
+            await pg.click(".rail button[data-sec=notes]");await pg.click(".vtabs button >> text=Missões");await pg.wait_for_timeout(300)
+            chk("vazio",await pg.locator(".qvazio").count()==1)
+            await pg.click("#bExp");await pg.click(".mitem >> text=Criar mundo de exemplo");await pg.wait_for_timeout(2500)
+            await pg.click(".rail button[data-sec=notes]");await pg.click(".vtabs button >> text=Missões");await pg.wait_for_timeout(500)
+            chk("campanha principal escolhida",await pg.locator(".qresumo .qrt >> text=A sombra sobre Sasau").count()==1)
+            chk("3 missoes",await pg.locator(".qcard2").count()==3)
+            chk("cadeado em quem espera",await pg.locator(".qcard2.lock").count()==1)
+            chk("barra de objetivos",await pg.locator(".qcard2 .qobj").count()>=2)
+            await pg.screenshot(path="/tmp/c86_sit.png")
+            # arrastar para concluida
+            src=pg.locator(".qcard2").filter(has=pg.locator(".qtitle >> text=O celeiro queimado"));dst=pg.locator(".qcol2[data-st=concluida]")
+            await src.drag_to(dst);await pg.wait_for_timeout(400)
+            st=await pg.evaluate("()=>{const n=[...AtlasApp.S.notes.values()].find(n=>n.title==='O celeiro queimado');return n.content.match(/status: (\\w+)/)[1]}")
+            chk("arrastar muda situacao",st=="concluida")
+            chk("cadeado some",await pg.locator(".qcard2.lock").count()==0)
+            # mostrar ocultas
+            await pg.check(".qtodas input");await pg.wait_for_timeout(200);chk("6 colunas",await pg.locator(".qcol2").count()==6)
+            await pg.uncheck(".qtodas input")
+            # lista
+            await pg.click(".qtabs button >> text=Lista");await pg.wait_for_timeout(300)
+            chk("lista 3 linhas",await pg.locator(".qtab tbody tr").count()==3)
+            await pg.select_option(".qfiltros select >> nth=1","secundaria");await pg.wait_for_timeout(100)
+            chk("filtro peso",await pg.locator(".qtab tbody tr").count()==1)
+            await pg.select_option(".qfiltros select >> nth=1","");await pg.fill(".qfiltros input","tabor");await pg.wait_for_timeout(100)
+            chk("busca por lugar",await pg.locator(".qtab tbody tr").count()==1);await pg.fill(".qfiltros input","")
+            await pg.click(".qth >> text=Situação");await pg.wait_for_timeout(100);t=await pg.locator(".qtab tbody tr td.qtn").all_inner_texts()
+            chk("ordenar por situacao",t[0]=="A crônica perdida" or t[0]=="Os guardas da ponte")
+            await pg.screenshot(path="/tmp/c86_lista.png")
+            # arvore
+            await pg.click(".qtabs button >> text=Árvore");await pg.wait_for_timeout(300)
+            chk("arvore nos",await pg.locator(".qarea .qno").count()==3)
+            chk("no fantasma",await pg.locator(".qno.fant").count()==1)
+            chk("missao solta",await pg.locator(".qsoltas .qno").count()==1)
+            chk("linhas",await pg.locator(".qlinhas path").count()==4)
+            xs=await pg.evaluate("()=>[...document.querySelectorAll('.qarea .qno')].map(e=>[e.innerText.split('\\n')[0],parseInt(e.style.left)])")
+            d=dict(xs);chk("ordem esquerda-direita",d["O celeiro queimado"]<d["A crônica perdida"]<d["O abade corrupto"])
+            await pg.screenshot(path="/tmp/c86_arv.png")
+            await pg.click(".qno.fant");await pg.wait_for_timeout(400)
+            nv=await pg.evaluate("()=>{const n=[...AtlasApp.S.notes.values()].find(n=>n.title==='O abade corrupto');return n&&n.content}")
+            chk("fantasma cria missao na campanha",nv and "tipo: missao" in nv and "A sombra sobre Sasau" in nv)
+            # caixinha na leitura
+            await pg.click(".item .it >> text=Os guardas da ponte");await pg.wait_for_timeout(400)
+            await pg.click(".md li.task input >> nth=1");await pg.wait_for_timeout(200)
+            c=await pg.evaluate("()=>[...AtlasApp.S.notes.values()].find(n=>n.title==='Os guardas da ponte').content")
+            chk("marcar objetivo",'- [x] Achar o livro' in c and '- [ ] Seguir' in c)
+            chk("barra na nota",(await pg.locator(".note > .qobj small").inner_text())=="1/2")
+            await pg.screenshot(path="/tmp/c86_nota.png")
+            # nova missao herda a campanha
+            await pg.click(".vtabs button >> text=Missões");await pg.click(".qacoes button.primary");await pg.wait_for_timeout(400)
+            c=await pg.evaluate("()=>[...AtlasApp.S.notes.values()].find(n=>n.title==='Nova missão').content")
+            chk("nova missao na campanha","A sombra sobre Sasau" in c)
+            # todas as campanhas / sem campanha
+            await pg.click(".vtabs button >> text=Missões");await pg.wait_for_timeout(300);await pg.select_option(".qcamp","-");await pg.wait_for_timeout(200)
+            chk("sem campanha vazio",await pg.locator(".qvazio").count()==1)
+            await pg.select_option(".qcamp","");await pg.wait_for_timeout(200);await pg.click(".qtabs button >> text=Situação")
+            chk("todas",await pg.locator(".qcard2").count()>=4 and await pg.locator(".qresumo").count()==0)
+            m=await ctx.new_page();await m.set_viewport_size({"width":390,"height":800});m.on("pageerror",lambda e:errs.append(str(e.stack)[:400]))
+            await m.goto("http://127.0.0.1:8789/index.html");await m.wait_for_timeout(1500)
+            await m.click(".mtabs button >> nth=1") if await m.locator(".mtabs button").count() else await m.click(".rail button[data-sec=notes]")
+            await m.wait_for_timeout(400);await m.click(".vtabs button >> text=Missões");await m.wait_for_timeout(500);await m.screenshot(path="/tmp/c86_cel.png")
+            print("erros:",errs);chk("sem erros",not errs)
+            await b.close()
+    finally:srv.terminate()
+asyncio.run(main())
+print(len(ok),"ok",len(falha),"falhas",falha)
