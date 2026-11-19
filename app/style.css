@@ -722,3 +722,23 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
   .bt-painel{width:auto;border-left:0;border-top:1px solid var(--line-2);border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.45);max-height:55%}
   .bt-ph{border-radius:16px 16px 0 0}
 }
+
+/* ===================== 0.90 acabamento ===================== */
+.vazio-l{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:6px 0;padding:18px 16px;border:1.5px dashed var(--line);border-radius:var(--r2);color:var(--muted)}
+.vazio-l .vl-ic{display:inline-flex;padding:9px;border-radius:10px;background:var(--panel-3);color:var(--gold)}
+.vazio-l b{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--text)}.vazio-l p{margin:0;font-size:14px;line-height:1.4}
+.vl-ac{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+#atalhos{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 16px;background:rgba(8,6,4,.62);backdrop-filter:blur(2px)}
+.at-caixa{outline:none;width:min(980px,100%);max-height:88vh;overflow:auto;border-radius:16px;background:var(--panel);border:1px solid var(--line-2);box-shadow:var(--sombra)}
+.at-top{position:sticky;top:0;display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--panel);border-bottom:1px solid var(--panel-3);color:var(--gold)}
+.at-top h2{margin:0;font-family:var(--serif);font-weight:500;font-size:22px;color:var(--text)}.at-top .grow{flex:1}
+.at-grade{columns:3 260px;column-gap:28px;padding:8px 18px 20px}
+.at-grade section{break-inside:avoid;padding:10px 0}
+.at-grade h3{margin:0 0 8px;font:600 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+.at-grade dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:0;align-items:baseline}
+.at-grade dt{white-space:nowrap;color:var(--muted);font-size:13px}.at-grade dd{margin:0;font-size:14px}
+.at-grade kbd{font:12px var(--body);padding:1px 6px;border-radius:5px;background:var(--panel-3);border:1px solid var(--line-2);color:var(--text)}
+@media (max-width:860px){#atalhos{padding:0;align-items:stretch}.at-caixa{max-height:none;border-radius:0}}
+.qd-titulo{min-width:120px}@media (max-width:1180px){.qd-campl{display:none}}
+.qd-area{container-type:size}
+@container (max-width:760px){.qd-mini,.qd-dica{display:none}.qd-b span{display:none}.qd-b{width:42px}.qd-leg{bottom:70px}.qd-zoom{top:12px;bottom:auto}}
