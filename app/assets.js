@@ -385,7 +385,7 @@ function cena(P,C_){const L=[],G=[],o0=P(0,0),vx=(u,v)=>P(u,v)[0]-o0[0],vy=(u,v)
     em(f){L[L.length-1].det.push(f);return S},                     // detalhe apoiado na ultima peca
     vis(nu,nv){return vy(nu,nv)>.02*Math.hypot(nu,nv)},            // a face de normal (nu,nv) olha para quem ve?
     face(nu,nv,f){if(S.vis(nu,nv))L[L.length-1].det.push(f);return S},
-    fim(){const ord=ordemPecas(L);if(cena.gancho){cena.gancho({G,L,ord,P});return}if(REC)for(const p of L){const zs=(P(p.u,p.v,0)[1]-P(p.u,p.v,1)[1])*REC.m;regP(p.chao.map(q=>P(q[0],q[1],0)),0,0,false);const k=REC.S[REC.S.length-1];if(k){k.t=p.t==='rd'?'rd':'cx';k.z0=p.z*zs;k.z1=(p.z+p.h)*zs;k.decl=1}}for(const f of G)f();const fe=[];
+    fim(){const ord=ordemPecas(L);if(cena.gancho){const pinta=(p,fe)=>{if(p.f)p.f();for(const f of p.det)f();if(C_)for(const q of fe)if(q.brota!=null&&dentroFp(p.fp,q.cx,q.cyv)){const yb=P(q.u,q.v,q.brota)[1]+q.l*.2*TILT;C_.save();C_.beginPath();C_.rect(-1e5,-1e5,2e5,1e5+yb);C_.clip();if(q.f)q.f();for(const f of q.det)f();C_.restore()}fe.push(p)};cena.gancho({G,L,ord,P,pinta});return}if(REC)for(const p of L){const zs=(P(p.u,p.v,0)[1]-P(p.u,p.v,1)[1])*REC.m;regP(p.chao.map(q=>P(q[0],q[1],0)),0,0,false);const k=REC.S[REC.S.length-1];if(k){k.t=p.t==='rd'?'rd':'cx';k.z0=p.z*zs;k.z1=(p.z+p.h)*zs;k.decl=1}}for(const f of G)f();const fe=[];
       for(const p of ord){if(p.f)p.f();for(const f of p.det)f();
         // peca que atravessa o telhado de outra (torre no canto, chamine): reaparece so do telhado para cima
         if(C_)for(const q of fe)if(q.brota!=null&&dentroFp(p.fp,q.cx,q.cyv)){const yb=P(q.u,q.v,q.brota)[1]+q.l*.2*TILT;C_.save();C_.beginPath();C_.rect(-1e5,-1e5,2e5,1e5+yb);C_.clip();if(q.f)q.f();for(const f of q.det)f();C_.restore()}
