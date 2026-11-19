@@ -593,7 +593,7 @@ function drawTent(c,x,y,race,s,big,flag){const T=TENT[race]||TENT.humano,[c0,c1]
 function drawFire(c,x,y){c.fillStyle="#3a2c1b";c.beginPath();c.ellipse(x,y,2,.9,0,0,7);c.fill();c.fillStyle="#e07a2a";c.beginPath();c.moveTo(x-1.4,y-.2);c.quadraticCurveTo(x-.6,y-2,x,y-3.8);c.quadraticCurveTo(x+.8,y-2,x+1.4,y-.2);c.fill();c.fillStyle="#f6c04a";c.beginPath();c.moveTo(x-.6,y-.2);c.lineTo(x,y-2.2);c.lineTo(x+.6,y-.2);c.fill()}
 // regiao (gerador 61): conferencia final pela grade do mundo. Campo e horta que invadem agua, estrada, rua ou muralha sao cortados;
 // casa ou construcao que caiu em rua, agua, muralha, ponte ou em outra construcao procura um lugar livre perto, ou sai. Templo e castelo ficam.
-function verificaRegiao(W,gvv){const g63=(gvv==null?63:gvv)>=63,g67=(gvv==null?67:gvv)>=67;const AM=window.AtlasMundo,AS=window.AtlasAssets;if(!AM||!AM.deRegiao)return null;const G=AM.deRegiao(W,AS),U=AM.USO;let mov=0,tir=0,cort=0,tirC=0;
+function verificaRegiao(W,gvv){const g63=(gvv==null?63:gvv)>=63,g67=(gvv==null?67:gvv)>=67,g71=(gvv==null?71:gvv)>=71;const AM=window.AtlasMundo,AS=window.AtlasAssets;if(!AM||!AM.deRegiao)return null;const G=AM.deRegiao(W,AS),U=AM.USO;let mov=0,tir=0,cort=0,tirC=0;
   const ruimA=k=>G.agua[k]||G.uso[k]===U.rua||G.uso[k]===U.estrada||G.uso[k]===U.muralha||G.uso[k]===U.portao||G.uso[k]===U.ponte;
   const celsA=pl=>{const L=[];G.poly(pl,(k,x,y)=>{if(ruimA(k))L.push([x,y])});return L};
   const clipH=(P_,mx,my,nx,ny)=>{const o=[],n=P_.length;for(let k=0;k<n;k++){const a=P_[k],b=P_[(k+1)%n],da=(a[0]-mx)*nx+(a[1]-my)*ny,db=(b[0]-mx)*nx+(b[1]-my)*ny;if(da<=0){o.push(a);if(db>0){const t=da/(da-db);o.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}else if(db<=0){const t=da/(da-db);o.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}return o};
@@ -624,7 +624,11 @@ function verificaRegiao(W,gvv){const g63=(gvv==null?63:gvv)>=63,g67=(gvv==null?6
     const corta=L0=>{const L=[];for(let i=0;i<L0.length;i++){const a=L0[i];L.push(a);const b=L0[i+1];if(!b)break;const l=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.floor(l/2);for(let k=1;k<n;k++)L.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}if(!L.some(v=>dentro(v[0],v[1])))return [L0];const out=[];let cur=[];for(const v of L){if(dentro(v[0],v[1])){if(cur.length>1)out.push(cur);cur=[]}else cur.push(v)}if(cur.length>1)out.push(cur);return out};let cortadas=0;
     for(const AR of[W.roads].concat((W.towns||[]).map(t=>t.streets||[]))){if(!AR)continue;for(let i=AR.length-1;i>=0;i--){const L=AR[i];if(!Array.isArray(L)||!L.length||!Array.isArray(L[0]))continue;const P2=corta(L);if(P2.length===1&&P2[0].length===L.length)continue;cortadas++;AR.splice(i,1,...P2)}}
     mov+=0;W._ruasCortadas=cortadas}
-  return {mov,tir,cort,tirC}}
+  // 0.71: porta da casa para a rua ou estrada mais perto
+  let portas=0;if(g71){const via=k=>{const u=G.uso0?G.uso0[k]:G.uso[k];return u===U.rua||u===U.estrada||u===U.praca};
+    for(const b of W.B){if(b.k!==1||!b.L)continue;let v=null;for(let r=Math.min(b.L,b.D)/2+1;r<=Math.min(b.L,b.D)/2+18&&!v;r+=2)for(let a=0;a<24;a++){const an=a*.2618,k=G.idx(b.x+Math.cos(an)*r,b.y+Math.sin(an)*r);if(k>=0&&via(k)){v=[Math.cos(an),Math.sin(an)];break}}
+      if(!v)continue;const d=v[0]*-Math.sin(b.ang||0)+v[1]*Math.cos(b.ang||0);if(Math.abs(d)>.25){b.fr=d>0?1:-1;portas++}}}
+  return {mov,tir,cort,tirC,portas}}
 function generate(P){const W=generate0(P);if((P.gv==null?65:P.gv)>=65&&W&&W.B)for(const b of W.B)if(b.k===2)b.tv=2;if((P.gv==null?61:P.gv)>=61&&W&&W.B){try{W.VERIF=verificaRegiao(W,P.gv)}catch(e){console.warn("verificaRegiao",e)}}return W}
 function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslava","mediter","antigo","celta","andes","fantasia","industrial","piratas"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
   setScale(P.size||1);
