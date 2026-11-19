@@ -383,6 +383,7 @@ body.players #bPlay{border-color:var(--gold);color:var(--gold)}
 .bt-am32{width:32px;height:32px}.bt-msk{background:#000}
 .bt-cn{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.2}.bt-cn b{font-weight:500;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bt-cn small{color:var(--muted);font-size:12px}
 .bt-cbar{display:flex;gap:4px;margin-top:6px}
+.bt-ta{width:100%;padding:6px 8px;background:var(--bg);border:1px solid var(--line);border-radius:4px;font-size:15px;resize:vertical}
 .bt-c input[type=text]{width:100%;min-height:32px;padding:2px 8px;background:var(--bg);border:1px solid var(--line);border-radius:4px;font-size:15px}
 @media (min-width:761px){.bt-bar{flex-wrap:nowrap}}
 @media (max-width:760px){

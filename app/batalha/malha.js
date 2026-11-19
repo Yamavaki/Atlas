@@ -17,8 +17,18 @@ export function escreveLuz(B,off,l){const R=l.raio,f=l.forca,k0=Math.max(0,Math.
 // triangulacao por "orelhas" (poligonos simples, concavos ou nao)
 export function triangula(P){const n=P.length;if(n<3)return [];let A=0;for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n];A+=a[0]*b[1]-b[0]*a[1]}const V=[];for(let i=0;i<n;i++)V.push(A>0?i:n-1-i);const T=[];let g=0;
   const cr=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]),den=(a,b,c,p)=>cr(a,b,p)>=0&&cr(b,c,p)>=0&&cr(c,a,p)>=0;
-  while(V.length>3&&g++<n*n){let ok=false;for(let i=0;i<V.length;i++){const ia=V[(i+V.length-1)%V.length],ib=V[i],ic=V[(i+1)%V.length],a=P[ia],b=P[ib],c=P[ic];if(cr(a,b,c)<=1e-12)continue;let dentro=false;for(const k of V){if(k===ia||k===ib||k===ic)continue;if(den(a,b,c,P[k])){dentro=true;break}}if(dentro)continue;T.push(ia,ib,ic);V.splice(i,1);ok=true;break}if(!ok)V.splice(0,1)}
+  while(V.length>3&&g++<n*n){let ok=false;for(let i=0;i<V.length;i++){const ia=V[(i+V.length-1)%V.length],ib=V[i],ic=V[(i+1)%V.length],a=P[ia],b=P[ib],c=P[ic];if(cr(a,b,c)<=1e-12)continue;let dentro=false;for(const k of V){if(k===ia||k===ib||k===ic)continue;const q=P[k];if((q[0]===a[0]&&q[1]===a[1])||(q[0]===b[0]&&q[1]===b[1])||(q[0]===c[0]&&q[1]===c[1]))continue;if(den(a,b,c,q)){dentro=true;break}}if(dentro)continue;T.push(ia,ib,ic);V.splice(i,1);ok=true;break}if(!ok)V.splice(0,1)}
   if(V.length===3)T.push(V[0],V[1],V[2]);return T}
+// poligono com furos: liga cada furo ao contorno por uma ponte e triangula tudo como um poligono so
+export function comFuros(P,F){if(!F||!F.length)return P;const area=Q=>{let s=0;for(let i=0;i<Q.length;i++){const a=Q[i],b=Q[(i+1)%Q.length];s+=a[0]*b[1]-b[0]*a[1]}return s/2};let O=area(P)>0?P.slice():P.slice().reverse();
+  const hs=F.filter(h=>h&&h.length>=3).map(h=>area(h)>0?h.slice().reverse():h.slice()).sort((a,b)=>Math.max(...b.map(q=>q[0]))-Math.max(...a.map(q=>q[0])));
+  const cruza=(p,q,a,b)=>{const d=(u,v,w)=>(v[0]-u[0])*(w[1]-u[1])-(v[1]-u[1])*(w[0]-u[0]),e=(u,v)=>u[0]===v[0]&&u[1]===v[1];if(e(p,a)||e(p,b)||e(q,a)||e(q,b))return false;return d(p,q,a)*d(p,q,b)<0&&d(a,b,p)*d(a,b,q)<0};
+  const restam=hs.slice();
+  for(const h of hs){restam.shift();let mi=0;for(let i=1;i<h.length;i++)if(h[i][0]>h[mi][0])mi=i;const m=h[mi];
+    // ponte: o ponto do contorno mais perto que se enxerga sem cruzar nenhuma borda (contorno, este furo e os que faltam)
+    const ordem=O.map((q,i)=>[Math.hypot(q[0]-m[0],q[1]-m[1]),i]).sort((a,b)=>a[0]-b[0]);let best=ordem[0][1];
+    const bordas=[O,h,...restam];for(const [,i] of ordem){const v=O[i];let ok=true;for(const R of bordas){for(let k=0;k<R.length&&ok;k++)if(cruza(m,v,R[k],R[(k+1)%R.length]))ok=false;if(!ok)break}if(ok){best=i;break}}
+    const anel=h.slice(mi).concat(h.slice(0,mi+1));O=O.slice(0,best+1).concat(anel,[O[best]],O.slice(best+1))}return O}
 export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k];
   const mat=t=>lay("m:"+materialDe(TEX[t]||"")),nome=t=>(TEX[t]||"").split("/").pop().toLowerCase();
   const B=[];let nv=0;const v=(x,y,u,w,l,c)=>{B.push(x,y,u,w,l,c[0],c[1],c[2],c[3],0,1,1);nv++};
@@ -32,9 +42,12 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   for(const z of A.pisos||[])add(-50,()=>{const [i,j,t,c]=z;quadM([i,j],[i+1,j],[i+1,j+1],[i,j+1],mat(t),c||BR)});
   const PAR=new Map();for(const w of A.paredes||[])if(w.id!=null)PAR.set(w.id,w);
   // pisos de comodo seguem a parede (com os mesmos cantos arredondados); textura com escala, giro e deslocamento
-  for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),P=w?arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,true,w.raios):p.p,T=triangula(P),l=mat(p.t),c=p.c||BR,es=.5/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
-    for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es,w2=(-q[0]*sr+q[1]*cr)*es;v(q[0],q[1],u,w2,l,c)}});
-  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco);if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
+  for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,true,w.raios):(p.raio?arredonda(p.p,p.raio,true):p.p),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=.5/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
+    for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es+(p.ox||0),w2=(-q[0]*sr+q[1]*cr)*es+(p.oy||0);v(q[0],q[1],u,w2,l,c)}
+    if(p.borda>0){const cb=p.cb||[.55,.45,.3,1];faixa(B0,p.borda,-1,cb,true);for(const h of p.furos||[])faixa(p.raio?arredonda(h,p.raio,true):h,p.borda,-1,cb,true)}});
+  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco);
+    if(p.estilo){const E=p.estilo,cb=p.cb||[.25,.19,.12,.6];if(E==="cerca"){faixa(P,.16,-1,TINTA,p.laco,true);faixa(P,.09,-1,[.62,.47,.3,1],p.laco,true);let acc=0;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);while(acc<=L){const t=acc/L,x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;quadM([x-.11,y-.11],[x+.11,y-.11],[x+.11,y+.11],[x-.11,y+.11],-1,TINTA);quadM([x-.07,y-.07],[x+.07,y-.07],[x+.07,y+.07],[x-.07,y+.07],-1,[.5,.36,.22,1]);acc+=1}acc-=L}return}
+      if(p.borda>0)faixa(P,p.larg+2*p.borda,-1,cb,p.laco,true);if(E==="penhasco")faixa(P,p.larg+.14,-1,[.08,.07,.06,.95],p.laco,true);faixa(P,p.larg,mat(p.t),p.c||BR,p.laco,true);return}if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
       const fino=/fence|rail|rope|chain|vine|web/.test(n);if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)});
   const onde=new Map();
   for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,l=lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,o,l,REC[l]);onde.set(o,off);nv+=12});
