@@ -4,7 +4,7 @@ import {abrirVisor} from "./visor.js";
 import {abrirEditor} from "./editor.js";
 import {novoMapa} from "./modelo.js";
 import * as loja from "./loja.js";
-export const VERSAO="0.78";
+export const VERSAO="0.79";
 const EXEMPLOS=[["floresta-gigante","Floresta gigante"],["praia-forte","Praia do forte"],["universidade-aster","Universidade Aster"],["mata-cerrada","Mata cerrada"]];
 const base=new URL(".",import.meta.url);let TAM=null,atual=null;
 async function importarArquivo(arq){const t=performance.now(),txt=await arq.text(),D=JSON.parse(txt);let M;

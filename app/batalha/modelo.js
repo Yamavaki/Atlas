@@ -3,9 +3,9 @@
 import {distPoli,dentro,caixaPts,pontoEm,projeta,distSeg,arredonda,RAIO_PADRAO} from "./vetor.js";
 // o caminho que a parede desenha (com os cantos arredondados): portas e janelas andam sobre ele
 export const trajeto=w=>arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios);
-export const TIPOS=["objetos","luzes","textos","paredes","portais","caminhos","padroes"];
-export const NOME={objetos:["objeto","objetos"],luzes:["luz","luzes"],paredes:["parede","paredes"],portais:["porta ou janela","portas e janelas"],textos:["texto","textos"],caminhos:["caminho","caminhos"],padroes:["forma","formas"]};
-export const FUNDO={paredes:1,caminhos:1,padroes:1}; // clicar seleciona; arrastar sem estar selecionado abre a caixa de selecao
+export const TIPOS=["objetos","luzes","textos","telhados","paredes","portais","caminhos","padroes"];
+export const NOME={objetos:["objeto","objetos"],luzes:["luz","luzes"],paredes:["parede","paredes"],portais:["porta ou janela","portas e janelas"],textos:["texto","textos"],telhados:["telhado","telhados"],caminhos:["caminho","caminhos"],padroes:["forma","formas"]};
+export const FUNDO={paredes:1,caminhos:1,padroes:1,telhados:1}; // clicar seleciona; arrastar sem estar selecionado abre a caixa de selecao
 export const MATERIAIS_NOME={grama:"Grama",trevo:"Trevo",selva:"Selva",terra:"Terra",lama:"Lama",areia:"Areia",pedra:"Pedra",rocha:"Rocha",concreto:"Concreto",madeira:"Madeira",madeiraEscura:"Madeira escura",agua:"Água",aguaFunda:"Água funda",ladrilho:"Ladrilho",tapete:"Tapete",metal:"Metal",asfalto:"Asfalto",neve:"Neve",telha:"Telha",neutro:"Neutro"};
 // artes proprias: nome na tela, tamanho padrao em quadrados e camada padrao
 export const ARTES={arvore:["Árvore",3,3,400],arvoreEscura:["Árvore escura",3,3,400],pinheiro:["Pinheiro",2.5,2.5,400],palmeira:["Palmeira",3,3,400],arbusto:["Arbusto",1.5,1.5,300],samambaia:["Samambaia",1,1,200],capim:["Capim",1,1,100],flor:["Flor",.5,.5,100],cogumelo:["Cogumelo",.5,.5,100],
@@ -27,15 +27,15 @@ export function caixa(k,e){if(k==="objetos")return caixaPts(cantos(e));if(k==="t
 export function uneCaixas(L){let b=[1e9,1e9,-1e9,-1e9];for(const c of L){b[0]=Math.min(b[0],c[0]);b[1]=Math.min(b[1],c[1]);b[2]=Math.max(b[2],c[2]);b[3]=Math.max(b[3],c[3])}return b}
 export function acerta(k,e,x,y,tol){if(k==="textos")e=caixaTxt(e);if(k==="objetos"||k==="textos"){const c=Math.cos(-e.r),s=Math.sin(-e.r),dx=x-e.x,dy=y-e.y,lx=dx*c-dy*s,ly=dx*s+dy*c;return Math.abs(lx)<=Math.max(e.w/2,tol)&&Math.abs(ly)<=Math.max(e.h/2,tol)}
   if(k==="luzes")return Math.hypot(x-e.x,y-e.y)<=Math.max(.35,tol*1.6);if(k==="portais")return distSeg(x,y,[e.x-e.dx*e.raio,e.y-e.dy*e.raio],[e.x+e.dx*e.raio,e.y+e.dy*e.raio])<=.2+tol;if(k==="paredes")return distPoli(e.p,x,y,e.laco)<=.15+tol;if(k==="caminhos")return distPoli(e.p,x,y,e.laco)<=Math.max((e.larg||.5)/2,.12)+tol;
-  return e.p.length>2&&dentro(e.p,x,y)}
-export const camada=(k,e)=>k==="luzes"?1e4:k==="textos"?9e3:k==="portais"?510:k==="paredes"?500:e.l||0;
+  if(k==="telhados")return e.p.length>2&&dentro(e.p,x,y);return e.p.length>2&&dentro(e.p,x,y)}
+export const camada=(k,e)=>k==="luzes"?1e4:k==="textos"?9e3:k==="telhados"?800:k==="portais"?510:k==="paredes"?500:e.l||0;
 // portas, janelas e pisos presos a uma parede seguem a parede (posicao derivada, recalculada depois de cada mudanca)
 export function sincroniza(A){if(!A.paredes||!A.paredes.length)return;const W=new Map();for(const w of A.paredes)if(w.id!=null)W.set(w.id,w);
   for(const q of A.portais||[]){if(q.d==null)continue;const w=W.get(q.parede);if(!w)continue;const p=pontoEm(trajeto(w),w.laco,q.d);q.x=p[0];q.y=p[1];q.dx=p[2];q.dy=p[3];q.r=Math.atan2(p[3],p[2])}
-  for(const f of A.padroes||[]){if(f.parede==null)continue;const w=W.get(f.parede);if(w&&f.p!==w.p)f.p=w.p}}
+  for(const k of["padroes","telhados"])for(const f of A[k]||[]){if(f.parede==null)continue;const w=W.get(f.parede);if(w&&f.p!==w.p)f.p=w.p}}
 // prende a parede os portais importados (guardam so x, y)
 export function prendePortais(A){const W=new Map();for(const w of A.paredes||[])if(w.id!=null)W.set(w.id,w);for(const q of A.portais||[]){if(q.d!=null||q.parede==null)continue;const w=W.get(q.parede);if(!w)continue;const m=projeta(trajeto(w),w.laco,q.x,q.y);if(m.dist<.6)q.d=+m.d.toFixed(4)}}
-export const anexos=(A,ids)=>{const L=[];for(const k of["portais","padroes"])for(const e of A[k]||[])if(e.parede!=null&&ids.has(e.parede))L.push({k,e});return L};
+export const anexos=(A,ids)=>{const L=[];for(const k of["portais","padroes","telhados"])for(const e of A[k]||[])if(e.parede!=null&&ids.has(e.parede))L.push({k,e});return L};
 // ponto de referencia para o encaixe na grade
 export const ancora=(k,e)=>e.p?[e.p[0][0],e.p[0][1]]:[e.x,e.y];
 // estado guardado para desfazer: copia rasa (as listas de pontos nunca sao alteradas no lugar, sempre trocadas)
@@ -87,3 +87,9 @@ export function converteTerreno(M,A){if(!A.terreno||A.camadas)return false;const
 export const CAMINHOS=[["estrada","Estrada","terra",2,"estrada",.1,[.3,.22,.13,.55]],["trilha","Trilha","terra",1,"estrada",.06,[.3,.22,.13,.45]],["calcada","Calçada","pedra",2,"estrada",.08,[.2,.19,.17,.7]],["rio","Rio","agua",2.5,"rio",.35,[.55,.45,.3,.95]],["riacho","Riacho","agua",1,"rio",.2,[.5,.42,.3,.9]],["cerca","Cerca","madeira",.2,"cerca",0,null],["penhasco","Penhasco","rocha",1.2,"penhasco",.25,[.12,.1,.08,.7]]];
 export const FORMAS=[["chao","Chão","terra",0,null],["agua","Água","agua",.35,[.62,.52,.34,.95]],["lago","Lago fundo","aguaFunda",.4,[.42,.55,.6,.9]],["pedra","Pedra","rocha",.12,[.12,.1,.08,.8]],["tapete","Tapete","tapete",.1,[.55,.42,.2,1]]];
 export const FONTES=[["fell","Medieval",'"IM Fell English",Georgia,serif'],["alegreya","Livro",'"Alegreya",Georgia,serif'],["sans","Simples",'"Alegreya Sans",system-ui,sans-serif']];
+// ---------- andares ----------
+export const ESTILOS_TELHADO=[["quatro","Quatro águas"],["duas","Duas águas"],["plano","Plano"]];
+export function idsAndares(M){let n=1;for(const A of M.andares)if(A.id&&/^a\d+$/.test(A.id))n=Math.max(n,+A.id.slice(1)+1);for(const A of M.andares)if(!A.id)A.id="a"+(n++);return M}
+// copia um andar com ids novos (as ligacoes com paredes acompanham)
+export function copiaAndar(M,A){const B=structuredClone(A);B.id=null;B.nome=A.nome+" (cópia)";const mapa=new Map();for(const w of B.paredes||[]){const n=novoId(M);mapa.set(w.id,n);w.id=n}
+  for(const k of TIPOS.concat(["camadas"])){if(k==="paredes")continue;for(const e of B[k]||[]){e.id=novoId(M);if(e.parede!=null&&mapa.has(e.parede))e.parede=mapa.get(e.parede)}}return B}

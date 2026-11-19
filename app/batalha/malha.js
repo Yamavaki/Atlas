@@ -63,12 +63,12 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
       else{rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2,.11,-1,TINTA);rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2-.04,.075,-1,MAD)}}});
   itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);for(const it of itens)it[2]();
   // luzes: x, y, lx, ly, r, g, b, forca
-  const lz=malhaLuzes(A,null);
+  const lz=malhaLuzes(A,null),tl=malhaTelhados(A,TEX,IND,PAR);
   // zonas com ambiente proprio (comodo ou forma): triangulos de cor lisa desenhados no alvo da luz antes das luzes
   const Z=[];let nz=0;const zv=(q,c)=>{Z.push(q[0],q[1],0,0,-1,c[0],c[1],c[2],1,0,1,1);nz++};
   for(const w of A.paredes||[])if(w.amb&&w.laco){const P=trajeto(w),T=triangula(P);for(const k of T)zv(P[k],w.amb)}
   for(const p of A.padroes||[])if(p.amb&&p.parede==null){const P=p.raio?arredonda(p.p,p.raio,true):p.p,T=triangula(P);for(const k of T)zv(P[k],p.amb)}
-  return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz}}
+  return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz,telhados:tl.verts,nt:tl.n}}
 // ---------- luz com sombra das paredes ----------
 // trechos que barram a luz: paredes (caminho arredondado), menos as janelas e as portas abertas
 export function barreiras(A){const S=[];for(const w of A.paredes||[]){if(w.sombra===false)continue;const P=trajeto(w),n=P.length;if(n<2)continue;
@@ -88,3 +88,25 @@ export function malhaLuzes(A,cache){const S=cache&&cache.S||barreiras(A),novo=ne
       const P=l.sombras===false?null:visibilidade(l.x,l.y,l.raio,S);if(!P){const Q=[];escreveLuz(Q,0,l);B.push(...Q)}else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];put(l.x,l.y);put(a[0],a[1]);put(b[0],b[1])}ent={k,v:new Float32Array(B)}}
     novo.set(l,ent);partes.push(ent.v);tot+=ent.v.length}
   const out=new Float32Array(tot);let o=0;for(const v of partes){out.set(v,o);o+=v.length}return {verts:out,n:tot/9,cache:novo}}
+
+// ---------- telhados ----------
+// quatro aguas: um pano por lado, do beiral ao centro; duas aguas: cumeeira no eixo comprido; plano: um pano so. Cada pano tem o sombreado pela direcao da luz (de cima a esquerda)
+const corta=(P,nx,ny,c)=>{const O=[];for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],da=a[0]*nx+a[1]*ny-c,db=b[0]*nx+b[1]*ny-c;if(da>=0)O.push(a);if((da>=0)!==(db>=0)){const t=da/(da-db);O.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}return O};
+export function malhaTelhados(A,TEX,IND,PAR){const B=[];let n=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k];
+  const v=(x,y,u,w,l,c,br)=>{B.push(x,y,u,w,l,c[0]*br,c[1]*br,c[2]*br,c[3],0,1,1);n++};
+  for(const t of A.telhados||[]){const w=t.parede!=null&&PAR&&PAR.get(t.parede);let P=w?trajeto(w):(t.raio?arredonda(t.p,t.raio,true):t.p);if(!P||P.length<3)continue;
+    let ar=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];ar+=a[0]*b[1]-b[0]*a[1]}if(ar<0)P=P.slice().reverse();
+    const l=lay("m:"+materialDe(TEX[t.t]||"atlas:m/telha")),c=t.c||[1,1,1,1],es=.5/(t.esc||1),LX=-.6,LY=-.8;
+    const pano=(Q,ang,br)=>{const T=triangula(Q),cs=Math.cos(ang),sn=Math.sin(ang);for(const k of T){const q=Q[k];v(q[0],q[1],(q[0]*cs+q[1]*sn)*es,(-q[0]*sn+q[1]*cs)*es,l,c,br)}};
+    const luzDe=(nx,ny)=>.78+.3*(nx*LX+ny*LY);
+    const RAW=w?w.p:t.p;let cx=0,cy=0;for(const q of RAW){cx+=q[0];cy+=q[1]}cx/=RAW.length;cy/=RAW.length;
+    const linha=(a,b,h,cor)=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/L*h,ny=(b[0]-a[0])/L*h;for(const z of[[a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]+nx,a[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny]])v(z[0],z[1],0,0,-1,cor,1)};
+    if(t.estilo==="plano")pano(P,0,.95);
+    else if(t.estilo==="duas"){let mx=0,ang=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L>mx){mx=L;ang=Math.atan2(b[1]-a[1],b[0]-a[0])}}const nx=-Math.sin(ang),ny=Math.cos(ang),c0=cx*nx+cy*ny;
+      pano(corta(P,nx,ny,c0),ang,luzDe(nx,ny));pano(corta(P,-nx,-ny,-c0),ang,luzDe(-nx,-ny));const d=[Math.cos(ang),Math.sin(ang)];let t0=1e9,t1=-1e9;for(const q of P){const s=(q[0]-cx)*d[0]+(q[1]-cy)*d[1];t0=Math.min(t0,s);t1=Math.max(t1,s)}
+      const a=[cx+d[0]*t0,cy+d[1]*t0],b=[cx+d[0]*t1,cy+d[1]*t1],h=.05;for(const z of[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]+nx*h,a[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]])v(z[0],z[1],0,0,-1,[.12,.08,.06,.85],1)}
+    else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-6)continue;const ang=Math.atan2(b[1]-a[1],b[0]-a[0]),nx=(b[1]-a[1])/L,ny=-(b[0]-a[0])/L;pano([a,b,[cx,cy]],ang,luzDe(nx,ny))}
+    if(!t.estilo||t.estilo==="quatro")for(const q of RAW)linha(q,[cx,cy],.035,[.14,.09,.06,.7]);
+    // beiral escuro em volta
+    const {E,D}=fita(P,.1,true);for(let i=0;i<P.length;i++){const k=(i+1)%P.length;for(const z of[E[i],E[k],D[k],E[i],D[k],D[i]])v(z[0],z[1],0,0,-1,[.1,.07,.05,.9],1)}}
+  return {verts:new Float32Array(B),n}}

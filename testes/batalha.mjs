@@ -1,6 +1,6 @@
 // Teste rapido do Modo Batalha (segundos): importador, triangulacao e malha. Uso: node testes/batalha.mjs [mapa.dungeondraft_map ...]
 import {importarDD,nums,pts,cor,tamanhoArte} from '../app/batalha/formato.js';
-import {triangula,malhaAndar,VERT,N_OBJ,escreveObjeto,comFuros,barreiras,visibilidade} from '../app/batalha/malha.js';
+import {triangula,malhaAndar,VERT,N_OBJ,escreveObjeto,comFuros,barreiras,visibilidade,malhaTelhados} from '../app/batalha/malha.js';
 import {MATERIAIS,OBJETOS,materialDe,objetoDe} from '../app/batalha/arte.js';
 import fs from 'fs';
 let falhas=0;const ok=(c,m)=>{if(!c){falhas++;console.log('FALHOU:',m)}};
@@ -36,6 +36,9 @@ const IND={};let k=0;for(const n in MATERIAIS)IND['m:'+n]=k++;for(const n in OBJ
  // 0.78: sombra das paredes
  {const B={paredes:[{id:1,p:[[0,0],[6,0],[6,4],[0,4]],laco:true,raio:0}],portais:[{id:2,parede:1,d:3,raio:.5,tipo:'janela'}]};const S=barreiras(B);ok(S.length===5,'janela abre um vao na parede: '+S.length);
   const V=visibilidade(3,2,10,S);ok(V&&V.filter(q=>q[0]>=-1e-6&&q[0]<=6+1e-6&&q[1]>=-1e-6&&q[1]<=4+1e-6).length>=V.length-6,'a luz fica dentro da sala, menos pela janela')}
+ // 0.79: telhados e copia de andar
+ {const T=malhaTelhados({telhados:[{p:[[0,0],[6,0],[6,4],[0,4]],estilo:'duas'},{p:[[0,0],[6,0],[6,4],[0,4]],estilo:'quatro'},{p:[[0,0],[6,0],[6,4],[0,4]],estilo:'plano'}]},['atlas:m/telha'],IND,null);ok(T.n>0&&T.verts.length===T.n*VERT,'telhados');
+  const N=MD.novoMapa({});const A2=N.andares[0];A2.paredes.push({id:50,p:[[0,0],[4,0],[4,4],[0,4]],laco:true});A2.portais.push({id:51,parede:50,d:1,raio:.5});MD.garanteIds(N);const B=MD.copiaAndar(N,A2);ok(B.paredes[0].id!==50&&B.portais[0].parede===B.paredes[0].id&&B.portais[0].id!==51,'copia do andar com ids novos')}
  const m=malhaAndar(A,M.texturas,IND);ok(m.onde.size===A.objetos.length&&m.verts.length===m.n*VERT,'malha guarda onde esta cada objeto')}
 for(const f of process.argv.slice(2)){const t=Date.now(),M=importarDD(JSON.parse(fs.readFileSync(f,'utf8')),{nome:f});let v=0,obj=0;for(const A of M.andares){const m=malhaAndar(A,M.texturas,IND);v+=m.n;obj+=A.objetos.length;ok(m.verts.length===m.n*VERT&&!m.verts.some(x=>!isFinite(x)),'malha com numero invalido em '+A.nome)}
   ok(M.andares.length>0&&M.larg>0,'mapa vazio '+f);console.log(f.split('/').pop(),M.larg+'x'+M.alt,M.andares.length+' andares',obj+' objetos',v+' vertices',(Date.now()-t)+' ms')}
