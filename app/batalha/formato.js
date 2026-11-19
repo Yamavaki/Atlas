@@ -24,7 +24,7 @@ export function importarDD(D,opt){opt=opt||{};const TAM=opt.tamanhos||new Map(),
   // no Dungeondraft a chave "0" e o andar mais alto; aqui o andar 0 e o de baixo
   const ks=Object.keys(W.levels).sort((a,b)=>+b-+a);
   for(const k of ks){const L=W.levels[k],A={nome:L.label||("Andar "+k),ambiente:cor(L.environment&&L.environment.ambient_light||"ffffffff"),terreno:null,pisos:[],formas:[],padroes:[],paredes:[],portais:[],caminhos:[],objetos:[],luzes:[]};
-    const T=L.terrain;if(T&&(T.enabled===true||T.enabled==="True")){const sp=nums(T.splat),n=sp.length/4,w=W.width*4,h=Math.round(n/w);A.terreno={tex:[tx(T.texture_1),tx(T.texture_2),tx(T.texture_3),tx(T.texture_4)],w,h,splat:b64(Uint8Array.from(sp))};if(h!==W.height*4)M.avisos.push("terreno do andar "+A.nome+": mascara "+w+"x"+h)}
+    const T=L.terrain;if(T&&(T.enabled===true||T.enabled==="True")){const sp=nums(T.splat),n=sp.length/4,w=W.width*4,h=Math.round(n/w);A.terreno={tex:[tx(T.texture_1),tx(T.texture_2),tx(T.texture_3),tx(T.texture_4)],w,h,splat:b64(Uint8Array.from(sp))};if(h!==W.height*4)M.avisos.push("terreno do andar "+A.nome+": máscara "+w+"x"+h)}
     const Ti=L.tiles;if(Ti&&Ti.cells){const c=nums(Ti.cells),lk=Ti.lookup||{},co=Ti.colors||[];for(let i=0;i<c.length;i++){if(c[i]<0)continue;A.pisos.push([i%W.width,(i/W.width)|0,tx(lk[c[i]]||lk[String(c[i])]),co[i]&&co[i]!=="ffffffff"?cor(co[i]):null])}}
     for(const p of (L.shapes&&L.shapes.polygons)||[])A.formas.push(pts(p));
     for(const p of L.patterns||[]){const o=vec(p.position),s=vec(p.scale||"Vector2(1,1)");A.padroes.push({t:tx(p.texture),p:pts(p.points).map(v=>[v[0]*s[0]+o[0]/PX,v[1]*s[1]+o[1]/PX]),l:p.layer||0,c:p.color&&p.color!=="ffffffff"?cor(p.color):null,r:p.rotation||0})}
@@ -35,7 +35,7 @@ export function importarDD(D,opt){opt=opt||{};const TAM=opt.tamanhos||new Map(),
     for(const o of L.objects||[]){const p=vec(o.position),s=vec(o.scale||"Vector2(1,1)"),z=tamanhoArte(o.texture,TAM);if(!z[2]&&!/\d+x\d+(?:\.\w+)?$/.test(o.texture))semTam++;const q={t:tx(o.texture),x:p[0]/PX,y:p[1]/PX,r:o.rotation||0,w:z[0]*Math.abs(s[0]),h:z[1]*Math.abs(s[1]),l:o.layer||0};if(o.mirror)q.m=1;if(o.custom_color)q.c=cor(o.custom_color);if(o.shadow)q.s=1;if(o.block_light)q.b=1;A.objetos.push(q)}
     for(const l of L.lights||[]){const p=vec(l.position);A.luzes.push({x:p[0]/PX,y:p[1]/PX,raio:l.range||4,forca:l.intensity==null?1:l.intensity,c:cor(l.color||"ffffffff"),sombras:l.shadows!==false})}
     M.andares.push(A)}
-  if(semTam)M.avisos.push(semTam+" objetos sem tamanho conhecido (use o catalogo de artes para acertar)");
-  const bt=D.mod&&D.mod.BetterTerrainTool;if(bt&&JSON.stringify(bt).length>200)M.avisos.push("camadas do Better Terrain Tool ainda nao sao importadas");
+  if(semTam)M.avisos.push(semTam+" objetos sem tamanho conhecido (use o catálogo de artes para acertar)");
+  const bt=D.mod&&D.mod.BetterTerrainTool;if(bt&&JSON.stringify(bt).length>200)M.avisos.push("camadas do Better Terrain Tool ainda não são importadas");
   return M}
 export function resumo(M){return M.andares.map(a=>({nome:a.nome,objetos:a.objetos.length,paredes:a.paredes.length,portais:a.portais.length,caminhos:a.caminhos.length,padroes:a.padroes.length,pisos:a.pisos.length,luzes:a.luzes.length,terreno:!!a.terreno}))}
