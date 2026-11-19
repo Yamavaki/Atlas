@@ -9,7 +9,7 @@ const MW=1500,MH=1020,MX=46,MY=64,CW=MW+92,CH=MH+110,KE=64,WX=MW,WY=Math.ceil((M
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t,sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
 const SITES=[["interior","Interior"],["rio","Beira de rio"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["ilhas","Duas ilhas com ponte"],["lago","Beira de lago"],["arquipelago","Arquipélago"]];
 // versao do gerador: mapa novo nasce com a mais nova; mapa salvo guarda a sua ate o usuario pedir para atualizar
-const GV=69,GVNOME={0:"0.49 ou anterior",50:"0.50",54:"0.54",55:"0.55",56:"0.56",57:"0.57",58:"0.58",59:"0.59",60:"0.60",62:"0.62",63:"0.63",64:"0.64",65:"0.65",66:"0.66",67:"0.67",68:"0.68",69:"0.69"};
+const GV=70,GVNOME={0:"0.49 ou anterior",50:"0.50",54:"0.54",55:"0.55",56:"0.56",57:"0.57",58:"0.58",59:"0.59",60:"0.60",62:"0.62",63:"0.63",64:"0.64",65:"0.65",66:"0.66",67:"0.67",68:"0.68",69:"0.69",70:"0.70"};
 const DEF={gv:GV,alleys:true,precisao:true,waterDir:"auto",riverCurve:"auto",seed:"novigrad-1272",site:"costa",size:24,culture:"humano",foreign:"auto",wall:"reta",citadel:true,river:true,plan:"misto",wealth:.55,relief:.5,suburbs:.6,green:.4,magic:.35,labels:true,legend:true,season:"verao",plazaStyle:"auto",arch:"misto",abandon:.35,castleStyle:"auto",landform:"auto",cityShape:"auto",wealthMat:true,terraces:true,riverForm:"auto",trade:.5,craft:.5,faith:.5,defense:.5,wards:{},lines:[],nodes:{},gates:{add:[],del:[]}};
 const WTYPES=[["mercado","Praça do mercado"],["templo","Templo"],["castelo","Cidadela"],["porto","Porto"],["nobre","Nobre"],["mercadores","Mercadores"],["artesaos","Artesãos"],["producao","Produção"],["universidade","Universidade"],["militar","Quartel"],["moradia","Moradias"],["pobre","Pobre"],["parque","Jardim"],["arrabalde","Arrabalde"],["campos","Campos"],["mato","Mata"]];
 const LANDF=[["auto","Sorteado pela semente"],["plano","Planície"],["colina","Colina"],["encosta","Encosta com terraços"],["penhasco","Penhasco (cidade alta e baixa)"],["vale","Vale"],["canion","Cânion (precisa de rio)"],["canais","Canais"],["pantano","Pântano"],["delta","Delta (costa com rio)"]];
@@ -148,9 +148,30 @@ function verifica(C,P){const AM=window.AtlasMundo,G=AM.deCidade(C,AS),G0=G,U=AM.
     if(tiraB.size){const L=C.B.filter(b=>!tiraB.has(b));C.B.length=0;C.B.push(...L)}if(tiraS.size){const L=C.SPB.filter(b=>!tiraS.has(b));C.SPB.length=0;C.SPB.push(...L)}
     if(quint.size&&C.yards){const L=C.yards.filter(y_=>!quint.has(y_));C.yards.length=0;C.yards.push(...L)}if(campo.size&&C.fields){const L=C.fields.filter(f=>!campo.has(f));C.fields.length=0;C.fields.push(...L)}
     if(!casoC.size&&!quint.size&&!campo.size)break}
+  // 0.70 (gerador 70): acesso. Predio da cidade sem rua perto procura lugar com rua na frente; predio de costas para a rua vira ou gira 90 graus
+  let acMov=0,acVira=0;if((P.gv==null?GV:P.gv)>=70){const G=AM.deCidade(C,AS),SEMR=new Set(["windmill","postmill","watermill","lighthouse","mine","quarry","eldertree","farm","barn","granary","shipwright","crane","fishery","wreck","statue","fountain","well","obelisk","clocktower","woodpile","wayshrine","beehives","dovecote","pipes","gazebo","dragonstatue","smokestack","haystack","scarecrow","kiln","hut","tent","shrine","garden"]);
+    const via=k=>{const u=G.uso0?G.uso0[k]:G.uso[k];return u===U.rua||u===U.estrada||u===U.praca||u===U.cais};
+    const fichaQ=(q,ang,fr)=>{const ov=q.aov&&fr!=null?Object.assign({},q.aov,{fr}):q.aov;return AS.ficha(q.id,q.race,q.v,ang,ov)};
+    const forma=(q,dx,dy,ang,fr)=>{const F=fichaQ(q,ang,fr),z=(q.s||1)*Z;return F&&F.pegada.length?F.pegada.map(P_=>P_.map(v=>[q.x+dx+v[0]*z,q.y+dy+v[1]*z])):null};
+    const nObj=new Map();for(const o of G.objs)if(o.ref)nObj.set(o.ref,o.n);
+    const cabe=(L,n)=>{let ok=true;for(const P_ of L)G.poly(P_,k=>{if(!ok)return;const u=G.uso[k],u0=G.uso0?G.uso0[k]:u,d=G.dono[k];if((u===U.construcao||u===U.detalhe||u===U.arvore)&&d!==n&&d>=0||u0===U.muralha||u0===U.portao||u0===U.ponte||u0===U.rua||u0===U.estrada||G.agua[k]&&u0!==U.cais||G.reserva[k])ok=false});return ok};
+    const temRua=L=>{let ok=false;const w=G.w;for(const P_ of L){G.poly(P_,k=>{if(ok)return;const i=k%w,j=(k/w)|0;for(let dj=-3;dj<=3&&!ok;dj++)for(let di=-3;di<=3&&!ok;di++){const kk=(j+dj)*w+i+di;if(kk>=0&&kk<G.uso.length&&via(kk))ok=true}});if(ok)break}return ok};
+    const ruaDirG=(x,y,r0)=>{for(let r=r0;r<=r0+16;r+=2)for(let a=0;a<24;a++){const an=a*.2618,k=G.idx(x+Math.cos(an)*r,y+Math.sin(an)*r);if(k>=0&&via(k))return [Math.cos(an),Math.sin(an)]}return null};
+    const pinta=(L,n)=>{for(const P_ of L)G.poly(P_,k=>{G.uso[k]=U.construcao;G.dono[k]=n})};
+    for(const q of C.SPB){if(!q.id||q.mark||SEMR.has(q.id)||OVR[q.key]||!AS.ficha)continue;const n=nObj.get(q);if(n==null)continue;const L0=forma(q,0,0,q.ang||0);if(!L0||temRua(L0))continue;
+      let feito=false;for(const d of[2,4,6,8,10,12,14,16,20,24])for(let a=0;a<16&&!feito;a++)for(const da of[0,1.5708,-1.5708,3.1416]){if(feito)break;const dx=Math.cos(a*.3927)*d,dy=Math.sin(a*.3927)*d,ga=(q.ang||0)+da,L=forma(q,dx,dy,ga);if(L&&cabe(L,n)&&temRua(L)){q.x+=dx;q.y+=dy;q.ang=ga;pinta(L,n);feito=true}}
+      // sem lugar livre: o predio fica no lugar com rua que derruba menos casas (ate 4)
+      if(!feito){const casasDe=L=>{const S_=new Set();let ok=true;for(const P_ of L)G.poly(P_,k=>{if(!ok)return;const u=G.uso[k],u0=G.uso0?G.uso0[k]:u,d=G.dono[k];if(u0===U.muralha||u0===U.portao||u0===U.ponte||u0===U.rua||u0===U.estrada||G.agua[k]&&u0!==U.cais||G.reserva[k]){ok=false;return}
+          if((u===U.construcao||u===U.detalhe)&&d>=0&&d!==n){const r_=G.objs[d]&&G.objs[d].ref;if(r_&&C.B.includes(r_)&&!r_.k&&!OVR[r_.key])S_.add(r_);else ok=false}});return ok?S_:null};
+        let best=null;for(const d of[0,2,4,6,8,10,12,14,16,20,24,28,32,36,40])for(let a=0;a<(d?16:1);a++)for(const da of[0,1.5708,-1.5708,3.1416]){const dx=Math.cos(a*.3927)*d,dy=Math.sin(a*.3927)*d,ga=(q.ang||0)+da,L=forma(q,dx,dy,ga);if(!L||!temRua(L))continue;const S_=casasDe(L);if(S_&&S_.size<=4&&(!best||S_.size<best[4].size||S_.size===best[4].size&&d<best[5]))best=[dx,dy,ga,L,S_,d]}
+        if(best){const [dx,dy,ga,L,S_]=best;q.x+=dx;q.y+=dy;q.ang=ga;if(S_.size){const L2=C.B.filter(b=>!S_.has(b));C.B.length=0;C.B.push(...L2);for(const b of S_){const nb=nObj.get(b);if(nb!=null)for(let k=0;k<G.dono.length;k++)if(G.dono[k]===nb){G.dono[k]=-1;G.uso[k]=G.uso0?G.uso0[k]:U.livre}}}pinta(L,n);feito=true}}
+      if(feito)acMov++}
+    for(const q of C.SPB){if(!q.id||!q.aov||!q.aov.fr||OVR[q.key]||!AS.ficha)continue;const n=nObj.get(q);if(n==null)continue;const v=ruaDirG(q.x,q.y,(q.r||10)*.5);if(!v)continue;const dv=a_=>v[0]*-Math.sin(a_)+v[1]*Math.cos(a_),g0=q.ang||0,d=dv(g0);if(Math.abs(d)>.25&&(d>0?1:-1)===q.aov.fr)continue;
+      const tent=[];if(Math.abs(d)>.25)tent.push([g0,d>0?1:-1]);for(const da of[1.5708,-1.5708,3.1416]){const d2=dv(g0+da);if(Math.abs(d2)>.6)tent.push([g0+da,d2>0?1:-1])}
+      let ok_=false;for(const dd of[0,2,4,6])for(let a8=0;a8<(dd?8:1)&&!ok_;a8++){const dx=Math.cos(a8*.7854)*dd,dy=Math.sin(a8*.7854)*dd;for(const [ga,fr] of tent){const L=forma(q,dx,dy,ga,fr);if(L&&cabe(L,n)&&(SEMR.has(q.id)||temRua(L))){q.x+=dx;q.y+=dy;q.ang=ga;q.aov=Object.assign({},q.aov,{fr});pinta(L,n);acVira++;ok_=true;break}}}}}
   if(tirT.size){const L=C.trees.filter(t=>!tirT.has(t));C.trees.length=0;C.trees.push(...L)}
   if(tirT.size&&C.NAT){const L=C.NAT.filter(t=>!tirT.has(t));C.NAT.length=0;C.NAT.push(...L)}
-  return {aderecosMovidos:mov,aderecosTirados:tir,arvoresTiradas:tirT.size,construcoesMovidas:cmov,construcoesTiradas:ctir}}
+  return {aderecosMovidos:mov,aderecosTirados:tir,arvoresTiradas:tirT.size,construcoesMovidas:cmov,construcoesTiradas:ctir,acessoMovidos:acMov,acessoVirados:acVira}}
 // muralha curva que nao corta os cantos dos bairros: os pontos de controle saem para fora ate a curva passar por fora de todo canto
 function curvaFora(pts,closed,cx,cy){const n=pts.length;if(n<3)return chaikin(pts,closed,3);const cp=pts.map(v=>v.slice());
   // normal de cada trecho para fora: pela orientacao do contorno (fechado) ou pelo centro da cidade (aberto)
