@@ -48,9 +48,19 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   const prog=(vs,fs)=>{const p=gl.createProgram();for(const [t,s] of[[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh));gl.attachShader(p,sh)}gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));const U={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(let i=0;i<n;i++){const u=gl.getActiveUniform(p,i);U[u.name]=gl.getUniformLocation(p,u.name)}return {p,U}};
   const PM=prog(VS,FS),PT=prog(VT,FT),PL=prog(VL,FL),PC=prog(VC,FC),PK=prog(VT,FK);
   // matriz de texturas com as artes proprias
-  const t0=performance.now(),ART=gerarArtes((w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c}),TA=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D_ARRAY,TA);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
-  gl.texStorage3D(gl.TEXTURE_2D_ARRAY,9,gl.RGBA8,ART.T,ART.T,ART.quadros.length);ART.quadros.forEach((cv,i)=>gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,i,ART.T,ART.T,1,gl.RGBA,gl.UNSIGNED_BYTE,cv));gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
-  gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);const tArte=performance.now()-t0;
+  const t0=performance.now(),ART=gerarArtes((w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c}),G=ART.quadros.length;let TA=null,LADO=ART.T,NREAIS=0;
+  // matriz de texturas: as artes do Atlas e, depois delas, as artes do PC usadas no mapa (Artes do PC)
+  const ehMat=c=>/\/textures\/(terrain|patterns|textures|materials?)\//.test(c);
+  function montaMatriz(reais){const L=[...(reais||new Map())].filter(x=>x[1]),n=L.length,S=n?(n<=160?512:256):ART.T;if(TA)gl.deleteTexture(TA);TA=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D_ARRAY,TA);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY,Math.log2(S)+1,gl.RGBA8,S,S,G+n);const tmp=S===ART.T?null:document.createElement("canvas");if(tmp){tmp.width=S;tmp.height=S}const tc=tmp&&tmp.getContext("2d");
+    ART.quadros.forEach((cv,i)=>{let src=cv;if(tc){tc.clearRect(0,0,S,S);tc.drawImage(cv,0,0,S,S);src=tmp}gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,i,S,S,1,gl.RGBA,gl.UNSIGNED_BYTE,src)});
+    for(const k in ART.indice)if(k.startsWith("r:"))delete ART.indice[k];ART.recorte.length=G;
+    const c2=document.createElement("canvas");c2.width=S;c2.height=S;const g2=c2.getContext("2d");g2.imageSmoothingQuality="high";
+    L.forEach(([p,bm],j)=>{g2.clearRect(0,0,S,S);if(ehMat(p)){// chao: o quadro cobre 2 quadrados do mapa (512 px no Dungeondraft); textura menor repete, maior encolhe
+        const rep=Math.max(1,Math.round(512/Math.max(bm.width,1))),t=S/rep;for(let y=0;y<rep;y++)for(let x=0;x<rep;x++)g2.drawImage(bm,x*t,y*t,t,t)}else g2.drawImage(bm,0,0,S,S);
+      gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,G+j,S,S,1,gl.RGBA,gl.UNSIGNED_BYTE,c2);ART.indice["r:"+p]=G+j;ART.recorte[G+j]=[0,0,1,1]});
+    gl.generateMipmap(gl.TEXTURE_2D_ARRAY);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);LADO=S;NREAIS=n}
+  montaMatriz(null);const tArte=performance.now()-t0;
   const quadVAO=gl.createVertexArray();gl.bindVertexArray(quadVAO);const qb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,qb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
   let alvoA=null,alvoB=null,W=0,H=0;const alvo=()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,W,H);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);return {t,f}};
   const tam=()=>{if(canvas.width===W&&canvas.height===H&&alvoA)return;W=canvas.width;H=canvas.height;for(const a of[alvoA,alvoB])if(a){gl.deleteTexture(a.t);gl.deleteFramebuffer(a.f)}alvoA=alvo();alvoB=alvo()};
@@ -69,7 +79,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
       gl.uniform1f(U.uLay,camArte(c.t));gl.uniform4f(U.uXf,Math.sin(g)*e,Math.cos(g)*e,c.ox||0,c.oy||0);gl.uniform3f(U.uHsb,(c.mz||0)/360,c.sat==null?1:c.sat,c.bri==null?1:c.bri);gl.uniform1f(U.uCon,c.con==null?1:c.con);const k=c.cor||[1,1,1];gl.uniform3f(U.uCor,k[0],k[1],k[2]);gl.uniform1f(U.uOp,c.op==null?1:c.op);
       (BLEND[c.modo]||BLEND.normal)();gl.drawArrays(gl.TRIANGLES,0,6)}return true}
   const solta=a=>{if(!a)return;gl.deleteVertexArray(a.vao);gl.deleteBuffer(a.buf);if(a.vaoZ){gl.deleteVertexArray(a.vaoZ);gl.deleteBuffer(a.bufZ)}if(a.vaoT){gl.deleteVertexArray(a.vaoT);gl.deleteBuffer(a.bufT)}if(a.vaoL){gl.deleteVertexArray(a.vaoL);gl.deleteBuffer(a.bufL)}if(a.splat)gl.deleteTexture(a.splat)};
-  const camArte=t=>{const k="m:"+(t<0?"neutro":materialDe(M.texturas[t]));return ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k]};
+  const camArte=t=>{const r=t>=0&&ART.indice["r:"+M.texturas[t]];if(r!=null&&r!==false)return r;const k="m:"+(t<0?"neutro":materialDe(M.texturas[t]));return ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k]};
   // monta (ou refaz) um andar: malha, luzes e terreno
   function refazAndar(i){const A=M.andares[i];solta(AND[i]);const m=malhaAndar(A,M.texturas,ART.indice,ART.recorte),o={n:m.n,nl:m.nl,terr:null,amb:A.ambiente,cpu:m.verts,onde:m.onde,luzes:m.luzes,cacheL:m.cache,nz:m.nz,nt:m.nt};
     o.vao=gl.createVertexArray();gl.bindVertexArray(o.vao);o.buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.buf);gl.bufferData(gl.ARRAY_BUFFER,m.verts,gl.DYNAMIC_DRAW);const S=VERT*4;
@@ -85,7 +95,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     return {ms:performance.now()-t,verts}}
   // reescreve so os objetos e luzes dados, no lugar (arrastar 1 ou 3.000 sem refazer a malha). Devolve false se algum nao esta na malha.
   function atualiza(i,objs,luzes){const a=AND[i];if(!a)return false;const TEXS=M.texturas;
-    if(objs&&objs.length){let mn=1e12,mx=-1;for(const o of objs){const off=a.onde.get(o);if(off==null)return false;const k="o:"+objetoDe(TEXS[o.t]),l=ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k];escreveObjeto(a.cpu,off,o,l,ART.recorte[l]);if(off<mn)mn=off;if(off+N_OBJ>mx)mx=off+N_OBJ}
+    if(objs&&objs.length){let mn=1e12,mx=-1;for(const o of objs){const off=a.onde.get(o);if(off==null)return false;const k="o:"+objetoDe(TEXS[o.t]),r=ART.indice["r:"+TEXS[o.t]],l=r!=null?r:ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k];escreveObjeto(a.cpu,off,o,l,ART.recorte[l]);if(off<mn)mn=off;if(off+N_OBJ>mx)mx=off+N_OBJ}
       gl.bindBuffer(gl.ARRAY_BUFFER,a.buf);gl.bufferSubData(gl.ARRAY_BUFFER,mn*4,a.cpu,mn,mx-mn)}
     if(luzes&&luzes.length){const z=malhaLuzes(M.andares[i],a.cacheL,M.texturas);a.cacheL=z.cache;a.luzes=z.verts;a.nl=z.n;gl.bindBuffer(gl.ARRAY_BUFFER,a.bufL);gl.bufferData(gl.ARRAY_BUFFER,z.verts,gl.DYNAMIC_DRAW)}
     return true}
@@ -101,4 +111,4 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     if(opt.luz&&a.nl){gl.useProgram(PL.p);gl.uniform4f(PL.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PL.U.uRes,W,H);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.bindVertexArray(a.vaoL);gl.drawArrays(gl.TRIANGLES,0,a.nl)}
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.disable(gl.BLEND);gl.useProgram(PC.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,alvoA.t);gl.uniform1i(PC.U.uA,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,alvoB.t);gl.uniform1i(PC.U.uB,1);
     gl.uniform4f(PC.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PC.U.uRes,W,H);gl.uniform2f(PC.U.uTam,M.larg,M.alt);const g=M.grade&&M.grade.cor||[0,0,0,.5];gl.uniform4f(PC.U.uGrade,g[0],g[1],g[2],opt.grade?g[3]:0);gl.uniform1f(PC.U.uLuz,opt.luz?1:0);gl.bindVertexArray(quadVAO);gl.drawArrays(gl.TRIANGLES,0,6)}
-  return {gl,carregar,refazAndar,atualiza,subeMascara,limpaMascaras,desenhar,tArte,artes:ART.quadros.length,arte:ART,terminar:()=>gl.finish()}}
+  return {gl,carregar,refazAndar,atualiza,subeMascara,limpaMascaras,desenhar,tArte,artes:G,arte:ART,terminar:()=>gl.finish(),usarReais:m=>{montaMatriz(m);if(M)carregar(M)},reais:()=>NREAIS,lado:()=>LADO}}

@@ -30,8 +30,8 @@ export function comFuros(P,F){if(!F||!F.length)return P;const area=Q=>{let s=0;f
     const ordem=O.map((q,i)=>[Math.hypot(q[0]-m[0],q[1]-m[1]),i]).sort((a,b)=>a[0]-b[0]);let best=ordem[0][1];
     const bordas=[O,h,...restam];for(const [,i] of ordem){const v=O[i];let ok=true;for(const R of bordas){for(let k=0;k<R.length&&ok;k++)if(cruza(m,v,R[k],R[(k+1)%R.length]))ok=false;if(!ok)break}if(ok){best=i;break}}
     const anel=h.slice(mi).concat(h.slice(0,mi+1));O=O.slice(0,best+1).concat(anel,[O[best]],O.slice(best+1))}return O}
-export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k];
-  const mat=t=>lay("m:"+materialDe(TEX[t]||"")),nome=t=>(TEX[t]||"").split("/").pop().toLowerCase();
+export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
+  const mat=t=>{const r=real(t);return r!=null?r:lay("m:"+materialDe(TEX[t]||""))},nome=t=>(TEX[t]||"").split("/").pop().toLowerCase();
   const B=[];let nv=0;const v=(x,y,u,w,l,c)=>{B.push(x,y,u,w,l,c[0],c[1],c[2],c[3],0,1,1);nv++};
   const quad=(p0,p1,p2,p3,uv,l,c)=>{v(p0[0],p0[1],uv[0][0],uv[0][1],l,c);v(p1[0],p1[1],uv[1][0],uv[1][1],l,c);v(p2[0],p2[1],uv[2][0],uv[2][1],l,c);v(p0[0],p0[1],uv[0][0],uv[0][1],l,c);v(p2[0],p2[1],uv[2][0],uv[2][1],l,c);v(p3[0],p3[1],uv[3][0],uv[3][1],l,c)};
   const mundo=p=>[p[0]*.5,p[1]*.5],quadM=(a,b,c_,d,l,c)=>quad(a,b,c_,d,[mundo(a),mundo(b),mundo(c_),mundo(d)],l,c);
@@ -51,7 +51,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
       if(p.borda>0)faixa(P,p.larg+2*p.borda,-1,cb,p.laco,true);if(E==="penhasco")faixa(P,p.larg+.14,-1,[.08,.07,.06,.95],p.laco,true);faixa(P,p.larg,mat(p.t),p.c||BR,p.laco,true);return}if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
       const fino=/fence|rail|rope|chain|vine|web/.test(n);if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)});
   const onde=new Map();
-  for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,l=lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,o,l,REC[l]);onde.set(o,off);nv+=12});
+  for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,r=real(o.t),l=r!=null?r:lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,o,l,REC[l]);onde.set(o,off);nv+=12});
   for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios),g=w.larg||.18;faixa(P,g+.12,-1,TINTA,w.laco,true);faixa(P,g,mat(w.t),w.c||[.86,.84,.8,1],w.laco,true)});
   // portas e janelas: tipo proprio (porta, dupla, janela) ou pelo nome da arte importada; porta aberta gira na dobradica
   const rect=(cx,cy,ux,uy,hl,hw,l,c)=>{const nx=-uy,ny=ux;quadM([cx-ux*hl+nx*hw,cy-uy*hl+ny*hw],[cx+ux*hl+nx*hw,cy+uy*hl+ny*hw],[cx+ux*hl-nx*hw,cy+uy*hl-ny*hw],[cx-ux*hl-nx*hw,cy-uy*hl-ny*hw],l,c)};
