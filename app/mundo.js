@@ -74,6 +74,7 @@ function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)|
     if(C.WALLON){let bd=C.GATESNAP||24;for(const w of C.walls||[]){if(!w.pts)continue;const W2=w.pts,m=W2.length;for(let i=0;i<m-(w.closed?0:1);i++){const a=W2[i],b=W2[(i+1)%m],dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((n0.x-a[0])*dx+(n0.y-a[1])*dy)/l)),q={x:a[0]+dx*tt,y:a[1]+dy*tt},d=Math.hypot(q.x-n0.x,q.y-n0.y);if(d<bd){bd=d;nd=q}}}}
     const n=G.obj({tipo:"portao",nome:"Portão"});G.circ(nd.x,nd.y,6.5,set(USO.portao,n));G.circ(nd.x,nd.y,14,k=>{G.reserva[k]|=1})}
   for(const b of C.bridgesR||[])for(const e of[b.a,b.b])G.circ(e[0],e[1],7,k=>{G.reserva[k]|=2});
+  G.uso0=G.uso.slice();// chao antes das construcoes (rua debaixo de uma casa continua conhecida)
   // 4. construcoes: casas (retangulo girado exato, mais a ala), especiais e adereços pela ficha (pegada no chao)
   const obbP=(x,y,a,L,D)=>{const c=Math.cos(a),s=Math.sin(a);return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[x+c*i*L/2-s*j*D/2,y+s*i*L/2+c*j*D/2])};
   const pinta=(P,n,tipo,uso,ehAgua)=>{G.poly(P,k=>{const u=G.uso[k],d=G.dono[k];

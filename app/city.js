@@ -9,7 +9,7 @@ const MW=1500,MH=1020,MX=46,MY=64,CW=MW+92,CH=MH+110,KE=64,WX=MW,WY=Math.ceil((M
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t,sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
 const SITES=[["interior","Interior"],["rio","Beira de rio"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["ilhas","Duas ilhas com ponte"],["lago","Beira de lago"],["arquipelago","Arquipélago"]];
 // versao do gerador: mapa novo nasce com a mais nova; mapa salvo guarda a sua ate o usuario pedir para atualizar
-const GV=68,GVNOME={0:"0.49 ou anterior",50:"0.50",54:"0.54",55:"0.55",56:"0.56",57:"0.57",58:"0.58",59:"0.59",60:"0.60",62:"0.62",63:"0.63",64:"0.64",65:"0.65",66:"0.66",67:"0.67",68:"0.68"};
+const GV=69,GVNOME={0:"0.49 ou anterior",50:"0.50",54:"0.54",55:"0.55",56:"0.56",57:"0.57",58:"0.58",59:"0.59",60:"0.60",62:"0.62",63:"0.63",64:"0.64",65:"0.65",66:"0.66",67:"0.67",68:"0.68",69:"0.69"};
 const DEF={gv:GV,alleys:true,precisao:true,waterDir:"auto",riverCurve:"auto",seed:"novigrad-1272",site:"costa",size:24,culture:"humano",foreign:"auto",wall:"reta",citadel:true,river:true,plan:"misto",wealth:.55,relief:.5,suburbs:.6,green:.4,magic:.35,labels:true,legend:true,season:"verao",plazaStyle:"auto",arch:"misto",abandon:.35,castleStyle:"auto",landform:"auto",cityShape:"auto",wealthMat:true,terraces:true,riverForm:"auto",trade:.5,craft:.5,faith:.5,defense:.5,wards:{},lines:[],nodes:{},gates:{add:[],del:[]}};
 const WTYPES=[["mercado","Praça do mercado"],["templo","Templo"],["castelo","Cidadela"],["porto","Porto"],["nobre","Nobre"],["mercadores","Mercadores"],["artesaos","Artesãos"],["producao","Produção"],["universidade","Universidade"],["militar","Quartel"],["moradia","Moradias"],["pobre","Pobre"],["parque","Jardim"],["arrabalde","Arrabalde"],["campos","Campos"],["mato","Mata"]];
 const LANDF=[["auto","Sorteado pela semente"],["plano","Planície"],["colina","Colina"],["encosta","Encosta com terraços"],["penhasco","Penhasco (cidade alta e baixa)"],["vale","Vale"],["canion","Cânion (precisa de rio)"],["canais","Canais"],["pantano","Pântano"],["delta","Delta (costa com rio)"]];
@@ -116,7 +116,7 @@ let C_ASSENTA=null,C_MOAT=[],C_ASSENTA_C=null;
 // etapa final (gerador 56): conferencia pela grade do mundo. Aderecos que cairam na agua, numa construcao ou na muralha
 // vao para o lugar livre mais perto, ou saem; arvores na rua ou dentro de construcao saem. Edicoes do usuario ficam como estao.
 function generate(P0){const C=generate0(P0);const gv=P0&&P0.gv!=null?P0.gv:GV;if(gv>=65&&C&&C.SPB)for(const q of C.SPB)if(q.k===2)q.tv=2;if(gv>=58&&C){try{C.QSEGS=quaySegs(C,Object.assign({},DEF,P0),(P0||{}).qov)}catch(e){C.QSEGS=[]}}if(gv>=56&&window.AtlasMundo&&C&&C.props){try{C.VERIF=verifica(C,P0||{})}catch(e){console.warn("verifica",e)}}return C}
-function verifica(C,P){const AM=window.AtlasMundo,G=AM.deCidade(C,AS),U=AM.USO,OVR=P.ovr||{},mexer=new Set(),tirT=new Set();
+function verifica(C,P){const AM=window.AtlasMundo,G=AM.deCidade(C,AS),G0=G,U=AM.USO,OVR=P.ovr||{},mexer=new Set(),tirT=new Set();
   for(const c of G.lista()){
     if(c.tipo==="adereço sobre construção"){const o=G.objs[c.b];if(o&&o.ref)mexer.add(o.n)}
     else if(c.tipo==="adereço na água"||c.tipo==="adereço na muralha"||c.tipo==="adereço na frente do portão"){const o=G.objs[c.a];if(o&&o.ref)mexer.add(o.n)}
@@ -128,9 +128,29 @@ function verifica(C,P){const AM=window.AtlasMundo,G=AM.deCidade(C,AS),U=AM.USO,O
     let feito=false;for(const d of[2,3,4,6,8,10,12])for(let a=0;a<8&&!feito;a++){const dx=Math.cos(a*.7854)*d,dy=Math.sin(a*.7854)*d,L=forma(dx,dy);if(cabe(L)){q.x+=dx;q.y+=dy;for(const P_ of L)G.poly(P_,k=>{if(G.uso[k]<U.construcao){G.uso[k]=U.detalhe;G.dono[k]=n}});feito=true}}
     if(feito)mov++;else{fora.add(q);tir++}}
   if(fora.size){const L=C.props.filter(q=>!fora.has(q));C.props.length=0;C.props.push(...L)}
+  // 0.69 (gerador 69): o que sobrou de construcao na rua ou na agua e de quintal na agua e acertado aqui, um por um
+  let cmov=0,ctir=0;if((P.gv==null?GV:P.gv)>=69)for(let it=0;it<4;it++){const G=it?AM.deCidade(C,AS):G0,ult=it===3,casoC=new Map(),quint=new Set();
+    const campo=new Set();for(const c of G.lista()){if(c.tipo==="construção na rua"||c.tipo==="construção na água"){const o=G.objs[c.a];if(o&&o.ref&&!OVR[o.ref.key])casoC.set(o.n,o)}
+      else if(c.tipo==="construção sobre construção"){let o=G.objs[c.b];const oa=G.objs[c.a];if(o&&o.ref&&(o.ref.k===2||o.ref.k===3))o=oa;if(o&&o.ref&&!OVR[o.ref.key]&&!(o.ref.k===2||o.ref.k===3))casoC.set(o.n,o)}
+      else if(/^quintal na/.test(c.tipo)){const o=G.objs[c.a];if(o&&o.ref)quint.add(o.ref)}else if(/^campo na/.test(c.tipo)){const o=G.objs[c.a];if(o&&o.ref)campo.add(o.ref)}}
+    const obb=(x,y,a,L,D)=>{const cc=Math.cos(a),ss=Math.sin(a);return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[x+cc*i*L/2-ss*j*D/2,y+ss*i*L/2+cc*j*D/2])};
+    const tiraB=new Set(),tiraS=new Set();
+    for(const [n,o] of casoC){const q=o.ref,ehCasa=C.B.includes(q)&&!q.k,ehEsp=C.SPB.includes(q);if(!ehCasa&&!ehEsp)continue;const grande=q.k===2||q.k===3,aguaOk=q.form==="stilt"||q.id&&AM.AGUAOK.has(q.id);
+      const forma=(dx,dy,sc)=>{if(ehCasa){const L=[obb(q.x+dx,q.y+dy,q.ang||0,q.L*sc,q.D*sc)];if(q.wing)L.push(obb(q.wing.x+dx,q.wing.y+dy,q.wing.ang||0,q.wing.L*sc,q.wing.D*sc));return L}
+        if(q.id&&AS.ficha){const F=AS.ficha(q.id,q.race,q.v,q.ang||0,q.aov),z=(q.s||1)*Z*sc;if(F&&F.pegada.length)return F.pegada.map(P_=>P_.map(v=>[q.x+dx+v[0]*z,q.y+dy+v[1]*z]))}
+        if(grande&&AS.fichaDe&&A.kit&&A.kit.drawBig){const ms=(q.ms||1)*sc,qq=Object.assign({},q,{x:0,y:0,sz:1,ms}),zz=q.k===3?2:(q.big?2.2:1.8);const F=AS.fichaDe("big|"+q.k+"|"+q.race+"|"+(q.v||0).toFixed(2)+"|"+(q.ang||0).toFixed(2)+"|"+(q.big?1:0)+"|"+ms+"|"+(q.tv||0)+(q.cv?"|c"+q.cv:"")+(q.cst?"|"+q.cst:""),c=>A.kit.drawBig(c,qq));if(F&&F.pegada.length)return F.pegada.map(P_=>P_.map(v=>[q.x+dx+v[0]*zz,q.y+dy+v[1]*zz]))}
+        const r=(q.r||12)*.7*sc;return [Array.from({length:12},(_,i)=>[q.x+dx+Math.cos(i*.5236)*r,q.y+dy+Math.sin(i*.5236)*r])]};
+      const cabe=L=>{let ok=true;for(const P_ of L)G.poly(P_,k=>{if(!ok)return;const u=G.uso[k],u0=G.uso0?G.uso0[k]:u,d=G.dono[k];if((u===U.construcao||u===U.detalhe)&&d!==n&&d>=0||u0===U.muralha||u0===U.portao||u0===U.ponte||u0===U.rua||u0===U.estrada||G.agua[k]&&!aguaOk&&u0!==U.cais)ok=false});return ok};
+      let feito=false;if(ult&&!grande){(ehCasa?tiraB:tiraS).add(q);ctir++;continue}const SC_=grande?[1,.92,.85,.78]:q.mark?[1,.9,.8,.7,.6,.5]:[1,.9,.8];
+      for(const sc of SC_){for(const d of grande||q.mark?[0,2,4,6,8,10,13,16,20,24,28,32]:[0,1.5,3,4.5,6,8,10,13])for(let a=0;a<(d?16:1)&&!feito;a++){const dx=Math.cos(a*.3927)*d,dy=Math.sin(a*.3927)*d,L=forma(dx,dy,sc);if(!cabe(L))continue;
+          q.x+=dx;q.y+=dy;if(q.wing){q.wing.x+=dx;q.wing.y+=dy;q.wing.L*=sc;q.wing.D*=sc}if(ehCasa){q.L*=sc;q.D*=sc}else if(sc!==1&&grande)q.ms=(q.ms||1)*sc;else if(sc!==1)q.s=+((q.s||1)*sc).toFixed(3);for(const P_ of L)G.poly(P_,k=>{G.uso[k]=U.construcao;G.dono[k]=n});feito=true}if(feito)break}
+      if(feito)cmov++;else if(!grande){(ehCasa?tiraB:tiraS).add(q);ctir++}}
+    if(tiraB.size){const L=C.B.filter(b=>!tiraB.has(b));C.B.length=0;C.B.push(...L)}if(tiraS.size){const L=C.SPB.filter(b=>!tiraS.has(b));C.SPB.length=0;C.SPB.push(...L)}
+    if(quint.size&&C.yards){const L=C.yards.filter(y_=>!quint.has(y_));C.yards.length=0;C.yards.push(...L)}if(campo.size&&C.fields){const L=C.fields.filter(f=>!campo.has(f));C.fields.length=0;C.fields.push(...L)}
+    if(!casoC.size&&!quint.size&&!campo.size)break}
   if(tirT.size){const L=C.trees.filter(t=>!tirT.has(t));C.trees.length=0;C.trees.push(...L)}
   if(tirT.size&&C.NAT){const L=C.NAT.filter(t=>!tirT.has(t));C.NAT.length=0;C.NAT.push(...L)}
-  return {aderecosMovidos:mov,aderecosTirados:tir,arvoresTiradas:tirT.size}}
+  return {aderecosMovidos:mov,aderecosTirados:tir,arvoresTiradas:tirT.size,construcoesMovidas:cmov,construcoesTiradas:ctir}}
 // muralha curva que nao corta os cantos dos bairros: os pontos de controle saem para fora ate a curva passar por fora de todo canto
 function curvaFora(pts,closed,cx,cy){const n=pts.length;if(n<3)return chaikin(pts,closed,3);const cp=pts.map(v=>v.slice());
   // normal de cada trecho para fora: pela orientacao do contorno (fechado) ou pelo centro da cidade (aberto)

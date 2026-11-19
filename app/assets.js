@@ -571,7 +571,7 @@ const NULO=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>0:NULO,
 const FICHAS=new Map();
 function fechoConvexo(P){const p=P.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]),cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];for(const q of p){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q)}for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q)}lo.pop();up.pop();return lo.concat(up)}
 // ficha(id,cultura,v,ang,ov): solidos [{t,pts,z0,z1}], pegada (os que tocam o chao), aereo (acima de 2), chao (desenho no chao), alt, raio, caixa, casco
-function ficha(id,race,v,ang,ov){const key=id+"|"+(race||"humano")+"|"+Math.round((v==null?.5:v)*50)+"|"+Math.round((ang||0)*100)+"|"+(ov?JSON.stringify(ov):"");return fichaDe(key,c=>draw(c,0,0,id,race,v,ang,ov),id)}
+function ficha(id,race,v,ang,ov){const key=id+"|"+(race||"humano")+"|"+(ov&&(ov.vari||ov.forma!=null)?(v==null?.5:v).toFixed(4):Math.round((v==null?.5:v)*50))+"|"+Math.round((ang||0)*100)+"|"+(ov?JSON.stringify(ov):"");return fichaDe(key,c=>draw(c,0,0,id,race,v,ang,ov),id)}
 // ficha de qualquer desenho feito na origem (templos e castelos do gerador, por exemplo)
 function fichaDe(key,fn,id){let F=FICHAS.get(key);if(F)return F;
   const R0=REC,A0=ANG_;REC={ox:0,oy:0,dx:0,dy:0,m:1,pp:[],S:[],G:[]};try{fn(NULO)}catch(e){REC.err=e.message}const R=REC;REC=R0;ANG_=A0;
