@@ -41,10 +41,13 @@ function Grade(W,H){const w=Math.ceil(W/CS)+1,h=Math.ceil(H/CS)+1,n=w*h;
 // monta a grade de uma cidade gerada e desenhada (o desenho ainda cria cais e fosso; a partir da 0.56 eles nascem no gerador)
 function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)||1.55,TILT=(window.AtlasCity&&AtlasCity.TILT)||.7,WX=1500,WY=Math.ceil((1020+64)/TILT)+2,G=Grade(WX,WY),w=G.w,h=G.h;
   // 1. chao: altura, andar, bairro, agua
+  // 0.64: o chao (altura, andar, bairro, agua) so muda quando a cidade e gerada de novo; fica guardado na propria cidade
+  const G0=C._G0;if(G0&&G0.w===w&&G0.h===h){G.alt.set(G0.alt);G.andar.set(G0.andar);G.bairro.set(G0.bairro);G.agua.set(G0.agua)}else{
   const BW=C.BW,BH=C.BH;for(let j=0;j<h;j++)for(let i=0;i<w;i++){const k=j*w+i,x=(i+.5)*CS,y=(j+.5)*CS;
     const AF=C.baseAt||C.elev;if(AF&&(i%3===0&&j%3===0))G.alt[k]=AF(x,y);else if(AF)G.alt[k]=G.alt[Math.floor(j/3)*3*w+Math.floor(i/3)*3];
     if(C.BID&&BW){const q=Math.min(BH-1,j)*BW+Math.min(BW-1,i),bi=C.BID[q];if(bi>=0&&C.TBL&&C.TBL[bi])G.andar[k]=C.TBL[bi].lv;if(C.WID)G.bairro[k]=C.WID[q]}
     if(C.land(x,y)<.05)G.agua[k]=AGUA.mar;else if(C.rw&&C.rd(x,y)<C.rw)G.agua[k]=AGUA.rio}
+  try{Object.defineProperty(C,"_G0",{value:{w,h,alt:G.alt.slice(),andar:G.andar.slice(),bairro:G.bairro.slice(),agua:G.agua.slice()},configurable:true,enumerable:false,writable:true})}catch(e){}}
   for(const l of C.WLS||[])G.faixa(l.pts,(l.hw||6)*2,k=>{if(!G.agua[k])G.agua[k]=AGUA.rio});
   for(const m of C._moat&&C._moat.length?C._moat:(C.MOAT||[]).map(z=>z.pts))G.faixa(m,13,k=>{if(!G.agua[k])G.agua[k]=AGUA.fosso});
   if(G.bairro.every(v=>v<0))C.inner.forEach((p,ix)=>{if(!p.sea&&p.poly)G.poly(p.poly,k=>{G.bairro[k]=ix})});

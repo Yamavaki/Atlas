@@ -34,6 +34,7 @@ async def main():
         sites=["interior","rio","costa","ilha","lago","peninsula","colina","delta"];cults=["humano","orc","japones","deserto","pantano","anao","elfo","vapor"]
         for i in range(48):
             P={"site":sites[i%8],"seed":f"inv-{i}","size":[16,22,28,34,40,44][i%6],"culture":cults[(i*3)%8],"relief":[.2,.5,.8,1][i%4],"terraces":i%3!=0,"wall":["curva","reta","curva","nenhuma"][i%4],"labels":False}
+            if __import__("os").environ.get("GV"):P["gv"]=int(__import__("os").environ["GV"])
             try:r=await pg.evaluate(JS,P)
             except Exception as e:print("ERRO",P["seed"],str(e)[:200]);continue
             n+=1
