@@ -648,3 +648,45 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .qd-campl{min-height:30px;font-size:13px;padding:0 10px;border-radius:99px;color:var(--violet);border-color:color-mix(in srgb,var(--violet) 40%,var(--line))}
 .qrtop>button.sm{margin-left:4px}
 @media (max-width:860px){.qd-leg{bottom:70px;left:12px}.qd-campl{display:none}.qd-top{gap:6px;padding:10px 12px}.qd-top .ico-m{font-size:0;gap:0;width:38px;padding:0;justify-content:center}.qd-titulo{font-size:22px!important;min-width:90px}}
+
+/* ===================== 0.88 mapas de regiao e cidade em tela cheia ===================== */
+#main:has(>.mapv){overflow:hidden}
+.mapv{padding:0;gap:0;min-height:0;height:100%}
+@media (min-width:861px){.mapv{height:calc(100vh - 56px);display:flex;flex-direction:column}.mapv>.mbody{flex:1;min-height:0;grid-template-rows:minmax(0,1fr)}}
+.mhead{flex-wrap:nowrap;gap:10px;padding:10px 18px;border-bottom:1px solid var(--panel-3);background:var(--panel)}
+.mhead input.title{flex:1 1 160px;min-width:0;font-size:24px!important}
+.hact{flex-wrap:nowrap;gap:6px}.hact button{min-height:36px;font-size:14px;white-space:nowrap}
+.mbody{gap:0}.mbody.par{grid-template-columns:minmax(0,1fr) 320px}
+.mwrap{margin:0!important;border:0;outline:0;max-width:none!important;background:#0c0a07}
+.mbody.par .params{align-self:stretch;min-height:0;max-height:100%;overflow:auto;border:0;border-left:1px solid var(--line);border-radius:0;padding:16px 18px}
+.status{position:absolute;right:12px;top:12px;z-index:4;max-width:min(60%,520px);padding:4px 12px;border-radius:99px;background:rgba(23,20,15,.85);border:1px solid var(--line);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.status:empty{display:none}
+.pal{left:12px;top:12px;padding:6px;border-radius:14px;background:rgba(23,20,15,.94);box-shadow:var(--sombra)}
+.tbtn{width:36px;height:36px;border-radius:9px}
+.tbtn[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
+.tbtn .tip{border-radius:7px;background:var(--panel-3);color:var(--text);border:1px solid var(--line-2);padding:3px 9px}
+.psep{width:26px}
+.ctx{left:66px;top:12px;border-radius:12px;background:rgba(23,20,15,.94);box-shadow:var(--sombra);padding:6px 12px}
+.ctx .cname{font-family:var(--serif);font-weight:500;letter-spacing:0;font-size:16px;color:var(--gold-2)}
+.ctx button{border-radius:8px}
+.zbox{right:12px;bottom:12px;border-radius:12px;background:rgba(23,20,15,.94);box-shadow:var(--sombra);padding:4px}
+.icb{width:34px;height:34px;border-radius:8px}.zbox .lyb{border-radius:8px}
+.hintc{left:66px;bottom:12px;border-radius:99px;padding:5px 14px;background:rgba(23,20,15,.85);border-color:var(--line);max-width:calc(100% - 510px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lyp,.lyw,.gpan{border-radius:12px!important}.gpan[hidden],.gtip[hidden]{display:none!important}
+.pal{max-height:calc(100% - 24px);overflow-y:auto;scrollbar-width:none}
+.status{top:auto;bottom:62px}
+.zbox .lyb,.zbox .grb,.zbox .grbR{width:auto;padding:0 10px;gap:5px;font-size:13px}
+@media (max-width:860px){
+  .mhead{padding:8px 10px;gap:6px}.mhead input.title{font-size:20px!important;flex-basis:90px}
+  .hact{overflow-x:auto;scrollbar-width:none;max-width:62vw}.hact button{font-size:13px;padding:0 10px;min-height:34px}
+  .mwrap{display:block}
+  .pal,.ctx,.zbox{position:absolute;box-shadow:var(--sombra);border:1px solid var(--line);border-top:1px solid var(--line)}
+  .pal{left:8px;right:8px;top:auto;bottom:8px;flex-direction:row;overflow-x:auto;justify-content:flex-start;border-radius:14px;scrollbar-width:none}
+  .pgrp{flex-direction:row}.psep{width:1px;height:26px;margin:0 3px}
+  .ctx{left:8px;right:8px;top:8px;max-width:none}
+  .zbox{right:8px;bottom:66px;top:auto}.pal{max-height:none;overflow-y:hidden}
+  .status{display:none}
+  .mbody.par{grid-template-columns:minmax(0,1fr)}
+  .mbody.par .params{position:fixed;left:0;right:0;bottom:56px;top:auto;max-height:55vh;z-index:25;border-left:0;border-top:1px solid var(--line-2);border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.5)}
+}
+@media (min-width:861px) and (max-width:1180px){.mbody.par{grid-template-columns:minmax(0,1fr);position:relative}.mbody.par .params{position:absolute;right:0;top:0;bottom:0;width:320px;max-height:none;z-index:7;box-shadow:-12px 0 30px rgba(0,0,0,.45)}.hact .danger{padding:0 8px}}
