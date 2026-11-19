@@ -9,7 +9,7 @@ const MW=1500,MH=1020,MX=46,MY=64,CW=MW+92,CH=MH+110,KE=64,WX=MW,WY=Math.ceil((M
 const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t,sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
 const SITES=[["interior","Interior"],["rio","Beira de rio"],["costa","Costa"],["peninsula","Península"],["ilha","Ilha"],["ilhas","Duas ilhas com ponte"],["lago","Beira de lago"],["arquipelago","Arquipélago"]];
 // versao do gerador: mapa novo nasce com a mais nova; mapa salvo guarda a sua ate o usuario pedir para atualizar
-const GV=65,GVNOME={0:"0.49 ou anterior",50:"0.50",54:"0.54",55:"0.55",56:"0.56",57:"0.57",58:"0.58",59:"0.59",60:"0.60",62:"0.62",63:"0.63",64:"0.64",65:"0.65"};
+const GV=66,GVNOME={0:"0.49 ou anterior",50:"0.50",54:"0.54",55:"0.55",56:"0.56",57:"0.57",58:"0.58",59:"0.59",60:"0.60",62:"0.62",63:"0.63",64:"0.64",65:"0.65",66:"0.66"};
 const DEF={gv:GV,alleys:true,precisao:true,waterDir:"auto",riverCurve:"auto",seed:"novigrad-1272",site:"costa",size:24,culture:"humano",foreign:"auto",wall:"reta",citadel:true,river:true,plan:"misto",wealth:.55,relief:.5,suburbs:.6,green:.4,magic:.35,labels:true,legend:true,season:"verao",plazaStyle:"auto",arch:"misto",abandon:.35,castleStyle:"auto",landform:"auto",cityShape:"auto",wealthMat:true,terraces:true,riverForm:"auto",trade:.5,craft:.5,faith:.5,defense:.5,wards:{},lines:[],nodes:{},gates:{add:[],del:[]}};
 const WTYPES=[["mercado","Praça do mercado"],["templo","Templo"],["castelo","Cidadela"],["porto","Porto"],["nobre","Nobre"],["mercadores","Mercadores"],["artesaos","Artesãos"],["producao","Produção"],["universidade","Universidade"],["militar","Quartel"],["moradia","Moradias"],["pobre","Pobre"],["parque","Jardim"],["arrabalde","Arrabalde"],["campos","Campos"],["mato","Mata"]];
 const LANDF=[["auto","Sorteado pela semente"],["plano","Planície"],["colina","Colina"],["encosta","Encosta com terraços"],["penhasco","Penhasco (cidade alta e baixa)"],["vale","Vale"],["canion","Cânion (precisa de rio)"],["canais","Canais"],["pantano","Pântano"],["delta","Delta (costa com rio)"]];
@@ -90,6 +90,8 @@ const PRESETS=[["capital","Capital do reino",{size:38,wealth:.85,wall:"reta",cit
   ["caravanas","Entreposto de caravanas",{site:"interior",size:16,trade:1,craft:.4,landform:"plano",suburbs:.95,wall:"curva",wealth:.55,plazaStyle:"feira",river:false}],
   ["canais","Cidade dos canais",{site:"costa",size:26,trade:.8,wealth:.7,landform:"canais",wall:"nenhuma",suburbs:.4}],
   ["pantano","Vila do pântano",{site:"interior",size:12,landform:"pantano",wealth:.3,wall:"curva",trade:.4,green:.6,abandon:.3}]];
+// 0.65: assets com variacoes de forma (ov.forma 0, 1 ou 2), sorteadas pelo gerador 66
+const FORMAS=new Set(["townhall","guild","inn","shop","bakery","warehouse","stable"]);
 const MAGIC=[["wizard","nobre"],["wizard","universidade"],["arcane","universidade"],["alchemist","artesaos"],["alchemist","mercadores"],["arcane","parque"],["crystal","mercado"],["crystal","moradia"],["dragonstatue","nobre"],["golem","militar"],["golem","castelo"],["eldertree","parque"],["eldertree","arrabalde"],["portal","castelo"],["arcane","templo"],["griffin","militar"],["griffin","castelo"]];
 const TCACHE=new Map();
 // ---------- geometria ----------
@@ -468,7 +470,7 @@ function generate0(P0){C_ASSENTA=null;C_MOAT=[];C_ASSENTA_C=null;const P=Object.
     // moinho d'agua: o eixo do predio aponta para a margem mais perto e a roda (ponta +u) fica com o pe dentro da agua
     if(P.precisao!==false&&id==="watermill"){let bd=1e9,ba=0;for(let k=0;k<32;k++){const a=k/32*6.2832,ca=Math.cos(a),sa=Math.sin(a);let d=1;for(;d<80;d+=1)if(wet(x+ca*d,y+sa*d,-2))break;if(d<bd){bd=d;ba=a}}
       if(bd<80){const nx=Math.cos(ba),ny=Math.sin(ba),off=6*Z+1;x=x+nx*(bd-off+2.2);y=y+ny*(bd-off+2.2);ang=ba-.34}else return false}
-    for(const l of lots){const c2=cen(l);if(Math.hypot(c2[0]-x,c2[1]-y)<sz*1.05)l.used=true}best.used=true;if(P.precisao!==false){const v_=rng();SPB.push({id,x,y,race:p.race,v:v_,r:sz,ang,aov:{fr:1,vari:1},s:["watermill","shipwright","crane","lighthouse"].includes(id)?1:+(.94+((v_*5.77)%1)*.12).toFixed(3)})}else SPB.push({id,x,y,race:p.race,v:rng(),r:sz,ang});addOcc(x,y,sz);return true};
+    for(const l of lots){const c2=cen(l);if(Math.hypot(c2[0]-x,c2[1]-y)<sz*1.05)l.used=true}best.used=true;if(P.precisao!==false){const v_=rng();SPB.push({id,x,y,race:p.race,v:v_,r:sz,ang,aov:Object.assign({fr:1,vari:1},(P.gv==null?GV:P.gv)>=66&&FORMAS.has(id)?{forma:Math.floor(((v_*9.13)%1)*3)}:{}),s:["watermill","shipwright","crane","lighthouse"].includes(id)?1:+(.94+((v_*5.77)%1)*.12).toFixed(3)})}else SPB.push({id,x,y,race:p.race,v:rng(),r:sz,ang});addOcc(x,y,sz);return true};
   for(const p of inner.concat(patches.filter(z=>z.type==="arrabalde"))){const lots=pLots.get(p);if(!lots||!lots.length)continue;reseed(p.i*7+3+WRS(p));const t=p.foreign?"moradia":p.type,list=(SPEC[t]||[]).slice();
     {const V=k=>P[k]==null?.5:P[k],add=(cond,types,items)=>{if(cond&&types.includes(t))list.push(...items)};
        add(V("trade")>.7,["mercadores","mercado","arrabalde","porto"],[["markettent",.6,2],["stall",.6,2],["wagon",.5,2],["inn",.5,1],["warehouse",.4,1]]);
