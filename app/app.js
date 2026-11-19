@@ -10,7 +10,7 @@ function h(tag,attrs,...kids){const e=document.createElement(tag);for(const k in
 let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3800)}
 
 // ---------- estado ----------
-const S={notes:new Map(),maps:new Map(),sec:"notes",note:null,map:null,mode:"read",q:"",place:null};
+const S={notes:new Map(),maps:new Map(),sec:"home",note:null,map:null,mode:"read",q:"",place:null};
 const TYPES={livre:"Nota livre",local:"Local",personagem:"Personagem",faccao:"Facção",item:"Item",missao:"Missão",sessao:"Sessão"};
 const TPL={
   livre:"",
@@ -24,7 +24,7 @@ const FIELDS={personagem:[["raca","Raça"],["papel","Papel"],["faccao","Facção
   local:[["categoria","Tipo"],["populacao","População"],["governante","Quem governa","link"],["cultura","Cultura"],["regiao","Fica em","link"],["data","Fundação"]],
   faccao:[["lider","Líder","link"],["sede","Sede","link"],["aliados","Aliados","links"],["inimigos","Inimigos","links"],["data","Fundação"]],
   item:[["dono","Dono","link"],["onde","Onde está","link"],["data","Data"]],missao:[["status","Situação","sel",[["aberta","Aberta"],["andamento","Em andamento"],["concluida","Concluída"],["falhou","Falhou"]]],["local","Onde acontece","links"],["contratante","Quem dá","link"],["recompensa","Recompensa"],["requer","Depende de","links"],["libera","Leva a","links"],["data","Data"]],sessao:[["data","Data"],["jogadores","Quem jogou"],["lugares","Lugares visitados","links"]],livre:[["data","Data"]]};
-const TCOL={missao:"#d9a441",livre:"#9a8f7a",local:"#5f8a4a",personagem:"#b5473a",faccao:"#8a4a7a",item:"#c9a24a",sessao:"#3f6f8f"};
+const TCOL={missao:"#d4a64a",livre:"#b3a486",local:"#8db06a",personagem:"#e0776b",faccao:"#a88bd6",item:"#e39a4f",sessao:"#7fa9cc",campanha:"#e6bc62"},TICO={missao:"missao",livre:"livre",local:"lugar",personagem:"personagem",faccao:"faccao",item:"item",sessao:"sessao",campanha:"campanha"};
 function setProps(o,ch){const {props,body}=fm(o.content);Object.assign(props,ch);for(const k in props)if(props[k]==null||props[k]==="")delete props[k];const ks=Object.keys(props).sort((a,b)=>(a==="tipo"?-1:b==="tipo"?1:0));
   o.content=(ks.length?"---\n"+ks.map(k=>k+": "+props[k]).join("\n")+"\n---\n\n":"")+body.replace(/^\n+/,"");o.updated=now();Store.save("notes",o)}
 const splitL=v=>String(v||"").split(/\s*[,;]\s*/).map(x=>x.replace(/^\[\[|\]\]$/g,"").trim()).filter(Boolean);
@@ -1000,21 +1000,32 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
 
 // ---------- lista lateral ----------
 function drawSide(){const side=$("#side");side.replaceChildren();for(const b of document.querySelectorAll(".rail button"))b.classList.toggle("on",b.dataset.sec===S.sec);
-  if(S.sec==="notes"){const sel=h("select",{"aria-label":"Criar nota",onchange:e=>{const t=e.target.value;if(!t)return;const o=newNote(t,t==="livre"?"":TYPES[t]);openNote(o.id,"edit")}},h("option",{value:""},"+ Nova nota…"),Object.entries(TYPES).map(([k,v])=>h("option",{value:k},v)));
-    const V=S.view||"list",views=h("div",{class:"vtabs",role:"tablist","aria-label":"Ver notas como"},[["list","Lista"],["quests","Missões"],["graph","Grafo"],["time","Tempo"]].map(([v,l])=>h("button",{type:"button",role:"tab","aria-selected":String(V===v),class:V===v?"on":"",onclick:()=>{S.view=v==="list"?null:v;drawAll()}},l)));
+  $("#app").classList.toggle("no-side",S.sec==="home");if(S.sec==="home")return;
+  if(S.sec==="notes"){const nova=h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>{const o=newNote(k,k==="livre"?"":TYPES[k]);openNote(o.id,"edit")}})))},icone("mais",16),"Nova");
+    const V=S.view||"list",views=h("div",{class:"vtabs seg",role:"tablist","aria-label":"Ver notas como"},[["list","Lista","lista"],["quests","Missões","missao"],["graph","Grafo","grafo"],["time","Tempo","tempo"]].map(([v,l,ic])=>h("button",{type:"button",role:"tab","aria-selected":String(V===v),class:V===v?"on":"",onclick:()=>{S.view=v==="list"?null:v;drawAll()}},l)));
     const q=h("input",{type:"search",placeholder:"Buscar (título, texto ou ficha)",value:S.q,"aria-label":"Buscar notas",oninput:e=>{S.q=e.target.value;drawList()}}),list=h("div",{class:"list"});
     const all0=[...S.notes.values()],tyOf=n=>fm(n.content).props.tipo||"livre",tags=new Map();for(const n of all0)for(const t of tagsOf(n))tags.set(t,(tags.get(t)||0)+1);
     const used=Object.entries(TYPES).filter(([k])=>all0.some(n=>tyOf(n)===k));
-    const flt=h("div",{class:"fbar"},used.length>1?used.map(([k,v])=>h("button",{type:"button",class:"fc"+(S.ft===k?" on":""),style:"--c:"+TCOL[k],"aria-pressed":String(S.ft===k),onclick:()=>{S.ft=S.ft===k?null:k;drawSide();if(S.view)drawMain()}},v)):null,[...tags].sort((a,b)=>b[1]-a[1]).slice(0,14).map(([t])=>h("button",{type:"button",class:"fc tagc"+(S.tag===t?" on":""),"aria-pressed":String(S.tag===t),onclick:()=>{S.tag=S.tag===t?null:t;drawSide();if(S.view)drawMain()}},"#"+t)));
+    const flt=h("div",{class:"fbar"},used.length>1?used.map(([k,v])=>h("button",{type:"button",class:"fc"+(S.ft===k?" on":""),style:"--c:"+TCOL[k],"aria-pressed":String(S.ft===k),onclick:()=>{S.ft=S.ft===k?null:k;drawSide();if(S.view)drawMain()}},icone(TICO[k]||"livre",14),v)):null,[...tags].sort((a,b)=>b[1]-a[1]).slice(0,14).map(([t])=>h("button",{type:"button",class:"fc tagc"+(S.tag===t?" on":""),"aria-pressed":String(S.tag===t),onclick:()=>{S.tag=S.tag===t?null:t;drawSide();if(S.view)drawMain()}},"#"+t)));
     const drawList=()=>{list.replaceChildren();const qq=norm(S.q),all=visNotes().filter(n=>!qq||norm(n.title).includes(qq)||norm(n.content).includes(qq)).sort((a,b)=>(a.folder||"").localeCompare(b.folder||"")||a.title.localeCompare(b.title));
       if(!all.length){list.append(h("p",{class:"empty"},qq||S.ft||S.tag?"Nada encontrado.":"Nenhuma nota ainda."));return}let g=null;
       for(const n of all){if((n.folder||"")!==g){g=n.folder||"";list.append(h("div",{class:"grp"},g||"Sem pasta"))}const ty=tyOf(n),pr=fm(n.content).props,sub=ty==="missao"?(QST.find(x=>x[0]===(pr.status||"aberta"))||["",""])[1]:pr.papel||pr.categoria||"";
-        list.append(h("button",{class:"item"+(n.id===S.note?" on":""),type:"button",onclick:()=>openNote(n.id)},h("i",{class:"dot",style:"background:"+TCOL[ty]}),n.title,sub&&norm(sub)!==norm(n.title)?h("small",{},sub):null))}};
-    side.append(h("h2",{},"Notas"),views,sel,q,flt,list);drawList()}
+        list.append(h("button",{class:"item"+(n.id===S.note?" on":""),type:"button",onclick:()=>openNote(n.id)},h("i",{class:"tic",style:"color:"+(TCOL[ty]||TCOL.livre)},icone(TICO[ty]||"livre",17)),h("span",{class:"it"},n.title),sub&&norm(sub)!==norm(n.title)?h("small",{},sub):null))}};
+    side.append(h("div",{class:"shead"},h("h2",{},"Notas"),nova),views,q,flt,list);drawList()}
   else{const list=h("div",{class:"list"}),all=[...S.maps.values()].filter(m=>m.type!=="assets").sort((a,b)=>a.name.localeCompare(b.name));
     if(!all.length)list.append(h("p",{class:"empty"},"Nenhum mapa ainda."));
-    for(const m of all)list.append(h("button",{class:"item"+(m.id===S.map?" on":""),type:"button",onclick:()=>openMap(m.id)},m.name,h("small",{},m.type==="battle"?"batalha":m.type==="city"?"cidade":(m.lock||[]).length?(m.lock.length+" povoados"):"")));
-    side.append(h("h2",{},"Mapas"),h("button",{type:"button",class:"primary",onclick:()=>openMap(newMap().id)},"+ Novo mapa de região"),h("button",{type:"button",onclick:()=>openMap(newCity().id)},"+ Novo mapa de cidade"),batalhaLado(),list)}}
+    const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};for(const m of all){const mi=MIC[m.type]||["regiao","#8db06a"];list.append(h("button",{class:"item"+(m.id===S.map?" on":""),type:"button",onclick:()=>openMap(m.id)},h("i",{class:"tic",style:"color:"+mi[1]},icone(mi[0],17)),h("span",{class:"it"},m.name),h("small",{},m.type==="battle"?"batalha":m.type==="city"?"cidade":(m.lock||[]).length?(m.lock.length+" povoados"):"região")))}
+    side.append(h("div",{class:"shead"},h("h2",{},"Mapas"),h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,itensNovoMapa())},icone("mais",16),"Novo")),batalhaLado(),list)}}
+// menu "Novo mapa": regiao, cidade, batalha, importar e exemplos de batalha
+function itensNovoMapa(){const BT=window.AtlasBatalha,L=[{ic:"regiao",cor:"#8db06a",txt:"Mapa de região",fn:()=>openMap(newMap().id)},{ic:"cidade",cor:"#d4a64a",txt:"Mapa de cidade",fn:()=>openMap(newCity().id)}];
+  if(BT){L.push({ic:"batalha",cor:"#e0776b",txt:"Mapa de batalha",fn:async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}},{sep:true},{ic:"importar",txt:"Importar mapa de batalha",det:".dungeondraft_map ou .atlasmap",fn:()=>{const i=document.querySelector("input[accept='.dungeondraft_map,.json,.atlasmap']");if(i)i.click()}});
+    for(const [k,n] of BT.EXEMPLOS)L.push({ic:"batalha",cor:"#95886e",txt:"Exemplo: "+n,fn:async()=>{try{novoBatalha(await BT.importarExemplo(k))}catch(er){toast(er.message||"Exemplo indisponível.")}}})}return L}
+// menu pequeno preso a um botao: itens {ic, cor, txt, det, fn} ou {sep}
+function menuPop(btn,itens){const old=$("#mpop");if(old){old.remove();if(old._de===btn)return}const r=btn.getBoundingClientRect(),m=h("div",{id:"mpop",class:"menu",role:"menu"});m._de=btn;
+  for(const it of itens){if(it.sep){m.append(h("div",{class:"msep"}));continue}m.append(h("button",{type:"button",role:"menuitem",class:"mitem",onclick:()=>{m.remove();it.fn()}},it.ic?h("i",{class:"tic",style:it.cor?"color:"+it.cor:null},icone(it.ic,18)):null,h("span",{class:"mt"},it.txt,it.det?h("small",{},it.det):null)))}
+  document.body.append(m);const w=m.offsetWidth,hh=m.offsetHeight;m.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left))+"px";m.style.top=(r.bottom+6+hh>innerHeight?Math.max(8,r.top-hh-6):r.bottom+6)+"px";
+  const fecha=e=>{if(e.type==="keydown"&&e.key!=="Escape")return;if(e.type==="pointerdown"&&(m.contains(e.target)||btn.contains(e.target)))return;m.remove();document.removeEventListener("pointerdown",fecha,true);document.removeEventListener("keydown",fecha,true)};
+  setTimeout(()=>{document.addEventListener("pointerdown",fecha,true);document.addEventListener("keydown",fecha,true)},0);const f=m.querySelector("button");if(f)f.focus()}
 // ---------- Modo Batalha (0.72, editor na 0.73): a casca so guarda nome e chave; o mapa em si fica no armazenamento local do modulo ----------
 function novoBatalha(r){let o=[...S.maps.values()].find(m=>m.type==="battle"&&m.bt===r.id);if(!o){const id=uid("m");o={id,name:r.novo?r.nome:"Batalha: "+r.nome,type:"battle",bt:r.id};S.maps.set(id,o)}Store.save("maps",o);if(r.avisos&&r.avisos.length)toast(r.avisos.join(" · "));openMap(o.id)}
 function drawBattle(o,main){const BT=window.AtlasBatalha,area=h("div",{class:"bt-area"}),nome=h("input",{type:"text",class:"bt-in",value:o.name,"aria-label":"Nome do mapa",onchange:e=>{o.name=e.target.value.trim()||o.name;Store.save("maps",o);drawSide()}});
@@ -1023,13 +1034,23 @@ function drawBattle(o,main){const BT=window.AtlasBatalha,area=h("div",{class:"bt
   BT.abrir(o.bt,area).catch(e=>{console.error(e);area.replaceChildren(h("p",{class:"bt-msg"},"Não foi possível abrir este mapa de batalha."))})}
 function batalhaLado(){const BT=window.AtlasBatalha;if(!BT)return null;const inp=h("input",{type:"file",accept:".dungeondraft_map,.json,.atlasmap",hidden:true,onchange:async e=>{const f=e.target.files[0];if(!f)return;pill("Importando…");try{novoBatalha(await BT.importarArquivo(f))}catch(er){console.error(er);toast(er.message||"Não foi possível importar este arquivo.")}e.target.value=""}});
   const sel=h("select",{"aria-label":"Abrir exemplo de mapa de batalha",onchange:async e=>{const k=e.target.value;e.target.value="";if(!k)return;try{novoBatalha(await BT.importarExemplo(k))}catch(er){toast(er.message||"Exemplo indisponível.")}}},h("option",{value:""},"Abrir exemplo de batalha…"),BT.EXEMPLOS.map(([k,n])=>h("option",{value:k},n)));
-  return h("div",{class:"bt-lado"},h("button",{type:"button",onclick:async()=>{try{novoBatalha(await BT.novo())}catch(er){console.error(er);toast("Não foi possível criar o mapa de batalha.")}}},"+ Novo mapa de batalha"),h("button",{type:"button",class:"ghost",onclick:()=>inp.click()},"Importar mapa de batalha"),inp,sel)}
+  return h("div",{class:"bt-lado",hidden:true},inp,sel)}
 window.addEventListener("atlas-batalha",()=>{try{if(S.sec==="maps")drawSide()}catch(e){}});
-function drawWelcome(){const main=$("#main");main.replaceChildren();const empty=!S.notes.size&&![...S.maps.values()].some(m=>m.type!=="assets");
-  main.append(h("div",{class:"welcome"},h("h1",{},empty?"Seu mundo começa aqui":S.sec==="notes"?"Escolha uma nota":"Escolha um mapa"),
-    h("p",{},empty?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":"Abra um item na lista ou crie um novo."),
-    h("div",{class:"row"},h("button",{type:"button",class:"primary",onclick:()=>openMap(newMap().id)},"Novo mapa"),h("button",{type:"button",onclick:()=>openNote(newNote("livre","").id,"edit")},"Nova nota"),
-      empty&&h("button",{type:"button",onclick:sample},"Criar mundo de exemplo"))))}
+function drawWelcome(){return drawHome()}
+// tela de Inicio: comecar e recentes
+function drawHome(){const main=$("#main");main.replaceChildren();const notas=[...S.notes.values()],mapas=[...S.maps.values()].filter(m=>m.type!=="assets"),vazio=!notas.length&&!mapas.length;
+  const card=(ic,cor,t,d,fn)=>h("button",{type:"button",class:"hcard",onclick:fn},h("span",{class:"hci",style:"color:"+cor},icone(ic,24)),h("b",{},t),h("span",{},d));
+  const BT=window.AtlasBatalha,cards=[card("regiao","#8db06a","Mapa de região","Vales, rios, estradas e povoados gerados e editáveis.",()=>openMap(newMap().id)),card("cidade","#d4a64a","Mapa de cidade","Ruas, quarteirões, castelo e templos de uma cidade.",()=>openMap(newCity().id)),
+    card("batalha","#e0776b","Mapa de batalha","Do zero ou importado do Dungeondraft, pronto para o Foundry.",async()=>{if(!BT)return toast("O Modo Batalha não carregou neste navegador.");try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}),
+    card("notas","#7fa9cc","Nota","Personagem, missão, sessão, lugar ou nota livre, ligadas entre si.",e=>menuPop(e.currentTarget,Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>openNote(newNote(k,k==="livre"?"":TYPES[k]).id,"edit")}))))];
+  const tm=v=>typeof v==="number"?v:(Date.parse(v)||0),rec=[...notas.map(n=>({k:"n",o:n,t:tm(n.updated)})),...mapas.map(m=>({k:"m",o:m,t:tm(m.updated)}))].sort((a,b)=>b.t-a.t).slice(0,9);
+  const quando=t0=>{const t=typeof t0==="number"?t0:Date.parse(t0);if(!t)return"";const d=(Date.now()-t)/6e4;return d<2?"agora":d<60?"há "+Math.round(d)+" min":d<1440?"há "+Math.round(d/60)+" h":"há "+Math.round(d/1440)+" dias"};
+  const MIC={battle:["batalha","#e0776b","Mapa de batalha"],city:["cidade","#d4a64a","Mapa de cidade"]};
+  const itens=rec.map(r=>{if(r.k==="m"){const mi=MIC[r.o.type]||["regiao","#8db06a","Mapa de região"];return h("button",{type:"button",class:"hrec",onclick:()=>openMap(r.o.id)},h("i",{class:"tic",style:"color:"+mi[1]},icone(mi[0],20)),h("span",{class:"hrt"},h("b",{},r.o.name),h("small",{},mi[2]+(r.t?" · "+quando(r.t):""))))}
+    const ty=fm(r.o.content).props.tipo||"livre";return h("button",{type:"button",class:"hrec",onclick:()=>openNote(r.o.id)},h("i",{class:"tic",style:"color:"+(TCOL[ty]||TCOL.livre)},icone(TICO[ty]||"livre",20)),h("span",{class:"hrt"},h("b",{},r.o.title),h("small",{},(TYPES[ty]||"Nota")+(r.t?" · "+quando(r.t):""))))});
+  main.append(h("div",{class:"home"},h("h1",{},vazio?"Seu mundo começa aqui":"Seu mundo"),h("p",{class:"hsub"},vazio?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":notas.length+" nota"+(notas.length===1?"":"s")+" e "+mapas.length+" mapa"+(mapas.length===1?"":"s")+". Continue de onde parou ou comece algo novo."),
+    h("h2",{},"Começar"),h("div",{class:"hcards"},cards),vazio?h("div",{class:"row"},h("button",{type:"button",onclick:sample},icone("estrela",16),"Criar mundo de exemplo")):null,
+    rec.length?h("h2",{},"Recentes"):null,rec.length?h("div",{class:"hrecs"},itens):null))}
 function sample(){const m=newMap();m.name="Vale do Sasau";m.params=Object.assign({},DEF);Store.save("maps",m);
   newNote("livre","Bem-vindo ao Atlas",{content:"# Bem-vindo ao Atlas\n\nEste vault de exemplo mostra o básico.\n\n- Abra **Mapas** e toque num povoado para criar a nota dele.\n- Em qualquer nota, escreva `[[Nome]]` para ligar a outra. Exemplo: [[Irmã Ludmila]].\n- No mapa, use as ferramentas para pintar terra, mar, relevo e floresta. A ferramenta **Fronteiras** desenha reinos.\n- Missões com **Onde acontece** aparecem como marcadores no mapa. Veja o quadro em **Notas › Missões**.\n- Texto entre %%dois sinais de porcentagem%% é segredo do mestre e some na **Visão dos jogadores**.\n"});
   const n=newNote("personagem","Irmã Ludmila",{content:"---\ntipo: personagem\nlocal: \n---\n\n## Aparência\n\nHábito gasto, mãos manchadas de tinta.\n\n## O que quer\n\nTerminar a crônica do mosteiro antes do inverno.\n\n## O que esconde\n\n> [!info] Só para o mestre\n> Ela sabe quem incendiou o celeiro.\n"});n.folder="Personagens";Store.save("notes",n);
@@ -1037,7 +1058,7 @@ function sample(){const m=newMap();m.name="Vale do Sasau";m.params=Object.assign
   newNote("missao","A crônica perdida",{content:"---\ntipo: missao\nstatus: aberta\nlocal: Tabor\nrequer: O celeiro queimado\nrecompensa: Um mapa antigo do vale\n---\n\n## Objetivo\n\nRecuperar a crônica que a Irmã Ludmila escondeu antes do incêndio.\n"});
   newNote("sessao","Sessão 1",{content:"---\ntipo: sessao\ndata: 1403-08-12\njogadores: Ana, Bruno, Caio\nlugares: Olshany\n---\n\n## Onde paramos\n\nO grupo chegou a Olshany ao anoitecer e viu a fumaça do celeiro.\n\n## Missões\n\n- [[O celeiro queimado]]\n"});
   S.sec="notes";drawAll();toast("Mundo de exemplo criado.")}
-function drawMain(flash){if(S.sec==="notes"){if(S.view==="graph")drawGraph();else if(S.view==="time")drawTime();else if(S.view==="quests")drawQuests();else drawNote()}else drawMap(flash)}
+function drawMain(flash){if(S.sec==="home")return drawHome();if(S.sec==="notes"){if(S.view==="graph")drawGraph();else if(S.view==="time")drawTime();else if(S.view==="quests")drawQuests();else drawNote()}else drawMap(flash)}
 function drawAll(flash){drawSide();drawMain(flash)}
 
 // ---------- exportar e importar ----------
@@ -1128,11 +1149,31 @@ function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}const r=btn.ge
 
 // ---------- inicio ----------
 let booted=false;
-function ready(){if(booted)return;booted=true;syncUCAT();if(S.maps.size&&!S.notes.size)S.sec="maps";drawAll()}
-for(const b of document.querySelectorAll(".rail button"))b.addEventListener("click",()=>{S.sec=b.dataset.sec;closePlace();drawAll();if(matchMedia("(max-width:860px)").matches&&!(S.sec==="notes"?S.note:S.map))$("#side").classList.add("open")});
+function ready(){if(booted)return;booted=true;syncUCAT();if(!S.notes.size&&!S.maps.size)S.sec="home";else if(S.maps.size&&!S.notes.size&&S.sec!=="home")S.sec="maps";drawAll()}
+const RIC={home:"inicio",notes:"notas",maps:"mapas"};for(const b of document.querySelectorAll(".rail button"))b.querySelector(".ri").append(icone(b.dataset.busca?"buscar":RIC[b.dataset.sec],22));
+$("#menu").append(icone("lista",20));$("#bBusca .bi").append(icone("buscar",18));$("#bExp").append(icone("pontos",20));
+const marcaPlay=()=>{const b=$("#bPlay");b.replaceChildren(icone(S.players?"olhoF":"olho",20));b.setAttribute("aria-pressed",String(!!S.players));b.setAttribute("aria-label",S.players?"Visão dos jogadores (segredos escondidos)":"Visão do mestre (segredos à mostra)");b.title=b.getAttribute("aria-label")};
+for(const b of document.querySelectorAll(".rail button"))b.addEventListener("click",()=>{if(b.dataset.busca){abrePaleta();return}S.sec=b.dataset.sec;if(S.sec==="home"){closePlace();drawAll();return}closePlace();drawAll();if(matchMedia("(max-width:860px)").matches&&!(S.sec==="notes"?S.note:S.map))$("#side").classList.add("open")});
 $("#menu").addEventListener("click",()=>$("#side").classList.toggle("open"));
 document.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||(e.key!=="z"&&e.key!=="Z"))return;const ae=document.activeElement;if(ae&&(/INPUT|TEXTAREA|SELECT/.test(ae.tagName)&&ae.type!=="range"||ae.isContentEditable))return;if(S.sec!=="maps")return;const b=document.querySelector('#main button[aria-label="Desfazer"]');if(b){e.preventDefault();b.click()}});
-$("#bExp").addEventListener("click",e=>exportMenu(e.currentTarget));$("#bPlay").addEventListener("click",()=>{S.players=!S.players;try{localStorage.setItem("atlas-players",S.players?"1":"")}catch(e){}$("#bPlay").setAttribute("aria-pressed",String(S.players));$("#bPlay").textContent=S.players?"Visão dos jogadores":"Visão do mestre";document.body.classList.toggle("players",S.players);drawAll()});try{if(localStorage.getItem("atlas-players")){S.players=true;document.body.classList.add("players")}}catch(e){}$("#bPlay").setAttribute("aria-pressed",String(!!S.players));$("#bPlay").textContent=S.players?"Visão dos jogadores":"Visão do mestre";
+$("#bExp").addEventListener("click",e=>menuPop(e.currentTarget,[{ic:"importar",txt:"Importar notas",det:"Markdown (.md) e quadros do Obsidian",fn:()=>$("#imp").click()},{ic:"exportar",txt:"Exportar…",det:"Vault, jogadores, Foundry VTT",fn:()=>exportMenu($("#bExp"))},{sep:true},{ic:"estrela",txt:"Criar mundo de exemplo",fn:sample},{ic:"ajuda",txt:"Atalhos do teclado",det:"Ctrl K busca · Ctrl Z desfaz",fn:()=>toast("Ctrl K: buscar e agir · Ctrl Z: desfazer · no Modo Batalha, passe o mouse nas ferramentas para ver as teclas.")}]));
+$("#bBusca").addEventListener("click",()=>abrePaleta());
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&!e.altKey&&(e.key==="k"||e.key==="K")){e.preventDefault();abrePaleta()}});
+// paleta de comandos: acha notas, mapas e acoes
+function abrePaleta(){let P=$("#paleta");if(P){P.querySelector("input").focus();return}const inp=h("input",{type:"search",placeholder:"Buscar notas, mapas e ações…","aria-label":"Buscar notas, mapas e ações"}),res=h("div",{class:"pres",role:"listbox"});let sel=0,lista=[];
+  P=h("div",{id:"paleta",class:"paleta",onpointerdown:e=>{if(e.target===P)fecha()}},h("div",{class:"pcaixa",role:"dialog","aria-label":"Busca rápida"},h("div",{class:"p-in"},icone("buscar",20),inp,h("kbd",{},"Esc")),res));
+  const fecha=()=>{P.remove()};const BT=window.AtlasBatalha;
+  const acoes=[["regiao","#8db06a","Novo mapa de região",()=>openMap(newMap().id)],["cidade","#d4a64a","Novo mapa de cidade",()=>openMap(newCity().id)],BT?["batalha","#e0776b","Novo mapa de batalha",async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}]:null,
+    ...Object.entries(TYPES).map(([k,v])=>[TICO[k],TCOL[k],"Nova nota: "+v,()=>openNote(newNote(k,k==="livre"?"":TYPES[k]).id,"edit")]),["importar","","Importar notas",()=>$("#imp").click()],["exportar","","Exportar…",()=>exportMenu($("#bExp"))],["olho","","Alternar visão do mestre e dos jogadores",()=>$("#bPlay").click()],
+    ["inicio","","Ir para o Início",()=>{S.sec="home";drawAll()}],["grafo","","Ver o grafo das notas",()=>{S.sec="notes";S.view="graph";drawAll()}],["missao","","Ver as missões",()=>{S.sec="notes";S.view="quests";drawAll()}]].filter(Boolean);
+  const monta=()=>{const q=norm(inp.value.trim());lista=[];const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};
+    for(const n of S.notes.values())if(!q||norm(n.title).includes(q)){const ty=fm(n.content).props.tipo||"livre";lista.push({ic:TICO[ty]||"livre",cor:TCOL[ty],t:n.title,d:TYPES[ty]||"Nota",fn:()=>openNote(n.id),r:q&&norm(n.title).startsWith(q)?0:1})}
+    for(const m of S.maps.values())if(m.type!=="assets"&&(!q||norm(m.name).includes(q))){const mi=MIC[m.type]||["regiao","#8db06a"];lista.push({ic:mi[0],cor:mi[1],t:m.name,d:"Mapa",fn:()=>openMap(m.id),r:q&&norm(m.name).startsWith(q)?0:1})}
+    for(const [ic,cor,t,fn] of acoes)if(!q||norm(t).includes(q))lista.push({ic,cor,t,d:"Ação",fn,r:2});
+    if(!q)lista=lista.filter(x=>x.d==="Ação").concat(lista.filter(x=>x.d!=="Ação").slice(0,8));else lista.sort((a,b)=>a.r-b.r);lista=lista.slice(0,40);sel=Math.min(sel,Math.max(0,lista.length-1));
+    res.replaceChildren(...(lista.length?lista.map((x,i)=>h("button",{type:"button",role:"option","aria-selected":String(i===sel),class:"prow"+(i===sel?" on":""),onclick:()=>{fecha();x.fn()}},h("i",{class:"tic",style:x.cor?"color:"+x.cor:null},icone(x.ic,18)),h("span",{class:"pt"},x.t),h("small",{},x.d))):[h("p",{class:"empty"},"Nada encontrado.")]))};
+  inp.addEventListener("input",()=>{sel=0;monta()});inp.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();fecha()}else if(e.key==="ArrowDown"){e.preventDefault();sel=Math.min(lista.length-1,sel+1);monta();res.children[sel]&&res.children[sel].scrollIntoView({block:"nearest"})}else if(e.key==="ArrowUp"){e.preventDefault();sel=Math.max(0,sel-1);monta();res.children[sel]&&res.children[sel].scrollIntoView({block:"nearest"})}else if(e.key==="Enter"){const x=lista[sel];if(x){fecha();x.fn()}}});
+  document.body.append(P);monta();inp.focus()}$("#bPlay").addEventListener("click",()=>{S.players=!S.players;try{localStorage.setItem("atlas-players",S.players?"1":"")}catch(e){}marcaPlay();document.body.classList.toggle("players",S.players);drawAll()});try{if(localStorage.getItem("atlas-players")){S.players=true;document.body.classList.add("players")}}catch(e){}marcaPlay();
 $("#imp").addEventListener("change",e=>{importFiles([...e.target.files]);e.target.value=""});
 $("#main").addEventListener("pointerdown",()=>$("#side").classList.remove("open"));
 drawSide();$("#main").append(h("div",{class:"welcome"},h("h1",{},"Abrindo o vault…")));

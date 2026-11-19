@@ -11,23 +11,26 @@
 <body>
 <div id="app">
   <header class="top">
-    <button id="menu" class="ghost" type="button" aria-label="Abrir lista">Lista</button>
+    <button id="menu" class="ib" type="button" aria-label="Abrir a lista" title="Abrir a lista"></button>
     <div class="brand">Atlas<b>◆</b></div>
+    <button id="bBusca" class="busca" type="button" aria-label="Buscar notas, mapas, lugares e ações (Ctrl K)"><span class="bi"></span><span class="bt-txt">Buscar notas, mapas, lugares e ações</span><kbd>Ctrl K</kbd></button>
     <span id="sync" class="pill">Abrindo…</span>
-    <span class="grow"></span>
-    <label class="btn" for="imp">Importar .md</label><input type="file" id="imp" multiple accept=".md,.txt,.markdown" hidden>
-    <button id="bPlay" type="button" class="ghost" aria-pressed="false" title="Na visão dos jogadores, os segredos do mestre ficam escondidos">Visão do mestre</button>
-    <button id="bExp" type="button">Exportar</button>
+    <button id="bPlay" type="button" class="ib" aria-pressed="false" title="Na visão dos jogadores, os segredos do mestre ficam escondidos"></button>
+    <button id="bExp" type="button" class="ib" aria-label="Arquivo: importar e exportar" title="Arquivo: importar e exportar"></button>
+    <input type="file" id="imp" multiple accept=".md,.txt,.markdown,.canvas" hidden>
   </header>
   <nav class="rail" aria-label="Seções">
-    <button type="button" data-sec="notes">Notas</button>
-    <button type="button" data-sec="maps">Mapas</button>
+    <button type="button" data-sec="home"><span class="ri"></span><span>Início</span></button>
+    <button type="button" data-sec="notes"><span class="ri"></span><span>Notas</span></button>
+    <button type="button" data-sec="maps"><span class="ri"></span><span>Mapas</span></button>
+    <button type="button" data-busca="1"><span class="ri"></span><span>Buscar</span></button>
   </nav>
   <aside class="side" id="side"></aside>
   <main id="main"></main>
   <aside class="insp" id="insp" hidden></aside>
 </div>
 <div id="toast" role="status" hidden></div>
+<script src="ui/icones.js"></script>
 <script src="gen.js"></script>
 <script src="assets.js"></script>
 <script src="city.js"></script>
