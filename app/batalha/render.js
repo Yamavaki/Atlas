@@ -1,7 +1,7 @@
 // Atlas - Modo Batalha: renderizador WebGL2. Uma chamada de desenho por andar (malha unica + matriz de texturas),
 // terreno com mistura de 4 texturas na placa, luz acumulada num alvo separado e composicao final com a grade.
 import {gerarArtes,materialDe,objetoDe} from "./arte.js";
-import {malhaAndar,VERT,N_OBJ,escreveObjeto,escreveLuz} from "./malha.js";
+import {malhaAndar,malhaLuzes,VERT,N_OBJ,escreveObjeto,escreveLuz} from "./malha.js";
 import {deB64} from "./formato.js";
 const VS=`#version 300 es
 layout(location=0) in vec2 aP;layout(location=1) in vec2 aU;layout(location=2) in float aL;layout(location=3) in vec4 aC;layout(location=4) in vec3 aA;
@@ -68,13 +68,14 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     for(const c of A.camadas){if(c.vis===false||c.op<=0)continue;gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,mascaraDe(c));const e=.5/(c.esc||1),g=c.gt||0;
       gl.uniform1f(U.uLay,camArte(c.t));gl.uniform4f(U.uXf,Math.sin(g)*e,Math.cos(g)*e,c.ox||0,c.oy||0);gl.uniform3f(U.uHsb,(c.mz||0)/360,c.sat==null?1:c.sat,c.bri==null?1:c.bri);gl.uniform1f(U.uCon,c.con==null?1:c.con);const k=c.cor||[1,1,1];gl.uniform3f(U.uCor,k[0],k[1],k[2]);gl.uniform1f(U.uOp,c.op==null?1:c.op);
       (BLEND[c.modo]||BLEND.normal)();gl.drawArrays(gl.TRIANGLES,0,6)}return true}
-  const solta=a=>{if(!a)return;gl.deleteVertexArray(a.vao);gl.deleteBuffer(a.buf);if(a.vaoL){gl.deleteVertexArray(a.vaoL);gl.deleteBuffer(a.bufL)}if(a.splat)gl.deleteTexture(a.splat)};
+  const solta=a=>{if(!a)return;gl.deleteVertexArray(a.vao);gl.deleteBuffer(a.buf);if(a.vaoZ){gl.deleteVertexArray(a.vaoZ);gl.deleteBuffer(a.bufZ)}if(a.vaoL){gl.deleteVertexArray(a.vaoL);gl.deleteBuffer(a.bufL)}if(a.splat)gl.deleteTexture(a.splat)};
   const camArte=t=>{const k="m:"+(t<0?"neutro":materialDe(M.texturas[t]));return ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k]};
   // monta (ou refaz) um andar: malha, luzes e terreno
-  function refazAndar(i){const A=M.andares[i];solta(AND[i]);const m=malhaAndar(A,M.texturas,ART.indice,ART.recorte),o={n:m.n,nl:m.nl,terr:null,amb:A.ambiente,cpu:m.verts,onde:m.onde,luzes:m.luzes,ondeLuz:m.ondeLuz};
+  function refazAndar(i){const A=M.andares[i];solta(AND[i]);const m=malhaAndar(A,M.texturas,ART.indice,ART.recorte),o={n:m.n,nl:m.nl,terr:null,amb:A.ambiente,cpu:m.verts,onde:m.onde,luzes:m.luzes,cacheL:m.cache,nz:m.nz};
     o.vao=gl.createVertexArray();gl.bindVertexArray(o.vao);o.buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.buf);gl.bufferData(gl.ARRAY_BUFFER,m.verts,gl.DYNAMIC_DRAW);const S=VERT*4;
     gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,S,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,S,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,S,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,S,20);gl.enableVertexAttribArray(4);gl.vertexAttribPointer(4,3,gl.FLOAT,false,S,36);
-    if(m.nl){o.vaoL=gl.createVertexArray();gl.bindVertexArray(o.vaoL);o.bufL=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.bufL);gl.bufferData(gl.ARRAY_BUFFER,m.luzes,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,36,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,36,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,36,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,1,gl.FLOAT,false,36,32)}
+    if(m.nz){o.vaoZ=gl.createVertexArray();gl.bindVertexArray(o.vaoZ);o.bufZ=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.bufZ);gl.bufferData(gl.ARRAY_BUFFER,m.zonas,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,S,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,S,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.FLOAT,false,S,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,S,20);gl.enableVertexAttribArray(4);gl.vertexAttribPointer(4,3,gl.FLOAT,false,S,36)}
+    {o.vaoL=gl.createVertexArray();gl.bindVertexArray(o.vaoL);o.bufL=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,o.bufL);gl.bufferData(gl.ARRAY_BUFFER,m.luzes,gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,36,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,2,gl.FLOAT,false,36,8);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,36,16);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,1,gl.FLOAT,false,36,32)}
     if(A.terreno){const T=A.terreno,px=deB64(T.splat);o.splat=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,o.splat);gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,T.w,T.h,0,gl.RGBA,gl.UNSIGNED_BYTE,px.subarray(0,T.w*T.h*4));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);o.terr=T.tex.map(camArte)}
     AND[i]=o;return m.n}
   function carregar(mapa){AND.forEach(solta);AND=[];M=mapa;const t=performance.now();let verts=0;for(let i=0;i<mapa.andares.length;i++)verts+=refazAndar(i);
@@ -85,7 +86,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   function atualiza(i,objs,luzes){const a=AND[i];if(!a)return false;const TEXS=M.texturas;
     if(objs&&objs.length){let mn=1e12,mx=-1;for(const o of objs){const off=a.onde.get(o);if(off==null)return false;const k="o:"+objetoDe(TEXS[o.t]),l=ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k];escreveObjeto(a.cpu,off,o,l,ART.recorte[l]);if(off<mn)mn=off;if(off+N_OBJ>mx)mx=off+N_OBJ}
       gl.bindBuffer(gl.ARRAY_BUFFER,a.buf);gl.bufferSubData(gl.ARRAY_BUFFER,mn*4,a.cpu,mn,mx-mn)}
-    if(luzes&&luzes.length){for(const l of luzes){const off=a.ondeLuz.get(l);if(off==null)return false;escreveLuz(a.luzes,off,l)}gl.bindBuffer(gl.ARRAY_BUFFER,a.bufL);gl.bufferSubData(gl.ARRAY_BUFFER,0,a.luzes)}
+    if(luzes&&luzes.length){const z=malhaLuzes(M.andares[i],a.cacheL);a.cacheL=z.cache;a.luzes=z.verts;a.nl=z.n;gl.bindBuffer(gl.ARRAY_BUFFER,a.bufL);gl.bufferData(gl.ARRAY_BUFFER,z.verts,gl.DYNAMIC_DRAW)}
     return true}
   function andar(i,cam,esc){const a=AND[i];if(!a)return;const cu=[cam.x,cam.y,cam.z,0];
     if(camadas(i,cam,esc)){}else if(a.terr){gl.useProgram(PT.p);gl.uniform4fv(PT.U.uCam,cu);gl.uniform2f(PT.U.uRes,W,H);gl.uniform2f(PT.U.uTam,M.larg,M.alt);gl.uniform4fv(PT.U.uLay,a.terr);gl.uniform1f(PT.U.uEsc,esc);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D_ARRAY,TA);gl.uniform1i(PT.U.uT,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,a.splat);gl.uniform1i(PT.U.uS,1);gl.disable(gl.BLEND);gl.bindVertexArray(carregar.vaoM);gl.drawArrays(gl.TRIANGLES,0,6)}
@@ -95,6 +96,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     {const sx=Math.floor((0-cam.x)*cam.z+W/2),sy=Math.floor((0-cam.y)*cam.z+H/2),sw=Math.ceil(M.larg*cam.z)+1,sh=Math.ceil(M.alt*cam.z)+1;gl.enable(gl.SCISSOR_TEST);gl.scissor(sx,H-(sy+sh),sw,sh)}
     const temChao=k=>AND[k]&&(AND[k].terr||(M.andares[k].camadas&&M.andares[k].camadas.length));let base=i;while(base>0&&!temChao(base))base--;for(let k=base;k<i;k++)andar(k,cam,.45);andar(i,cam,1);
     gl.disable(gl.SCISSOR_TEST);const a=AND[i];gl.bindFramebuffer(gl.FRAMEBUFFER,alvoB.f);const am=M.andares[i].ambiente||[1,1,1,1];gl.clearColor(am[0],am[1],am[2],1);gl.clear(gl.COLOR_BUFFER_BIT);
+    if(opt.luz&&a.nz){gl.disable(gl.BLEND);gl.useProgram(PM.p);gl.uniform4f(PM.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PM.U.uRes,W,H);gl.uniform1f(PM.U.uEsc,1);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D_ARRAY,TA);gl.uniform1i(PM.U.uT,0);gl.bindVertexArray(a.vaoZ);gl.drawArrays(gl.TRIANGLES,0,a.nz)}
     if(opt.luz&&a.nl){gl.useProgram(PL.p);gl.uniform4f(PL.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PL.U.uRes,W,H);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.bindVertexArray(a.vaoL);gl.drawArrays(gl.TRIANGLES,0,a.nl)}
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.disable(gl.BLEND);gl.useProgram(PC.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,alvoA.t);gl.uniform1i(PC.U.uA,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,alvoB.t);gl.uniform1i(PC.U.uB,1);
     gl.uniform4f(PC.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PC.U.uRes,W,H);gl.uniform2f(PC.U.uTam,M.larg,M.alt);const g=M.grade&&M.grade.cor||[0,0,0,.5];gl.uniform4f(PC.U.uGrade,g[0],g[1],g[2],opt.grade?g[3]:0);gl.uniform1f(PC.U.uLuz,opt.luz?1:0);gl.bindVertexArray(quadVAO);gl.drawArrays(gl.TRIANGLES,0,6)}

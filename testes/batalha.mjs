@@ -1,6 +1,6 @@
 // Teste rapido do Modo Batalha (segundos): importador, triangulacao e malha. Uso: node testes/batalha.mjs [mapa.dungeondraft_map ...]
 import {importarDD,nums,pts,cor,tamanhoArte} from '../app/batalha/formato.js';
-import {triangula,malhaAndar,VERT,N_OBJ,escreveObjeto,comFuros} from '../app/batalha/malha.js';
+import {triangula,malhaAndar,VERT,N_OBJ,escreveObjeto,comFuros,barreiras,visibilidade} from '../app/batalha/malha.js';
 import {MATERIAIS,OBJETOS,materialDe,objetoDe} from '../app/batalha/arte.js';
 import fs from 'fs';
 let falhas=0;const ok=(c,m)=>{if(!c){falhas++;console.log('FALHOU:',m)}};
@@ -33,6 +33,9 @@ const IND={};let k=0;for(const n in MATERIAIS)IND['m:'+n]=k++;for(const n in OBJ
   const T={tex:[0,1,-1,-1],w:40,h:24,splat:Buffer.from(new Uint8Array(40*24*4).map((v,i)=>i%4===0?128:i%4===1?128:0)).toString('base64')};const A3={terreno:T};const N3=MD.novoMapa({larg:10,alt:6});N3.texturas.push('x/Grass.png','x/Dirt.png');MD.converteTerreno(N3,A3);ok(A3.camadas&&A3.camadas.length===2&&Math.abs(A3.camadas[1].m[0]-128)<2&&!A3.terreno,'terreno antigo vira camadas')}
  // 0.77: forma com furos
  {const ar=(Q,T)=>{let a=0;for(let i=0;i<T.length;i+=3){const p=Q[T[i]],q=Q[T[i+1]],r=Q[T[i+2]];a+=Math.abs((q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]))/2}return a};const L=[[0,0],[10,0],[10,4],[4,4],[4,10],[0,10]],Q=comFuros(L,[[[1,1],[3,1],[3,3],[1,3]],[[6,1],[8,1],[8,3],[6,3]],[[1,6],[3,6],[3,8],[1,8]]]);ok(Math.abs(ar(Q,triangula(Q))-52)<1e-6,'forma em L com 3 furos')}
+ // 0.78: sombra das paredes
+ {const B={paredes:[{id:1,p:[[0,0],[6,0],[6,4],[0,4]],laco:true,raio:0}],portais:[{id:2,parede:1,d:3,raio:.5,tipo:'janela'}]};const S=barreiras(B);ok(S.length===5,'janela abre um vao na parede: '+S.length);
+  const V=visibilidade(3,2,10,S);ok(V&&V.filter(q=>q[0]>=-1e-6&&q[0]<=6+1e-6&&q[1]>=-1e-6&&q[1]<=4+1e-6).length>=V.length-6,'a luz fica dentro da sala, menos pela janela')}
  const m=malhaAndar(A,M.texturas,IND);ok(m.onde.size===A.objetos.length&&m.verts.length===m.n*VERT,'malha guarda onde esta cada objeto')}
 for(const f of process.argv.slice(2)){const t=Date.now(),M=importarDD(JSON.parse(fs.readFileSync(f,'utf8')),{nome:f});let v=0,obj=0;for(const A of M.andares){const m=malhaAndar(A,M.texturas,IND);v+=m.n;obj+=A.objetos.length;ok(m.verts.length===m.n*VERT&&!m.verts.some(x=>!isFinite(x)),'malha com numero invalido em '+A.nome)}
   ok(M.andares.length>0&&M.larg>0,'mapa vazio '+f);console.log(f.split('/').pop(),M.larg+'x'+M.alt,M.andares.length+' andares',obj+' objetos',v+' vertices',(Date.now()-t)+' ms')}
