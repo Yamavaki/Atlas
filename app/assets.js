@@ -287,7 +287,7 @@ function fortress(c,x,y,a,m,race,v,cold){ANG_=a-.34;const s=ST(race||"humano"),P
 // ---------- construcoes ----------
 // ---------- templos por cultura, em pecas (giram com a cidade; frente = +v) ----------
 // devolve false quando a cultura usa a igreja comum
-function templo(c,x,y,a,m,rc,v,sw,big){if(["vapor","elfo","anao","eslavo","gnomo","norte"].includes(rc))m*=1.25;const mu=(v||0)<.5?-1:1,P0=Pf(x,y,a),P=(u,w,h)=>P0(u*mu*m,w*m,(h||0)*m),S=cena(P,c);ANG_=a-.34;const TA=ANG_+.7854,fs=lado(P,null);
+function templo(c,x,y,a,m,rc,v,sw,big,tv){const TV2=(tv||0)>=2;if(TV2&&["halfling","orc","tribal","indiano"].includes(rc))m*=.72;if(["vapor","elfo","anao","eslavo","gnomo","norte"].includes(rc))m*=1.25;const mu=(v||0)<.5?-1:1,P0=Pf(x,y,a),P=(u,w,h)=>P0(u*mu*m,w*m,(h||0)*m),S=cena(P,c);ANG_=a-.34;const TA=ANG_+.7854,fs=lado(P,null);
   const Hh=(u,w,L,D,H,R,roof,wall,o)=>S.cx(u,w,L,D,H+R,()=>KR.drawHouseA(c,...P(u,w),Object.assign({L:L*m,D:D*m,H:H*m,R:R*m,ang:a,roof,wall,win:1,door:2},o||{}))),
     Tt=(u,w,ww,h,rh,roof,wall,cren,ex)=>S.rd(u,w,ww*.62,h+rh,()=>{const q=P(u,w);torreQ(c,q[0],q[1]+.43*ww*m,ww*m,h*m,rh*m,roof,wall,!!cren,TA);if(ex)ex(q)}),
     Ff=(u,w,L,D,H,wall,o)=>S.cx(u,w,L,D,H,()=>KR.drawFlat(c,...P(u,w),Object.assign({L:L*m,D:D*m,H:H*m,ang:a,wall,win:1},o||{}))),
@@ -300,6 +300,30 @@ function templo(c,x,y,a,m,rc,v,sw,big){if(["vapor","elfo","anao","eslavo","gnomo
   else if(rc==="elfo"){Hh(0,0,15,8,7,9,"teal","white");Tt(11,-9,3,24,14,ROOF.teal,WALL.white)}
   else if(rc==="anao"){Hh(0,0,22,11,6,5,sw||"slate","darkstone");Tt(-12,-11,4.6,12,0,ROOF.slate,WALL.darkstone,true);Tt(14,-11,4.6,12,0,ROOF.slate,WALL.darkstone,true)}
   else if(rc==="norte"){Hh(4,-4,24,9,5,11,sw||"shingle","wooddark",{win:0});Tt(-10,-5,3,9,8,ROOF[sw||"shingle"],WALL.wooddark)}
+  else if(TV2&&rc==="halfling"){// 0.65: toca grande no jardim, toca menor, sineira redonda e caminho de pedras
+    S.chao(()=>{dc(P,"ch",0,2,19);const o=P(0,2);c.fillStyle="#9fb262";c.strokeStyle="rgba(60,70,30,.5)";c.lineWidth=.6;c.beginPath();c.ellipse(o[0],o[1],19*m,19*m*TILT,0,0,7);c.fill();c.stroke();
+      c.fillStyle="#d8ccaa";c.strokeStyle="rgba(80,70,50,.5)";for(let k=0;k<5;k++){const q=P(1-k*.4,fs*(9+k*2.2));c.beginPath();c.ellipse(q[0],q[1],1.3*m,.75*m,0,0,7);c.fill();c.stroke()}});
+    S.rd(0,-3,11,12,()=>{const q=P(0,-3);KR.drawMound(c,q[0],q[1],{L:22*m,D:17*m,H:12*m,door:2,chim:1})});
+    S.rd(-13,5,6,7,()=>{const q=P(-13,5);KR.drawMound(c,q[0],q[1],{L:11*m,D:9*m,H:7*m,door:1})});
+    S.rd(12,-2,3.4,15,()=>{const q=P(12,-2);KR.drawRound(c,q[0],q[1],3.2*m,7*m,6*m,{wall:"daub",roof:"thatch"});const t=[q[0],q[1]-9.5*m];c.fillStyle="#c9a24a";c.strokeStyle=INK;c.lineWidth=.6;c.beginPath();c.arc(t[0],t[1],1.1*m,0,7);c.fill();c.stroke()});
+    for(const [u,w,cr] of[[-7,12,"#d8b14a"],[8,11,"#c4473a"],[14,8,"#e8e0f0"]])S.rd(u,w,2.4,3,()=>{const q=P(u,w);c.fillStyle="#5f7e35";c.strokeStyle="rgba(40,55,20,.8)";c.lineWidth=.6;c.beginPath();c.ellipse(q[0],q[1]-1.2*m,2.4*m,1.7*m,0,0,7);c.fill();c.stroke();c.fillStyle=cr;for(let k=0;k<4;k++){c.beginPath();c.arc(q[0]+Math.cos(k*1.7)*1.3*m,q[1]-1.6*m+Math.sin(k*1.7)*.7*m,.45*m,0,7);c.fill()}})}
+  else if(TV2&&rc==="orc"){// 0.65: cabana de couro com espinhos dentro de um anel de estacas, totens e mastro de caveira
+    S.chao(()=>{dc(P,"ch",0,0,18);const o=P(0,0);c.fillStyle="#9a8a68";c.strokeStyle="rgba(60,48,28,.5)";c.lineWidth=.6;c.beginPath();c.ellipse(o[0],o[1],18*m,18*m*TILT,0,0,7);c.fill();c.stroke()});
+    S.rd(0,-2,9,20,()=>{const q=P(0,-2);KR.drawRound(c,q[0],q[1],9*m,6*m,12*m,{wall:"wooddark",roof:"hide",spike:true})});
+    for(let k=0;k<20;k++){const t=k/20*6.2832,u=Math.cos(t)*16,w=Math.sin(t)*16;if(w*fs>10&&Math.abs(u)<5)continue;S.rd(u,w,.9,6.5,()=>post(c,P,u,w,0,5.5+(k%3)*.5,1.1,"#5a4028"))}
+    for(const u of[-5,5])S.rd(u,fs*14,1.2,10,()=>{const q=P(u,fs*14);KR.drawTotem(c,q[0],q[1])});
+    S.rd(-9,fs*7,1,9,()=>{post(c,P,-9,fs*7,0,8,.8,"#3a2c1b");const t=P(-9,fs*7,8.6);c.fillStyle="#e8e0cc";c.strokeStyle=INK;c.lineWidth=.6;c.beginPath();c.arc(t[0],t[1],1.2*m,0,7);c.fill();c.stroke();c.fillStyle="#2a2018";c.fillRect(t[0]-.6*m,t[1]-.3*m,.4*m,.4*m);c.fillRect(t[0]+.2*m,t[1]-.3*m,.4*m,.4*m)})}
+  else if(TV2&&rc==="tribal"){// 0.65: cabana grande, duas menores, fogueira no meio do terreiro e totem
+    S.chao(()=>{dc(P,"ch",0,2,19);const o=P(0,2);c.fillStyle="#b59a6a";c.strokeStyle="rgba(80,60,30,.45)";c.lineWidth=.6;c.beginPath();c.ellipse(o[0],o[1],19*m,19*m*TILT,0,0,7);c.fill();c.stroke();
+      const f=P(0,fs*8);c.fillStyle="#7d7466";for(let k=0;k<8;k++){c.beginPath();c.arc(f[0]+Math.cos(k*.785)*2.2*m,f[1]+Math.sin(k*.785)*2.2*m*TILT,.6*m,0,7);c.fill()}c.fillStyle="#e07a2a";c.beginPath();c.moveTo(f[0]-1.2*m,f[1]);c.quadraticCurveTo(f[0],f[1]-4*m,f[0]+1.2*m,f[1]);c.closePath();c.fill();c.fillStyle="#f3c04a";c.beginPath();c.moveTo(f[0]-.6*m,f[1]);c.quadraticCurveTo(f[0],f[1]-2.4*m,f[0]+.6*m,f[1]);c.closePath();c.fill()});
+    S.rd(0,-5,8,17,()=>{const q=P(0,-5);KR.drawRound(c,q[0],q[1],8*m,5*m,11*m,{wall:"mud",roof:"thatch"})});
+    for(const u of[-13,13])S.rd(u,3,4.6,10,()=>{const q=P(u,3);KR.drawRound(c,q[0],q[1],4.4*m,3.4*m,6*m,{wall:"mud",roof:"thatch"})});
+    S.rd(7,fs*12,1.2,10,()=>{const q=P(7,fs*12);KR.drawTotem(c,q[0],q[1])})}
+  else if(TV2&&rc==="indiano"){// 0.65: plataforma, shikhara principal, salao de pilares na frente e dois santuarios menores
+    S.chao(()=>{dc(P,"cx",0,0,26,22,0,1.6);const q=P(0,0);prism(c,q[0],q[1],26*m,22*m,1.6*m,a,["#d9b77a","#b8955c"],"#e8d3a0")});
+    S.rd(0,-4,8,30,()=>{const q=P(0,-4,1.6);KR.drawShikhara(c,q[0],q[1],8*m)});
+    Ff(0,fs*6,12,7,5,"sand",{win:0});
+    for(const u of[-10,10])S.rd(u,-7,3.6,14,()=>{const q=P(u,-7,1.6);KR.drawShikhara(c,q[0],q[1],3.6*m)})}
   else if(rc==="halfling")S.rd(0,0,9,11,()=>KR.drawMound(c,x,y-3,{L:20*m,D:16*m,H:11*m,door:2,chim:1}));
   else if(rc==="orc"||rc==="tribal")S.rd(0,0,9,18,()=>KR.drawRound(c,x,y-3,9*m,6*m,12*m,{wall:rc==="orc"?"wooddark":"mud",roof:rc==="orc"?"hide":"thatch",spike:rc==="orc"}));
   else if(rc==="pantano")S.cx(0,0,20,10,12,()=>KR.drawBuilding(c,x,y-3,{form:"stilt",L:20*m,D:10*m,H:5.5*m,R:6*m,ang:a,roof:"thatch",wall:"wood",door:2,win:1}));

@@ -518,7 +518,7 @@ function mkHouse(race,type,rng,ang,dim){const sp=SPEC[type]||SPEC.town,C=CUL[rac
     if(urb&&R>2.6&&rng()<.5){dorm=[];const n=1+((L/7)|0);for(let q=0;q<n;q++)dorm.push(-L/2+L*(q+.5)/n)}}
   return {k:1,ang,type,L,D,H,R,form,roof,wall,wing,tower,dorm,tr:(rng()-.5)*.13,tw:(rng()-.5)*.07,door:sp.door,win:sp.win,timber:race==="humano"&&sp.timber&&rng()<.8,chim:sp.chim,sign:sp.sign,smoke:sp.smoke,dome:form==="flat"&&(type==="rich"||type==="manor")&&rng()<.7,spike:race==="orc"}}
 // templos (k 2) e castelos (k 3) de cada cultura
-function drawBig(c,q){if(q.k===3&&window.AtlasAssets&&AtlasAssets.fortress){AtlasAssets.fortress(c,q.x,q.y,(q.ang!=null?q.ang:-.4)+.34,.78*(q.sz||1)*(q.ms||1),q.race||"humano",q.v||0,q.cold);return}if(q.k===2&&q.ang!=null&&window.AtlasAssets&&AtlasAssets.templo&&AtlasAssets.templo(c,q.x,q.y,q.ang+.34,(q.big?1.3:1)*(q.sz||1)*(q.ms||1),q.race||"humano",q.v||0,q.cold?"snow":null,q.big))return;
+function drawBig(c,q){if(q.k===3&&window.AtlasAssets&&AtlasAssets.fortress){AtlasAssets.fortress(c,q.x,q.y,(q.ang!=null?q.ang:-.4)+.34,.78*(q.sz||1)*(q.ms||1),q.race||"humano",q.v||0,q.cold);return}if(q.k===2&&q.ang!=null&&window.AtlasAssets&&AtlasAssets.templo&&AtlasAssets.templo(c,q.x,q.y,q.ang+.34,(q.big?1.3:1)*(q.sz||1)*(q.ms||1),q.race||"humano",q.v||0,q.cold?"snow":null,q.big,q.tv))return;
     if(q.k===2){c.save();if((q.v||0)<.5){c.translate(q.x,0);c.scale(-1,1);c.translate(-q.x,0)}const m=(q.big?1.3:1)*(q.sz||1)*(q.ms||1),rc=q.race||"humano",sw=q.cold?"snow":null;
       if(rc==="vapor"){// catedral da engrenagem: salao de tijolo fuliginoso, cupula de cobre, relogio, chamines e tubos
         for(const [dx,h] of[[-7,30],[-2,25]]){const x0=q.x+dx*m,y0=q.y-8*m,w=1.8*m;c.fillStyle="#9b5a3e";c.strokeStyle=INK;c.lineWidth=.7;c.fillRect(x0-w,y0-h*m,w*2,h*m);c.strokeRect(x0-w,y0-h*m,w*2,h*m);c.fillStyle="#2a2420";c.fillRect(x0-w,y0-h*m-1,w*2,1.4);
@@ -623,7 +623,7 @@ function verificaRegiao(W,gvv){const g63=(gvv==null?63:gvv)>=63;const AM=window.
     for(const AR of[W.roads].concat((W.towns||[]).map(t=>t.streets||[]))){if(!AR)continue;for(let i=AR.length-1;i>=0;i--){const L=AR[i];if(!Array.isArray(L)||!L.length||!Array.isArray(L[0]))continue;const P2=corta(L);if(P2.length===1&&P2[0].length===L.length)continue;cortadas++;AR.splice(i,1,...P2)}}
     mov+=0;W._ruasCortadas=cortadas}
   return {mov,tir,cort,tirC}}
-function generate(P){const W=generate0(P);if((P.gv==null?61:P.gv)>=61&&W&&W.B){try{W.VERIF=verificaRegiao(W,P.gv)}catch(e){console.warn("verificaRegiao",e)}}return W}
+function generate(P){const W=generate0(P);if((P.gv==null?65:P.gv)>=65&&W&&W.B)for(const b of W.B)if(b.k===2)b.tv=2;if((P.gv==null?61:P.gv)>=61&&W&&W.B){try{W.VERIF=verificaRegiao(W,P.gv)}catch(e){console.warn("verificaRegiao",e)}}return W}
 function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslava","mediter","antigo","celta","andes","fantasia","industrial","piratas"].includes(P.culture))P=Object.assign({},P,{culture:"europa"});
   setScale(P.size||1);
   const seed=hashStr(P.seed),rng=mulberry(seed),fbm=makeNoise(seed^0x9e37),fbm2=makeNoise(seed^0x51f1);
