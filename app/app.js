@@ -562,7 +562,7 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;if(o.params&&o.para
     if(!n.place){n.place={map:o.id,x:pl.x,y:pl.y,name:pl.name};n.thumb=thumbAt(pl.x,pl.y)}Store.save("notes",n);return n};
   function popPlace(w){if(pop){pop.remove();pop=null}if(!C||!info)return;let best=null,bd=40;for(const p of o.places||[]){if(p.k==="c"||p.k==="d")continue;const d=Math.hypot(p.x-w.x,p.y-w.y);if(d<bd){bd=d;best=p}}
     if(!best){const pa=AC.patchAt(C,w.x,w.y),d=pa&&C.districts.find(z=>z.ps.includes(pa));if(d)best=(o.places||[]).find(p=>p.k==="d"&&p.name===d.name)}if(!best)return;
-    const KT={b:"Construção",g:"Portão",r:"Rua",d:"Distrito",c:"Cidade"},note=findNote(best.name),qs=quests().filter(n=>splitL(fm(n.content).props.local).some(t=>norm(t)===norm(best.name))),r=mc.getBoundingClientRect(),wr=view.parentNode.getBoundingClientRect(),px=r.left+w.cx/AC.CW*r.width-wr.left,py=r.top+w.cy/AC.CH*r.height-wr.top;
+    const KT={b:"Construção",g:"Portão",r:"Rua",d:"Distrito",c:"Cidade"},note=findNote(best.name),qs=quests().filter(n=>!(S.players&&qState(n)==="oculta")).filter(n=>splitL(fm(n.content).props.local).some(t=>norm(t)===norm(best.name))),r=mc.getBoundingClientRect(),wr=view.parentNode.getBoundingClientRect(),px=r.left+w.cx/AC.CW*r.width-wr.left,py=r.top+w.cy/AC.CH*r.height-wr.top;
     pop=h("div",{class:"mpop",style:"left:"+clamp(px-20,8,wr.width-290)+"px;top:"+clamp(py+14,8,wr.height-230)+"px"},h("button",{type:"button",class:"x","aria-label":"Fechar",onclick:()=>{pop.remove();pop=null}},"×"),h("small",{},KT[best.k]||"Lugar"),h("b",{},best.name),note&&snippet(note)?h("p",{},snippet(note)):null,
       h("div",{class:"row"},h("button",{type:"button",class:"primary",onclick:()=>openNote(placeNote(best).id,note?null:"edit")},note?"Abrir nota":"Criar nota"),h("button",{type:"button",onclick:()=>{placeNote(best);const n=newNote("missao","Missão em "+best.name);setProps(n,{status:"aberta",local:best.name});openNote(n.id,"edit")}},"+ Missão aqui")),
       qs.length?h("div",{class:"qlist"},qs.map(n=>h("button",{type:"button",class:"qi q-"+qState(n),onclick:()=>openNote(n.id)},n.title))):null);view.parentNode.append(pop)}
@@ -931,7 +931,7 @@ function mkOverlay(o,W,H,place){const NS="http://www.w3.org/2000/svg",svg=docume
       el("polygon",{points:P,fill:r.color,"fill-opacity":dz?.16:.07},g);el("polygon",{points:P,fill:"none",stroke:r.color,"stroke-opacity":.3,"stroke-width":big?12:8,"stroke-linejoin":"round"},g);
       el("polygon",{points:P,fill:"none",stroke:r.color,"stroke-width":big?2.6:1.8,"stroke-dasharray":big?"12 4 3 4":dz?"4 4":"9 5","stroke-linejoin":"round"},g);
       if(r.name&&r.lab!==false){const c=cent(r.pts),t=el("text",{x:c[0].toFixed(1),y:c[1].toFixed(1),class:"rlab"+(big?" big":""),"text-anchor":"middle",fill:r.color},g);t.textContent=r.name.toUpperCase()}});
-    const groups=new Map();for(const n of quests()){for(const nm of splitL(fm(n.content).props.local)){const xy=place(nm);if(!xy)continue;const k=Math.round(xy[0])+","+Math.round(xy[1]);if(!groups.has(k))groups.set(k,{xy,list:[]});const G=groups.get(k);if(!G.list.includes(n))G.list.push(n)}}
+    const groups=new Map();for(const n of quests().filter(n=>!(S.players&&qState(n)==="oculta"))){for(const nm of splitL(fm(n.content).props.local)){const xy=place(nm);if(!xy)continue;const k=Math.round(xy[0])+","+Math.round(xy[1]);if(!groups.has(k))groups.set(k,{xy,list:[]});const G=groups.get(k);if(!G.list.includes(n))G.list.push(n)}}
     for(const {xy,list} of groups.values()){const live=list.filter(n=>!["concluida","falhou"].includes(qState(n))),m=live[0]||list[0],s=qState(m),lk=s!=="concluida"&&s!=="falhou"&&qWaits(m).length>0;
       const g=el("g",{class:"qm q-"+s+(lk?" lock":""),"data-x":xy[0].toFixed(1),"data-y":xy[1].toFixed(1),transform:"translate("+xy[0].toFixed(1)+","+xy[1].toFixed(1)+") scale("+qsc()+") translate(0,-18)",tabindex:"0",role:"button","aria-label":"Missões: "+list.map(n=>n.title).join(", ")});
       el("path",{d:"M0 12 L-6 3 A10 10 0 1 1 6 3 Z",class:"qb"},g);const t=el("text",{x:0,y:-4,"text-anchor":"middle","dominant-baseline":"central",class:"qt"},g);t.textContent=s==="concluida"?"✓":s==="falhou"?"✗":lk?"…":"!";
@@ -993,7 +993,7 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
   acts.append(h("button",{type:"button",onclick:()=>{const n=newNote("missao","Missão em "+name);setProps(n,{status:"aberta",local:name});openNote(n.id,"edit")}},"+ Missão aqui"));
   if(pin)acts.append(h("button",{type:"button",class:"danger",onclick:()=>{o.pins=o.pins.filter(p=>p!==pin);Store.save("maps",o);S.redrawPins&&S.redrawPins();closePlace()}},"Remover pino"));
   box.append(h("div",{class:"row"},h("h2",{},kindTxt),h("span",{class:"grow"}),h("button",{type:"button",onclick:closePlace},"Fechar")),nm,acts);
-  {const qs=quests().filter(n=>splitL(fm(n.content).props.local).some(x=>norm(x)===norm(name)));if(qs.length)box.append(h("div",{class:"qlist"},h("small",{},"Missões aqui"),qs.map(n=>h("button",{type:"button",class:"qi q-"+qState(n),onclick:()=>openNote(n.id)},n.title))))}
+  {const qs=quests().filter(n=>!(S.players&&qState(n)==="oculta")&&splitL(fm(n.content).props.local).some(x=>norm(x)===norm(name)));if(qs.length)box.append(h("div",{class:"qlist"},h("small",{},"Missões aqui"),qs.map(n=>h("button",{type:"button",class:"qi q-"+qState(n),onclick:()=>openNote(n.id)},n.title))))}
   if(town){const set=(k,v)=>{S.snap&&S.snap();town[k]=v;if(k==="kind"){town.size={village:8,town:14,city:30,camp:16}[v];town.wall=v==="city"||v==="camp"}if(k==="race"&&(v==="halfling"))town.wall=false;Store.save("maps",o);S.regen&&S.regen()};
     const rng=(label,k,min,max,val,fmt,conv)=>{const sp=h("span",{},fmt(val)),id="t_"+k;return h("div",{class:"fld"},h("label",{for:id},label,sp),h("input",{id,type:"range",min,max,value:val,oninput:e=>sp.textContent=fmt(+e.target.value),onchange:e=>set(k,conv(+e.target.value))}))};
     const rc=h("select",{id:"t_race",onchange:e=>set("race",e.target.value)},A.RACES.map(r=>h("option",{value:r},A.RACE_PT[r])));rc.value=town.race||"humano";
@@ -1035,11 +1035,12 @@ function ligarNotas(de,para,rot){const n=findNote(de);if(!n)return;let c=n.conte
   if(/\n## Ligações\n/.test("\n"+c))c=c.replace(/(\n?## Ligações\n(?:- .*\n?)*)/,m=>m.replace(/\n?$/,"\n")+linha+"\n");else c=c.replace(/\s*$/,"")+"\n\n## Ligações\n"+linha+"\n";n.content=c;n.updated=now();Store.save("notes",n)}
 function drawQuadro(o,main){const AQ=window.AtlasQuadro,area=h("div",{class:"qd-area"}),nome=h("input",{type:"text",class:"title qd-titulo",value:o.title,"aria-label":"Nome do quadro",onchange:e=>{const v=e.target.value.trim()||o.title,ex=findNote(v);if(ex&&ex.id!==o.id){toast("Já existe uma nota com esse nome.");e.target.value=o.title;return}o.title=v;Store.save("notes",o);drawSide()}});
   let armed=false;const del=h("button",{type:"button",class:"ghost sm",onclick:()=>{if(!armed){armed=true;del.textContent="Confirmar";setTimeout(()=>{armed=false;del.textContent="Excluir"},3000);return}Store.remove("notes",o.id);S.note=null;drawAll()}},"Excluir");
-  const exp=h("button",{type:"button",class:"sm",title:"Baixar como .canvas (abre no Obsidian)",onclick:()=>saveFile(safe(o.title)+".canvas",new Blob([JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1)],{type:"application/json"}))},icone("exportar",16),".canvas");
-  main.append(h("div",{class:"qd-top"},h("i",{class:"tic",style:"color:#a88bd6"},icone("quadro",22)),nome,h("span",{class:"grow"}),exp,del),area);
+  const exp=h("button",{type:"button",class:"sm ico-m","aria-label":"Baixar como .canvas",title:"Baixar como .canvas (abre no Obsidian)",onclick:()=>saveFile(safe(o.title)+".canvas",new Blob([JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1)],{type:"application/json"}))},icone("exportar",16),".canvas");
+  const atu=o.campanha?h("button",{type:"button",class:"sm ico-m","aria-label":"Atualizar com a campanha",title:"Traz missões, personagens, lugares e itens novos da campanha, sem mexer no que você arrumou",onclick:()=>{const r=sincronizaCampanha(o,false);if(!r)return;toast(r.novos||r.linhas||r.tirou?(r.novos+" cartões novos, "+r.linhas+" linhas novas"+(r.tirou?", "+r.tirou+" linhas que não valem mais":"")+"."):"O quadro já está em dia com a campanha.");drawMain()}},icone("refazer",16),"Atualizar"):null;
+  main.append(h("div",{class:"qd-top"},h("i",{class:"tic",style:"color:#a88bd6"},icone("quadro",22)),nome,o.campanha?h("button",{type:"button",class:"qd-campl",onclick:()=>openTitle(o.campanha)},icone("campanha",15),o.campanha):null,h("span",{class:"grow"}),atu,exp,del),area);
   if(!AQ){area.append(h("p",{class:"empty",style:"padding:24px"},"O quadro não carregou neste navegador."));return}
   const MIC={battle:["batalha","Mapa de batalha"],city:["cidade","Mapa de cidade"]};
-  S.quadro=AQ.abrirQuadro(area,{dados:o.canvas||(o.canvas={nodes:[],edges:[]}),salvar:D=>{o.canvas=D;o.updated=now();Store.save("notes",o)},resumoNota,ligarNotas,aviso:toast,
+  S.quadro=AQ.abrirQuadro(area,{oculto:ocultoNoQuadro,legenda:o.campanha?LEGENDA_CAMP:null,dados:o.canvas||(o.canvas={nodes:[],edges:[]}),salvar:D=>{o.canvas=D;o.updated=now();Store.save("notes",o)},resumoNota,ligarNotas,aviso:toast,
     notas:()=>[...S.notes.values()].filter(n=>n.kind!=="canvas").map(n=>{const ty=fm(n.content).props.tipo||"livre";return {titulo:n.title,ic:TICO[ty]||"livre",cor:TCOL[ty],tipo:TYPES[ty]||"Nota"}}).sort((a,b)=>a.titulo.localeCompare(b.titulo)),
     mapas:()=>[...S.maps.values()].filter(m=>m.type!=="assets").map(m=>{const mi=MIC[m.type]||["regiao","Mapa de região"];return {id:m.id,nome:m.name,ic:mi[0],det:mi[1]}}),
     abrirNota:t=>openTitle(t),criarNota:t=>openTitle(t),abrirMapa:id=>{if(S.maps.has(id))openMap(id);else toast("Esse mapa foi apagado.")}})}
@@ -1107,7 +1108,7 @@ async function saveFile(name,blob){if(!blob){toast("Nada para salvar.");return}
 window.atlasSalvar=saveFile; // o Modo Batalha baixa arquivos pelo mesmo caminho (no artifact usa a permissao de download)
 function exportVault(players){const files=[],used=new Set();const put=(name,data)=>{let n=name,k=2;while(used.has(n.toLowerCase()))n=name.replace(/(\.[^.]+(\.json)?)$/," "+(k++)+"$1");used.add(n.toLowerCase());files.push({name:n,data})};
   const caminhoNota=t=>{const o=findNote(t);return o?(o.folder?o.folder.split("/").map(safe).join("/")+"/":"")+safe(o.title)+".md":t+".md"};
-  for(const n of S.notes.values()){if(n.kind==="canvas"){const C=JSON.parse(JSON.stringify(n.canvas||{nodes:[],edges:[]}));for(const nd of C.nodes)if(nd.type==="file"&&/\.md$/i.test(nd.file||""))nd.file=caminhoNota(nd.file.split("/").pop().replace(/\.md$/i,""));put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".canvas",JSON.stringify(C,null,1));continue}let c=n.content||"";if(players)c=stripSecrets(c);c=c.replace(/!\[\[img:([\w-]+)\]\]/g,(m,id)=>n.images&&n.images[id]?"![]("+n.images[id]+")":"");put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".md",c)}
+  for(const n of S.notes.values()){if(n.kind==="canvas"){const C=JSON.parse(JSON.stringify(n.canvas||{nodes:[],edges:[]}));if(players){const fora=new Set(C.nodes.filter(x=>ocultoNoQuadro(x,true)).map(x=>x.id));C.nodes=C.nodes.filter(x=>!fora.has(x.id));C.edges=C.edges.filter(e=>!fora.has(e.fromNode)&&!fora.has(e.toNode))}for(const nd of C.nodes)if(nd.type==="file"&&/\.md$/i.test(nd.file||""))nd.file=caminhoNota(nd.file.split("/").pop().replace(/\.md$/i,""));put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".canvas",JSON.stringify(C,null,1));continue}let c=n.content||"";if(players)c=stripSecrets(c);c=c.replace(/!\[\[img:([\w-]+)\]\]/g,(m,id)=>n.images&&n.images[id]?"![]("+n.images[id]+")":"");put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".md",c)}
   if(!players)for(const m of S.maps.values())put("mapas/"+safe(m.name)+".map.json",JSON.stringify({name:m.name,type:m.type||"region",params:m.params,edits:m.edits||[],towns:m.lock||[],pins:m.pins||[],realms:m.realms||[],objs:m.objs||[]},null,2));
   if(!files.length){toast("O vault está vazio.");return}
   const imgs=[...S.notes.values()].filter(n=>n.kind==="canvas").flatMap(n=>((n.canvas||{}).nodes||[]).filter(x=>x.atlas&&x.atlas.img).map(x=>x.atlas.img));
@@ -1129,7 +1130,7 @@ const qPeso=n=>fm(n.content).props.peso==="secundaria"?"secundaria":"principal";
 const TASK=/^\s*(?:>\s?)*(?:[-*+]|\d+\.)\s+\[( |x|X)\]\s*(.*)$/;
 function objetivos(n){let f=0,t=0;for(const l of fm(n.content).body.split("\n")){const m=TASK.exec(l);if(m&&m[2].trim()){t++;if(m[1]!==" ")f++}}return {f,t}}
 function campAtual(){const cs=campanhas();if(!S.campEsc){const p=cs.find(c=>fm(c.content).props.principal==="sim");S.camp=p?p.title:""}if(S.camp&&S.camp!=="-"&&!cs.some(c=>c.title===S.camp))S.camp="";return S.camp}
-function questsDaCamp(){const c=campAtual();return quests().filter(n=>(!S.tag||tagsOf(n).has(S.tag))&&(!c||(c==="-"?!qCamp(n):norm(qCamp(n))===norm(c))))}
+function questsDaCamp(){const c=campAtual();return quests().filter(n=>!(S.players&&qState(n)==="oculta")&&(!S.tag||tagsOf(n).has(S.tag))&&(!c||(c==="-"?!qCamp(n):norm(qCamp(n))===norm(c))))}
 function novaMissao(extra){const c=campAtual(),o=newNote("missao","Nova missão");const p=Object.assign({},extra||{});if(c&&c!=="-"&&!p.campanha)p.campanha="[["+c+"]]";setProps(o,p);openNote(o.id,"edit")}
 const qChip=(txt,cor,cls)=>h("span",{class:"qchip"+(cls?" "+cls:""),style:cor?"--c:"+cor:null},txt);
 function barraObj(n,mini){const o=objetivos(n);if(!o.t)return null;const pc=Math.round(o.f/o.t*100);return h("div",{class:"qobj"+(mini?" mini":""),title:o.f+" de "+o.t+" objetivos"},h("span",{class:"qobar"},h("i",{style:"width:"+pc+"%"})),h("small",{},o.f+"/"+o.t))}
@@ -1143,7 +1144,7 @@ function drawQuests(){const main=$("#main");main.replaceChildren();const cs=camp
   if(V==="lista")wrap.append(listaMissoes(qs,!c));else if(V==="arvore")wrap.append(arvoreMissoes(qs));else wrap.append(quadroSituacao(qs,!c))}
 function resumoCamp(co,qs){const p=fm(co.content).props,pr=qs.filter(n=>qPeso(n)==="principal"&&qState(n)!=="oculta"),fe=pr.filter(n=>qState(n)==="concluida").length,pc=pr.length?Math.round(fe/pr.length*100):0;
   const cont=["andamento","aberta","concluida","falhou"].map(s=>[s,qs.filter(n=>qState(n)===s).length]).filter(x=>x[1]);
-  return h("section",{class:"qresumo"},h("div",{class:"qrtop"},h("i",{class:"tic",style:"color:"+TCOL.campanha},icone("campanha",24)),h("button",{type:"button",class:"qrt",onclick:()=>openNote(co.id)},co.title),p.principal==="sim"?qChip("Principal","#d4a64a"):null,p.estado?qChip(({planejada:"Planejada",andamento:"Em andamento",pausada:"Pausada",concluida:"Concluída"})[p.estado]||p.estado):null,h("span",{class:"grow"}),p.jogadores?h("small",{class:"dim"},p.jogadores):null),
+  return h("section",{class:"qresumo"},h("div",{class:"qrtop"},h("i",{class:"tic",style:"color:"+TCOL.campanha},icone("campanha",24)),h("button",{type:"button",class:"qrt",onclick:()=>openNote(co.id)},co.title),p.principal==="sim"?qChip("Principal","#d4a64a"):null,p.estado?qChip(({planejada:"Planejada",andamento:"Em andamento",pausada:"Pausada",concluida:"Concluída"})[p.estado]||p.estado):null,h("span",{class:"grow"}),p.jogadores?h("small",{class:"dim"},p.jogadores):null,h("button",{type:"button",class:"sm",onclick:()=>quadroDaCampanha(co)},icone("quadro",16),"Quadro da campanha")),
     h("div",{class:"qrprog"},h("span",{class:"qobar big"},h("i",{style:"width:"+pc+"%"})),h("small",{},fe+" de "+pr.length+" missões principais concluídas")),
     h("div",{class:"qrcont"},cont.map(([s,k])=>h("span",{class:"qrc"},h("i",{style:"background:"+QCOR[s]}),k+" "+QNOME[s].toLowerCase()))))}
 function cartaoMissao(n,mostraCamp){const p=fm(n.content).props,st=qState(n),wt=st==="aberta"||st==="andamento"?qWaits(n):[],nx=splitL(p.libera),peso=qPeso(n),cp=qCamp(n);
@@ -1160,7 +1161,7 @@ function cartaoMissao(n,mostraCamp){const p=fm(n.content).props,st=qState(n),wt=
     h("div",{class:"qfoot"},h("select",{"aria-label":"Situação de "+n.title,onchange:e=>{setProps(n,{status:e.target.value});drawSide();drawQuests()}},QST.map(([v,l])=>h("option",{value:v,selected:v===st},l))),
       p.local&&findPlace(splitL(p.local)[0])?h("button",{type:"button",class:"ghost sm",onclick:()=>openTitle(splitL(p.local)[0])},icone("mapas",15),"Ver no mapa"):null));
   return card}
-function quadroSituacao(qs,mostraCamp){const cols=S.qtodas?QST.map(x=>x[0]):["aberta","andamento","concluida","falhou"],ext=qs.filter(n=>!cols.includes(qState(n))).length;
+function quadroSituacao(qs,mostraCamp){const cols=S.qtodas&&!S.players?QST.map(x=>x[0]):["aberta","andamento","concluida","falhou"],ext=qs.filter(n=>!cols.includes(qState(n))).length;
   const wrap=h("div",{class:"qsit"});
   const board=h("div",{class:"qboard2",style:"--n:"+cols.length});
   for(const st of cols){const its=qs.filter(n=>qState(n)===st).sort((a,b)=>(qPeso(a)==="principal"?0:1)-(qPeso(b)==="principal"?0:1)||a.title.localeCompare(b.title));
@@ -1168,7 +1169,7 @@ function quadroSituacao(qs,mostraCamp){const cols=S.qtodas?QST.map(x=>x[0]):["ab
       ondrop:e=>{e.preventDefault();col.classList.remove("alvo");const id=e.dataTransfer.getData("text/x-atlas-missao"),n=S.notes.get(id);if(n&&qState(n)!==st){setProps(n,{status:st});toast("“"+n.title+"” agora está em "+QNOME[st].toLowerCase()+".");drawSide();drawQuests()}}},
       h("h2",{},h("i",{class:"qdot"}),QNOME[st],h("span",{class:"cnt"},String(its.length))),its.map(n=>cartaoMissao(n,mostraCamp)),its.length?null:h("p",{class:"qcvazio"},"Arraste uma missão para cá"));
     board.append(col)}
-  wrap.append(board,h("label",{class:"qtodas"},h("input",{type:"checkbox",checked:!!S.qtodas,onchange:e=>{S.qtodas=e.target.checked;drawQuests()}}),"Mostrar ocultas e abandonadas"+(ext&&!S.qtodas?" ("+ext+")":"")));return wrap}
+  wrap.append(board,S.players?null:h("label",{class:"qtodas"},h("input",{type:"checkbox",checked:!!S.qtodas,onchange:e=>{S.qtodas=e.target.checked;drawQuests()}}),"Mostrar ocultas e abandonadas"+(ext&&!S.qtodas?" ("+ext+")":"")));return wrap}
 function listaMissoes(qs,mostraCamp){const F=S.qf||(S.qf={st:"",peso:"",arco:"",q:"",ord:"titulo",inv:false}),arcos=[...new Set(qs.map(n=>fm(n.content).props.arco).filter(Boolean))].sort();
   const ordemSt=Object.fromEntries(QST.map((x,i)=>[x[0],i]));
   const val={titulo:n=>n.title.toLowerCase(),status:n=>ordemSt[qState(n)],peso:n=>qPeso(n),arco:n=>(fm(n.content).props.arco||"~").toLowerCase(),local:n=>(splitL(fm(n.content).props.local)[0]||"~").toLowerCase(),obj:n=>{const o=objetivos(n);return o.t?o.f/o.t:-1},camp:n=>qCamp(n).toLowerCase()||"~"};
@@ -1185,6 +1186,52 @@ function listaMissoes(qs,mostraCamp){const F=S.qf||(S.qf={st:"",peso:"",arco:"",
   const cabeca=()=>h("thead",{},h("tr",{},th("titulo","Missão"),th("status","Situação"),th("peso","Peso"),th("arco","Arco"),th("local","Onde"),th("obj","Objetivos"),mostraCamp?th("camp","Campanha"):null));let cab=cabeca();
   const filtros=h("div",{class:"qfiltros"},h("input",{type:"search",placeholder:"Buscar missão, lugar ou quem dá",value:F.q,"aria-label":"Buscar missão",oninput:e=>{F.q=e.target.value;monta()}}),sl("st","Toda situação",QST),sl("peso","Todo peso",[["principal","Principal"],["secundaria","Secundária"]]),arcos.length?sl("arco","Todo arco",arcos.map(a=>[a,a])):null,cont);
   monta();return h("div",{class:"qlista"},filtros,h("div",{class:"qtab"},h("table",{},cab,corpo)))}
+// ---------- 0.87 quadro da campanha ----------
+const LEGENDA_CAMP=[{cor:"3",txt:"Campanha e sequência principal",grossa:true},{cor:"2",txt:"Missão secundária"},{cor:"1",estilo:"tracejada",txt:"Precisa de"},{cor:"5",txt:"Acontece em"},{cor:"1",estilo:"pontilhada",txt:"Personagem envolvido"},{cor:"4",txt:"Item ou recompensa"},{cor:"6",estilo:"pontilhada",txt:"Facção"}];
+const tipoDe=n=>fm(n.content).props.tipo||"livre";
+function quadroDaCampanha(co){let q=[...S.notes.values()].find(n=>n.kind==="canvas"&&n.campanha&&norm(n.campanha)===norm(co.title));
+  if(!q){q=newNote("livre","Quadro · "+co.title,{content:""});q.kind="canvas";q.campanha=co.title;q.canvas={nodes:[],edges:[]};q.folder="Quadros";sincronizaCampanha(q,true)}else sincronizaCampanha(q,false);openNote(q.id)}
+// monta (ou completa) o quadro a partir das ligacoes; nunca move o que ja existe, nunca apaga cartao
+function sincronizaCampanha(q,novo){const co=findNote(q.campanha);if(!co){toast("A campanha “"+q.campanha+"” não existe mais.");return 0}
+  const C=q.canvas||(q.canvas={nodes:[],edges:[]}),ms=quests().filter(n=>norm(qCamp(n))===norm(co.title)),porTit=new Map(ms.map(n=>[norm(n.title),n]));
+  const noDe=new Map();for(const n of C.nodes)if(n.type==="file"&&/\.md$/i.test(n.file||""))noDe.set(norm(n.file.split("/").pop().replace(/\.md$/i,"")),n);
+  const R=[],liga=(a,b,cor,estilo,tipo,extra)=>{if(norm(a)===norm(b))return;R.push(Object.assign({a,b,cor,estilo,tipo},extra||{}))};
+  const pri=ms.filter(n=>qPeso(n)==="principal"),sec=ms.filter(n=>qPeso(n)==="secundaria");
+  // sequencia: abre / precisa de entre missoes da campanha
+  const seq=[];for(const n of ms){const p=fm(n.content).props;for(const t of splitL(p.libera)){const b=porTit.get(norm(t));if(b)seq.push([n,b,"abre"])}for(const t of splitL(p.requer)){const a=porTit.get(norm(t));if(a&&!seq.some(s=>s[0]===a&&s[1]===n))seq.push([a,n,"requer"])}}
+  const temPai=new Set(seq.map(s=>s[1].id));
+  for(const [a,b,k] of seq){const s2=qPeso(a)==="secundaria"||qPeso(b)==="secundaria";if(k==="requer")liga(a.title,b.title,"1","tracejada","requer");else liga(a.title,b.title,s2?"2":"3",null,"abre",s2?null:{grossa:true})}
+  for(const n of pri)if(!temPai.has(n.id))liga(co.title,n.title,"3",null,"campanha",{grossa:true});
+  for(const n of sec)if(!temPai.has(n.id)&&!seq.some(s=>s[0]===n))liga(co.title,n.title,"2",null,"secundaria");
+  const ents=new Map(),ent=(t,de)=>{const o=findNote(t);if(!o||o.kind==="canvas"||porTit.has(norm(o.title))||norm(o.title)===norm(co.title))return null;if(!ents.has(o.id))ents.set(o.id,{o,de:[]});ents.get(o.id).de.push(de);return o};
+  for(const n of ms){const p=fm(n.content).props;
+    for(const t of splitL(p.local)){const o=ent(t,n);if(o)liga(n.title,o.title,"5",null,"local")}
+    for(const t of [...splitL(p.contratante),...splitL(p.envolvidos)]){const o=ent(t,n);if(o){const f=tipoDe(o)==="faccao";liga(n.title,o.title,f?"6":"1","pontilhada",f?"faccao":"personagem")}}
+    for(const t of splitL(p.itens)){const o=ent(t,n);if(o)liga(n.title,o.title,"4",null,"item")}}
+  for(const t of splitL(fm(co.content).props.regiao)){const o=ent(t,null);if(o)liga(co.title,o.title,"5",null,"local")}
+  // posicoes: campanha no alto, missoes por camadas, o resto embaixo perto de quem liga
+  const W=300,H=190,GX=90,GY=60,nivel=new Map(ms.map(n=>[n.id,0]));for(let k=0;k<ms.length+1;k++){let m=false;for(const [a,b] of seq){const v=nivel.get(a.id)+1;if(v>nivel.get(b.id)&&v<=ms.length){nivel.set(b.id,v);m=true}}if(!m)break}
+  const colunas=new Map();for(const n of [...pri,...sec]){const l=nivel.get(n.id);if(!colunas.has(l))colunas.set(l,[]);colunas.get(l).push(n)}
+  const pos=new Map(),topo=300;for(const [l,arr] of colunas){arr.sort((a,b)=>(qPeso(a)==="principal"?0:1)-(qPeso(b)==="principal"?0:1)||(fm(a.content).props.arco||"").localeCompare(fm(b.content).props.arco||"")||a.title.localeCompare(b.title));arr.forEach((n,i)=>pos.set(norm(n.title),[l*(W+GX),topo+i*(H+GY)]))}
+  const larg=Math.max(1,colunas.size)*(W+GX)-GX,fundo=topo+Math.max(1,...[...colunas.values()].map(a=>a.length))*(H+GY)+80;pos.set(norm(co.title),[Math.round(larg/2-170),0]);
+  const ocup=C.nodes.map(n=>[n.x,n.y,n.width,n.height]),livre=(x,y,w,h)=>!ocup.some(r=>x<r[0]+r[2]+30&&r[0]<x+w+30&&y<r[1]+r[3]+30&&r[1]<y+h+30);
+  const ePos=[...ents.values()].map(e=>{const xs=e.de.filter(Boolean).map(m=>(pos.get(norm(m.title))||[larg/2])[0]);return [e,xs.length?xs.reduce((a,b)=>a+b,0)/xs.length:larg/2]}).sort((a,b)=>a[1]-b[1]);
+  const ordTipo={personagem:0,faccao:1,local:2,item:3};ePos.sort((a,b)=>a[1]-b[1]||(ordTipo[tipoDe(a[0].o)]??9)-(ordTipo[tipoDe(b[0].o)]??9));
+  let cx=-1e9;for(const [e,x] of ePos){let px=Math.max(Math.round(x),cx+W+30);pos.set(norm(e.o.title),[px,fundo+(ordTipo[tipoDe(e.o)]===2?H+GY:0)]);cx=px}
+  // cria o que falta
+  let novos=0;const garante=(t,w,h)=>{const k=norm(t);if(noDe.has(k))return noDe.get(k);let [x,y]=pos.get(k)||[0,fundo];if(!novo){let i=0;while(!livre(x,y,w,h)&&i<80){x+=(i%2?-1:1)*(i+1)*60;y+=i%3===2?H:0;i++}}
+    const n={id:Math.random().toString(16).slice(2,18),type:"file",file:t+".md",x:Math.round(x),y:Math.round(y),width:w,height:h};C.nodes.push(n);ocup.push([n.x,n.y,w,h]);noDe.set(k,n);novos++;return n};
+  garante(co.title,340,170);for(const n of ms)garante(n.title,W,H);for(const e of ents.values())garante(e.o.title,280,150);
+  // grupos por arco (so na primeira montagem)
+  if(novo){const arcos=new Map();for(const n of ms){const a=fm(n.content).props.arco;if(!a)continue;if(!arcos.has(a))arcos.set(a,[]);arcos.get(a).push(noDe.get(norm(n.title)))}let ci=0;
+    for(const [a,L] of arcos){const x0=Math.min(...L.map(n=>n.x))-30,y0=Math.min(...L.map(n=>n.y))-60,x1=Math.max(...L.map(n=>n.x+n.width))+30,y1=Math.max(...L.map(n=>n.y+n.height))+30;C.nodes.unshift({id:Math.random().toString(16).slice(2,18),type:"group",label:a,x:x0,y:y0,width:x1-x0,height:y1-y0,color:["5","6","4","2"][ci++%4]})}}
+  // linhas automaticas: recalcula (as feitas a mao ficam)
+  const chave=r=>norm(r.a)+"\u0000"+norm(r.b)+"\u0000"+r.tipo,quer=new Map(R.map(r=>[chave(r),r]));
+  const antes=C.edges.length;C.edges=C.edges.filter(e=>{if(!e.atlas||!e.atlas.auto)return true;const A=C.nodes.find(n=>n.id===e.fromNode),B=C.nodes.find(n=>n.id===e.toNode);if(!A||!B)return false;const k=norm(A.file.split("/").pop().replace(/\.md$/i,""))+"\u0000"+norm(B.file.split("/").pop().replace(/\.md$/i,""))+"\u0000"+e.atlas.auto;if(quer.has(k)){quer.delete(k);return true}return false});
+  const tirou=antes-C.edges.length;for(const r of quer.values()){const A=noDe.get(norm(r.a)),B=noDe.get(norm(r.b));if(!A||!B)continue;const at={auto:r.tipo};if(r.estilo)at.estilo=r.estilo;if(r.grossa)at.grossa=true;C.edges.push({id:Math.random().toString(16).slice(2,18),fromNode:A.id,toNode:B.id,color:r.cor,atlas:at})}
+  q.updated=now();Store.save("notes",q);return {novos,linhas:quer.size,tirou}}
+// visao dos jogadores no quadro: missoes ocultas e cartoes marcados "so para o mestre" somem
+function ocultoNoQuadro(n,sempre){if(!S.players&&!sempre)return false;if(n.atlas&&n.atlas.segredo)return true;if(n.type==="file"&&/\.md$/i.test(n.file||"")){const o=findNote(n.file.split("/").pop().replace(/\.md$/i,""));if(o&&tipoDe(o)==="missao"&&qState(o)==="oculta")return true}return false}
 // arvore: da esquerda para a direita seguindo "precisa de" e "abre"
 function arvoreMissoes(qs){const ids=new Map(qs.map(n=>[norm(n.title),n])),E=[],fant=new Map();
   for(const n of qs){const p=fm(n.content).props;for(const t of splitL(p.requer)){const a=ids.get(norm(t));if(a&&a!==n)E.push({a:a.title,b:n.title,k:"requer"});else if(!a&&!findNote(t))fant.set(norm(t),t),E.push({a:t,b:n.title,k:"requer",f:1})}

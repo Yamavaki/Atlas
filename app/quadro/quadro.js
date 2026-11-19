@@ -32,8 +32,10 @@ const SVG="http://www.w3.org/2000/svg";const sv=(t,a)=>{const e=document.createE
 export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dados:{nodes:[],edges:[]};if(!D.edges)D.edges=[];
   raiz.replaceChildren();const vista=el("div",{class:"qd",tabindex:"0"}),mundo=el("div",{class:"qd-mundo"}),camL=sv("svg",{class:"qd-linhas",width:"1",height:"1"}),camT=el("div",{class:"qd-temp"});mundo.append(camL);vista.append(mundo);
   const barra=el("div",{class:"qd-barra",role:"toolbar","aria-label":"Ferramentas do quadro"}),painel=el("div",{class:"qd-painel",hidden:true}),zoomB=el("div",{class:"qd-zoom"}),dica=el("div",{class:"qd-dica"},"Duplo clique no vazio cria um cartão · arraste a bolinha da borda para ligar · Shift + arrastar seleciona"),mini=el("canvas",{class:"qd-mini",width:"180",height:"120"});
-  raiz.append(vista,barra,painel,zoomB,dica,mini);
-  let cam={x:0,y:0,z:1},sel=new Set(),selL=null,arr=null,editando=null,tSalvar=0;const pilha=[],refaz=[];
+  const focoChip=el("button",{type:"button",class:"qd-focochip",hidden:true,onclick:()=>{foco=null;tudo()}},ic("olho",16),"Modo foco · sair");
+  const legF=matchMedia("(max-width:860px)").matches,leg=ctx.legenda?el("div",{class:"qd-leg"+(legF?" fechada":"")},el("button",{type:"button",class:"qd-legb","aria-expanded":String(!legF),onclick:e=>{const f=leg.classList.toggle("fechada");e.currentTarget.setAttribute("aria-expanded",String(!f))}},"Legenda"),el("div",{class:"qd-legl"},ctx.legenda.map(x=>el("span",{},el("i",{class:"qd-lgl",style:"border-top:"+(x.grossa?3.5:2.4)+"px "+(x.estilo==="tracejada"?"dashed":x.estilo==="pontilhada"?"dotted":"solid")+" "+(CORES[x.cor]||x.cor)}),x.txt)))):null;
+  raiz.append(vista,barra,painel,zoomB,dica,mini,focoChip);if(leg)raiz.append(leg);
+  let cam={x:0,y:0,z:1},sel=new Set(),selL=null,arr=null,editando=null,tSalvar=0,foco=null,vizFoco=null;const vis=n=>!(ctx.oculto&&ctx.oculto(n));const pilha=[],refaz=[];
   const nos=new Map(),elNo=new Map();
   // ---- desfazer: foto do quadro inteiro antes de cada mudanca ----
   const foto=()=>JSON.stringify({nodes:D.nodes,edges:D.edges});
@@ -59,16 +61,16 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
     if(k==="link")return [el("div",{class:"qd-nh"},ic("link",18),el("b",{},n.atlas&&n.atlas.titulo||n.url)),el("a",{class:"qd-url",href:n.url,target:"_blank",rel:"noopener"},n.url)];
     if(k==="group")return [el("div",{class:"qd-gt",style:c?"color:"+c:null},n.label||"Grupo")];return []}
   function montaNo(n){let d=elNo.get(n.id);const k=tipoNo(n),c=corDe(n.color);if(!d){d=el("div",{class:"qd-no","data-id":n.id});elNo.set(n.id,d);mundo.append(d)}
-    d.className="qd-no qd-"+k+(sel.has(n.id)?" on":"");d.style.cssText="left:"+n.x+"px;top:"+n.y+"px;width:"+n.width+"px;height:"+n.height+"px"+(c?";--cor:"+c:"")+(k==="group"?";z-index:0":"");
-    d.replaceChildren(...corpoNo(n),el("span",{class:"qd-redim",title:"Mudar o tamanho"}),...["top","right","bottom","left"].map(l=>el("span",{class:"qd-pt qd-pt-"+l,"data-lado":l,title:"Arraste para ligar"})));return d}
-  function desenhaLinhas(){camL.replaceChildren();for(const e of D.edges){const A=nos.get(e.fromNode),B=nos.get(e.toNode);if(!A||!B)continue;const c=corDe(e.color)||"#B3A486",g=caminhoLinha(A,B,e),est=e.atlas&&e.atlas.estilo,on=selL===e.id;
-      const grp=sv("g",{"data-l":e.id,class:"qd-l"+(on?" on":"")});grp.append(sv("path",{d:g.d,class:"qd-lhit"}),sv("path",{d:g.d,stroke:c,"stroke-width":on?3.5:2.4,fill:"none","stroke-dasharray":est==="tracejada"?"10 7":est==="pontilhada"?"2 6":null,"stroke-linecap":"round"}));
+    d.className="qd-no qd-"+k+(sel.has(n.id)?" on":"")+(vizFoco&&!vizFoco.has(n.id)?" qd-apaga":"")+(n.atlas&&n.atlas.segredo?" qd-seg":"");d.style.cssText="left:"+n.x+"px;top:"+n.y+"px;width:"+n.width+"px;height:"+n.height+"px"+(c?";--cor:"+c:"")+(k==="group"?";z-index:0":"");
+    d.replaceChildren(...corpoNo(n).filter(Boolean),el("span",{class:"qd-redim",title:"Mudar o tamanho"}),...["top","right","bottom","left"].map(l=>el("span",{class:"qd-pt qd-pt-"+l,"data-lado":l,title:"Arraste para ligar"})));return d}
+  function desenhaLinhas(){camL.replaceChildren();for(const e of D.edges){const A=nos.get(e.fromNode),B=nos.get(e.toNode);if(!A||!B||!vis(A)||!vis(B))continue;const c=corDe(e.color)||"#B3A486",g=caminhoLinha(A,B,e),est=e.atlas&&e.atlas.estilo,on=selL===e.id;
+      const grp=sv("g",{"data-l":e.id,class:"qd-l"+(on?" on":"")+(vizFoco&&!(vizFoco.has(e.fromNode)&&vizFoco.has(e.toNode))?" qd-apaga":"")});const gr=e.atlas&&e.atlas.grossa?1.4:1;grp.append(sv("path",{d:g.d,class:"qd-lhit"}),sv("path",{d:g.d,stroke:c,"stroke-width":(on?3.5:2.4)*gr,fill:"none","stroke-dasharray":est==="tracejada"?"10 7":est==="pontilhada"?"2 6":null,"stroke-linecap":"round"}));
       if(e.toEnd!=="none")grp.append(seta(g.q,g.t,c));if(e.fromEnd==="arrow")grp.append(seta(g.p,g.t0,c));
       if(e.label){const t=sv("text",{x:g.meio[0],y:g.meio[1]+4,"text-anchor":"middle",class:"qd-lr"});t.textContent=e.label;const w=e.label.length*7.4+16;grp.append(sv("rect",{x:g.meio[0]-w/2,y:g.meio[1]-12,width:w,height:24,rx:12,class:"qd-lbg",stroke:c}),t)}
       camL.append(grp)}}
-  function tudo(){nos.clear();for(const n of D.nodes)nos.set(n.id,n);for(const [id,d] of elNo)if(!nos.has(id)){d.remove();elNo.delete(id)}
+  function tudo(){nos.clear();for(const n of D.nodes)nos.set(n.id,n);for(const [id,d] of elNo)if(!nos.has(id)||!vis(nos.get(id))){d.remove();elNo.delete(id)}if(foco&&!nos.has(foco))foco=null;vizFoco=foco?new Set([foco,...D.edges.filter(e=>e.fromNode===foco||e.toNode===foco).flatMap(e=>[e.fromNode,e.toNode])]):null;focoChip.hidden=!foco;dica.hidden=!!foco||D.nodes.length>3;
     // grupos primeiro (ficam atras)
-    const ord=D.nodes.slice().sort((a,b)=>(a.type==="group"?0:1)-(b.type==="group"?0:1));for(const n of ord)mundo.append(montaNo(n));mundo.insertBefore(camL,mundo.firstChild);const gs=ord.filter(n=>n.type==="group");for(const g of gs.reverse())mundo.insertBefore(elNo.get(g.id),mundo.firstChild);
+    const ord=D.nodes.filter(vis).sort((a,b)=>(a.type==="group"?0:1)-(b.type==="group"?0:1));for(const n of ord)mundo.append(montaNo(n));mundo.insertBefore(camL,mundo.firstChild);const gs=ord.filter(n=>n.type==="group");for(const g of gs.reverse())mundo.insertBefore(elNo.get(g.id),mundo.firstChild);
     desenhaLinhas();mostraPainel();desenhaMini()}
   // ---- criar ----
   const centro=()=>{const r=vista.getBoundingClientRect();return doMundo(r.left+r.width/2,r.top+r.height/2)};
@@ -99,6 +101,8 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
       if(A&&B&&tipoNo(A)==="nota"&&tipoNo(B)==="nota")K.push(el("button",{type:"button",class:"qd-acao",onclick:()=>{ctx.ligarNotas(tituloArq(A.file),tituloArq(B.file),L.label);ctx.aviso("Ligação escrita na nota "+tituloArq(A.file)+".")}},ic("link",16),"Ligar as notas"));
       K.push(el("button",{type:"button",class:"qd-acao qd-perigo",onclick:apaga},ic("apagar",16),"Apagar a linha"))}
     else{if(S.length===1&&tipoNo(S[0])==="nota"){const t=tituloArq(S[0].file);K.push(el("button",{type:"button",class:"qd-acao",onclick:()=>ctx.abrirNota(t)},ic("notas",16),"Abrir a nota"))}
+      if(S.length===1)K.push(el("button",{type:"button",class:"qd-acao"+(foco===S[0].id?" on":""),title:"Apaga o que não está ligado a este cartão",onclick:()=>{foco=foco===S[0].id?null:S[0].id;tudo()}},ic("olho",16),foco===S[0].id?"Sair do foco":"Modo foco"));
+      if(S.every(n=>tipoNo(n)!=="nota"))K.push(el("label",{class:"qd-chk"},el("input",{type:"checkbox",checked:S.every(n=>n.atlas&&n.atlas.segredo)?true:null,onchange:e=>muda(o=>{o.atlas=Object.assign({},o.atlas);if(e.target.checked)o.atlas.segredo=true;else delete o.atlas.segredo;if(!Object.keys(o.atlas).length)delete o.atlas})}),"Só para o mestre (some na visão dos jogadores)"));
       K.push(el("div",{class:"qd-acoes"},el("button",{type:"button",class:"qd-acao",title:"Ctrl+D",onclick:duplica},ic("item",16),"Duplicar"),S.length>1?el("button",{type:"button",class:"qd-acao",onclick:criaGrupo},ic("grupo",16),"Agrupar"):null,el("button",{type:"button",class:"qd-acao qd-perigo",onclick:apaga},ic("apagar",16),"Apagar")))}
     painel.replaceChildren(...K)}
   // ---- acoes ----
@@ -143,7 +147,7 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   vista.addEventListener("paste",e=>{for(const it of e.clipboardData.items||[])if(it.kind==="file"&&/^image\//.test(it.type)){e.preventDefault();criaImagem(it.getAsFile())}});
   const tecla=e=>{if(!raiz.isConnected){document.removeEventListener("keydown",tecla);return}const t=e.target;if(editando||e.defaultPrevented)return;if(t!==document.body&&!raiz.contains(t))return;if(t.matches&&t.matches("input,textarea,select,[contenteditable]"))return;if(document.getElementById("qd-menu")||document.getElementById("paleta"))return;const k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
     if(ctrl&&k==="z"){e.preventDefault();if(e.shiftKey)volta(refaz,pilha);else volta(pilha,refaz)}else if(ctrl&&k==="y"){e.preventDefault();volta(refaz,pilha)}else if(ctrl&&k==="d"){e.preventDefault();duplica()}else if(ctrl&&k==="a"){e.preventDefault();sel=new Set(D.nodes.map(n=>n.id));tudo()}
-    else if(k==="delete"||k==="backspace"){e.preventDefault();apaga()}else if(k==="escape"){sel.clear();selL=null;tudo()}else if(k==="f"&&!ctrl){enquadra()}else if(k==="enter"&&sel.size===1){e.preventDefault();edita(nos.get([...sel][0]))}};document.addEventListener("keydown",tecla);
+    else if(k==="delete"||k==="backspace"){e.preventDefault();apaga()}else if(k==="escape"){if(foco&&!sel.size)foco=null;sel.clear();selL=null;tudo()}else if(k==="f"&&!ctrl){enquadra()}else if(k==="enter"&&sel.size===1){e.preventDefault();edita(nos.get([...sel][0]))}};document.addEventListener("keydown",tecla);
   // ---- barra, zoom e minimapa ----
   const bot=(icn,txt,fn)=>el("button",{type:"button",class:"qd-b",title:txt,"aria-label":txt,onclick:fn},ic(icn,20),el("span",{},txt.split(" (")[0]));
   barra.append(bot("texto","Texto (duplo clique)",()=>{const c=centro();criaTexto(c[0],c[1],false,null,true)}),bot("adesivo","Adesivo",()=>{const c=centro();criaTexto(c[0],c[1],true,null,true)}),
@@ -160,7 +164,7 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
     el("button",{type:"button",class:"qd-zb",title:"Aproximar","aria-label":"Aproximar",onclick:()=>{const r=vista.getBoundingClientRect();zoomEm(r.left+r.width/2,r.top+r.height/2,1.25)}},ic("mais",18)),el("button",{type:"button",class:"qd-zb",title:"Enquadrar tudo (F)","aria-label":"Enquadrar tudo",onclick:enquadra},ic("enquadrar",18)));
   function desenhaMini(){const g=mini.getContext("2d"),W=mini.width,H=mini.height;g.clearRect(0,0,W,H);if(!D.nodes.length){mini.hidden=true;return}mini.hidden=false;const r=vista.getBoundingClientRect(),vx0=-cam.x/cam.z,vy0=-cam.y/cam.z,vx1=vx0+r.width/cam.z,vy1=vy0+r.height/cam.z;
     let x0=vx0,y0=vy0,x1=vx1,y1=vy1;for(const n of D.nodes){x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+n.width);y1=Math.max(y1,n.y+n.height)}const k=Math.min((W-8)/(x1-x0||1),(H-8)/(y1-y0||1)),T=(x,y)=>[4+(x-x0)*k,4+(y-y0)*k];
-    for(const n of D.nodes){const p=T(n.x,n.y);g.fillStyle=n.type==="group"?"rgba(127,169,204,.18)":(corDe(n.color)||"#5a4c35");g.fillRect(p[0],p[1],Math.max(2,n.width*k),Math.max(2,n.height*k))}const a=T(vx0,vy0);g.strokeStyle="#D4A64A";g.lineWidth=1.5;g.strokeRect(a[0],a[1],(vx1-vx0)*k,(vy1-vy0)*k)}
+    for(const n of D.nodes){if(!vis(n))continue;const p=T(n.x,n.y);g.fillStyle=n.type==="group"?"rgba(127,169,204,.18)":(corDe(n.color)||"#5a4c35");g.fillRect(p[0],p[1],Math.max(2,n.width*k),Math.max(2,n.height*k))}const a=T(vx0,vy0);g.strokeStyle="#D4A64A";g.lineWidth=1.5;g.strokeRect(a[0],a[1],(vx1-vx0)*k,(vy1-vy0)*k)}
   mini.addEventListener("pointerdown",e=>{const r=mini.getBoundingClientRect();let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;const v=vista.getBoundingClientRect(),vx0=-cam.x/cam.z,vy0=-cam.y/cam.z;x0=Math.min(x0,vx0);y0=Math.min(y0,vy0);x1=Math.max(x1,vx0+v.width/cam.z);y1=Math.max(y1,vy0+v.height/cam.z);for(const n of D.nodes){x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+n.width);y1=Math.max(y1,n.y+n.height)}
     const k=Math.min((mini.width-8)/(x1-x0||1),(mini.height-8)/(y1-y0||1)),wx=x0+(e.clientX-r.left-4)/k,wy=y0+(e.clientY-r.top-4)/k;cam.x=v.width/2-wx*cam.z;cam.y=v.height/2-wy*cam.z;aplicaCam()});
   tudo();requestAnimationFrame(enquadra);
