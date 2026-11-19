@@ -93,3 +93,5 @@ export function idsAndares(M){let n=1;for(const A of M.andares)if(A.id&&/^a\d+$/
 // copia um andar com ids novos (as ligacoes com paredes acompanham)
 export function copiaAndar(M,A){const B=structuredClone(A);B.id=null;B.nome=A.nome+" (cópia)";const mapa=new Map();for(const w of B.paredes||[]){const n=novoId(M);mapa.set(w.id,n);w.id=n}
   for(const k of TIPOS.concat(["camadas"])){if(k==="paredes")continue;for(const e of B[k]||[]){e.id=novoId(M);if(e.parede!=null&&mapa.has(e.parede))e.parede=mapa.get(e.parede)}}return B}
+// tipo da porta: o proprio, ou pelo nome da arte importada (janela, porta)
+export const tipoPortal=(q,TEX)=>q.tipo||(/window|sill|glass|janela/.test(((TEX&&TEX[q.t])||"").toLowerCase())?"janela":"porta");

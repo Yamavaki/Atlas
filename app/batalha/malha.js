@@ -2,7 +2,7 @@
 // Vertice: x, y, u, v, camada da textura (-1 = cor lisa), r, g, b, a, matiz, saturacao, brilho  (12 numeros). Sem DOM: pode rodar em Worker.
 import {materialDe,objetoDe} from "./arte.js";
 import {arredonda,fita,tampa,limpa,RAIO_PADRAO} from "./vetor.js";
-import {trajeto} from "./modelo.js";
+import {trajeto,tipoPortal} from "./modelo.js";
 export const VERT=12;
 const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255,1];
 const BR=[1,1,1,1],TINTA=hex("#2a2018");
@@ -63,7 +63,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
       else{rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2,.11,-1,TINTA);rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2-.04,.075,-1,MAD)}}});
   itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);for(const it of itens)it[2]();
   // luzes: x, y, lx, ly, r, g, b, forca
-  const lz=malhaLuzes(A,null),tl=malhaTelhados(A,TEX,IND,PAR);
+  const lz=malhaLuzes(A,null,TEX),tl=malhaTelhados(A,TEX,IND,PAR);
   // zonas com ambiente proprio (comodo ou forma): triangulos de cor lisa desenhados no alvo da luz antes das luzes
   const Z=[];let nz=0;const zv=(q,c)=>{Z.push(q[0],q[1],0,0,-1,c[0],c[1],c[2],1,0,1,1);nz++};
   for(const w of A.paredes||[])if(w.amb&&w.laco){const P=trajeto(w),T=triangula(P);for(const k of T)zv(P[k],w.amb)}
@@ -71,8 +71,8 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz,telhados:tl.verts,nt:tl.n}}
 // ---------- luz com sombra das paredes ----------
 // trechos que barram a luz: paredes (caminho arredondado), menos as janelas e as portas abertas
-export function barreiras(A){const S=[];for(const w of A.paredes||[]){if(w.sombra===false)continue;const P=trajeto(w),n=P.length;if(n<2)continue;
-    const fur=(A.portais||[]).filter(q=>q.parede===w.id&&q.d!=null&&(q.tipo==="janela"||q.fechado===false)).map(q=>[q.d-q.raio,q.d+q.raio]);let acc=0;
+export function barreiras(A,TEX){const S=[];for(const w of A.paredes||[]){if(w.sombra===false)continue;const P=trajeto(w),n=P.length;if(n<2)continue;
+    const fur=(A.portais||[]).filter(q=>q.parede===w.id&&q.d!=null&&(tipoPortal(q,TEX)==="janela"||q.fechado===false)).map(q=>[q.d-q.raio,q.d+q.raio]);let acc=0;
     for(let i=0;i<n-(w.laco?0:1);i++){const a=P[i],b=P[(i+1)%n],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-9)continue;let cortes=[[0,L]];
       for(const [d0,d1] of fur){const u0=d0-acc,u1=d1-acc;if(u1<=0||u0>=L)continue;const N=[];for(const [s0,s1] of cortes){if(u1<=s0||u0>=s1){N.push([s0,s1]);continue}if(u0>s0)N.push([s0,u0]);if(u1<s1)N.push([u1,s1])}cortes=N}
       for(const [s0,s1] of cortes){const ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;S.push([a[0]+ux*s0,a[1]+uy*s0,a[0]+ux*s1,a[1]+uy*s1])}acc+=L}}
@@ -82,7 +82,7 @@ export function visibilidade(cx,cy,R,S){const segs=S.filter(s=>{const dx=s[2]-s[
   const ang=[];for(let i=0;i<48;i++)ang.push(i/48*Math.PI*2-Math.PI);for(const s of segs)for(const [x,y] of[[s[0],s[1]],[s[2],s[3]]]){const a=Math.atan2(y-cy,x-cx);ang.push(a-1e-4,a,a+1e-4)}ang.sort((a,b)=>a-b);
   const P=[];for(const a of ang){const dx=Math.cos(a),dy=Math.sin(a);let tm=R;for(const s of segs){const ex=s[2]-s[0],ey=s[3]-s[1],den=dx*ey-dy*ex;if(Math.abs(den)<1e-12)continue;const fx=s[0]-cx,fy=s[1]-cy,t=(fx*ey-fy*ex)/den,u=(fx*dy-fy*dx)/den;if(t>1e-6&&u>=-1e-9&&u<=1+1e-9&&t<tm)tm=t}P.push([cx+dx*tm,cy+dy*tm])}return P}
 // todas as luzes do andar: quadrado simples sem parede perto; leque com sombra quando ha. cache por luz (refaz so a que mudou)
-export function malhaLuzes(A,cache){const S=cache&&cache.S||barreiras(A),novo=new Map(),partes=[];let tot=0;novo.S=S;
+export function malhaLuzes(A,cache,TEX){const S=cache&&cache.S||barreiras(A,TEX),novo=new Map(),partes=[];let tot=0;novo.S=S;
   for(const l of A.luzes||[]){const k=l.x+","+l.y+","+l.raio+","+(l.claro==null?"":l.claro)+","+l.forca+","+l.c.join(",")+","+(l.sombras!==false);let ent=cache&&cache.get(l);
     if(!ent||ent.k!==k){const B=[];const k0=Math.max(0,Math.min(.98,(l.claro==null?l.raio*.45:l.claro)/l.raio)),put=(x,y)=>B.push(x,y,(x-l.x)/l.raio,(y-l.y)/l.raio,l.c[0],l.c[1],l.c[2],l.forca,k0);
       const P=l.sombras===false?null:visibilidade(l.x,l.y,l.raio,S);if(!P){const Q=[];escreveLuz(Q,0,l);B.push(...Q)}else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];put(l.x,l.y);put(a[0],a[1]);put(b[0],b[1])}ent={k,v:new Float32Array(B)}}

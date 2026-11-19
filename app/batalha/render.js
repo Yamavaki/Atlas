@@ -87,7 +87,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   function atualiza(i,objs,luzes){const a=AND[i];if(!a)return false;const TEXS=M.texturas;
     if(objs&&objs.length){let mn=1e12,mx=-1;for(const o of objs){const off=a.onde.get(o);if(off==null)return false;const k="o:"+objetoDe(TEXS[o.t]),l=ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k];escreveObjeto(a.cpu,off,o,l,ART.recorte[l]);if(off<mn)mn=off;if(off+N_OBJ>mx)mx=off+N_OBJ}
       gl.bindBuffer(gl.ARRAY_BUFFER,a.buf);gl.bufferSubData(gl.ARRAY_BUFFER,mn*4,a.cpu,mn,mx-mn)}
-    if(luzes&&luzes.length){const z=malhaLuzes(M.andares[i],a.cacheL);a.cacheL=z.cache;a.luzes=z.verts;a.nl=z.n;gl.bindBuffer(gl.ARRAY_BUFFER,a.bufL);gl.bufferData(gl.ARRAY_BUFFER,z.verts,gl.DYNAMIC_DRAW)}
+    if(luzes&&luzes.length){const z=malhaLuzes(M.andares[i],a.cacheL,M.texturas);a.cacheL=z.cache;a.luzes=z.verts;a.nl=z.n;gl.bindBuffer(gl.ARRAY_BUFFER,a.bufL);gl.bufferData(gl.ARRAY_BUFFER,z.verts,gl.DYNAMIC_DRAW)}
     return true}
   function andar(i,cam,esc){const a=AND[i];if(!a)return;const cu=[cam.x,cam.y,cam.z,0];
     if(camadas(i,cam,esc)){}else if(a.terr){gl.useProgram(PT.p);gl.uniform4fv(PT.U.uCam,cu);gl.uniform2f(PT.U.uRes,W,H);gl.uniform2f(PT.U.uTam,M.larg,M.alt);gl.uniform4fv(PT.U.uLay,a.terr);gl.uniform1f(PT.U.uEsc,esc);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D_ARRAY,TA);gl.uniform1i(PT.U.uT,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,a.splat);gl.uniform1i(PT.U.uS,1);gl.disable(gl.BLEND);gl.bindVertexArray(carregar.vaoM);gl.drawArrays(gl.TRIANGLES,0,6)}

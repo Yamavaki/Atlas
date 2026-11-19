@@ -1053,6 +1053,7 @@ function zip(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
 async function saveFile(name,blob){if(!blob){toast("Nada para salvar.");return}
   if(Store.dl){try{await Store.dl.save({filename:name,data:blob});toast("Arquivo salvo.")}catch(e){if(!e||e.code!=="declined")toast("Não foi possível salvar o arquivo aqui.")}return}
   try{const a=h("a",{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();a.remove()}catch(e){toast("Este navegador não permitiu salvar o arquivo.")}}
+window.atlasSalvar=saveFile; // o Modo Batalha baixa arquivos pelo mesmo caminho (no artifact usa a permissao de download)
 function exportVault(players){const files=[],used=new Set();const put=(name,data)=>{let n=name,k=2;while(used.has(n.toLowerCase()))n=name.replace(/(\.[^.]+(\.json)?)$/," "+(k++)+"$1");used.add(n.toLowerCase());files.push({name:n,data})};
   for(const n of S.notes.values()){let c=n.content||"";if(players)c=stripSecrets(c);c=c.replace(/!\[\[img:([\w-]+)\]\]/g,(m,id)=>n.images&&n.images[id]?"![]("+n.images[id]+")":"");put((n.folder?n.folder.split("/").map(safe).join("/")+"/":"")+safe(n.title)+".md",c)}
   if(!players)for(const m of S.maps.values())put("mapas/"+safe(m.name)+".map.json",JSON.stringify({name:m.name,type:m.type||"region",params:m.params,edits:m.edits||[],towns:m.lock||[],pins:m.pins||[],realms:m.realms||[],objs:m.objs||[]},null,2));

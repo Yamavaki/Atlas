@@ -39,6 +39,10 @@ const IND={};let k=0;for(const n in MATERIAIS)IND['m:'+n]=k++;for(const n in OBJ
  // 0.79: telhados e copia de andar
  {const T=malhaTelhados({telhados:[{p:[[0,0],[6,0],[6,4],[0,4]],estilo:'duas'},{p:[[0,0],[6,0],[6,4],[0,4]],estilo:'quatro'},{p:[[0,0],[6,0],[6,4],[0,4]],estilo:'plano'}]},['atlas:m/telha'],IND,null);ok(T.n>0&&T.verts.length===T.n*VERT,'telhados');
   const N=MD.novoMapa({});const A2=N.andares[0];A2.paredes.push({id:50,p:[[0,0],[4,0],[4,4],[0,4]],laco:true});A2.portais.push({id:51,parede:50,d:1,raio:.5});MD.garanteIds(N);const B=MD.copiaAndar(N,A2);ok(B.paredes[0].id!==50&&B.portais[0].parede===B.paredes[0].id&&B.portais[0].id!==51,'copia do andar com ids novos')}
+ // 0.80: cena do Foundry e zip
+ {const X=await import('../app/batalha/exportar.js');const N=MD.novoMapa({larg:10,alt:8});const A2=N.andares[0];A2.paredes.push({id:70,p:[[1,1],[6,1],[6,5],[1,5]],laco:true,raio:0});A2.portais.push({id:71,parede:70,d:2.5,raio:.5,tipo:'porta'},{id:72,parede:70,d:7,raio:.5,tipo:'janela'});A2.luzes.push({x:3,y:3,raio:4,claro:2,forca:1,c:[1,.6,.3,1]});MD.sincroniza(A2);
+  const C=X.cenaFoundry(N,0,{px:100});ok(C.width===1000&&C.walls.filter(w=>w.door===1).length===1&&C.walls.filter(w=>w.sight===0&&!w.door).length===1&&C.walls.length===2+4+2&&C.lights[0].config.dim===6,'cena do Foundry: '+C.walls.length+' paredes');
+  const Z=X.zip([{nome:'a.txt',dados:new TextEncoder().encode('oi')}]);const u=new Uint8Array(await Z.arrayBuffer());ok(u[0]===0x50&&u[1]===0x4b&&u.length===30+5+2+46+5+22,'zip')}
  const m=malhaAndar(A,M.texturas,IND);ok(m.onde.size===A.objetos.length&&m.verts.length===m.n*VERT,'malha guarda onde esta cada objeto')}
 for(const f of process.argv.slice(2)){const t=Date.now(),M=importarDD(JSON.parse(fs.readFileSync(f,'utf8')),{nome:f});let v=0,obj=0;for(const A of M.andares){const m=malhaAndar(A,M.texturas,IND);v+=m.n;obj+=A.objetos.length;ok(m.verts.length===m.n*VERT&&!m.verts.some(x=>!isFinite(x)),'malha com numero invalido em '+A.nome)}
   ok(M.andares.length>0&&M.larg>0,'mapa vazio '+f);console.log(f.split('/').pop(),M.larg+'x'+M.alt,M.andares.length+' andares',obj+' objetos',v+' vertices',(Date.now()-t)+' ms')}
