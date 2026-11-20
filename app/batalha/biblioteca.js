@@ -112,6 +112,8 @@ const guarda=(M,k,v,lim)=>{M.set(k,v);if(M.size>lim){const k0=M.keys().next().va
 // imagem crua (sem pre-multiplicar o alfa), ja no tamanho pedido: texturas de chao, cujo alfa e altura e nao transparencia
 export function imagemCrua(c,w,h){const b=blobDe(c);if(!b)return Promise.resolve(null);return createImageBitmap(b,{premultiplyAlpha:"none",colorSpaceConversion:"none",resizeWidth:w,resizeHeight:h,resizeQuality:"high"}).catch(()=>createImageBitmap(b).catch(()=>null))}
 export function imagem(c){if(BMP.has(c)){const v=BMP.get(c);BMP.delete(c);BMP.set(c,v);return v}const b=blobDe(c);if(!b)return Promise.resolve(null);const p=createImageBitmap(b).catch(()=>null);guarda(BMP,c,p,LIM_BMP);return p}
+// imagem so de quem pediu (fora da memoria limitada, que fecha as antigas): o editor guarda as do mapa e fecha quando sai
+export function imagemNova(c){const b=blobDe(c);if(!b)return Promise.resolve(null);return createImageBitmap(b).catch(()=>null)}
 export const blobMini=c=>{const z=ESTADO.caminho.get(c);if(!z||!z[0].mini)return null;const m=z[0].mini[md5(c)];if(!m)return null;const f=ESTADO.arquivos.get(z[0].arquivo);return f?f.slice(m[0],m[0]+m[1],"image/png"):null};
 export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))return MINI.get(k);if(tam<=64){const bm=blobMini(c);if(bm){const p=Promise.resolve(URL.createObjectURL(bm));guarda(MINI,k,p,LIM_MINI);return p}}const b=blobDe(c);if(!b)return Promise.resolve(null);
   const p=createImageBitmap(b).then(async bm=>{const s=Math.min(1,tam/Math.max(bm.width,bm.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(bm.width*s));cv.height=Math.max(1,Math.round(bm.height*s));cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);bm.close();

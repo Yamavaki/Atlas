@@ -84,7 +84,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   // artes do Atlas: uma vez so
   TA=novaMatriz(ART.T,G);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);ART.quadros.forEach((cv,i)=>gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,i,ART.T,ART.T,1,gl.RGBA,gl.UNSIGNED_BYTE,cv));gl.generateMipmap(gl.TEXTURE_2D_ARRAY);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);
   // artes do PC: objetos e portas no tamanho original, empacotados em folhas de 2048 px; chaos e faixas (paredes, caminhos) com uma camada propria de 1024 px que repete
-  function montaMatriz(reais){const L=[...(reais||new Map())].filter(x=>x[1]);for(const k in ART.indice)if(/^(r|a|h|w|rc):/.test(k))delete ART.indice[k];
+  function montaMatriz(reais){const L=[...(reais||new Map())].filter(x=>x[1]&&(x[1].bm||x[1]).width>0);for(const k in ART.indice)if(/^(r|a|h|w|rc):/.test(k))delete ART.indice[k];
     if(TR){gl.deleteTexture(TR);TR=null}if(TMt){gl.deleteTexture(TMt);TMt=null}if(TFx){gl.deleteTexture(TFx);TFx=null}
     const ehLuzP=p=>/\/textures\/lights\//.test(p);montaLuzes(L.filter(([p])=>ehLuzP(p)).map(([p,v])=>[p,v.bm||v]));
     const objs=L.filter(([p])=>!ehMat(p)&&!ehFaixa(p)&&!ehLuzP(p)),mats=L.filter(([p])=>ehMat(p)),fxs=L.filter(([p])=>ehFaixa(p));for(const [p,v] of L){const w=v.w||v.width,h=v.h||v.height;ART.indice["a:"+p]=w/Math.max(1,h);ART.indice["h:"+p]=h;ART.indice["w:"+p]=w}

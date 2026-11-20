@@ -20,7 +20,7 @@ function matZona(B,tipo,riq,estilo,sem){const ests=(estilo||"").split(" ").filte
   return {parede,piso,porta}}
 // ponta apagada (mesma regra do catalogo.js desta versao)
 const BORDA=new Map();
-async function borda(B,c){if(BORDA.has(c))return BORDA.get(c);let res={f:"",vis:null};try{const bm=await B.imagem(c),img=bm&&(bm.bm||bm);const W=img.width,H=img.height,k=Math.min(1,96/Math.max(W,H)),w=Math.max(1,Math.round(W*k)),h=Math.max(1,Math.round(H*k)),cv=new OffscreenCanvas(w,h),g=cv.getContext("2d");g.drawImage(img,0,0,w,h);const d=g.getImageData(0,0,w,h).data,al=(x,y)=>d[(y*w+x)*4+3];
+async function borda(B,c){if(BORDA.has(c))return BORDA.get(c);let res={f:"",vis:null};try{const d0=await B.dims(c),k=Math.min(1,96/Math.max(d0[0],d0[1])),w=Math.max(1,Math.round(d0[0]*k)),h=Math.max(1,Math.round(d0[1]*k)),img=await B.imagemCrua(c,w,h),cv=new OffscreenCanvas(w,h),g=cv.getContext("2d");g.drawImage(img,0,0,w,h);img.close();const d=g.getImageData(0,0,w,h).data,al=(x,y)=>d[(y*w+x)*4+3];
     let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(al(x,y)>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
     if(x1>=0){res.vis=[x0/w,y0/h,(x1+1)/w,(y1+1)/h];const fx=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){s+=al(x,y);n++}return n?s/n:0};const bw=x1-x0+1,bh=y1-y0+1,ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
       const meio=fx(mx0,mx1,my0,my1)||1,Lw=fx(x0,x0+ex-1,my0,my1)/meio,Le=fx(x1-ex+1,x1,my0,my1)/meio,Ln=fx(mx0,mx1,y0,y0+ey-1)/meio,Ls=fx(mx0,mx1,y1-ey+1,y1)/meio;
