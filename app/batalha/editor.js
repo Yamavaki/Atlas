@@ -162,8 +162,10 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       tapete:[A("tapete")],velaChao:[A("luminaria")],tocha:[A("luminaria")],lampada:[A("luminaria")],velaMesa:[A("luminaria")],lareira:[A("fogo")],fogao:[A("fogo")],forja:[A("fogo")],louca:[A("loucaBranca")]}};
   // ficha de uma arte dos pacotes: tamanho real, frente, parte desenhada e camada
   const arteReal=async k=>{const d=DIMR.get(k)||await BIB.dims(k);if(!d)return null;DIMR.set(k,d);let f=null;try{f=await CAT.fichaUma(k)}catch(e){}const pc=BIB.pacoteDe(k),nm=k.split("/").pop(),w=d[0]/256,h=d[1]/256,fa=pc&&/forgotten adventures/i.test(pc.autor||"");
-    let fr=f&&f.length>=11?CAT.frente(nm,pc&&pc.autor,f):"?";if(fr==="?"&&fa)fr="S";
-    return {k,w:+w.toFixed(3),h:+h.toFixed(3),fr,vis:f&&f.length>=11&&f[4]>f[2]&&f[5]>f[3]?[f[2]/255,f[3]/255,f[4]/255,f[5]/255]:[0,0,1,1],cam:CAT.camada(nm,"objects",w,h)||200,redondo:!!f&&CAT.forma(f)==="o"}};
+    let pf={};try{pf=await CAT.perfilArte(k)}catch(e){}
+    // frente: pelo nome/ficha; senao, o lado oposto as costas (lado reto e cheio de uma peca comprida); na FA, sem isso, as costas ficam em cima
+    let fr=f&&f.length>=11?CAT.frente(nm,pc&&pc.autor,f):"?";if(fr==="?"&&pf.costas)fr={N:"S",S:"N",L:"W",W:"L"}[pf.costas];if(fr==="?"&&fa)fr="S";
+    return {k,w:+w.toFixed(3),h:+h.toFixed(3),fr,funde:pf.funde||"",vis:pf.vis||(f&&f.length>=11&&f[4]>f[2]&&f[5]>f[3]?[f[2]/255,f[3]/255,f[4]/255,f[5]/255]:[0,0,1,1]),cam:CAT.camada(nm,"objects",w,h)||200,redondo:!!f&&CAT.forma(f)==="o"}};
   const geraZona=async(z,o)=>{o=o||{};if(zOcupado||!z)return null;zOcupado=true;zMsg="Gerando…";painel(true);
     try{const A=fl(),a0=andar,par=Object.assign({},ZN.PADRAO,z.par),semente=o.variar?((Math.random()*2147483647)|0)||1:z.semente,meus=daZona(z),trav0=meus.filter(s=>s.e.zg!==assinatura(s.e)),pTrav=trav0.some(s=>s.k==="paredes"||s.k==="portais"),travados=pTrav?trav0.concat(meus.filter(s=>(s.k==="paredes"||s.k==="padroes"||s.k==="portais")&&!trav0.includes(s))):trav0,soltos=meus.filter(s=>!travados.includes(s)),fixo=new Set(travados.map(s=>s.e));
       // o que ja esta no lugar (mexido a mao ou posto pelo usuario) vira obstaculo
@@ -172,7 +174,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       let cat={},info={};
       if(par.fonte==="atlas"||!BIB.estado().conectada){cat=catAtlas();info={pacote:"Artes do Atlas",estilo:""}}
       else{zMsg="Escolhendo as artes…";painel(true);await new Promise(r=>setTimeout(r,20));const idx=BIB.porSub(),e=ZN.escolheArtes(z.tipo,{lista:s=>idx.get(s)||[]},par,semente),pk=BIB.pacotes().find(p=>p.id===e.pacote);info={pacote:pk?pk.nome.replace(/_/g," "):"",pid:e.pacote||"",estilo:e.estilo||""};
-        for(const [p,ks] of Object.entries(e.papeis)){cat[p]=(await Promise.all(ks.map(arteReal))).filter(Boolean);if(ZN.PAPEIS[p]&&ZN.PAPEIS[p].borda)for(const a of cat[p])a.funde=await CAT.bordaApagada(a.k)}}
+        for(const [p,ks] of Object.entries(e.papeis)){cat[p]=(await Promise.all(ks.map(arteReal))).filter(Boolean);if(!(ZN.PAPEIS[p]&&ZN.PAPEIS[p].borda))for(const a of cat[p])a.funde=""}}
       // paredes, piso e porta feitos pela propria zona (quando ela nao esta num comodo que ja tem paredes)
       const fazParede=par.paredes&&z.parede==null&&!pTrav,extra=[];
       const mp=fazParede&&par.fonte!=="atlas"?matZona(z.tipo,par.riqueza==null?1:par.riqueza,info.estilo,semente):null;if(mp)for(const k of [mp.parede,mp.piso,mp.porta])if(k)await preparaArte(k);

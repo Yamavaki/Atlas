@@ -238,17 +238,20 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
   return {arquivos:todos,blob:zip(todos.map(a=>({nome:a.nome,dados:enc.encode(a.texto)}))),tokens:{indice:tokens(I.join("\n")),kits:tokens(Kt.join("\n")),total},pacotes:ord.length,artes:artesT,familias:famsT,partes:arqs.length}}
 // ponta apagada: pecas modulares (balcao do FA) esmaecem num lado para emendar. Devolve "W","L","N","S" (lado da imagem) ou ""
 const BORDA=new Map();
-export async function bordaApagada(c){if(BORDA.has(c))return BORDA.get(c);const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return "";const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return "";const a=P.artes.find(x=>x[0]===m[2]),f=BIB.arquivoDe(P);if(!a||!f)return "";
-  let res="";try{const tipo=/\.png$/i.test(a[0])?"image/png":/\.jpe?g$/i.test(a[0])?"image/jpeg":"image/webp",px=await BIB.medidas(f,a[1]).catch(()=>null),k=px?Math.min(1,96/Math.max(px[0],px[1])):1,bl=f.slice(a[1],a[1]+a[2],tipo);
+// perfil medido na arte original: parte desenhada (vis, 0..1), ponta apagada (funde) e lado das costas (o lado reto e cheio de uma peca comprida)
+export async function bordaApagada(c){return (await perfilArte(c)).funde}
+export async function perfilArte(c){if(BORDA.has(c))return BORDA.get(c);const vazio={funde:"",vis:null,costas:""},m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return vazio;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return vazio;const a=P.artes.find(x=>x[0]===m[2]),f=BIB.arquivoDe(P);if(!a||!f)return vazio;
+  const res={funde:"",vis:null,costas:""};try{const tipo=/\.png$/i.test(a[0])?"image/png":/\.jpe?g$/i.test(a[0])?"image/jpeg":"image/webp",px=await BIB.medidas(f,a[1]).catch(()=>null),k=px?Math.min(1,96/Math.max(px[0],px[1])):1,bl=f.slice(a[1],a[1]+a[2],tipo);
     const bm=px&&k<1?await createImageBitmap(bl,{resizeWidth:Math.max(1,Math.round(px[0]*k)),resizeHeight:Math.max(1,Math.round(px[1]*k)),resizeQuality:"medium"}):await createImageBitmap(bl);
     const W=bm.width,H=bm.height,cv=typeof OffscreenCanvas!=="undefined"?new OffscreenCanvas(W,H):Object.assign(document.createElement("canvas"),{width:W,height:H}),g=cv.getContext("2d");g.drawImage(bm,0,0);bm.close&&bm.close();const d=g.getImageData(0,0,W,H).data,al=(x,y)=>d[(y*W+x)*4+3];
     // parte desenhada
-    let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(al(x,y)>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}if(x1<0){BORDA.set(c,"");return ""}
+    let x0=W,y0=H,x1=-1,y1=-1;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(al(x,y)>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}if(x1<0){BORDA.set(c,res);return res}res.vis=[x0/W,y0/H,(x1+1)/W,(y1+1)/H];
     // alfa medio das faixas das pontas (10% da parte desenhada) contra o do miolo, nas linhas/colunas do miolo
     const faixa=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){s+=al(x,y);n++}return n?s/n:0};
     const bw=x1-x0+1,bh=y1-y0+1,ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
     const meio=faixa(mx0,mx1,my0,my1)||1,Lw=faixa(x0,x0+ex-1,my0,my1)/meio,Le=faixa(x1-ex+1,x1,my0,my1)/meio,Ln=faixa(mx0,mx1,y0,y0+ey-1)/meio,Ls=faixa(mx0,mx1,y1-ey+1,y1)/meio;
-    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.72&&o>.78).sort((p,q)=>p[1]-q[1]);res=C.length?C[0][0]:""}catch(e){}
+    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.72&&o>.78).sort((p,q)=>p[1]-q[1]);res.funde=C.length?C[0][0]:"";
+    if(bh>=bw*1.4&&Math.abs(Lw-Le)>.08)res.costas=Lw>Le?"W":"L";else if(bw>=bh*1.4&&Math.abs(Ln-Ls)>.08)res.costas=Ln>Ls?"N":"S"}catch(e){}
   BORDA.set(c,res);return res}
 // ficha de uma arte so, medida na hora quando o pacote ainda nao foi analisado (para o gerador de zonas)
 const UMA=new Map();

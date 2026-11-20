@@ -24,13 +24,12 @@ async function borda(B,c){if(BORDA.has(c))return BORDA.get(c);let res={f:"",vis:
     let x0=w,y0=h,x1=-1,y1=-1;for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(al(x,y)>40){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
     if(x1>=0){res.vis=[x0/w,y0/h,(x1+1)/w,(y1+1)/h];const fx=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){s+=al(x,y);n++}return n?s/n:0};const bw=x1-x0+1,bh=y1-y0+1,ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
       const meio=fx(mx0,mx1,my0,my1)||1,Lw=fx(x0,x0+ex-1,my0,my1)/meio,Le=fx(x1-ex+1,x1,my0,my1)/meio,Ln=fx(mx0,mx1,y0,y0+ey-1)/meio,Ls=fx(mx0,mx1,y1-ey+1,y1)/meio;
-      const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.72&&o>.78).sort((p,q)=>p[1]-q[1]);res.f=C.length?C[0][0]:""}}catch(e){}
+      const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.72&&o>.78).sort((p,q)=>p[1]-q[1]);res.f=C.length?C[0][0]:"";if(bh>=bw*1.4&&Math.abs(Lw-Le)>.08)res.costas=Lw>Le?"W":"L";else if(bw>=bh*1.4&&Math.abs(Ln-Ls)>.08)res.costas=Ln>Ls?"N":"S"}}catch(e){}
   BORDA.set(c,res);return res}
 // gera um comodo na forma P com as artes conectadas; devolve o que pos. o = {B, C, MD, V, e}
 export async function gerar(o,P,tipo,par,semente){const {B,C,MD,V,e}=o,M=e.mapa,a=0,A=M.andares[a];par=Object.assign({},Z.PADRAO,par);semente=semente||((Math.random()*2147483647)|0)||1;
   const idx=B.porSub(),es=Z.escolheArtes(tipo,{lista:s=>idx.get(s)||[]},par,semente),cat={};
-  const arte=async k=>{const d=await B.dims(k);if(!d)return null;let f=null;try{f=await C.fichaUma(k)}catch(x){}const pc=B.pacoteDe(k),nm=k.split("/").pop(),w=d[0]/256,h=d[1]/256,fa=pc&&/forgotten adventures/i.test(pc.autor||"");let fr=f&&f.length>=11?C.frente(nm,pc&&pc.autor,f):"?";if(fr==="?"&&fa)fr="S";
-    const md=await borda(B,k);
+  const arte=async k=>{const d=await B.dims(k);if(!d)return null;let f=null;try{f=await C.fichaUma(k)}catch(x){}const pc=B.pacoteDe(k),nm=k.split("/").pop(),w=d[0]/256,h=d[1]/256,fa=pc&&/forgotten adventures/i.test(pc.autor||"");let fr=f&&f.length>=11?C.frente(nm,pc&&pc.autor,f):"?";const md=await borda(B,k);if(fr==="?"&&md.costas)fr={N:"S",S:"N",L:"W",W:"L"}[md.costas];if(fr==="?"&&fa)fr="S";
     return {k,w:+w.toFixed(3),h:+h.toFixed(3),fr,funde:md.f,vis:md.vis||[0,0,1,1],cam:C.camada(nm,"objects",w,h)||200,redondo:!!f&&C.forma(f)==="o"}};
   for(const [p,ks] of Object.entries(es.papeis)){cat[p]=(await Promise.all(ks.map(arte))).filter(Boolean);if(!(Z.PAPEIS[p]&&Z.PAPEIS[p].borda))for(const x of cat[p])delete x.funde}
   const zid="t"+semente,ops=[],riq=par.riqueza==null?1:par.riqueza,portas=[];
