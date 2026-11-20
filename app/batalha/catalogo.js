@@ -140,23 +140,32 @@ export async function arquivoCompleto(o){o=o||{};const D=await montaDados(o.paco
 // A ideia: a IA le sempre o indice (o que existe, em que pacote, em que arquivo) e os kits (conjuntos que combinam por ambiente);
 // so abre o arquivo do pacote quando vai usar aquelas artes. Assim cabe numa conversa mesmo com 100 mil artes.
 const ENC1={parede:"p",canto:"k",meio:"m",solto:"s"};
+// tamanho real: o da imagem a 256 px por quadrado (scale 1, como o Dungeondraft poe). O _1x1 do nome e a casa que a arte ocupa
+// (arredondada para cima), nao o tamanho: uma caneca da FA tem 80 px e se chama _1x1. Tentar tirar uma "escala do pacote" do nome deu errado
+// (PeaPu daria escala 2 e latas de 3 quadrados), entao fica sempre scale 1.
+function escalaPacote(){return 1}
+// palavras de cada tipo (para o exemplo do kit ser a coisa em si: "Oven_..." e nao "Oven_Shovel" se houver um forno)
+const PAL_SUB=new Map(CL.ARVORE.filter(r=>Array.isArray(r[2])).map(r=>[r[1],new Set(r[2])]));
+const tamReal=(it,esc)=>{const f=it.f;if(f&&f[0])return q(f[0]/QUAD*esc)+"x"+q(f[1]/QUAD*esc);const n=nominal(it.base);return n?q(n[0])+"x"+q(n[1]):"?"};
+const tamFamReal=(L,esc)=>{const S=[...new Set(L.map(it=>tamReal(it,esc)))];return S.slice(0,6).join("|")+(S.length>6?"|…":"")};
 const slug=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase().slice(0,48);
 const LEGENDA2=`## Como ler (vale para todos os arquivos)
 - Arte = res://packs/<ID>/<caminho>.<ext>. Cada pacote tem um código curto (P01, P02…), o ID real e a extensão no índice.
 - Nos arquivos de pacote, "pasta X" diz a pasta; "prefixo Y" = todo nome ali começa com Y (junte Y + nome da linha).
 - Modelo do nome: [a|b] = escolha uma; A[1-3] = A1, A2 ou A3; "* {x|y}" = troque o * por uma das opções.
-- Tamanho em quadrados (1 quadrado = 256 px). "esc 1.6" = no Dungeondraft use escala 1.6 para ter esse tamanho. A posição é o centro da imagem; rotação em radianos, positiva no sentido horário.
+- Tamanho = o tamanho real no mapa com scale 1, em quadrados (1 quadrado = 256 px). Use scale 1. O "_1x1" no fim do nome é só a casa que a arte ocupa, arredondada para cima: uma caneca chamada _1x1 tem 0.25x0.25. Não aumente a arte para encher a casa.
+- A posição é o centro da imagem; rotação em radianos, positiva no sentido horário.
 - fr = para onde a FRENTE aponta sem girar: S baixo, N cima, L direita, W esquerda; sim simétrico; N|S cima ou baixo; L|W um dos lados; ? não se sabe. Na FA as costas ficam no topo (fr S): encostado na parede norte rot 0, leste +π/2, sul π, oeste −π/2.
 - e = onde fica: p encosta na parede, k vai no canto, m fica no meio, s solto. "passa" = dá para andar por cima (tapete, mancha, folhas).
 - oc = quadrados que a arte ocupa de verdade, linha por linha de cima para baixo (1 ocupa, 0 vazio), ex. oc 110/011. Sem oc = ocupa o retângulo todo.
 - c = camada: 100 chão, 200 móveis, 300 em cima de móveis, 400 alto (copa, lustre).
 - vis x,y,l,a = parte desenhada dentro da imagem em % (para encostar, desconte a margem). f = forma (r retângulo, o redondo, i irregular). cor = cor média (hex de 3). C = muda de cor. L = tem luz. #etiquetas do autor.
 - largura (caminhos) e repete (terrenos e texturas) em quadrados.`;
-function linhaV2(F,P,cat,ambP){const f0=F.itens[0].f,b0=F.itens[0].base,cl=F.itens[0].cl,partes=[F.modelo];
-  if(cat==="objects"){partes.push(tamFam(F.itens));const fr=frente(b0,P.autor,f0);if(fr!=="?")partes.push("fr "+fr);
+function linhaV2(F,P,cat,ambP,esc){const f0=F.itens[0].f,b0=F.itens[0].base,cl=F.itens[0].cl,partes=[F.modelo];esc=esc||1;
+  if(cat==="objects"){partes.push(tamFamReal(F.itens,esc));const fr=frente(b0,P.autor,f0);if(fr!=="?")partes.push("fr "+fr);
     if(cl){partes.push("e "+ENC1[cl.enc]+(cl.pas?" passa":""));const ex=cl.amb.filter(a=>!ambP.has(a));if(ex.length)partes.push("amb "+ex.slice(0,3).join(","))}
-    if(f0&&f0.length>=11&&f0[0]){const oc=CL.ocupa(f0[7],f0[0]/QUAD,f0[1]/QUAD);if(oc){const W=Math.round(f0[0]/QUAD),r=[];for(let k=0;k<oc.length;k+=W)r.push(oc.slice(k,k+W));partes.push("oc "+r.join("/"))}}
-    const c=camada(b0,"objects",(f0&&f0[0]||0)/QUAD,(f0&&f0[1]||0)/QUAD);if(c)partes.push("c"+c);
+    if(f0&&f0.length>=11&&f0[0]){const oc=CL.ocupa(f0[7],f0[0]/QUAD*esc,f0[1]/QUAD*esc);if(oc){const W=Math.round(f0[0]/QUAD*esc),r=[];for(let k=0;k<oc.length;k+=W)r.push(oc.slice(k,k+W));partes.push("oc "+r.join("/"))}}
+    const c=camada(b0,"objects",(f0&&f0[0]||0)/QUAD*esc,(f0&&f0[1]||0)/QUAD*esc);if(c)partes.push("c"+c);
     if(f0&&f0.length>=11){partes.push("vis "+[pct(f0[2]),pct(f0[3]),pct(f0[4]-f0[2]),pct(f0[5]-f0[3])].join(","));const fo=forma(f0);if(fo)partes.push("f "+fo);partes.push("cor "+cor3(f0[8]))}
     const fl=(F.itens.some(x=>/colorable/i.test(x.base)||(x.tags||[]).some(t=>/colorable/i.test(t)))?"C":"")+(F.itens.some(x=>/(^|_)lit(_|$)|lamp|lantern|torch|candle|neon/i.test(x.base))?"L":"");if(fl)partes.push(fl);
     const tg=[...new Set(F.itens.flatMap(x=>x.tags||[]))].filter(t=>!/colorable/i.test(t)).slice(0,3);if(tg.length)partes.push(tg.map(t=>"#"+t.replace(/\s+/g,"_")).join(" "))}
@@ -168,23 +177,24 @@ function gruposV2(d){const P=d.P,G=new Map(),amb=new Map();let nObj=0;
   const ambP=new Set([...amb].filter(([a,n])=>n>=nObj*.6).map(x=>x[0]));
   return {G:[...G.values()].sort((a,b)=>a.cat.localeCompare(b.cat)||a.sub.localeCompare(b.sub)),ambP,amb}}
 // uma secao por tipo; se passar do limite, vira pedacos (o cabecalho e a pasta se repetem)
-function secaoV2(g,P,ambP,lim){const tit="## "+g.cat+" › "+g.sub+" · "+g.itens.length+(g.itens.length===1?" arte":" artes"),L=["",tit],porPasta=new Map(),ped=[];let fams=0,t=0,pastaAt="";
+function secaoV2(g,P,ambP,lim,esc){const tit="## "+g.cat+" › "+g.sub+" · "+g.itens.length+(g.itens.length===1?" arte":" artes"),L=["",tit],porPasta=new Map(),ped=[];let fams=0,t=0,pastaAt="";
   const poe=x=>{const tx=tokens(x)+1;if(lim&&t+tx>lim&&L.length>3){ped.push(L.join("\n"));L.length=0;L.push("",tit+" (continua)");t=0;if(!x.startsWith("pasta "))L.push(pastaAt)}L.push(x);t+=tx};
   for(const it of g.itens){const k=it.cat+"|"+it.pa;if(!porPasta.has(k))porPasta.set(k,[]);porPasta.get(k).push(it)}
   for(const [k,lista0] of [...porPasta].sort((a,b)=>a[0].localeCompare(b[0]))){const [cat,pa]=k.split("|");let pr="";
     if(lista0.length>1){let p=lista0[0].base;for(const x of lista0)while(p&&!x.base.startsWith(p))p=p.slice(0,-1);const j=Math.max(p.lastIndexOf("_"),p.lastIndexOf(" "));pr=j>0&&lista0.every(x=>x.base.length>j+3)?p.slice(0,j+1):""}
     const lista=pr?lista0.map(x=>Object.assign({},x,{base:x.base.slice(pr.length)})):lista0,F=familias(lista);fams+=F.length;
-    pastaAt="pasta textures/"+pa+"/"+(pr?" · prefixo "+pr:"");poe(pastaAt);for(const x of F)poe(linhaV2(x,P,cat,ambP))}
+    pastaAt="pasta textures/"+pa+"/"+(pr?" · prefixo "+pr:"");poe(pastaAt);for(const x of F)poe(linhaV2(x,P,cat,ambP,cat==="objects"?esc:1))}
   ped.push(L.join("\n"));return {pedacos:ped,fams}}
 // monta todos os arquivos; limPart = tokens por arquivo de pacote (os grandes viram partes)
 export async function arquivoIA2(o){o=o||{};const D=await montaDados(o.pacotes||null);return montaV2(D,o)}
 export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(o.hoje||new Date().toISOString().slice(0,10));
   const ord=D.slice().sort((a,b)=>a.P.nome.localeCompare(b.P.nome)),cod=new Map(ord.map((d,i)=>[d.P.id,"P"+String(i+1).padStart(2,"0")]));
   const arvore=new Map(),kits=new Map(),linhasPac=[];let artesT=0,famsT=0;
-  for(const d of ord){const P=d.P,C=cod.get(P.id),{G,ambP,amb}=gruposV2(d),nome=C+"-"+slug(P.nome);
+  const escP=new Map();
+  for(const d of ord){const P=d.P,C=cod.get(P.id),{G,ambP,amb}=gruposV2(d),nome=C+"-"+slug(P.nome),esc=escalaPacote(G.flatMap(g=>g.itens.filter(it=>it.cat==="objects")));escP.set(C,esc);
     // secoes de tipo -> partes de ate limPart tokens
     const partes=[];let atual=null;
-    for(const g of G){const sx=secaoV2(g,P,ambP,limPart);famsT+=sx.fams;artesT+=g.itens.length;
+    for(const g of G){const sx=secaoV2(g,P,ambP,limPart,esc);famsT+=sx.fams;artesT+=g.itens.length;
       const ps=[];for(const pd of sx.pedacos){const t=tokens(pd);if(!atual||(atual.t+t>limPart&&atual.secs.length)){atual={secs:[],t:0,tipos:[]};partes.push(atual)}atual.secs.push(pd);atual.t+=t;ps.push(partes.length)}
       const k=g.cat+" › "+g.sub;if(!arvore.has(k))arvore.set(k,{cat:g.cat,sub:g.sub,n:0,pac:[],enc:new Map(),amb:new Map()});const A=arvore.get(k);A.n+=g.itens.length;
       for(const it of g.itens){A.enc.set(it.cl.enc,(A.enc.get(it.cl.enc)||0)+1);for(const a of it.cl.amb)A.amb.set(a,(A.amb.get(a)||0)+1)}
@@ -207,7 +217,8 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
   // depois o resto que o pacote marca com o ambiente; um exemplo real de cada, no estilo mais comum
   const Kt=["# Catálogo de artes do Atlas · v2 · kits por ambiente","Para montar um cômodo ou lugar: escolha um ambiente e um pacote (as artes de um pacote combinam entre si). Primeiro vem o que esse lugar costuma ter, depois o resto que o pacote tem para ele. Os nomes são exemplos reais; as variações estão no arquivo do pacote. Legenda em 00-indice.md."];
   const exemplo=(l,a,eTop)=>{const comA=l.filter(x=>x.cl.amb.includes(a)),b0=comA.length?comA:l,bE=eTop?b0.filter(x=>CL.estilo(x.rel)===eTop):[],base=bE.length?bE:b0,cp=new Map();for(const x of base)cp.set(x.pa,(cp.get(x.pa)||0)+1);
-    const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0];return base.filter(x=>x.pa===paTop).sort((x,y)=>x.base.length-y.base.length)[0]};
+    const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0],W=PAL_SUB.get(l[0].cl.sub),cab=x=>{const t=x.base.replace(/^PP_[A-Za-z]+_(?:[A-Za-z0-9-]+_){0,4}?(?:Ext|Int|Univ|Universal|VG)[0-9]*[a-z]?_/,"").toLowerCase().split(/[^a-z]+/).filter(Boolean);return W&&(W.has(t[0])||W.has(t[0]+"_"+t[1]))?0:1};
+    return base.filter(x=>x.pa===paTop).sort((x,y)=>cab(x)-cab(y)||x.base.length-y.base.length)[0]};
   const ambs=[...new Set([...kits.values()].flatMap(K=>[...K.amb.keys()]))].sort((x,y)=>x.localeCompare(y));
   for(const a of ambs){Kt.push("","## "+a);const tip=CL.TIPICOS[a]||[];
     for(const K of [...kits.values()].filter(K=>K.amb.get(a)).sort((x,y)=>y.amb.get(a)-x.amb.get(a)).slice(0,o.kitsPac||5)){
@@ -215,7 +226,7 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
       const subs=[...tip.filter(t=>K.subs.has(t)),...[...K.subs].filter(([t,S])=>!tip.includes(t)&&S.itens.some(x=>x.cl.amb.includes(a))).sort((x,y)=>y[1].itens.filter(i=>i.cl.amb.includes(a)).length-x[1].itens.filter(i=>i.cl.amb.includes(a)).length).map(x=>x[0])].slice(0,o.kitsTipos||12);
       if(!subs.length)continue;Kt.push("### "+K.C+" "+K.P.nome.replace(/_/g," ")+" · "+K.amb.get(a)+" artes de "+a.toLowerCase()+(eTop?" · estilo mais comum: "+eTop:""));
       for(const t of subs){const S=K.subs.get(t),it=exemplo(S.itens,a,eTop),f=it.f,fr=frente(it.base,K.P.autor,f);
-        Kt.push("- "+t+" ("+S.itens.length+") · "+K.C+(nPartes.get(K.C)>1?"."+S.parte:"")+" textures/"+it.pa+"/"+it.base+" · "+tamanhoTxt(it)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
+        Kt.push("- "+t+" ("+S.itens.length+") · "+K.C+(nPartes.get(K.C)>1?"."+S.parte:"")+" textures/"+it.pa+"/"+it.base+" · "+tamReal(it,escP.get(K.C)||1)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
   const LEIA=["# Catálogo de artes do Atlas · v2","","Este catálogo descreve as artes dos seus pacotes para uma IA (por exemplo o Claude) montar mapas com elas.","",
     "## Numa conversa","1. Anexe 00-indice.md e 01-kits.md e peça o mapa.","2. A IA diz quais arquivos de pacote precisa (ex.: P07). Anexe esses da pasta pacotes/.","3. Pronto: ela usa os nomes exatos e os detalhes de lá.","",
     "## Num Projeto do Claude","Envie todos os arquivos para o conhecimento do projeto. A IA busca sozinha o que precisar.","",
