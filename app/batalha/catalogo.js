@@ -234,6 +234,10 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
   const todos=[{nome:"LEIA-ME.md",texto:LEIA.join("\n")+"\n"},{nome:"00-indice.md",texto:I.join("\n")+"\n"},{nome:"01-kits.md",texto:Kt.join("\n")+"\n"},...arqs];
   const enc=new TextEncoder(),total=todos.reduce((s,a)=>s+tokens(a.texto),0);
   return {arquivos:todos,blob:zip(todos.map(a=>({nome:a.nome,dados:enc.encode(a.texto)}))),tokens:{indice:tokens(I.join("\n")),kits:tokens(Kt.join("\n")),total},pacotes:ord.length,artes:artesT,familias:famsT,partes:arqs.length}}
+// ficha de uma arte so, medida na hora quando o pacote ainda nao foi analisado (para o gerador de zonas)
+const UMA=new Map();
+export async function fichaUma(c){const ja=await fichaDe(c);if(ja)return ja;if(UMA.has(c))return UMA.get(c);const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const a=P.artes.find(x=>x[0]===m[2]),f=BIB.arquivoDe(P);if(!a||!f)return null;
+  let r=null;try{r=await fichaArte(P,f,a)}catch(e){}UMA.set(c,r);return r}
 // para a busca e o gerador: ficha de um caminho (se ja analisado)
 export async function fichaDe(c){const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const fx=await fichasDe(P);if(!fx)return null;const i=P.artes.findIndex(a=>a[0]===m[2]);return i<0?null:fx.fichas[i]}
 export {familias,camada,frente,forma};

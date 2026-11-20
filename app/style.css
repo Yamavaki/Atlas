@@ -815,3 +815,4 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .bt-ficha .bt-arq{font:11px ui-monospace,monospace;color:var(--muted);overflow-wrap:anywhere;white-space:normal;margin:6px 0 0}
 .bt-ficha-bts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .bt-subs{flex-wrap:wrap;margin:4px 0}.bt-subs .bt-chip{font-size:11px;padding:2px 8px}
+.bt-zlista{flex-wrap:wrap}.bt-zinfo{color:var(--text,#e9dfcc)}.bt-zaviso{color:#e0a15f}

@@ -1,7 +1,7 @@
 // Atlas - Artes do PC: le os pacotes .dungeondraft_pack direto da pasta do usuario, sem copiar nem enviar nada.
 // Um pacote e um arquivo PCK do Godot: cabecalho, tabela (caminho, posicao, tamanho) e os arquivos em seguida.
 // Guardamos so a tabela (no IndexedDB); cada imagem e lida na hora, cortando o pedaco do arquivo.
-import {classifica} from "./classifica.js";
+import {classifica,estilo} from "./classifica.js";
 const TXT=new TextDecoder();
 // md5 curto (RFC 1321), so para nomes de arquivo
 export function md5(s){const b=new TextEncoder().encode(s),n=((b.length+8>>6)+1)*16,w=new Int32Array(n);for(let i=0;i<b.length;i++)w[i>>2]|=b[i]<<(i%4*8);w[b.length>>2]|=0x80<<(b.length%4*8);w[n-2]=b.length*8;
@@ -62,7 +62,7 @@ async function montar(lista,progresso,acrescenta){ESTADO.lendo=true;if(!acrescen
     ESTADO.arquivos.set(rel,f);let P=antigos.get(rel);if(!P||P.v!==IDX||P.tam!==f.size||P.mod!==(f.lastModified||0)){try{P=await indexarPacote(f,rel);await tx("pacotes","readwrite",s=>{s.put(P,rel)})}catch(e){ESTADO.problemas.push([rel,e&&e.name==="NotReadableError"?"não deu para ler (se está no OneDrive, deixe “sempre neste dispositivo”)":(e.message||"erro ao ler")]);continue}}
     if(ESTADO.pacotes.has(P.id)){ESTADO.problemas.push([rel,"é cópia de “"+ESTADO.pacotes.get(P.id).arquivo+"”"]);continue}
     ESTADO.pacotes.set(P.id,P);if(P.permitido)for(const a of P.artes)ESTADO.caminho.set("res://packs/"+P.id+"/"+a[0],[P,a]);if(progresso)progresso(i,lista.length,P.nome)}
-  ESTADO.lendo=false;preparando=null;avisa();return estado()}
+  ESTADO.lendo=false;preparando=null;idxSub=null;avisa();return estado()}
 export async function conectarPasta(progresso){const dir=await window.showDirectoryPicker({id:"atlas-artes",mode:"read"});ESTADO.pasta=dir;ESTADO.nome=dir.name;ESTADO.precisa=false;try{await poeCfg("pasta",dir)}catch(e){}
   const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
 // sem escolher pasta (Firefox, Safari, celular): os arquivos escolhidos valem so enquanto a pagina estiver aberta
@@ -83,7 +83,10 @@ const classeDe=(P,a)=>classifica(a[0],(a[4]||[]).map(i=>P.tags[i]));
 export const classe=c=>{const z=ESTADO.caminho.get(c);return z?classeDe(z[0],z[1]):null};
 export const pacoteDe=c=>{const z=ESTADO.caminho.get(c);return z?{id:z[0].id,nome:z[0].nome,autor:z[0].autor,arquivo:z[0].arquivo,pref:z[0].pref}:null};
 // classifica tudo aos poucos (sem travar a tela); as buscas com filtro ficam rapidas depois
-let preparando=null;export function prepararClasses(){if(preparando)return preparando;preparando=(async()=>{let n=0;for(const P of [...ESTADO.pacotes.values()]){if(!P.permitido)continue;for(const a of P.artes){classeDe(P,a);if(++n%4000===0)await new Promise(r=>setTimeout(r,0))}}return n})();return preparando}
+// objetos agrupados pelo tipo do classificador (para o gerador de zonas); montado uma vez e refeito quando os pacotes mudam
+let idxSub=null;export function porSub(){if(idxSub)return idxSub;const M=new Map();for(const P of ESTADO.pacotes.values()){if(!P.permitido)continue;for(const a of P.artes){if(categoria(a[0])!=="objects")continue;const c=classeDe(P,a);let L=M.get(c.sub);if(!L)M.set(c.sub,L=[]);
+      L.push({k:"res://packs/"+P.id+"/"+a[0],nome:a[0].split("/").pop().replace(/\.[a-z0-9]+$/i,""),pacote:P.id,estilo:estilo(a[0]),sub:c.sub})}}return idxSub=M}
+let preparando=null;idxSub=null;export function prepararClasses(){if(preparando)return preparando;preparando=(async()=>{let n=0;for(const P of [...ESTADO.pacotes.values()]){if(!P.permitido)continue;for(const a of P.artes){classeDe(P,a);if(++n%4000===0)await new Promise(r=>setTimeout(r,0))}}return n})();return preparando}
 // etiquetas mais usadas (de um pacote ou de todos), so de uma categoria
 export function etiquetas(pacote,cat){const N=new Map();for(const P of ESTADO.pacotes.values()){if(!P.permitido||(pacote&&P.id!==pacote))continue;for(const a of P.artes){if(cat&&categoria(a[0])!==cat)continue;for(const t of a[4]||[]){const k=P.tags[t];if(!/colorable/i.test(k))N.set(k,(N.get(k)||0)+1)}}}return [...N].sort((a,b)=>b[1]-a[1])}
 export const pacotesCompletos=()=>[...ESTADO.pacotes.values()].filter(P=>P.permitido);
