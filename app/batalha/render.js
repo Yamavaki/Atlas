@@ -12,7 +12,7 @@ precision mediump float;precision mediump sampler2DArray;in vec2 vU;in float vL;
 uniform sampler2DArray uR;uniform sampler2DArray uMt;uniform sampler2DArray uFx;vec4 samp(vec2 u,float l,float b){if(l>767.5)return texture(uFx,vec3(u,l-768.),b);if(l>511.5)return texture(uMt,vec3(u,l-512.),b);if(l>255.5)return texture(uR,vec3(u,l-256.),b);return texture(uT,vec3(u,l),b);}
 vec3 aHsv(vec3 c){vec4 K=vec4(0.,-1./3.,2./3.,-1.);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.*d+1e-6)),d/(q.x+1e-6),q.x);}
 vec3 deHsv(vec3 c){vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.);return c.z*mix(vec3(1.),clamp(p-1.,0.,1.),c.y);}
-void main(){bool sb=vA.x<-1.5;if(sb!=(uModo>.5))discard;if(sb){float a=vL>-.5?samp(vU,vL,1.).a:1.;a=clamp(a*(1.+vA.y*6.),0.,1.)*vC.a;o=vec4(0.,0.,0.,a);return;}vec4 c=vec4(vC.rgb*vC.a,vC.a);if(vL>-.5){vec4 t=samp(vU,vL,0.);
+void main(){bool sb=vA.x<-1.5;if(sb!=(uModo>.5))discard;if(sb){float a=vL>-.5?samp(vU,vL,1.).a:1.;a=clamp(a*(1.+vA.y*6.),0.,1.)*vC.a;o=vec4(0.,0.,0.,a);return;}vec4 c=vec4(vC.rgb*vC.a,vC.a);if(vL>-.5){vec4 t=samp(vU,vL,0.);if(vL>511.5&&vL<767.5){if(fract(vL)>.1)t.a=1.;else t.rgb*=t.a;}
  if(vA.x!=0.||vA.y!=1.||vA.z!=1.){vec3 r=t.a>.001?t.rgb/t.a:vec3(0.);vec3 h=aHsv(r);h.x=fract(h.x+vA.x+1.);h.y=clamp(h.y*vA.y,0.,1.);t.rgb=clamp(deHsv(h)*vA.z,0.,1.)*t.a;}
  c*=t;}o=vec4(c.rgb*uEsc,c.a);}`;
 const VT=`#version 300 es
@@ -67,7 +67,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   // artes do PC: objetos e portas no tamanho original, empacotados em folhas de 2048 px; chaos e faixas (paredes, caminhos) com uma camada propria de 1024 px que repete
   function montaMatriz(reais){const L=[...(reais||new Map())].filter(x=>x[1]);for(const k in ART.indice)if(/^(r|a|h|w|rc):/.test(k))delete ART.indice[k];
     if(TR){gl.deleteTexture(TR);TR=null}if(TMt){gl.deleteTexture(TMt);TMt=null}if(TFx){gl.deleteTexture(TFx);TFx=null}
-    const objs=L.filter(([p])=>!ehMat(p)&&!ehFaixa(p)),mats=L.filter(([p])=>ehMat(p)),fxs=L.filter(([p])=>ehFaixa(p));for(const [p,bm] of L){ART.indice["a:"+p]=bm.width/Math.max(1,bm.height);ART.indice["h:"+p]=bm.height;ART.indice["w:"+p]=bm.width}
+    const objs=L.filter(([p])=>!ehMat(p)&&!ehFaixa(p)),mats=L.filter(([p])=>ehMat(p)),fxs=L.filter(([p])=>ehFaixa(p));for(const [p,v] of L){const w=v.w||v.width,h=v.h||v.height;ART.indice["a:"+p]=w/Math.max(1,h);ART.indice["h:"+p]=h;ART.indice["w:"+p]=w}
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
     const S=2048,P=12,lim=S-2*P,folhas=[];let x=P,y=P,hl=0,f=null;const nova=()=>{f=[];folhas.push(f);x=P;y=P;hl=0};
     const ord=objs.map(([p,bm])=>{const k=Math.min(1,lim/Math.max(bm.width,bm.height));return {p,bm,w:Math.max(1,Math.round(bm.width*k)),h:Math.max(1,Math.round(bm.height*k))}}).sort((a,b)=>b.h-a.h);
@@ -75,7 +75,9 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     if(folhas.length){TR=novaMatriz(S,folhas.length);const cv=document.createElement("canvas");cv.width=S;cv.height=S;const g=cv.getContext("2d");g.imageSmoothingQuality="high";
       folhas.forEach((F,k)=>{g.clearRect(0,0,S,S);for(const it of F){g.drawImage(it.bm,it.x,it.y,it.w,it.h);ART.indice["r:"+it.p]=256+k;ART.indice["rc:"+it.p]=[it.x/S,it.y/S,(it.x+it.w)/S,(it.y+it.h)/S]}gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,k,S,S,1,gl.RGBA,gl.UNSIGNED_BYTE,cv)});gl.generateMipmap(gl.TEXTURE_2D_ARRAY)}
     if(mats.length){const S2=1024;TMt=novaMatriz(S2,mats.length);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_WRAP_T,gl.REPEAT);const cv=document.createElement("canvas");cv.width=S2;cv.height=S2;const g=cv.getContext("2d");g.imageSmoothingQuality="high";
-      aniso();mats.forEach(([p,bm],j)=>{g.clearRect(0,0,S2,S2);g.drawImage(bm,0,0,S2,S2);gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,j,S2,S2,1,gl.RGBA,gl.UNSIGNED_BYTE,cv);ART.indice["r:"+p]=512+j;ART.indice["rc:"+p]=[0,0,1,1]});gl.generateMipmap(gl.TEXTURE_2D_ARRAY)}
+      // cruas (alfa do terreno e altura): sobem sem pre-multiplicar; o sombreador usa so a cor no chao e multiplica o alfa nos padroes
+      aniso();mats.forEach(([p,v],j)=>{if(v.cru&&v.bm.width===S2&&v.bm.height===S2){gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,j,S2,S2,1,gl.RGBA,gl.UNSIGNED_BYTE,v.bm);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true)}
+        else{const bm=v.bm||v;g.clearRect(0,0,S2,S2);g.drawImage(bm,0,0,S2,S2);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,j,S2,S2,1,gl.RGBA,gl.UNSIGNED_BYTE,cv);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true)}ART.indice["r:"+p]=512+j+(/\/textures\/terrain\//.test(p)?.25:0);ART.indice["rc:"+p]=[0,0,1,1]});gl.generateMipmap(gl.TEXTURE_2D_ARRAY)}
     // paredes e caminhos: camadas largas e baixas (a imagem inteira ocupa a largura, sem perder detalhe no comprimento), repetindo
     if(fxs.length){let FW=512;const mw=Math.max(...fxs.map(([,bm])=>bm.width));while(FW<mw&&FW<Math.min(4096,MAXT))FW*=2;if(fxs.length>24)FW=Math.min(FW,2048);const FH=256;
       TFx=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D_ARRAY,TFx);gl.texStorage3D(gl.TEXTURE_2D_ARRAY,Math.log2(FW)+1,gl.RGBA8,FW,FH,fxs.length);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MAG_FILTER,gl.LINEAR);

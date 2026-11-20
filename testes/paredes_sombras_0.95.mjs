@@ -1,6 +1,6 @@
 // 0.95: vaos das portas nas paredes, repeticao das faixas, sombras do Drop Shadow e luzes do Dungeondraft. Uso: node testes/paredes_sombras_0.95.mjs
 import {importarDD} from '../app/batalha/formato.js';
-import {pedacos,naParede,vaosDe,malhaAndar,VERT,barreiras} from '../app/batalha/malha.js';
+import {pedacos,naParede,vaosDe,malhaAndar,VERT,barreiras,escreveObjeto,N_OBJ} from '../app/batalha/malha.js';
 import fs from 'fs';
 let f=0,n=0;const ok=(c,m)=>{n++;if(!c){f++;console.log('FALHOU:',m)}else console.log('ok',m)};
 // pedacos: parede reta de 6 com um vao no meio
@@ -10,6 +10,8 @@ let f=0,n=0;const ok=(c,m)=>{n++;if(!c){f++;console.log('FALHOU:',m)}else consol
 {const P=[[0,0],[4,0],[4,4],[0,4]],R=pedacos(P,true,[[-.5,.5]]);ok(R.length===1&&!R[0].laco,'laco com vao vira um pedaco aberto');const L=R[0].s[R[0].s.length-1]-R[0].s[0];ok(Math.abs(L-15)<1e-9,'comprimento do laco menos o vao: '+L);
  ok(Math.abs(R[0].pts[0][0]-.5)<1e-9&&Math.abs(R[0].pts[R[0].pts.length-1][1]-.5)<1e-9,'o pedaco comeca e termina nas bordas do vao');}
 {const r=naParede([[0,0],[4,0],[4,4]],false,4.2,2);ok(Math.abs(r.d-6)<1e-9&&Math.abs(r.dist-.2)<1e-9,'distancia na parede');}
+// 0.95.1: a arte nao perde as bordas (margem de no maximo meio texel numa folha de 2048)
+{const B=new Float32Array(N_OBJ),rc=[.1,.2,.3,.4];escreveObjeto(B,0,{x:0,y:0,r:0,w:1,h:1},256,rc);const u=B[6*VERT+2],v=B[6*VERT+3];ok(u-rc[0]<.5/2048+1e-7&&v-rc[1]<.5/2048+1e-7,'arte sem corte nas bordas ('+((u-rc[0])*2048).toFixed(2)+' px)')}
 // mapa do Dungeondraft
 const U='/mnt/user-data/uploads/1123b0fe-universidade-aster_v7.dungeondraft_map';
 if(fs.existsSync(U)){const D=JSON.parse(fs.readFileSync(U,'utf8')),M=importarDD(D),A=M.andares[0];

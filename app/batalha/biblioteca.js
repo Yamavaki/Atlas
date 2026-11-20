@@ -92,6 +92,8 @@ export async function dims(c){if(DIM.has(c))return DIM.get(c);const z=ESTADO.cam
 // imagens: a original (para o mapa) e a miniatura (para as listas), com memoria limitada
 const BMP=new Map(),MINI=new Map(),LIM_BMP=400,LIM_MINI=1500;
 const guarda=(M,k,v,lim)=>{M.set(k,v);if(M.size>lim){const k0=M.keys().next().value,v0=M.get(k0);M.delete(k0);Promise.resolve(v0).then(x=>{if(x&&x.close)x.close();else if(typeof x==="string")URL.revokeObjectURL(x)}).catch(()=>{})}};
+// imagem crua (sem pre-multiplicar o alfa), ja no tamanho pedido: texturas de chao, cujo alfa e altura e nao transparencia
+export function imagemCrua(c,w,h){const b=blobDe(c);if(!b)return Promise.resolve(null);return createImageBitmap(b,{premultiplyAlpha:"none",colorSpaceConversion:"none",resizeWidth:w,resizeHeight:h,resizeQuality:"high"}).catch(()=>createImageBitmap(b).catch(()=>null))}
 export function imagem(c){if(BMP.has(c)){const v=BMP.get(c);BMP.delete(c);BMP.set(c,v);return v}const b=blobDe(c);if(!b)return Promise.resolve(null);const p=createImageBitmap(b).catch(()=>null);guarda(BMP,c,p,LIM_BMP);return p}
 export const blobMini=c=>{const z=ESTADO.caminho.get(c);if(!z||!z[0].mini)return null;const m=z[0].mini[md5(c)];if(!m)return null;const f=ESTADO.arquivos.get(z[0].arquivo);return f?f.slice(m[0],m[0]+m[1],"image/png"):null};
 export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))return MINI.get(k);if(tam<=64){const bm=blobMini(c);if(bm){const p=Promise.resolve(URL.createObjectURL(bm));guarda(MINI,k,p,LIM_MINI);return p}}const b=blobDe(c);if(!b)return Promise.resolve(null);
@@ -100,4 +102,4 @@ export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))re
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
 export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets)\//.test(c);
 export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
-if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,miniatura,tem,pacotes,usavel,ehMaterial};
+if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial};
