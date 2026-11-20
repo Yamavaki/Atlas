@@ -17,7 +17,7 @@ export const PAPEIS={
   estante:{sub:["Armários e estantes"],q:["bookshelf","bookcase","shelf","shelves","shelving"],nao:["path","end","corner","arrangement","empty","ladder","newspaper"],t:[.4,4.2],lugar:"p"},
   armario:{sub:["Armários e estantes"],q:["cabinet","cupboard","shelf","shelves","locker","dresser","sideboard"],nao:["path","end","door","drawer","arrangement","wall","rack","ladder"],pref:["cupboard","cabinet"],t:[.4,4.2],lugar:"p"},
   bau:{sub:["Baús"],nao:["open","lid","armor","arm","guard"],t:[.5,2.2],lugar:"p"},
-  mesa:{sub:["Mesas"],q:["table"],nao:["nightstand","desk","arrangement","torture","operating","pool","billiard","side","coffee","folding","cloth","leg","top","altar","work","picnic","end","knife","misc","base","set","saw","lamp","runner","dressing","sewing","drafting","alchemy","map","bloody"],pref:["rectangle","round","square"],t:[1.2,4.2],lugar:"m"},
+  mesa:{sub:["Mesas"],q:["table"],nao:["nightstand","desk","arrangement","torture","operating","pool","billiard","side","coffee","folding","cloth","leg","top","altar","work","picnic","end","knife","misc","base","set","saw","lamp","runner","dressing","sewing","drafting","alchemy","map","bloody"],pref:["rectangle","round","square"],t:[1.2,4.2],tmin:1.3,lugar:"m"},
   mesaPronta:{sub:["Mesas"],q:["arrangement"],nao:["desk","nightstand"],t:[1.5,6.2],lugar:"m"},
   mesinha:{sub:["Mesas"],q:["coffee","side","end"],t:[.5,2.2],lugar:"m"},
   escrivaninha:{sub:["Mesas"],q:["desk"],nao:["arrangement","covered","cabinet","lamp","clutter","reception"],t:[.8,3.6],lugar:"p"},
@@ -27,7 +27,7 @@ export const PAPEIS={
   bancoLongo:{sub:["Cadeiras, bancos e sofás"],q:["bench","pew"],nao:["work","press","park"],t:[.4,4.2],lugar:"m"},
   sofa:{sub:["Cadeiras, bancos e sofás"],q:["sofa","couch"],nao:["piece","armrest","corner","pillow","cushion"],t:[.7,4.2],lugar:"p"},
   poltrona:{sub:["Cadeiras, bancos e sofás"],q:["armchair"],t:[.6,2],lugar:"s"},
-  balcao:{sub:["Balcões e bares"],afasta:1.05,borda:true,q:["bar","counter"],nao:["stool","flap","tap","shelf","sink","corner","end","glass","drop","sign","mat","towel","chocolate","bbq","candy","grill","soap","gold","silver","metal","iron","crow","bars"],t:[.5,6.2],lugar:"p"},
+  balcao:{sub:["Balcões e bares"],afasta:1.05,borda:true,q:["bar","counter"],nao:["stool","flap","tap","shelf","sink","corner","end","glass","drop","sign","mat","towel","chocolate","bbq","candy","grill","soap","gold","silver","metal","iron","crow","bars"],naoRe:/^Bar_Wood_[A-Za-z]+_A[34]_/,t:[.5,6.2],lugar:"p"},
   barril:{sub:["Barris"],nao:["band","lid","side","stand","rack","tap","explosive","oil","toxic","fire","burn","keg","tnt","xxx","large","top"],pref:["barrel"],t:[.5,2.2],lugar:"s",varia:2,arranjo:"fileira"},
   caixote:{sub:["Caixas e caixotes"],q:["crate","box"],nao:["lid","open","empty","music","jewel","gift","pizza","tool","mail","letter","cardboard","paper","safe","tnt","spice","spray","match","snuff","lunch","tackle","ballot","juke"],pref:["crate"],t:[.5,2.2],lugar:"s",varia:3,arranjo:"monte",tol:.02,pilha:.3},
   saco:{sub:["Sacos e cestos"],q:["sack","bag","basket"],nao:["gift","sleeping","body","punching","trash","garbage","baby","hand","back","of","tea","dye","spice","wind","saddle","money","coin"],pref:["sack"],t:[.4,2],lugar:"s",varia:3,arranjo:"monte",tol:.14},
@@ -224,7 +224,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
     T.sort((u,v)=>v[0]-u[0]);for(const [,x,y] of T.slice(0,50)){const r=a.redondo?R()*6.283:ang0+Math.floor(R()*4)*Math.PI/2+(R()-.5)*.25,ob=poe(a,papel,x,y,r);if(ob)return ob}return null};
   // escolhe a arte de um papel que cabe nos limites de tamanho (a mesma para todas as pecas, ou varias quando o papel varia)
   const escolhidas=new Map();
-  const arteDe=papel=>{const Rp=PAPEIS[papel],L=(cat[papel]||[]).filter(a=>{const V=visDe(a);return Math.min(V[2],V[3])>=Rp.t[0]*.6&&Math.max(V[2],V[3])<=Rp.t[1]&&Math.min(a.w,a.h)>=Rp.t[0]*.5});if(!L.length)return null;
+  const arteDe=papel=>{const Rp=PAPEIS[papel],L=(cat[papel]||[]).filter(a=>{const V=visDe(a);return Math.min(V[2],V[3])>=(Rp.tmin||Rp.t[0]*.6)&&Math.max(V[2],V[3])<=Rp.t[1]&&Math.min(a.w,a.h)>=Rp.t[0]*.5});if(!L.length)return null;
     if(Rp.prof)for(const a of L)a.prof=Rp.prof;if(!escolhidas.has(papel))escolhidas.set(papel,L.slice(0,Rp.varia||1));const E=escolhidas.get(papel);return E[Math.floor(R()*E.length)]};
   const riq=Math.max(0,Math.min(3,par.riqueza==null?1:par.riqueza)),fRiq=[.15,1,1.6,2.2][riq];
   const quantos=it=>{if(it.min&&A<it.min)return 0;const dec=DECOR.has(it.p),f=dec?fRiq:1;if(it.prob!=null&&R()>Math.min(1,it.prob*fRiq))return it.n[0];let n=it.por?A/it.por*(.45+par.dens*.8)*f:it.n[0]+(it.n[1]-it.n[0])*Math.min(1,par.dens*R()*1.2*f);return Math.max(it.n[0],Math.min(it.n[1],Math.round(n)))};
