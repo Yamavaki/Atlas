@@ -136,6 +136,23 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const KZ=["objetos","luzes","paredes","padroes","portais"];
   const daZona=z=>{const A=fl(),L=[];for(const k of KZ)for(const e of A[k]||[])if(e.z===z.id)L.push({k,e});return L};
   // piso conforme o tipo e a riqueza (materiais do Atlas)
+  // paredes, piso e porta dos pacotes (FA etc.), combinando com o tipo, a riqueza e o estilo dos moveis
+  const MAT_PC={
+    parede:{pobre:/Walls_(Shack|Wood|Mudbrick|Adobe)\//,comum:/Walls_(PlasterWood|StoneWood|Wood|BrickWood)\//,rico:/Walls_(Stone|Brick|Plaster|PlasterWood|StoneWood)\//,nobre:/Walls_(Stone|Plaster|Brick|Mosaic)\/|Wall_Mosaic/,pedra:/Walls_(Stone|Brick|StoneWood)\//},
+    madeira:{pobre:/Shack_Floors?_Pattern\/|Wood_Pattern\/.*_Texture_/,outro:/Wood_Pattern\/.*Flooring/},
+    pedra:{pobre:/Cobblestone_A_|Stone_Floor_Pattern\/Cobblestone_Square/,outro:/Stone_Tiles?_(Small|Medium)|Stone_Square_Tiles|Cobblestone_Square/,rico:/Stone_Tiles?_(Large|Medium)|Stone_Patterned_Tiles|Stone_Diagonal_Tiles|Marble/},
+    ladrilho:{outro:/Ceramic_Tiles_(Large|Medium)|Ceramic_Diagonal_Tile|Stone_Tiles?_Large|Marble/}};
+  const RUIM_MAT=/Cracked|Substrate|Snowy|Frosty|Mossy|Dirt\d|Damage|_Z_|Overlay|Ceremorph|Drow|Dwarven|Alien|Colorable|Blood/;
+  const sorteia=(L,sem)=>L.length?L[Math.abs(Math.imul(sem|0,2654435761)>>>0)%L.length]:null;
+  const matZona=(tipo,riq,estilo,sem)=>{if(!BIB.estado().conectada)return null;const ests=(estilo||"").split(" ").filter(w=>/ashen|walnut|dark|light|red|slate|earthy|redrock|sandstone|volcanic/.test(w)),cor=k=>ests.length&&ests.some(w=>new RegExp("_"+w+"_","i").test(k))?1:0;
+    const lista=(cats,re)=>{const r=BIB.buscar({cats,todos:true,filtro:c=>re.test(c)&&!RUIM_MAT.test(c)});return r.itens.map(x=>r.item(x).caminho)};
+    const pega=(cats,re)=>{const L=lista(cats,re);if(!L.length)return null;const C=L.filter(cor);return sorteia(C.length?C:L,sem)};
+    const nivel=["pobre","comum","rico","nobre"][riq],pedraT=/cozinha|despensa|guarda|banheiro|capela|oficina/.test(tipo);
+    const parede=pega(["walls"],MAT_PC.parede[pedraT&&riq>=1?"pedra":nivel]||MAT_PC.parede.comum)||pega(["walls"],/Walls_/);
+    const tipoPiso=/cozinha|despensa|guarda|oficina/.test(tipo)?"pedra":/banheiro|capela/.test(tipo)?(riq>=2?"ladrilho":"pedra"):"madeira",M2=MAT_PC[tipoPiso];
+    const piso=pega(["patterns","textures"],(riq<=0&&M2.pobre)||(riq>=2&&M2.rico)||M2.outro||M2.pobre)||pega(["patterns","textures"],M2.outro||M2.pobre);
+    const porta=pega(["portals"],riq>=2&&/capela/.test(tipo)?/Doors\/Door_Stone_/:/Doors\/Door_Wood_/)||pega(["portals"],/Doors\/Door_/);
+    return {parede,piso,porta}};
   const pisoZona=(tipo,riq)=>/cozinha|despensa|guarda|banheiro/.test(tipo)?(riq>=2?"ladrilho":"pedra"):tipo==="oficina"?"terra":tipo==="capela"?(riq>=2?"ladrilho":"pedra"):riq>=2?"madeiraEscura":"madeira";
   const apagaOps=L=>L.map(s=>({op:"apaga",a:andar,k:s.k,item:s.e,pos:fl()[s.k].indexOf(s.e)})).sort((a,b)=>a.k===b.k?b.pos-a.pos:a.k<b.k?-1:1);
   // artes do Atlas para cada papel (quando nao ha pacotes conectados)
@@ -151,18 +168,19 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       // o que ja esta no lugar (mexido a mao ou posto pelo usuario) vira obstaculo
       const obst=[];for(const e of A.objetos||[]){if(e.z===z.id&&!fixo.has(e))continue;if((e.l||0)<150||(e.l||0)>=400||!dentroP(z.p,e.x,e.y))continue;obst.push({x:e.x,y:e.y,w:e.w*.9,h:e.h*.9,r:e.r||0})}
       const portas=[],janelas=[];for(const q of A.portais||[]){if((q.z===z.id&&!pTrav)||distPoli(z.p,q.x,q.y,true)>.6)continue;(MD.tipoPortal(q,M.texturas)==="janela"?janelas:portas).push([q.x,q.y])}
-      // paredes, piso e porta feitos pela propria zona (quando ela nao esta num comodo que ja tem paredes)
-      const fazParede=par.paredes&&z.parede==null&&!pTrav,extra=[];
-      if(fazParede){const wid=MD.novoId(M),w={id:wid,t:MD.texDe(M,texM(paredeP.tex)),p:z.p.map(q=>[q[0],q[1]]),laco:true,raio:paredeP.raio,larg:paredeP.larg,tipo:0,sombra:true,z:z.id};
-        extra.push({k:"paredes",e:w},{k:"padroes",e:{id:MD.novoId(M),t:MD.texDe(M,texM(pisoZona(z.tipo,par.riqueza==null?1:par.riqueza))),p:w.p,l:-40,parede:wid,z:z.id}});
-        // porta: no lado comprido mais ao sul (o usuario pode arrastar depois); se ja havia porta travada, fica ela
-        const pt=meus.find(s=>s.k==="portais"&&travados.includes(s));if(!pt){let best=null;for(let i=0;i<z.p.length;i++){const a=z.p[i],b=z.p[(i+1)%z.p.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1.6)continue;const my=(a[1]+b[1])/2,nota=my+L*.15;if(!best||nota>best.nota)best={nota,mx:(a[0]+b[0])/2,my}}
-          if(best){const T=MD.trajeto(w),pj=projeta(T,true,best.mx,best.my),pe=pontoEm(T,true,pj.d);extra.push({k:"portais",e:{id:MD.novoId(M),t:MD.texDe(M,"atlas:p/porta"),tipo:"porta",parede:wid,d:+pj.d.toFixed(4),raio:.5,fechado:true,x:pe[0],y:pe[1],dx:pe[2],dy:pe[3],r:Math.atan2(pe[3],pe[2]),z:z.id}});portas.push([pe[0],pe[1]])}}}
-      const m0=[(z.p[0][0]+z.p[1][0])/2,(z.p[0][1]+z.p[1][1])/2],mg=fazParede||pTrav||(A.paredes||[]).some(w=>w.z!==z.id&&w.p.length>1&&distPoli(MD.trajeto(w),m0[0],m0[1],w.laco)<.3)?.14:.05;
       let cat={},info={};
       if(par.fonte==="atlas"||!BIB.estado().conectada){cat=catAtlas();info={pacote:"Artes do Atlas",estilo:""}}
       else{zMsg="Escolhendo as artes…";painel(true);await new Promise(r=>setTimeout(r,20));const idx=BIB.porSub(),e=ZN.escolheArtes(z.tipo,{lista:s=>idx.get(s)||[]},par,semente),pk=BIB.pacotes().find(p=>p.id===e.pacote);info={pacote:pk?pk.nome.replace(/_/g," "):"",pid:e.pacote||"",estilo:e.estilo||""};
         for(const [p,ks] of Object.entries(e.papeis)){cat[p]=(await Promise.all(ks.map(arteReal))).filter(Boolean);if(ZN.PAPEIS[p]&&ZN.PAPEIS[p].borda)for(const a of cat[p])a.funde=await CAT.bordaApagada(a.k)}}
+      // paredes, piso e porta feitos pela propria zona (quando ela nao esta num comodo que ja tem paredes)
+      const fazParede=par.paredes&&z.parede==null&&!pTrav,extra=[];
+      const mp=fazParede&&par.fonte!=="atlas"?matZona(z.tipo,par.riqueza==null?1:par.riqueza,info.estilo,semente):null;if(mp)for(const k of [mp.parede,mp.piso,mp.porta])if(k)await preparaArte(k);
+      if(fazParede){const wid=MD.novoId(M),w={id:wid,t:MD.texDe(M,mp&&mp.parede?mp.parede:texM(paredeP.tex)),p:z.p.map(q=>[q[0],q[1]]),laco:true,raio:paredeP.raio,larg:paredeP.larg,tipo:0,sombra:true,z:z.id};
+        extra.push({k:"paredes",e:w},{k:"padroes",e:{id:MD.novoId(M),t:MD.texDe(M,mp&&mp.piso?mp.piso:texM(pisoZona(z.tipo,par.riqueza==null?1:par.riqueza))),p:w.p,l:-40,parede:wid,z:z.id}});
+        // porta: no lado comprido mais ao sul (o usuario pode arrastar depois); se ja havia porta travada, fica ela
+        const pt=meus.find(s=>s.k==="portais"&&travados.includes(s));if(!pt){let best=null;for(let i=0;i<z.p.length;i++){const a=z.p[i],b=z.p[(i+1)%z.p.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1.6)continue;const my=(a[1]+b[1])/2,nota=my+L*.15;if(!best||nota>best.nota)best={nota,mx:(a[0]+b[0])/2,my}}
+          if(best){const T=MD.trajeto(w),pj=projeta(T,true,best.mx,best.my),pe=pontoEm(T,true,pj.d);extra.push({k:"portais",e:{id:MD.novoId(M),t:MD.texDe(M,mp&&mp.porta?mp.porta:"atlas:p/porta"),tipo:"porta",parede:wid,d:+pj.d.toFixed(4),raio:.5,fechado:true,x:pe[0],y:pe[1],dx:pe[2],dy:pe[3],r:Math.atan2(pe[3],pe[2]),z:z.id}});portas.push([pe[0],pe[1]])}}}
+      const m0=[(z.p[0][0]+z.p[1][0])/2,(z.p[0][1]+z.p[1][1])/2],mg=fazParede||pTrav||(A.paredes||[]).some(w=>w.z!==z.id&&w.p.length>1&&distPoli(MD.trajeto(w),m0[0],m0[1],w.laco)<.3)?.14:.05;
       const r=ZN.geraComodo({p:z.p,tipo:z.tipo,par,semente},cat,{portas,janelas,obst,mg});
       const ks=[...new Set(r.objs.map(x=>x.k).filter(real))];if(ks.length){zMsg="Carregando as artes…";painel(true);await atualizaReais(ks)}
       if(a0!==andar||!zonasDe().includes(z))return null;
