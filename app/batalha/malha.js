@@ -29,9 +29,12 @@ export function escreveObjeto(B,off,o,l,rc){rc=rc||TODO;const c=Math.cos(o.r),s=
     mz=(o.mz||0)/360,sa=o.sat==null?1:o.sat,br=o.bri==null?1:o.bri,X=[-hw,hw,hw,-hw,hw,-hw],Y=[-hh,-hh,hh,-hh,hh,hh],U=[u0,u1,u1,u0,u1,u0],V=[v0,v0,v1,v0,v1,v1];
   for(let p=0;p<2;p++){const sb=p===0,dx=sb?sd[3]:0,dy=sb?sd[4]:0;for(let i=0;i<6;i++){const k=off+(p*6+i)*VERT;B[k]=o.x+X[i]*c-Y[i]*s+dx;B[k+1]=o.y+X[i]*s+Y[i]*c+dy;B[k+2]=U[i];B[k+3]=V[i];B[k+4]=l;
     if(sb){B[k+5]=0;B[k+6]=0;B[k+7]=0;B[k+8]=o.s?sd[0]*a:0;B[k+9]=-2;B[k+10]=sd[2];B[k+11]=1}else{B[k+5]=q[0];B[k+6]=q[1];B[k+7]=q[2];B[k+8]=a;B[k+9]=mz;B[k+10]=sa;B[k+11]=br}}}}
-// luz: 6 vertices de 9 numeros: x, y, lx, ly, r, g, b, forca, nucleo (luz plena / alcance)
-export const N_LUZ=54;
-export function escreveLuz(B,off,l){const R=l.raio,f=l.forca,k0=l.dd?-1:Math.max(0,Math.min(.98,(l.claro==null?R*.45:l.claro)/R)),Q=[[-1,-1],[1,-1],[1,1],[-1,-1],[1,1],[-1,1]];for(let i=0;i<6;i++){const k=off+i*9;B[k]=l.x+Q[i][0]*R;B[k+1]=l.y+Q[i][1]*R;B[k+2]=Q[i][0];B[k+3]=Q[i][1];B[k+4]=l.c[0];B[k+5]=l.c[1];B[k+6]=l.c[2];B[k+7]=f;B[k+8]=k0}}
+// luz: 6 vertices de 11 numeros: x, y, lx, ly, r, g, b, forca, nucleo (luz plena / alcance), forma (camada na matriz de formas; -1 = redonda; +.25 = animada), giro
+export const N_LUZ=66,LV=11;
+// formas de luz: chave (atlas:luz/cone ou caminho do pacote) -> camada. O renderizador preenche
+export const LUZ_IND={};
+const formaDe=l=>{if(!l.tex)return -1;const i=LUZ_IND[l.tex];return i==null?-1:i+(l.anim?.25:0)};
+export function escreveLuz(B,off,l){const F=formaDe(l),G=l.gir||0;const R=l.raio,f=l.forca,k0=l.dd?-1:Math.max(0,Math.min(.98,(l.claro==null?R*.45:l.claro)/R)),Q=[[-1,-1],[1,-1],[1,1],[-1,-1],[1,1],[-1,1]];for(let i=0;i<6;i++){const k=off+i*LV;B[k]=l.x+Q[i][0]*R;B[k+1]=l.y+Q[i][1]*R;B[k+2]=Q[i][0];B[k+3]=Q[i][1];B[k+4]=l.c[0];B[k+5]=l.c[1];B[k+6]=l.c[2];B[k+7]=f;B[k+8]=k0;B[k+9]=F;B[k+10]=G}}
 // triangulacao por "orelhas" (poligonos simples, concavos ou nao)
 export function triangula(P){const n=P.length;if(n<3)return [];let A=0;for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n];A+=a[0]*b[1]-b[0]*a[1]}const V=[];for(let i=0;i<n;i++)V.push(A>0?i:n-1-i);const T=[];let g=0;
   const cr=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]),den=(a,b,c,p)=>cr(a,b,p)>=0&&cr(b,c,p)>=0&&cr(c,a,p)>=0;
@@ -122,11 +125,11 @@ export function visibilidade(cx,cy,R,S){const segs=S.filter(s=>{const dx=s[2]-s[
   const P=[];for(const a of ang){const dx=Math.cos(a),dy=Math.sin(a);let tm=R;for(const s of segs){const ex=s[2]-s[0],ey=s[3]-s[1],den=dx*ey-dy*ex;if(Math.abs(den)<1e-12)continue;const fx=s[0]-cx,fy=s[1]-cy,t=(fx*ey-fy*ex)/den,u=(fx*dy-fy*dx)/den;if(t>1e-6&&u>=-1e-9&&u<=1+1e-9&&t<tm)tm=t}P.push([cx+dx*tm,cy+dy*tm])}return P}
 // todas as luzes do andar: quadrado simples sem parede perto; leque com sombra quando ha. cache por luz (refaz so a que mudou)
 export function malhaLuzes(A,cache,TEX){const S=cache&&cache.S||barreiras(A,TEX),novo=new Map(),partes=[];let tot=0;novo.S=S;
-  for(const l of A.luzes||[]){const k=l.x+","+l.y+","+l.raio+","+(l.claro==null?"":l.claro)+","+l.forca+","+l.c.join(",")+","+(l.sombras!==false)+","+(l.dd?1:0);let ent=cache&&cache.get(l);
-    if(!ent||ent.k!==k){const B=[];const k0=l.dd?-1:Math.max(0,Math.min(.98,(l.claro==null?l.raio*.45:l.claro)/l.raio)),put=(x,y)=>B.push(x,y,(x-l.x)/l.raio,(y-l.y)/l.raio,l.c[0],l.c[1],l.c[2],l.forca,k0);
+  for(const l of A.luzes||[]){const k=l.x+","+l.y+","+l.raio+","+(l.claro==null?"":l.claro)+","+l.forca+","+l.c.join(",")+","+(l.sombras!==false)+","+(l.dd?1:0)+","+formaDe(l)+","+(l.gir||0);let ent=cache&&cache.get(l);
+    if(!ent||ent.k!==k){const B=[];const k0=l.dd?-1:Math.max(0,Math.min(.98,(l.claro==null?l.raio*.45:l.claro)/l.raio)),F=formaDe(l),G=l.gir||0,put=(x,y)=>B.push(x,y,(x-l.x)/l.raio,(y-l.y)/l.raio,l.c[0],l.c[1],l.c[2],l.forca,k0,F,G);
       const P=l.sombras===false?null:visibilidade(l.x,l.y,l.raio,S);if(!P){const Q=[];escreveLuz(Q,0,l);B.push(...Q)}else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];put(l.x,l.y);put(a[0],a[1]);put(b[0],b[1])}ent={k,v:new Float32Array(B)}}
     novo.set(l,ent);partes.push(ent.v);tot+=ent.v.length}
-  const out=new Float32Array(tot);let o=0;for(const v of partes){out.set(v,o);o+=v.length}return {verts:out,n:tot/9,cache:novo}}
+  const out=new Float32Array(tot);let o=0;for(const v of partes){out.set(v,o);o+=v.length}return {verts:out,n:tot/LV,cache:novo}}
 
 // ---------- telhados ----------
 // quatro aguas: um pano por lado, do beiral ao centro; duas aguas: cumeeira no eixo comprido; plano: um pano so. Cada pano tem o sombreado pela direcao da luz (de cima a esquerda)

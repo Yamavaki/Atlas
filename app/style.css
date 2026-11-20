@@ -773,3 +773,14 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .bt-chips2{display:flex;gap:4px;margin:6px 0}.bt-chips2 .bt-chip{flex:1;min-height:30px;font-size:12px}
 .bt-arte.fav{position:relative}.bt-arte.fav::after{content:"★";position:absolute;right:3px;top:1px;font-size:11px;color:var(--gold)}
 .bt-2 select{min-width:0}
+/* 0.96: grade virtual (todas as artes, sem "Mostrar mais") */
+.bt-vg{position:relative;overflow:auto;margin-top:6px;contain:strict}
+.bt-vgi{position:relative;width:100%}
+.bt-vgi>*{position:absolute;box-sizing:border-box;margin:2px}
+.bt-vg.bt-palpc{max-height:none}
+.bt-mgrv{background:#15110c}
+.bt-luzes{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.bt-luzes canvas{width:48px;height:48px;border-radius:50%;background:#000}
+.bt-pinceis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;max-height:260px;overflow:auto}
+.bt-pinceis canvas{width:44px;height:44px;background:#0d0a07;border-radius:6px}
+.bt-pinceis .bt-mo span{font-size:10px}

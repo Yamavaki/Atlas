@@ -19,8 +19,8 @@ async def main():
             await pg.locator(".bt-wrap").click(position={"x":600,"y":400});await pg.keyboard.press("w");await pg.wait_for_timeout(300)
             await pg.click(".bt-mat:has-text('Textura da parede')");await pg.wait_for_timeout(200)
             aba=pg.locator(".bt-mats:not([hidden]) .bt-fonte button >> text=Minhas paredes");chk("aba minhas paredes",await aba.count()==1)
-            await aba.click();await pg.wait_for_timeout(400);n=await pg.locator(".bt-mats:not([hidden]) .bt-mgr:not([hidden]) .bt-mo").count();print("paredes",n);chk("paredes do pacote",n>0)
-            await pg.locator(".bt-mats:not([hidden]) .bt-mgr:not([hidden]) .bt-mo").first.click();await pg.wait_for_timeout(1500)
+            await aba.click();await pg.wait_for_timeout(400);n=await pg.locator(".bt-mats:not([hidden]) div:not([hidden])>.bt-mgrv .bt-mo").count();print("paredes",n);chk("paredes do pacote",n>0)
+            await pg.locator(".bt-mats:not([hidden]) div:not([hidden])>.bt-mgrv .bt-mo").first.click();await pg.wait_for_timeout(1500)
             pts=[(4,4),(12,4),(12,10),(4,10)]
             for x,y in pts:
                 q=await pg.evaluate(f"()=>{E}.naTela({x},{y})");await pg.mouse.click(q[0],q[1]);await pg.wait_for_timeout(120)
@@ -32,7 +32,7 @@ async def main():
             await pg.click(".bt-mat:has-text('Textura')");await pg.wait_for_timeout(200)
             aba=pg.locator(".bt-mats:not([hidden]) .bt-fonte button >> text=Meus caminhos");chk("aba meus caminhos",await aba.count()==1)
             await aba.click();await pg.wait_for_timeout(300);await pg.fill(".bt-mats:not([hidden]) .bt-busca","road");await pg.wait_for_timeout(300)
-            await pg.locator(".bt-mats:not([hidden]) .bt-mgr:not([hidden]) .bt-mo").first.click();await pg.wait_for_timeout(1500)
+            await pg.locator(".bt-mats:not([hidden]) div:not([hidden])>.bt-mgrv .bt-mo").first.click();await pg.wait_for_timeout(1500)
             for x,y in [(2,13),(9,14),(16,13)]:
                 q=await pg.evaluate(f"()=>{E}.naTela({x},{y})");await pg.mouse.click(q[0],q[1]);await pg.wait_for_timeout(120)
             await pg.keyboard.press("Enter");await pg.wait_for_timeout(800)

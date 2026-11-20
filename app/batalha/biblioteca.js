@@ -80,11 +80,11 @@ export const arquivoDe=P=>ESTADO.arquivos.get(P.arquivo);
 export const pacotes=()=>[...ESTADO.pacotes.values()].map(P=>({id:P.id,nome:P.nome,autor:P.autor,artes:P.artes.length,permitido:P.permitido,arquivo:P.arquivo}));
 // busca nas artes: q (texto), cat (objects, terrain, patterns...), pacote (id); devolve {caminho, nome, grupo, cat, pacote}
 const semAc=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
-export function buscar(o){o=o||{};const q=semAc(o.q).split(/\s+/).filter(Boolean),R=[],lim=o.limite||300;let total=0;
+export function buscar(o){o=o||{};const q=semAc(o.q).split(/\s+/).filter(Boolean),R=[],lim=o.todos?Infinity:(o.limite||300);let total=0;
   for(const P of ESTADO.pacotes.values()){if(!P.permitido||(o.pacote&&P.id!==o.pacote))continue;const ti=o.tag?(P.tags||[]).indexOf(o.tag):-2;if(o.tag&&ti<0)continue;for(const a of P.artes){const cat=categoria(a[0]);if(o.cats&&!o.cats.includes(cat))continue;if(o.cat&&cat!==o.cat)continue;
     if(ti>=0&&!(a[4]||[]).includes(ti))continue;if(o.lista&&!o.lista.has("res://packs/"+P.id+"/"+a[0]))continue;if(o.filtro&&!o.filtro("res://packs/"+P.id+"/"+a[0],a))continue;
-    if(q.length){const t=semAc(a[0]+" "+a[3]);if(!q.every(w=>t.includes(w)))continue}total++;if(R.length<lim)R.push({caminho:"res://packs/"+P.id+"/"+a[0],nome:nomeBonito(a[0],P.pref),grupo:grupoBonito(a[3]),cat,pacote:P.nome})}}
-  return {itens:R,total}}
+    if(q.length){const t=semAc(a[0]+" "+a[3]);if(!q.every(w=>t.includes(w)))continue}total++;if(R.length<lim)R.push(o.todos?[P,a,cat]:{caminho:"res://packs/"+P.id+"/"+a[0],nome:nomeBonito(a[0],P.pref),grupo:grupoBonito(a[3]),cat,pacote:P.nome})}}
+  return {itens:R,total,item:o.todos?r=>({caminho:"res://packs/"+r[0].id+"/"+r[1][0],nome:nomeBonito(r[1][0],r[0].pref),grupo:grupoBonito(r[1][3]),cat:r[2],pacote:r[0].nome}):x=>x}}
 export const info=c=>{const z=ESTADO.caminho.get(c);return z?{nome:nomeBonito(z[1][0],z[0].pref),grupo:grupoBonito(z[1][3]),tags:(z[1][4]||[]).map(i=>z[0].tags[i]),cat:categoria(z[1][0]),pacote:z[0].nome,autor:z[0].autor}:null};
 const blobDe=c=>{const z=ESTADO.caminho.get(c);if(!z)return null;const f=ESTADO.arquivos.get(z[0].arquivo);if(!f)return null;const a=z[1],tipo=/\.png$/i.test(a[0])?"image/png":/\.jpe?g$/i.test(a[0])?"image/jpeg":"image/webp";return f.slice(a[1],a[1]+a[2],tipo)};
 const DIM=new Map();
@@ -100,6 +100,6 @@ export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))re
   const p=createImageBitmap(b).then(async bm=>{const s=Math.min(1,tam/Math.max(bm.width,bm.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(bm.width*s));cv.height=Math.max(1,Math.round(bm.height*s));cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);bm.close();
     const bl=await new Promise(ok=>cv.toBlob(ok,"image/webp",.85));return bl?URL.createObjectURL(bl):null}).catch(()=>null);guarda(MINI,k,p,LIM_MINI);return p}
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
-export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets)\//.test(c);
+export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets|lights)\//.test(c);
 export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
 if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial};

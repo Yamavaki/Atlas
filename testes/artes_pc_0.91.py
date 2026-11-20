@@ -51,9 +51,9 @@ async def main():
                 if tem:
                     await pg.locator(".bt-mats .bt-fonte button >> text=Minhas texturas").first.click();await pg.wait_for_timeout(500)
                     await pg.fill(".bt-busca[aria-label='Buscar nos seus pacotes']","asphalt");await pg.wait_for_timeout(400)
-                    k=await pg.locator(".bt-mats .bt-mgr:not([hidden]) .bt-mo").count();chk("acha asfalto",k>0)
+                    k=await pg.locator(".bt-mats div:not([hidden])>.bt-mgrv .bt-mo").count();chk("acha asfalto",k>0)
                     if k:
-                        await pg.locator(".bt-mats .bt-mgr:not([hidden]) .bt-mo").first.click();await pg.wait_for_timeout(2500)
+                        await pg.locator(".bt-mats div:not([hidden])>.bt-mgrv .bt-mo").first.click();await pg.wait_for_timeout(2500)
                         tx=await pg.evaluate("()=>AtlasBatalha.atual().mapa.texturas.filter(t=>/patterns|terrain/.test(t))");print(tx)
                         chk("textura de chao do PC no mapa",len(tx)>=1)
                         await pg.evaluate("()=>{const e=AtlasBatalha.atual();e.set({cam:{x:10,y:10,z:30}});e.agora()}");await pg.wait_for_timeout(300);await pg.screenshot(path="/tmp/a91_chao.png")
