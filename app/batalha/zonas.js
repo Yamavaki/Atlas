@@ -207,7 +207,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
       // ponta apagada: so nas pontas do lado, com a ponta virada para o canto
       if(fu){const r=giroPara(a,s.n),d=gira(fu[0],fu[1],r),pr=d[0]*s.t[0]+d[1]*s.t[1];if(Math.abs(pr)<.7)continue;const t=pr<0?lg/2+.02:s.L-lg/2-.02;if(t<0||t>s.L)continue;t0=t1=t}
       const passo=.25,n0=Math.floor(R()*2)*.125;for(let t=t0+(fu?0:n0);t<=t1+1e-6;t+=passo){const x=s.a[0]+s.t[0]*t,y=s.a[1]+s.t[1]*t;if(it._evita&&it._evita.some(q=>Math.hypot(q[0]-x,q[1]-y)<1.2))continue;
-        let nota=R()*2.2;if(it.chave)nota+=Math.min(dPorta(x,y),8)*.12-Math.abs(t-s.L/2)/s.L*.8+Math.min(s.L,lg*2)*.1;if(it.perto){const d=dPapel(x,y,it.perto);if(d<90)nota-=d*.45}if(it.fundo)nota+=Math.min(dPorta(x,y),20)*.4-Math.abs(t-s.L/2)/s.L*4+(s.L>=3?1:-2);
+        let nota=R()*(it.fundo?.2:2.2);if(it.chave)nota+=Math.min(dPorta(x,y),8)*.12-Math.abs(t-s.L/2)/s.L*.8+Math.min(s.L,lg*2)*.1;if(it.perto){const d=dPapel(x,y,it.perto);if(d<90)nota-=d*.45}if(it.fundo)nota+=Math.min(dPorta(x,y),20)*.4-Math.abs(t-s.L/2)*3+(s.L>=3?1:-2);
         if(papel==="tocha")nota+=Math.min(dPapel(x,y,"tocha"),6)*.25;T.push([nota,s,x,y])}}
     T.sort((u,v)=>v[0]-u[0]);const r0=o=>o;
     for(const [,s,x,y] of T.slice(0,90)){const r=giroPara(a,s.n);for(const emp of [0,.12,.25,.4]){const d=mg+fd/2+emp+af,ob=poe(a,papel,x+s.n[0]*d,y+s.n[1]*d,r,{parede:true});if(ob){ob.n=s.n;return r0(ob)}}}return fu?naParede(a,papel,Object.assign({},it,{_semFu:true})):null};
