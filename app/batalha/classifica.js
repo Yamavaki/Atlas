@@ -9,7 +9,7 @@ export const ARVORE=[
   ["Chão e efeitos","Sombras",["shadow","shadows"]],
   ["Iluminação","Tochas e braseiros",["torch","torches","brazier","braziers","sconce","sconces"]],
   ["Iluminação","Velas e candelabros",["candle","candles","candelabra","candelabrum","chandelier","chandeliers"]],
-  ["Iluminação","Lâmpadas e lanternas",["lamp","lamps","lantern","lanterns","lightsources","streetlight","streetlights","neon","lightbulb","spotlight"]],
+  ["Iluminação","Lâmpadas e lanternas",["lamp","lamps","lantern","lanterns","table_lamp","floor_lamp","desk_lamp","lightsources","streetlight","streetlights","neon","lightbulb","spotlight"]],
   ["Natureza","Árvores",["tree","trees","palm","palms","pine","oak","willow","birch","stump","stumps","trunk","canopy"],["family","christmas","xmas","tree_house"]],
   ["Natureza","Arbustos e plantas",["bush","bushes","shrub","shrubs","plant","plants","fern","ferns","flora","hedge","reed","reeds","cactus","cacti","succulent","weed","weeds","ivy","vine","vines","botanical"]],
   ["Natureza","Flores",["flower","flowers","rose","roses","tulip","lily","blossom","petals"]],
@@ -22,7 +22,7 @@ export const ARVORE=[
   ["Corpos e criaturas","Pessoas e manequins",["mannequin","mannequins","npc","person","people","pedestrian","humanoid"]],
   ["Arquitetura","Escadas",["stair","stairs","staircase","ladder","ladders","steps","escalator"]],
   ["Arquitetura","Colunas e vigas",["pillar","pillars","column","columns","beam","beams","support","supports","post","posts","arch","arches","buttress"]],
-  ["Arquitetura","Portas, portões e janelas",["door","doors","gate","gates","window","windows","portcullis","doorway","shutter","shutters","garage"]],
+  ["Arquitetura","Portas, portões e janelas",["door_frame","doorframe","door","doors","gate","gates","window","windows","portcullis","doorway","shutter","shutters","garage"]],
   ["Arquitetura","Telhados e toldos",["roof","roofs","rooftop","awning","awnings","tarp","tarps","canopies","eave"]],
   ["Arquitetura","Cercas e grades",["fence","fences","railing","railings","rail","barrier","barriers","barricade","palisade","bars","grate","grating"]],
   ["Arquitetura","Muros e paredes",["wall","walls","curb","curbs","brickwork","masonry","battlement"]],
@@ -103,6 +103,10 @@ const PAREDE=new Set(["wardrobe","wardrobes","cabinet","cabinets","cupboard","cu
 const CANTO=new Set(["corner","corners"]);
 const MEIO=new Set(["table","tables","rug","rugs","carpet","carpets","fountain","fountains","altar","altars","statue","statues","pool","billiards","bed","beds","throne","thrones"]);
 const PASSA=new Set(["rug","rugs","carpet","carpets","mat","mats","runner","stain","stains","blood","splatter","splatters","decal","decals","puddle","puddles","leaves","leaf","twig","twigs","grass","petals","mark","marks","scorch","burn","burns","footprints","tracks","overlay","overlays","shadow","shadows","glow","light","lights","paper","papers","inlay","inlays","tile","tiles","floor","floors","grime","mud","dirt_patch","path","paths","crosswalk","oil","paint","moss","lilypad","flowers","flower","fog","mist","smoke"]);
+// prefixo dos pacotes PeaPu (PP_Battle_Post-Apoc_Ext01b_): o tema nao e o tipo da arte
+const PREF_PP=/^PP_[A-Za-z]+_(?:[A-Za-z0-9-]+_){0,4}?(?:Ext|Int|Univ|Universal|VG|Exterior|Interior|Cityscape|Basics)[0-9]*[a-z]?_/;
+const FRACA=new Set(["wall","walls","street","floor","floors","ceiling","broken","damaged","ruined","destroyed","fallen","burnt","burned"]);
+const FORTE=new Set(["shadow","shadows","stain","stains","model","models","bone","bones","skull","skulls","skeleton","skeletons","corpse","corpses","stove","stoves","oven","ovens","statue","statues","cart","carts","altar","altars"]);
 const memo=new Map();
 const IDX=new Map();ARVORE.forEach((r,i)=>{for(const w of r[2])if(!IDX.has(w))IDX.set(w,i)});
 const IDXA=new Map();AMB.forEach(([n,ws],i)=>{for(const w of ws){if(!IDXA.has(w))IDXA.set(w,[]);IDXA.get(w).push(i)}});
@@ -116,8 +120,14 @@ export function classifica(rel,tags){const tg=(tags||[]).join(" ");const chave=r
   let cat="Outros",sub="Outros";
   const tipo={objects:null,terrain:["Terreno","Terreno"],patterns:["Padrões e pisos","Padrões"],textures:["Padrões e pisos","Texturas"],materials:["Padrões e pisos","Materiais"],material:["Padrões e pisos","Materiais"],tilesets:["Padrões e pisos","Pisos em quadrados"],walls:["Paredes","Paredes"],paths:["Caminhos","Caminhos"],portals:["Portas e janelas","Portas e janelas"],lights:["Iluminação","Luzes (forma)"],caves:["Cavernas","Cavernas"],roofs:["Telhados","Telhados"]}[pasta];
   // objetos: primeiro o nome da arte (mais especifico), depois as pastas
-  const acha=S=>{let best=1e9;for(const w of S){const i=IDX.get(w);if(i!=null&&i<best){const nao=ARVORE[i][3];if(!nao||!nao.some(x=>S.has(x)))best=i}}return best<1e9?[ARVORE[best][0],ARVORE[best][1]]:null};
-  if(tipo&&pasta!=="objects")[cat,sub]=tipo;else{const a=acha(nomeS)||acha(new Set(tP))||acha(new Set(tT));if(a)[cat,sub]=a}
+  // a primeira palavra que casa vence (nos nomes a coisa vem antes do material e da cor: Table_Wood_Dark, Basin_Wall_Stone);
+  // algumas palavras vencem em qualquer lugar (Cliff_Shadow e sombra, Animal_Bone e osso, Ship_Model e enfeite)
+  const regra=(w,S)=>{const i=IDX.get(w);if(i==null)return -1;const nao=ARVORE[i][3];return nao&&nao.some(x=>S.has(x))?-1:i};
+  const acha=t=>{if(!t.length)return null;const S=new Set(t);for(const w of t)if(FORTE.has(w)){const i=regra(w,S);if(i>=0)return [ARVORE[i][0],ARVORE[i][1]]}
+    let fraca=null;for(let k=0;k<t.length;k++){for(const w of [t[k]+"_"+(t[k+1]||""),t[k]]){const i=regra(w,S);if(i>=0){if(FRACA.has(w)&&k<t.length-1){if(!fraca)fraca=i;continue}return [ARVORE[i][0],ARVORE[i][1]]}}}return fraca!=null?[ARVORE[fraca][0],ARVORE[fraca][1]]:null};
+  // pastas: da mais funda (perto do nome) para a de fora
+  const achaPastas=()=>{const ps=partes.slice(2,-1);for(let j=ps.length-1;j>=0;j--){const a=acha(pal(ps[j]));if(a)return a}return null};
+  if(tipo&&pasta!=="objects")[cat,sub]=tipo;else{const a=acha(pal(nome.replace(PREF_PP,"")))||acha(tN)||achaPastas()||acha(tT);if(a)[cat,sub]=a}
   // texturas de chao: subtipo pelo material
   if(pasta!=="objects"&&/Terreno|Padrões/.test(cat)){const m=[["Grama",["grass","clover","lawn","moss","meadow"]],["Terra e lama",["dirt","mud","soil","earth","dust"]],["Areia",["sand","dune","beach"]],["Pedra e calçamento",["stone","cobble","cobblestone","rock","gravel","slate","marble","brick","bricks","flagstone","pavement","concrete","asphalt","sidewalk","tiles","tile"]],["Madeira",["wood","wooden","plank","planks","parquet","floorboard"]],["Neve e gelo",["snow","ice","frost"]],["Água",["water","sea","ocean","lava","swamp","river"]],["Folhas e mato",["leaves","forest","jungle","foliage"]],["Metal",["metal","steel","iron","grate","grating"]],["Carpete e tecido",["carpet","rug","fabric","cloth"]]];for(const [n,ws] of m)if(ws.some(w=>todos.has(w))){sub=n;break}}
   const ia=new Set(),im=new Set();for(const w of todos){const a=IDXA.get(w);if(a)for(const i of a)ia.add(i);const m=IDXM.get(w);if(m)for(const i of m)im.add(i)}

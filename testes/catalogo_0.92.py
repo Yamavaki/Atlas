@@ -28,8 +28,8 @@ async def main():
             # arquivo IA
             await pg.click(".bt-catal button >> text=Catálogo para IA");await pg.wait_for_timeout(200)
             for lim,nome in [("120000","120k"),("30000","30k"),("","semlimite")]:
-                await pg.select_option(".bt-catopc select",lim)
-                async with pg.expect_download() as d:await pg.click(".bt-catopc button >> text=Baixar")
+                await pg.evaluate("()=>document.querySelectorAll('.bt-catopc details').forEach(d=>d.open=true)");await pg.select_option(".bt-catopc select",lim)
+                async with pg.expect_download() as d:await pg.click(".bt-catopc button >> text=Baixar arquivo único")
                 path=await (await d.value).path();txt=open(path,encoding="utf8").read();open(f"/tmp/catalogo_{nome}.md","w").write(txt)
                 print(nome,len(txt),"letras ~",round(len(txt)/3.6/1000),"mil tokens |",txt.splitlines()[1][:200])
                 if lim:chk(f"cabe em {nome}",len(txt)/3.6<=int(lim)*1.02)
@@ -49,8 +49,8 @@ async def main():
             await pg.select_option("select[aria-label='Tamanho']","");await pg.select_option("select[aria-label='Pacote']","PieHCLp9");await pg.wait_for_timeout(300)
             opts=await pg.locator("select[aria-label='Etiqueta'] option").all_inner_texts();print(opts[:4]);chk("etiquetas do pacote",len(opts)>=2)
             await pg.locator(".bt-palpc .bt-arte").nth(2).click(button="right");await pg.wait_for_timeout(200);await pg.locator(".bt-palpc .bt-arte").nth(4).click();await pg.wait_for_timeout(800)
-            await pg.click(".bt-chips2 button >> text=Favoritas");await pg.wait_for_timeout(300);chk("favoritas",await pg.locator(".bt-palpc .bt-arte").count()==1)
-            await pg.click(".bt-chips2 button >> text=Recentes");await pg.wait_for_timeout(300);chk("recentes",await pg.locator(".bt-palpc .bt-arte").count()==1)
+            await pg.click(".bt-chips2 button >> text=Favoritas");await pg.wait_for_timeout(300);chk("favoritas",await pg.locator(".bt-palpc .bt-arte:not(.bt-combina .bt-arte)").count()==1)
+            await pg.click(".bt-chips2 button >> text=Recentes");await pg.wait_for_timeout(300);chk("recentes",await pg.locator(".bt-palpc .bt-arte:not(.bt-combina .bt-arte)").count()==1)
             await pg.screenshot(path="/tmp/a92_busca.png")
             # retoma: analisar de novo nao refaz
             await pg.reload();await pg.wait_for_timeout(2500)

@@ -1,6 +1,8 @@
 // Atlas - Catalogo de artes: analisa cada arte dos pacotes do usuario uma vez (tamanho, parte desenhada, forma, cor,
 // simetria, frente) e gera um arquivo so para a IA (com limite de tamanho) e um completo para o gerador.
 import * as BIB from "./biblioteca.js";
+import * as CL from "./classifica.js";
+import {zip} from "./zip.js";
 export const VERSAO_FICHA=2;
 const QUAD=256; // px por quadrado no Dungeondraft
 
@@ -128,13 +130,94 @@ export async function arquivoIA(o){o=o||{};const D=await montaDados(o.pacotes||n
   const cab=["# Catálogo de artes do Atlas · formato 1","Gerado em "+new Date().toISOString().slice(0,10)+" · "+D.length+" pacotes · "+T.artes.toLocaleString("pt-BR")+" artes · "+T.fams.toLocaleString("pt-BR")+" famílias · detalhe: "+(new Set(niv).size>1?"varia por pacote (os grandes ficam resumidos)":det)+(lim?" · limite ~"+Math.round(lim/1000)+" mil tokens":""),LEGENDA].join("\n");
   const s=cab+"\n"+corpo+"\n";return {texto:s,nivel,tokens:tokens(s),cortado,artes:T.artes,familias:T.fams}}
 // completo (para o gerador do Atlas e para ferramentas): JSON com tudo, comprimido
-export async function arquivoCompleto(o){o=o||{};const D=await montaDados(o.pacotes||null),J={formato:"atlas-catalogo",versao:1,gerado:new Date().toISOString(),quadrado_px:QUAD,
-    campos_ficha:["largura_px","altura_px","x0","y0","x1","y1","preenchimento","mascara8x8","cor","simetria_esq_dir","simetria_cima_baixo"],pacotes:[]};
+export async function arquivoCompleto(o){o=o||{};const D=await montaDados(o.pacotes||null),J={formato:"atlas-catalogo",versao:2,gerado:new Date().toISOString(),quadrado_px:QUAD,
+    campos_ficha:["largura_px","altura_px","x0","y0","x1","y1","preenchimento","mascara8x8","cor","simetria_esq_dir","simetria_cima_baixo"],campos_cl:["categoria","tipo","ambientes","encosta","passavel"],pacotes:[]};
   for(const {P} of D){const fx=await fichasDe(P);J.pacotes.push({id:P.id,nome:P.nome,autor:P.autor,versao:P.versao,prefixo:P.pref||"",etiquetas:P.tags,conjuntos:P.conjuntos||{},
-    artes:P.artes.map((a,i)=>{const f=fx?fx.fichas[i]:null,b=base(a[0],P.pref);return {c:a[0],e:a[4]||[],f,cam:camada(b,BIB.categoria(a[0]),f?f[0]/QUAD:0,f?f[1]/QUAD:0),fr:frente(b,P.autor,f),fo:forma(f)}})})}
+    artes:P.artes.map((a,i)=>{const f=fx?fx.fichas[i]:null,b=base(a[0],P.pref);const k=CL.classifica(a[0],(a[4]||[]).map(t=>P.tags[t])),oc=f&&f.length>=11&&f[0]?CL.ocupa(f[7],f[0]/QUAD,f[1]/QUAD):null;return {c:a[0],e:a[4]||[],f,cam:camada(b,BIB.categoria(a[0]),f?f[0]/QUAD:0,f?f[1]/QUAD:0),fr:frente(b,P.autor,f),fo:forma(f),cl:[k.cat,k.sub,k.amb,k.enc,k.pas?1:0],oc}})})}
   const s=JSON.stringify(J);if(typeof CompressionStream==="undefined")return {blob:new Blob([s],{type:"application/json"}),nome:"catalogo-artes.json"};
   const gz=await new Response(new Blob([s]).stream().pipeThrough(new CompressionStream("gzip"))).blob();return {blob:gz,nome:"catalogo-artes.json.gz",bruto:s.length}}
+// ---------- catalogo v2 para a IA: indice + kits + um arquivo por pacote (em partes) ----------
+// A ideia: a IA le sempre o indice (o que existe, em que pacote, em que arquivo) e os kits (conjuntos que combinam por ambiente);
+// so abre o arquivo do pacote quando vai usar aquelas artes. Assim cabe numa conversa mesmo com 100 mil artes.
+const ENC1={parede:"p",canto:"k",meio:"m",solto:"s"};
+const slug=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase().slice(0,48);
+const LEGENDA2=`## Como ler (vale para todos os arquivos)
+- Arte = res://packs/<ID>/<caminho>.<ext>. Cada pacote tem um código curto (P01, P02…), o ID real e a extensão no índice.
+- Nos arquivos de pacote, "pasta X" diz a pasta; "prefixo Y" = todo nome ali começa com Y (junte Y + nome da linha).
+- Modelo do nome: [a|b] = escolha uma; A[1-3] = A1, A2 ou A3; "* {x|y}" = troque o * por uma das opções.
+- Tamanho em quadrados (1 quadrado = 256 px). "esc 1.6" = no Dungeondraft use escala 1.6 para ter esse tamanho. A posição é o centro da imagem; rotação em radianos, positiva no sentido horário.
+- fr = para onde a FRENTE aponta sem girar: S baixo, N cima, L direita, W esquerda; sim simétrico; N|S cima ou baixo; L|W um dos lados; ? não se sabe. Na FA as costas ficam no topo (fr S): encostado na parede norte rot 0, leste +π/2, sul π, oeste −π/2.
+- e = onde fica: p encosta na parede, k vai no canto, m fica no meio, s solto. "passa" = dá para andar por cima (tapete, mancha, folhas).
+- oc = quadrados que a arte ocupa de verdade, linha por linha de cima para baixo (1 ocupa, 0 vazio), ex. oc 110/011. Sem oc = ocupa o retângulo todo.
+- c = camada: 100 chão, 200 móveis, 300 em cima de móveis, 400 alto (copa, lustre).
+- vis x,y,l,a = parte desenhada dentro da imagem em % (para encostar, desconte a margem). f = forma (r retângulo, o redondo, i irregular). cor = cor média (hex de 3). C = muda de cor. L = tem luz. #etiquetas do autor.
+- largura (caminhos) e repete (terrenos e texturas) em quadrados.`;
+function linhaV2(F,P,cat,ambP){const f0=F.itens[0].f,b0=F.itens[0].base,cl=F.itens[0].cl,partes=[F.modelo];
+  if(cat==="objects"){partes.push(tamFam(F.itens));const fr=frente(b0,P.autor,f0);if(fr!=="?")partes.push("fr "+fr);
+    if(cl){partes.push("e "+ENC1[cl.enc]+(cl.pas?" passa":""));const ex=cl.amb.filter(a=>!ambP.has(a));if(ex.length)partes.push("amb "+ex.slice(0,3).join(","))}
+    if(f0&&f0.length>=11&&f0[0]){const oc=CL.ocupa(f0[7],f0[0]/QUAD,f0[1]/QUAD);if(oc){const W=Math.round(f0[0]/QUAD),r=[];for(let k=0;k<oc.length;k+=W)r.push(oc.slice(k,k+W));partes.push("oc "+r.join("/"))}}
+    const c=camada(b0,"objects",(f0&&f0[0]||0)/QUAD,(f0&&f0[1]||0)/QUAD);if(c)partes.push("c"+c);
+    if(f0&&f0.length>=11){partes.push("vis "+[pct(f0[2]),pct(f0[3]),pct(f0[4]-f0[2]),pct(f0[5]-f0[3])].join(","));const fo=forma(f0);if(fo)partes.push("f "+fo);partes.push("cor "+cor3(f0[8]))}
+    const fl=(F.itens.some(x=>/colorable/i.test(x.base)||(x.tags||[]).some(t=>/colorable/i.test(t)))?"C":"")+(F.itens.some(x=>/(^|_)lit(_|$)|lamp|lantern|torch|candle|neon/i.test(x.base))?"L":"");if(fl)partes.push(fl);
+    const tg=[...new Set(F.itens.flatMap(x=>x.tags||[]))].filter(t=>!/colorable/i.test(t)).slice(0,3);if(tg.length)partes.push(tg.map(t=>"#"+t.replace(/\s+/g,"_")).join(" "))}
+  else{if(cat==="paths"&&f0&&f0[1])partes.push("largura "+q(f0[1]/QUAD));if(/^(terrain|patterns|textures|tilesets|materials?)$/.test(cat)&&f0&&f0[0])partes.push("repete "+q(f0[0]/QUAD)+"x"+q(f0[1]/QUAD));if(cat==="portals"&&f0&&f0[0])partes.push(tamQ(f0));if(f0&&f0[8])partes.push("cor "+cor3(f0[8]))}
+  return partes.join(" · ")}
+// dados de um pacote agrupados por categoria do Atlas > tipo > pasta, com familias
+function gruposV2(d){const P=d.P,G=new Map(),amb=new Map();let nObj=0;
+  for(const [cat,m] of d.cats)for(const [pa,lista] of m)for(const it of lista){it.cl=CL.classifica(it.rel,it.tags);it.cat=cat;it.pa=pa;const k=it.cl.cat+" › "+it.cl.sub;if(!G.has(k))G.set(k,{cat:it.cl.cat,sub:it.cl.sub,itens:[]});G.get(k).itens.push(it);if(cat==="objects"){nObj++;for(const a of it.cl.amb)amb.set(a,(amb.get(a)||0)+1)}}
+  const ambP=new Set([...amb].filter(([a,n])=>n>=nObj*.6).map(x=>x[0]));
+  return {G:[...G.values()].sort((a,b)=>a.cat.localeCompare(b.cat)||a.sub.localeCompare(b.sub)),ambP,amb}}
+// uma secao por tipo; se passar do limite, vira pedacos (o cabecalho e a pasta se repetem)
+function secaoV2(g,P,ambP,lim){const tit="## "+g.cat+" › "+g.sub+" · "+g.itens.length+(g.itens.length===1?" arte":" artes"),L=["",tit],porPasta=new Map(),ped=[];let fams=0,t=0,pastaAt="";
+  const poe=x=>{const tx=tokens(x)+1;if(lim&&t+tx>lim&&L.length>3){ped.push(L.join("\n"));L.length=0;L.push("",tit+" (continua)");t=0;if(!x.startsWith("pasta "))L.push(pastaAt)}L.push(x);t+=tx};
+  for(const it of g.itens){const k=it.cat+"|"+it.pa;if(!porPasta.has(k))porPasta.set(k,[]);porPasta.get(k).push(it)}
+  for(const [k,lista0] of [...porPasta].sort((a,b)=>a[0].localeCompare(b[0]))){const [cat,pa]=k.split("|");let pr="";
+    if(lista0.length>1){let p=lista0[0].base;for(const x of lista0)while(p&&!x.base.startsWith(p))p=p.slice(0,-1);const j=Math.max(p.lastIndexOf("_"),p.lastIndexOf(" "));pr=j>0&&lista0.every(x=>x.base.length>j+3)?p.slice(0,j+1):""}
+    const lista=pr?lista0.map(x=>Object.assign({},x,{base:x.base.slice(pr.length)})):lista0,F=familias(lista);fams+=F.length;
+    pastaAt="pasta textures/"+pa+"/"+(pr?" · prefixo "+pr:"");poe(pastaAt);for(const x of F)poe(linhaV2(x,P,cat,ambP))}
+  ped.push(L.join("\n"));return {pedacos:ped,fams}}
+// monta todos os arquivos; limPart = tokens por arquivo de pacote (os grandes viram partes)
+export async function arquivoIA2(o){o=o||{};const D=await montaDados(o.pacotes||null);return montaV2(D,o)}
+export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(o.hoje||new Date().toISOString().slice(0,10));
+  const ord=D.slice().sort((a,b)=>a.P.nome.localeCompare(b.P.nome)),cod=new Map(ord.map((d,i)=>[d.P.id,"P"+String(i+1).padStart(2,"0")]));
+  const arvore=new Map(),kits=new Map(),linhasPac=[];let artesT=0,famsT=0;
+  for(const d of ord){const P=d.P,C=cod.get(P.id),{G,ambP,amb}=gruposV2(d),nome=C+"-"+slug(P.nome);
+    // secoes de tipo -> partes de ate limPart tokens
+    const partes=[];let atual=null;
+    for(const g of G){const sx=secaoV2(g,P,ambP,limPart);famsT+=sx.fams;artesT+=g.itens.length;
+      const ps=[];for(const pd of sx.pedacos){const t=tokens(pd);if(!atual||(atual.t+t>limPart&&atual.secs.length)){atual={secs:[],t:0,tipos:[]};partes.push(atual)}atual.secs.push(pd);atual.t+=t;ps.push(partes.length)}
+      const k=g.cat+" › "+g.sub;if(!arvore.has(k))arvore.set(k,{cat:g.cat,sub:g.sub,n:0,pac:[],enc:new Map(),amb:new Map()});const A=arvore.get(k);A.n+=g.itens.length;
+      for(const it of g.itens){A.enc.set(it.cl.enc,(A.enc.get(it.cl.enc)||0)+1);for(const a of it.cl.amb)A.amb.set(a,(A.amb.get(a)||0)+1)}
+      const cp=new Map();for(const it of g.itens)cp.set(it.pa,(cp.get(it.pa)||0)+1);const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0];A.pac.push({C,p0:ps[0],p1:ps[ps.length-1],n:g.itens.length,ex:g.itens.find(it=>it.pa===paTop)});
+      // kits: por ambiente, o que este pacote tem de cada tipo (so objetos)
+      for(const it of g.itens){if(it.cat!=="objects")continue;for(const a of it.cl.amb){if(!kits.has(a))kits.set(a,new Map());const kp=kits.get(a);if(!kp.has(C))kp.set(C,{P,C,n:0,subs:new Map(),parte:new Map()});const K=kp.get(C);K.n++;if(!K.subs.has(k))K.subs.set(k,[]);K.subs.get(k).push(it);K.parte.set(k,ps[0])}}}
+    const cab=(i)=>["# "+P.nome+(partes.length>1?" · parte "+(i+1)+" de "+partes.length:""),"Código "+C+" · id "+P.id+(P.autor?" · "+P.autor:"")+" · ."+d.ext+(/forgotten adventures/i.test(P.autor)?" · costas no topo (fr S)":"")+(d.fx?"":" · sem análise (só nomes: rode Analisar artes)")+(ambP.size?" · ambiente do pacote: "+[...ambP].join(", "):""),"Legenda em 00-indice.md."].join("\n");
+    const arqsP=partes.map((pt,i)=>({nome:"pacotes/"+nome+(partes.length>1?"-parte"+(i+1):"")+".md",texto:cab(i)+"\n"+pt.secs.join("\n")+"\n",t:pt.t}));arqs.push(...arqsP);
+    const tot=d.cats?[...d.cats.values()].reduce((s,m)=>s+[...m.values()].reduce((a,l)=>a+l.length,0),0):0,ambTop=[...amb].sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]);
+    linhasPac.push(C+" · "+P.nome.replace(/_/g," ")+" · id "+P.id+(P.autor?" · "+P.autor:"")+" · ."+d.ext+" · "+tot.toLocaleString("pt-BR")+" artes"+(ambTop.length?" · "+ambTop.join(", "):"")+" · "+(arqsP.length>1?arqsP.length+" partes: "+arqsP.map(a=>a.nome.split("/")[1]).join(", "):arqsP[0]?arqsP[0].nome.split("/")[1]:"vazio")+(d.fx?"":" · sem análise"))}
+  // indice
+  const refP=(x,np)=>x.C+(np>1?"."+(x.p1>x.p0?x.p0+"-"+x.p1:x.p0):"")+" "+x.n;
+  const nPartes=new Map();for(const a of arqs){const m=/pacotes\/(P\d+)/.exec(a.nome);nPartes.set(m[1],(nPartes.get(m[1])||0)+1)}
+  const I=["# Catálogo de artes do Atlas · v2 · índice","Gerado em "+hoje+" · "+ord.length+" pacotes · "+artesT.toLocaleString("pt-BR")+" artes · "+famsT.toLocaleString("pt-BR")+" famílias.","",
+    "Como usar: leia este índice e 01-kits.md. Para pôr artes de um tipo, abra o arquivo do pacote indicado (P07 = pacotes/P07-…md; P07.2 = a parte 2 desse pacote). Os nomes exatos e os detalhes (tamanho, frente, onde encosta, quadrados ocupados) estão só lá: não invente nomes.","",LEGENDA2,"","## Pacotes",...linhasPac,"","## Tipos de arte","Cada tipo: total · onde costuma ficar · ambientes · pacotes (código e quantidade) · um exemplo de caminho."];
+  let catAnt="";for(const A of [...arvore.values()].sort((a,b)=>a.cat.localeCompare(b.cat)||b.n-a.n)){if(A.cat!==catAnt){I.push("","### "+A.cat);catAnt=A.cat}
+    const e=[...A.enc].sort((a,b)=>b[1]-a[1])[0],am=[...A.amb].sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]),pc=A.pac.sort((a,b)=>b.n-a.n),ex=pc[0].ex;
+    I.push(A.sub+" · "+A.n+(e&&A.cat!=="Chão e efeitos"?" · "+CL.ENCOSTA[e[0]]:"")+(am.length?" · "+am.join(", "):"")+" · "+pc.slice(0,14).map(x=>refP(x,nPartes.get(x.C))).join(", ")+(pc.length>14?" (+"+(pc.length-14)+" pacotes)":"")+" · ex. "+pc[0].C+" textures/"+ex.pa+"/"+ex.base)}
+  // kits por ambiente: os pacotes com mais artes daquele ambiente, um exemplo de cada tipo, no estilo mais comum do pacote
+  const Kt=["# Catálogo de artes do Atlas · v2 · kits por ambiente","Para montar um cômodo ou lugar: escolha um ambiente, um pacote (combinam entre si) e use estes tipos. Os nomes são exemplos reais; as variações estão no arquivo do pacote. Legenda em 00-indice.md."];
+  for(const [a,kp] of [...kits].sort((x,y)=>x[0].localeCompare(y[0]))){Kt.push("","## "+a);
+    for(const K of [...kp.values()].sort((x,y)=>y.n-x.n).slice(0,o.kitsPac||5)){const est=new Map();for(const l of K.subs.values())for(const it of l){const e=CL.estilo(it.rel);if(e)est.set(e,(est.get(e)||0)+1)}const eTop=[...est].sort((x,y)=>y[1]-x[1])[0];
+      Kt.push("### "+K.C+" "+K.P.nome.replace(/_/g," ")+" · "+K.n+" artes"+(eTop?" · estilo mais comum: "+eTop[0]:""));
+      for(const [k,l] of [...K.subs].sort((x,y)=>y[1].length-x[1].length).slice(0,o.kitsTipos||12)){const cp=new Map();for(const x of l)cp.set(x.pa,(cp.get(x.pa)||0)+1);const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0],l2=l.filter(x=>x.pa===paTop),it=(eTop&&l2.find(x=>CL.estilo(x.rel)===eTop[0]))||l2[0],f=it.f,fr=frente(it.base,K.P.autor,f);
+        Kt.push("- "+k.split(" › ")[1]+" ("+l.length+") · "+K.C+(nPartes.get(K.C)>1?"."+K.parte.get(k):"")+" textures/"+it.pa+"/"+it.base+" · "+tamanhoTxt(it)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
+  const LEIA=["# Catálogo de artes do Atlas · v2","","Este catálogo descreve as artes dos seus pacotes para uma IA (por exemplo o Claude) montar mapas com elas.","",
+    "## Numa conversa","1. Anexe 00-indice.md e 01-kits.md e peça o mapa.","2. A IA diz quais arquivos de pacote precisa (ex.: P07). Anexe esses da pasta pacotes/.","3. Pronto: ela usa os nomes exatos e os detalhes de lá.","",
+    "## Num Projeto do Claude","Envie todos os arquivos para o conhecimento do projeto. A IA busca sozinha o que precisar.","",
+    "## Tamanhos",...[["00-indice.md",tokens(I.join("\n"))],["01-kits.md",tokens(Kt.join("\n"))]].map(([n,t])=>"- "+n+": ~"+Math.round(t/1000)+" mil tokens"),"- pacotes/: "+arqs.length+" arquivos, até ~"+Math.round(limPart/1000)+" mil tokens cada"];
+  const todos=[{nome:"LEIA-ME.md",texto:LEIA.join("\n")+"\n"},{nome:"00-indice.md",texto:I.join("\n")+"\n"},{nome:"01-kits.md",texto:Kt.join("\n")+"\n"},...arqs];
+  const enc=new TextEncoder(),total=todos.reduce((s,a)=>s+tokens(a.texto),0);
+  return {arquivos:todos,blob:zip(todos.map(a=>({nome:a.nome,dados:enc.encode(a.texto)}))),tokens:{indice:tokens(I.join("\n")),kits:tokens(Kt.join("\n")),total},pacotes:ord.length,artes:artesT,familias:famsT,partes:arqs.length}}
 // para a busca e o gerador: ficha de um caminho (se ja analisado)
 export async function fichaDe(c){const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const fx=await fichasDe(P);if(!fx)return null;const i=P.artes.findIndex(a=>a[0]===m[2]);return i<0?null:fx.fichas[i]}
 export {familias,camada,frente,forma};
-if(typeof window!=="undefined")window.AtlasCatalogo={analisar,situacao,arquivoIA,arquivoCompleto,fichaDe,tokens};
+if(typeof window!=="undefined")window.AtlasCatalogo={analisar,situacao,arquivoIA,arquivoIA2,arquivoCompleto,fichaDe,tokens};
