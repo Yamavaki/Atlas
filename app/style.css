@@ -762,3 +762,14 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .bt-a2{margin-top:6px}
 .bt-prob{font-size:12px;color:var(--muted)}.bt-prob summary{cursor:pointer;color:var(--amber)}.bt-prob ul{margin:6px 0 0;padding-left:16px;max-height:160px;overflow:auto}
 .bt-palpc+.bt-a{margin-top:6px;width:100%}
+.bt-catal{display:flex;flex-direction:column;gap:6px;margin:6px 0;padding:10px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line)}
+.bt-prog{height:6px;border-radius:99px;background:var(--panel-3);overflow:hidden}.bt-prog i{display:block;height:100%;width:0;background:var(--gold);transition:width .2s}
+.bt-prog[hidden],.bt-catopc[hidden]{display:none}
+.bt-catopc{display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:var(--bg)}
+.bt-chks{display:flex;flex-direction:column;gap:3px;max-height:180px;overflow:auto;margin-top:4px}.bt-chk{display:flex;gap:6px;align-items:center;font-size:13px}
+.bt-chips2{display:flex;gap:4px;margin:6px 0}.bt-chips2 .bt-chip{flex:1;min-height:30px;font-size:12px}
+.bt-arte.fav{position:relative}.bt-arte.fav::after{content:"★";position:absolute;right:3px;top:1px;font-size:11px;color:var(--gold)}
+.bt-palpc~.bt-2 select,.bt-2 select{min-width:0}
+.bt-chips2{display:flex;gap:4px;margin:6px 0}.bt-chips2 .bt-chip{flex:1;min-height:30px;font-size:12px}
+.bt-arte.fav{position:relative}.bt-arte.fav::after{content:"★";position:absolute;right:3px;top:1px;font-size:11px;color:var(--gold)}
+.bt-2 select{min-width:0}
