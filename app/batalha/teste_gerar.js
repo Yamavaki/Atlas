@@ -2,7 +2,7 @@
 // (com as artes do usuario conectadas), sem recarregar a pagina. So para desenvolvimento.
 import * as Z from "./zonas.js";
 export {Z};
-const RUIM_MAT=/Cracked|Substrate|Snowy|Frosty|Mossy|Dirt\d|Damage|_Z_|Overlay|Ceremorph|Drow|Dwarven|Alien|Colorable|Blood/;
+const RUIM_MAT=/Broken|Ruin|Destroyed|Cracked|Substrate|Snowy|Frosty|Mossy|Dirt\d|Damage|_Z_|Overlay|Ceremorph|Drow|Dwarven|Alien|Colorable|Blood/;
 const MAT_PC={
   parede:{pobre:/Walls_(Shack|Wood|Mudbrick|Adobe)\//,comum:/Walls_(PlasterWood|StoneWood|Wood|BrickWood)\//,rico:/Walls_(Stone|Brick|Plaster|PlasterWood|StoneWood)\//,nobre:/Walls_(Stone|Plaster|Brick|Mosaic)\/|Wall_Mosaic/,pedra:/Walls_(Stone|Brick|StoneWood)\//},
   madeira:{pobre:/Shack_Floors?_Pattern\/|Wood_Pattern\/.*_Texture_/,outro:/Wood_Pattern\/.*Flooring/},
@@ -33,7 +33,7 @@ export async function gerar(o,P,tipo,par,semente){const {B,C,MD,V,e}=o,M=e.mapa,
     return {k,w:+w.toFixed(3),h:+h.toFixed(3),fr,funde:md.f,vis:md.vis||[0,0,1,1],cam:C.camada(nm,"objects",w,h)||200,redondo:!!f&&C.forma(f)==="o"}};
   for(const [p,ks] of Object.entries(es.papeis)){cat[p]=(await Promise.all(ks.map(arte))).filter(Boolean);if(!(Z.PAPEIS[p]&&Z.PAPEIS[p].borda))for(const x of cat[p])delete x.funde}
   const zid="t"+semente,ops=[],riq=par.riqueza==null?1:par.riqueza,portas=[];
-  if(par.paredes!==false){const mp=matZona(B,tipo,riq,es.estilo,semente),wid=MD.novoId(M),w={id:wid,t:MD.texDe(M,mp.parede||"atlas:m/pedra"),p:P.map(q=>[q[0],q[1]]),laco:true,raio:.25,larg:.18,tipo:0,sombra:true,z:zid};
+  if(par.paredes!==false){const mp=matZona(B,tipo,riq,es.estilo,semente),wid=MD.novoId(M),w={id:wid,t:MD.texDe(M,mp.parede||"atlas:m/pedra"),p:Z.orientaParede(P,Z.ladoMadeira(mp.parede)),laco:true,raio:.25,larg:.18,tipo:0,sombra:true,z:zid};
     ops.push({op:"cria",a,k:"paredes",item:w},{op:"cria",a,k:"padroes",item:{id:MD.novoId(M),t:MD.texDe(M,mp.piso||"atlas:m/madeira"),p:w.p,l:-40,parede:wid,z:zid}});
     let best=null;for(let i=0;i<P.length;i++){const p0=P[i],p1=P[(i+1)%P.length],L=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]);if(L<1.6)continue;const my=(p0[1]+p1[1])/2,nota=my+L*.15;if(!best||nota>best.nota)best={nota,mx:(p0[0]+p1[0])/2,my}}
     if(best){const T=MD.trajeto(w),pj=V.projeta(T,true,best.mx,best.my),pe=V.pontoEm(T,true,pj.d);ops.push({op:"cria",a,k:"portais",item:{id:MD.novoId(M),t:MD.texDe(M,mp.porta||"atlas:p/porta"),tipo:"porta",parede:wid,d:+pj.d.toFixed(4),raio:.5,fechado:true,x:pe[0],y:pe[1],dx:pe[2],dy:pe[3],r:Math.atan2(pe[3],pe[2]),z:zid}});portas.push([pe[0],pe[1]])}
