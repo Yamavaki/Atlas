@@ -189,8 +189,8 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
       const k=g.cat+" › "+g.sub;if(!arvore.has(k))arvore.set(k,{cat:g.cat,sub:g.sub,n:0,pac:[],enc:new Map(),amb:new Map()});const A=arvore.get(k);A.n+=g.itens.length;
       for(const it of g.itens){A.enc.set(it.cl.enc,(A.enc.get(it.cl.enc)||0)+1);for(const a of it.cl.amb)A.amb.set(a,(A.amb.get(a)||0)+1)}
       const cp=new Map();for(const it of g.itens)cp.set(it.pa,(cp.get(it.pa)||0)+1);const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0];A.pac.push({C,p0:ps[0],p1:ps[ps.length-1],n:g.itens.length,ex:g.itens.find(it=>it.pa===paTop)});
-      // kits: por ambiente, o que este pacote tem de cada tipo (so objetos)
-      for(const it of g.itens){if(it.cat!=="objects")continue;for(const a of it.cl.amb){if(!kits.has(a))kits.set(a,new Map());const kp=kits.get(a);if(!kp.has(C))kp.set(C,{P,C,n:0,subs:new Map(),parte:new Map()});const K=kp.get(C);K.n++;if(!K.subs.has(k))K.subs.set(k,[]);K.subs.get(k).push(it);K.parte.set(k,ps[0])}}}
+      // kits: o que este pacote tem de cada tipo (so objetos) e quantas artes de cada ambiente
+      const ob=g.itens.filter(it=>it.cat==="objects");if(ob.length){if(!kits.has(C))kits.set(C,{P,C,subs:new Map(),amb:new Map()});const K=kits.get(C);K.subs.set(g.sub,{k,itens:ob,parte:ps[0]});for(const it of ob)for(const a of it.cl.amb)K.amb.set(a,(K.amb.get(a)||0)+1)}}
     const cab=(i)=>["# "+P.nome+(partes.length>1?" · parte "+(i+1)+" de "+partes.length:""),"Código "+C+" · id "+P.id+(P.autor?" · "+P.autor:"")+" · ."+d.ext+(/forgotten adventures/i.test(P.autor)?" · costas no topo (fr S)":"")+(d.fx?"":" · sem análise (só nomes: rode Analisar artes)")+(ambP.size?" · ambiente do pacote: "+[...ambP].join(", "):""),"Legenda em 00-indice.md."].join("\n");
     const arqsP=partes.map((pt,i)=>({nome:"pacotes/"+nome+(partes.length>1?"-parte"+(i+1):"")+".md",texto:cab(i)+"\n"+pt.secs.join("\n")+"\n",t:pt.t}));arqs.push(...arqsP);
     const tot=d.cats?[...d.cats.values()].reduce((s,m)=>s+[...m.values()].reduce((a,l)=>a+l.length,0),0):0,ambTop=[...amb].sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]);
@@ -203,13 +203,19 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
   let catAnt="";for(const A of [...arvore.values()].sort((a,b)=>a.cat.localeCompare(b.cat)||b.n-a.n)){if(A.cat!==catAnt){I.push("","### "+A.cat);catAnt=A.cat}
     const e=[...A.enc].sort((a,b)=>b[1]-a[1])[0],am=[...A.amb].sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0]),pc=A.pac.sort((a,b)=>b.n-a.n),ex=pc[0].ex;
     I.push(A.sub+" · "+A.n+(e&&A.cat!=="Chão e efeitos"?" · "+CL.ENCOSTA[e[0]]:"")+(am.length?" · "+am.join(", "):"")+" · "+pc.slice(0,14).map(x=>refP(x,nPartes.get(x.C))).join(", ")+(pc.length>14?" (+"+(pc.length-14)+" pacotes)":"")+" · ex. "+pc[0].C+" textures/"+ex.pa+"/"+ex.base)}
-  // kits por ambiente: os pacotes com mais artes daquele ambiente, um exemplo de cada tipo, no estilo mais comum do pacote
-  const Kt=["# Catálogo de artes do Atlas · v2 · kits por ambiente","Para montar um cômodo ou lugar: escolha um ambiente, um pacote (combinam entre si) e use estes tipos. Os nomes são exemplos reais; as variações estão no arquivo do pacote. Legenda em 00-indice.md."];
-  for(const [a,kp] of [...kits].sort((x,y)=>x[0].localeCompare(y[0]))){Kt.push("","## "+a);
-    for(const K of [...kp.values()].sort((x,y)=>y.n-x.n).slice(0,o.kitsPac||5)){const est=new Map();for(const l of K.subs.values())for(const it of l){const e=CL.estilo(it.rel);if(e)est.set(e,(est.get(e)||0)+1)}const eTop=[...est].sort((x,y)=>y[1]-x[1])[0];
-      Kt.push("### "+K.C+" "+K.P.nome.replace(/_/g," ")+" · "+K.n+" artes"+(eTop?" · estilo mais comum: "+eTop[0]:""));
-      for(const [k,l] of [...K.subs].sort((x,y)=>y[1].length-x[1].length).slice(0,o.kitsTipos||12)){const cp=new Map();for(const x of l)cp.set(x.pa,(cp.get(x.pa)||0)+1);const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0],l2=l.filter(x=>x.pa===paTop),it=(eTop&&l2.find(x=>CL.estilo(x.rel)===eTop[0]))||l2[0],f=it.f,fr=frente(it.base,K.P.autor,f);
-        Kt.push("- "+k.split(" › ")[1]+" ("+l.length+") · "+K.C+(nPartes.get(K.C)>1?"."+K.parte.get(k):"")+" textures/"+it.pa+"/"+it.base+" · "+tamanhoTxt(it)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
+  // kits por ambiente: os pacotes com mais artes daquele ambiente; primeiro o que o lugar costuma ter (cama, mesa, luz...),
+  // depois o resto que o pacote marca com o ambiente; um exemplo real de cada, no estilo mais comum
+  const Kt=["# Catálogo de artes do Atlas · v2 · kits por ambiente","Para montar um cômodo ou lugar: escolha um ambiente e um pacote (as artes de um pacote combinam entre si). Primeiro vem o que esse lugar costuma ter, depois o resto que o pacote tem para ele. Os nomes são exemplos reais; as variações estão no arquivo do pacote. Legenda em 00-indice.md."];
+  const exemplo=(l,a,eTop)=>{const comA=l.filter(x=>x.cl.amb.includes(a)),b0=comA.length?comA:l,bE=eTop?b0.filter(x=>CL.estilo(x.rel)===eTop):[],base=bE.length?bE:b0,cp=new Map();for(const x of base)cp.set(x.pa,(cp.get(x.pa)||0)+1);
+    const paTop=[...cp].sort((x,y)=>y[1]-x[1])[0][0];return base.filter(x=>x.pa===paTop).sort((x,y)=>x.base.length-y.base.length)[0]};
+  const ambs=[...new Set([...kits.values()].flatMap(K=>[...K.amb.keys()]))].sort((x,y)=>x.localeCompare(y));
+  for(const a of ambs){Kt.push("","## "+a);const tip=CL.TIPICOS[a]||[];
+    for(const K of [...kits.values()].filter(K=>K.amb.get(a)).sort((x,y)=>y.amb.get(a)-x.amb.get(a)).slice(0,o.kitsPac||5)){
+      const est=new Map();for(const S of K.subs.values())for(const it of S.itens)if(it.cl.amb.includes(a)){const e=CL.estilo(it.rel);if(e)est.set(e,(est.get(e)||0)+1)}const eTop=([...est].sort((x,y)=>y[1]-x[1])[0]||[])[0];
+      const subs=[...tip.filter(t=>K.subs.has(t)),...[...K.subs].filter(([t,S])=>!tip.includes(t)&&S.itens.some(x=>x.cl.amb.includes(a))).sort((x,y)=>y[1].itens.filter(i=>i.cl.amb.includes(a)).length-x[1].itens.filter(i=>i.cl.amb.includes(a)).length).map(x=>x[0])].slice(0,o.kitsTipos||12);
+      if(!subs.length)continue;Kt.push("### "+K.C+" "+K.P.nome.replace(/_/g," ")+" · "+K.amb.get(a)+" artes de "+a.toLowerCase()+(eTop?" · estilo mais comum: "+eTop:""));
+      for(const t of subs){const S=K.subs.get(t),it=exemplo(S.itens,a,eTop),f=it.f,fr=frente(it.base,K.P.autor,f);
+        Kt.push("- "+t+" ("+S.itens.length+") · "+K.C+(nPartes.get(K.C)>1?"."+S.parte:"")+" textures/"+it.pa+"/"+it.base+" · "+tamanhoTxt(it)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
   const LEIA=["# Catálogo de artes do Atlas · v2","","Este catálogo descreve as artes dos seus pacotes para uma IA (por exemplo o Claude) montar mapas com elas.","",
     "## Numa conversa","1. Anexe 00-indice.md e 01-kits.md e peça o mapa.","2. A IA diz quais arquivos de pacote precisa (ex.: P07). Anexe esses da pasta pacotes/.","3. Pronto: ela usa os nomes exatos e os detalhes de lá.","",
     "## Num Projeto do Claude","Envie todos os arquivos para o conhecimento do projeto. A IA busca sozinha o que precisar.","",
