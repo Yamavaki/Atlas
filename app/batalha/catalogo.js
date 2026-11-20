@@ -246,7 +246,7 @@ export async function bordaApagada(c){if(BORDA.has(c))return BORDA.get(c);const 
     const faixa=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){s+=al(x,y);n++}return n?s/n:0};
     const bw=x1-x0+1,bh=y1-y0+1,ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
     const meio=faixa(mx0,mx1,my0,my1)||1,Lw=faixa(x0,x0+ex-1,my0,my1)/meio,Le=faixa(x1-ex+1,x1,my0,my1)/meio,Ln=faixa(mx0,mx1,y0,y0+ey-1)/meio,Ls=faixa(mx0,mx1,y1-ey+1,y1)/meio;
-    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.55&&o>.75).sort((p,q)=>p[1]-q[1]);res=C.length?C[0][0]:""}catch(e){}
+    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.72&&o>.78).sort((p,q)=>p[1]-q[1]);res=C.length?C[0][0]:""}catch(e){}
   BORDA.set(c,res);return res}
 // ficha de uma arte so, medida na hora quando o pacote ainda nao foi analisado (para o gerador de zonas)
 const UMA=new Map();
