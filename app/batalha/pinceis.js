@@ -30,9 +30,14 @@ const db=()=>pdb||(pdb=new Promise((ok,er)=>{const r=indexedDB.open(DB,1);r.onup
 const tx=async(modo,fn)=>{const d=await db();return new Promise((ok,er)=>{const t=d.transaction("p",modo),s=t.objectStore("p");let v;const q=fn(s);if(q)q.onsuccess=()=>{v=q.result};t.oncomplete=()=>ok(v);t.onerror=()=>er(t.error)})};
 let MEUS=null;const ouvintes=new Set();const avisa=()=>{for(const f of ouvintes)try{f()}catch(e){}};
 export const ouvir=f=>{ouvintes.add(f);return ()=>ouvintes.delete(f)};
-export async function carregar(){if(MEUS)return MEUS;try{MEUS=(await tx("readonly",s=>s.getAll()))||[]}catch(e){MEUS=[]}MEUS.sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR",{numeric:true}));return MEUS}
+// pinceis extras que vem junto com o app (pasta pinceis-extra, so na versao publicada; o repositorio nao traz)
+let EXTRAS=null;
+async function carregaExtras(){if(EXTRAS)return EXTRAS;EXTRAS=[];try{const base=new URL("./pinceis-extra/",import.meta.url),r=await fetch(new URL("indice.json",base));if(!r.ok)return EXTRAS;const L=await r.json();
+    for(const it of L){try{const bl=await (await fetch(new URL(it.arq,base))).blob(),bm=await createImageBitmap(bl),c=document.createElement("canvas");c.width=bm.width;c.height=bm.height;const g=c.getContext("2d",{willReadFrequently:true});g.drawImage(bm,0,0);const px=g.getImageData(0,0,bm.width,bm.height).data,d=new Uint8Array(bm.width*bm.height);for(let i=0;i<d.length;i++)d[i]=px[i*4];EXTRAS.push({k:it.k,nome:it.nome,w:bm.width,h:bm.height,d,extra:1})}catch(e){}}}catch(e){}return EXTRAS}
+export async function carregar(){await carregaExtras();if(MEUS)return MEUS;try{MEUS=(await tx("readonly",s=>s.getAll()))||[]}catch(e){MEUS=[]}MEUS.sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR",{numeric:true}));avisa();return MEUS}
 export const meus=()=>MEUS||[];
-export const todos=()=>pinceisAtlas().concat(meus());
+export const extras=()=>EXTRAS||[];
+export const todos=()=>pinceisAtlas().concat(extras(),meus());
 export const pincel=k=>todos().find(p=>p.k===k)||null;
 export async function apagar(k){await tx("readwrite",s=>s.delete(k));MEUS=(MEUS||[]).filter(p=>p.k!==k);avisa()}
 // imagem -> tons de cinza (branco = pinta). Fundo claro (pincel escuro no branco) e invertido. Maior lado: 256 px
@@ -59,5 +64,5 @@ export async function importar(files,progresso){await carregar();const lista=[];
 export function miniatura(p,t){const c=document.createElement("canvas");c.width=t;c.height=t;const g=c.getContext("2d");if(!p.d){const r=g.createRadialGradient(t/2,t/2,0,t/2,t/2,t*.45);r.addColorStop(0,"#fff");r.addColorStop(.6,"#fff");r.addColorStop(1,"rgba(255,255,255,0)");g.fillStyle=r;g.fillRect(0,0,t,t);return c}
   const s=document.createElement("canvas");s.width=p.w;s.height=p.h;const sg=s.getContext("2d"),im=sg.createImageData(p.w,p.h);for(let i=0;i<p.d.length;i++){im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=255;im.data[i*4+3]=p.d[i]}sg.putImageData(im,0,0);const k=t/Math.max(p.w,p.h);g.drawImage(s,(t-p.w*k)/2,(t-p.h*k)/2,p.w*k,p.h*k);return c}
 // valor do pincel em (u, v) de -1 a 1 (bilinear); fora = 0
-export function amostra(p,u,v){const s=Math.max(p.w,p.h),x=(u*.5+.5)*s-(s-p.w)/2-.5,y=(v*.5+.5)*s-(s-p.h)/2-.5;if(x<-1||y<-1||x>p.w||y>p.h)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0,g=(xx,yy)=>xx<0||yy<0||xx>=p.w||yy>=p.h?0:p.d[yy*p.w+xx];
+export function amostra(p,u,v,h){if(h!=null){const b=amostra(p,u,v);if(b<=0)return 0;const lo=.5*h*.96,hi=1-lo,t=Math.max(0,Math.min(1,(b-lo)/(hi-lo))),k=t*t*(3-2*t),r=Math.hypot(u,v),q=Math.max(0,Math.min(1,(r-.45)/.55)),cai=1-q*q*(3-2*q);return k*(cai+(1-cai)*h)}const s=Math.max(p.w,p.h),x=(u*.5+.5)*s-(s-p.w)/2-.5,y=(v*.5+.5)*s-(s-p.h)/2-.5;if(x<-1||y<-1||x>p.w||y>p.h)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0,g=(xx,yy)=>xx<0||yy<0||xx>=p.w||yy>=p.h?0:p.d[yy*p.w+xx];
   return (g(x0,y0)*(1-fx)*(1-fy)+g(x0+1,y0)*fx*(1-fy)+g(x0,y0+1)*(1-fx)*fy+g(x0+1,y0+1)*fx*fy)/255}

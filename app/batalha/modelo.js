@@ -1,8 +1,8 @@
 // Atlas - Modo Batalha: o que existe num andar e como cada coisa se mede, se acerta com o clique e se transforma.
 // Sem DOM. O editor, o gerador e (depois) o Modo Claude falam com o mapa por aqui e pelos comandos.
-import {distPoli,dentro,caixaPts,pontoEm,projeta,distSeg,arredonda,RAIO_PADRAO} from "./vetor.js";
+import {distPoli,dentro,caixaPts,pontoEm,projeta,distSeg,arredonda,RAIO_PADRAO,curva} from "./vetor.js";
 // o caminho que a parede desenha (com os cantos arredondados): portas e janelas andam sobre ele
-export const trajeto=w=>arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios);
+export const trajeto=w=>w.cv&&w.cv.some(Boolean)?arredonda(curva(w.p,w.cv,w.laco),w.raio==null?RAIO_PADRAO:w.raio,w.laco):arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios);
 export const TIPOS=["objetos","luzes","textos","telhados","paredes","portais","caminhos","padroes"];
 export const NOME={objetos:["objeto","objetos"],luzes:["luz","luzes"],paredes:["parede","paredes"],portais:["porta ou janela","portas e janelas"],textos:["texto","textos"],telhados:["telhado","telhados"],caminhos:["caminho","caminhos"],padroes:["forma","formas"]};
 export const FUNDO={paredes:1,caminhos:1,padroes:1,telhados:1}; // clicar seleciona; arrastar sem estar selecionado abre a caixa de selecao
@@ -43,7 +43,7 @@ export const foto=e=>Object.assign({},e);
 export function poe(e,st){for(const k in e)if(!(k in st))delete e[k];Object.assign(e,st)}
 // T = {f:(x,y)=>[x,y], rot:radianos, s:escala}
 export function transforma(k,e,T){const rot=T.rot||0,s=T.s==null?1:T.s;
-  if(e.p){e.p=e.p.map(p=>T.f(p[0],p[1]));if(e.furos)e.furos=e.furos.map(h=>h.map(p=>T.f(p[0],p[1])));if(k==="caminhos"&&s!==1)e.larg=(e.larg||.5)*s;return}
+  if(e.p){if(e.cv)e.cv=e.cv.map((h,i)=>{if(!h)return h;const p=e.p[i],a=T.f(p[0],p[1]),b=T.f(p[0]+h[0],p[1]+h[1]);return [+(b[0]-a[0]).toFixed(4),+(b[1]-a[1]).toFixed(4)]});e.p=e.p.map(p=>T.f(p[0],p[1]));if(e.furos)e.furos=e.furos.map(h=>h.map(p=>T.f(p[0],p[1])));if(k==="caminhos"&&s!==1)e.larg=(e.larg||.5)*s;return}
   if(e.furos)e.furos=e.furos.map(h=>h.map(p=>T.f(p[0],p[1])));
   const q=T.f(e.x,e.y);e.x=q[0];e.y=q[1];if(k==="textos"){e.r=(e.r||0)+rot;e.tam*=s;if(e.lw)e.lw*=s}else if(k==="objetos"){e.r+=rot;e.w*=s;e.h*=s}else if(k==="luzes"){e.raio*=s;if(e.claro!=null)e.claro*=s;if(e.tex)e.gir=(e.gir||0)+rot}else if(k==="portais"){const c=Math.cos(rot),n=Math.sin(rot),dx=e.dx,dy=e.dy;e.dx=dx*c-dy*n;e.dy=dx*n+dy*c;e.r=(e.r||0)+rot;e.raio*=s}}
 // --- mapa ---

@@ -15,6 +15,7 @@ async def main():
             await pg.click(".rail button[data-sec=maps]");await pg.click(".shead button.primary");await pg.click(".mitem >> text=Mapa de batalha");await pg.wait_for_timeout(2500)
             await pg.set_input_files(".bt-wrap input[accept='.dungeondraft_pack']",PACS);await pg.wait_for_function("()=>window.AtlasArtes&&window.AtlasArtes.estado().conectada&&!window.AtlasArtes.estado().lendo",timeout=120000)
             await pg.wait_for_timeout(800);st=await pg.evaluate("()=>window.AtlasArtes.estado()");print(st["pacotes"],st["artes"])
+            await pg.click("button[aria-label^='Minhas artes']");await pg.wait_for_timeout(400)
             chk("botao analisar",await pg.locator(".bt-catal button >> text=Analisar artes").count()==1)
             t=time.time();await pg.click(".bt-catal button >> text=Analisar artes")
             await pg.wait_for_function("()=>document.querySelector('.bt-catal')&&/Catálogo pronto/.test(document.querySelector('.bt-catal').innerText)",timeout=900000)
@@ -38,6 +39,7 @@ async def main():
             print("completo",len(raw)/1048576,"MB gz,",len(gzip.decompress(raw))/1048576,"MB bruto,",n,"artes");chk("completo com todas as artes",n==s["artes"])
             json.dump(J,open("/tmp/catalogo_completo.json","w"))
             # filtros da busca
+            await pg.keyboard.press("Escape");await pg.wait_for_timeout(200)
             await pg.locator(".bt-wrap").click(position={"x":600,"y":400});await pg.keyboard.press("o");await pg.wait_for_timeout(400)
             if await pg.locator(".bt-fonte button[aria-selected=false] >> text=Minhas artes").count():await pg.click(".bt-fonte button >> text=Minhas artes")
             await pg.wait_for_timeout(300);n0=await pg.evaluate("()=>document.querySelector('.bt-palpc~.bt-nota').innerText");print("todas:",n0)

@@ -55,8 +55,8 @@ export function estado(){let artes=0,bloq=0;for(const P of ESTADO.pacotes.values
   return {conectada:ESTADO.pacotes.size>0,nome:ESTADO.nome,pacotes:ESTADO.pacotes.size,artes,bloqueados:bloq,precisaPermissao:ESTADO.precisa,lendo:ESTADO.lendo,problemas:ESTADO.problemas.slice(),soNestaSessao:!ESTADO.pasta&&ESTADO.pacotes.size>0}}
 async function* varre(dir,pre){for await (const [n,h] of dir.entries()){if(h.kind==="directory"){if(!/^\./.test(n))yield* varre(h,pre+n+"/")}else if(/\.dungeondraft_pack$/i.test(n))yield [pre+n,h]}}
 // monta o indice: reaproveita o que ja foi lido se o arquivo nao mudou
-async function montar(lista,progresso){ESTADO.lendo=true;ESTADO.problemas=[];avisa();const antigos=new Map();try{for(const P of (await tx("pacotes","readonly",s=>s.getAll()))||[])antigos.set(P.arquivo,P)}catch(e){}
-  ESTADO.arquivos.clear();ESTADO.pacotes.clear();ESTADO.caminho.clear();let i=0;
+async function montar(lista,progresso,acrescenta){ESTADO.lendo=true;if(!acrescenta)ESTADO.problemas=[];avisa();const antigos=new Map();try{for(const P of (await tx("pacotes","readonly",s=>s.getAll()))||[])antigos.set(P.arquivo,P)}catch(e){}
+  if(!acrescenta){ESTADO.arquivos.clear();ESTADO.pacotes.clear();ESTADO.caminho.clear()}let i=0;
   for(const [rel,pega] of lista){i++;let f;try{f=await pega()}catch(e){ESTADO.problemas.push([rel,"não deu para abrir (se está no OneDrive, deixe “sempre neste dispositivo”)"]);continue}
     ESTADO.arquivos.set(rel,f);let P=antigos.get(rel);if(!P||P.v!==IDX||P.tam!==f.size||P.mod!==(f.lastModified||0)){try{P=await indexarPacote(f,rel);await tx("pacotes","readwrite",s=>{s.put(P,rel)})}catch(e){ESTADO.problemas.push([rel,e&&e.name==="NotReadableError"?"não deu para ler (se está no OneDrive, deixe “sempre neste dispositivo”)":(e.message||"erro ao ler")]);continue}}
     if(ESTADO.pacotes.has(P.id)){ESTADO.problemas.push([rel,"é cópia de “"+ESTADO.pacotes.get(P.id).arquivo+"”"]);continue}
@@ -66,6 +66,10 @@ export async function conectarPasta(progresso){const dir=await window.showDirect
   const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
 // sem escolher pasta (Firefox, Safari, celular): os arquivos escolhidos valem so enquanto a pagina estiver aberta
 export async function conectarArquivos(files,progresso){ESTADO.pasta=null;const L=[...files].filter(f=>/\.dungeondraft_pack$/i.test(f.name)).map(f=>[f.webkitRelativePath||f.name,async()=>f]);ESTADO.nome=L.length?(L[0][0].includes("/")?L[0][0].split("/")[0]:L.length+" pacotes"):"";return montar(L,progresso)}
+// acrescenta pacotes (soltos ou de outra pasta) aos que ja estao abertos
+export async function acrescentarArquivos(files,progresso){const L=[...files].filter(f=>/\.dungeondraft_pack$/i.test(f.name)).map(f=>[f.webkitRelativePath||f.name,async()=>f]);if(!L.length)return estado();const antes=ESTADO.pacotes.size;const r=await montar(L,progresso,true);if(ESTADO.nome&&ESTADO.pacotes.size>antes&&!/\+/.test(ESTADO.nome))ESTADO.nome+=" + outros";else if(!ESTADO.nome)ESTADO.nome=L.length+" pacotes";return estado()}
+// tira um pacote da lista (so nesta sessao; o arquivo nao e mexido)
+export function removerPacote(id){const P=ESTADO.pacotes.get(id);if(!P)return;for(const a of P.artes)ESTADO.caminho.delete("res://packs/"+id+"/"+a[0]);ESTADO.pacotes.delete(id);ESTADO.arquivos.delete(P.arquivo);avisa()}
 // ao abrir o app: a pasta guardada so volta com permissao; se o navegador pedir, precisa de um clique (reautorizar)
 export async function restaurar(){let dir=null;try{dir=await pegaCfg("pasta")}catch(e){}if(!dir||!dir.queryPermission)return estado();ESTADO.nome=dir.name;
   const p=await dir.queryPermission({mode:"read"});if(p==="granted"){ESTADO.pasta=dir;const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L)}
@@ -102,4 +106,4 @@ export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))re
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
 export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets|lights)\//.test(c);
 export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
-if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial};
+if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial,acrescentarArquivos,removerPacote};

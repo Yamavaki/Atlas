@@ -1,7 +1,7 @@
 // Atlas - Modo Batalha: transforma um andar do .atlasmap em malhas prontas para a placa de video.
 // Vertice: x, y, u, v, camada da textura (-1 = cor lisa), r, g, b, a, matiz, saturacao, brilho  (12 numeros). Sem DOM: pode rodar em Worker.
 import {materialDe,objetoDe} from "./arte.js";
-import {arredonda,fita,tampa,limpa,RAIO_PADRAO} from "./vetor.js";
+import {arredonda,fita,tampa,limpa,RAIO_PADRAO,curva} from "./vetor.js";
 import {trajeto,tipoPortal} from "./modelo.js";
 export const VERT=12;
 const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255,1];
@@ -62,7 +62,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   const fitaArte=(P,larg,l,c,laco,tex,nuv,vaos)=>{if(P.length<2)return;const asp=IND["a:"+tex]||4,rep=Math.max(.05,asp*larg),PS=arcos(P,laco),TT=PS[PS.length-1];
     for(const pc of pedacos(P,laco,vaos)){const Q=pc.pts,n=Q.length;if(n<2)continue;const {E,D}=fita(Q,larg,pc.laco);
       for(let i=0;i<n-(pc.laco?0:1);i++){const k=(i+1)%n,s0=pc.s[i],s1=pc.laco&&k===0?TT:pc.s[k];if(s1-s0<1e-6)continue;let u0,u1;
-        if(nuv){const sm=(s0+s1)/2,b=sm>TT?TT:0;let j=0;while(j<PS.length-2&&PS[j+1]<=sm-b)j++;const Lj=PS[j+1]-PS[j]||1,nr=Math.max(1,Math.round(Lj/rep));u0=(s0-b-PS[j])/Lj*nr;u1=(s1-b-PS[j])/Lj*nr}else{u0=s0/rep;u1=s1/rep}
+        let feito=false;if(nuv){const sm=(s0+s1)/2,b=sm>TT?TT:0;let j=0;while(j<PS.length-2&&PS[j+1]<=sm-b)j++;const Lj=PS[j+1]-PS[j]||1;if(Lj>=rep*.75){const nr=Math.max(1,Math.round(Lj/rep));u0=(s0-b-PS[j])/Lj*nr;u1=(s1-b-PS[j])/Lj*nr;feito=true}}if(!feito){u0=s0/rep;u1=s1/rep}
         // u segue a projecao no eixo do trecho (nos cantos a fita e um trapezio: assim a arte nao entorta na diagonal do quadrilatero)
         const dx=Q[k][0]-Q[i][0],dy=Q[k][1]-Q[i][1],Ls=Math.hypot(dx,dy)||1,ux=dx/Ls,uy=dy/Ls,du=(u1-u0)/(s1-s0),pj=(p,q)=>((p[0]-q[0])*ux+(p[1]-q[1])*uy)*du;
         quad(E[i],E[k],D[k],D[i],[[u0+pj(E[i],Q[i]),0],[u1+pj(E[k],Q[k]),0],[u1+pj(D[k],Q[k]),1],[u0+pj(D[i],Q[i]),1]],l,c)}}};
@@ -73,16 +73,16 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   for(const z of A.pisos||[])add(-50,()=>{const [i,j,t,c]=z;quadM([i,j],[i+1,j],[i+1,j+1],[i,j+1],mat(t),c||BR,kuv(t))});
   const PAR=new Map();for(const w of A.paredes||[])if(w.id!=null)PAR.set(w.id,w);
   // pisos de comodo seguem a parede (com os mesmos cantos arredondados); textura com escala, giro e deslocamento
-  for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,true,w.raios):(p.raio?arredonda(p.p,p.raio,true):p.p),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
+  for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?trajeto(w):(p.raio?arredonda(curva(p.p,p.cv,true),p.raio,true):curva(p.p,p.cv,true)),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
     for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es+(p.ox||0),w2=(-q[0]*sr+q[1]*cr)*es+(p.oy||0);v(q[0],q[1],u,w2,l,c)}
     if(p.borda>0){const cb=p.cb||[.55,.45,.3,1];faixa(B0,p.borda,-1,cb,true);for(const h of p.furos||[])faixa(p.raio?arredonda(h,p.raio,true):h,p.borda,-1,cb,true)}});
-  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),rl=real(p.t),P0=limpa(suaviza(p.p,p.suave),p.laco),P=rl!=null&&!p.estilo&&!p.suave&&IND["dd:origem"]?arredonda(P0,p.larg,p.laco):P0;const psd=sdDe(p,"caminhos");if(rl!=null&&!p.estilo){if(psd){SH(psd);fitaArte(P,p.larg,rl,BR,p.laco,TEX[p.t]);SH(null)}fitaArte(P,p.larg,rl,p.c||BR,p.laco,TEX[p.t]);return}
+  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),rl=real(p.t),P0=limpa(p.cv&&p.cv.some(Boolean)?curva(p.p,p.cv,p.laco):suaviza(p.p,p.suave),p.laco),P=rl!=null&&!p.suave&&IND["dd:origem"]?arredonda(P0,p.larg,p.laco):P0;const psd=sdDe(p,"caminhos");if(rl!=null){if(psd){SH(psd);fitaArte(P,p.larg,rl,BR,p.laco,TEX[p.t]);SH(null)}fitaArte(P,p.larg,rl,p.c||BR,p.laco,TEX[p.t]);return}
     if(p.estilo){const E=p.estilo,cb=p.cb||[.25,.19,.12,.6];if(E==="cerca"){faixa(P,.16,-1,TINTA,p.laco,true);faixa(P,.09,-1,[.62,.47,.3,1],p.laco,true);let acc=0;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);while(acc<=L){const t=acc/L,x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;quadM([x-.11,y-.11],[x+.11,y-.11],[x+.11,y+.11],[x-.11,y+.11],-1,TINTA);quadM([x-.07,y-.07],[x+.07,y-.07],[x+.07,y+.07],[x-.07,y+.07],-1,[.5,.36,.22,1]);acc+=1}acc-=L}return}
       if(p.borda>0)faixa(P,p.larg+2*p.borda,-1,cb,p.laco,true);if(E==="penhasco")faixa(P,p.larg+.14,-1,[.08,.07,.06,.95],p.laco,true);faixa(P,p.larg,mat(p.t),p.c||BR,p.laco,true);return}if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
-      const fino=/fence|rail|rope|chain|vine|web/.test(n);if(psd){SH(psd);faixa(P,fino?Math.min(p.larg,.22):p.larg,-1,BR,p.laco);SH(null)}if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)},!p.estilo&&sdDe(p,"caminhos")?sdDe(p,"caminhos")[1]:0);
+      const fino=/fence|rail|rope|chain|vine|web/.test(n);if(psd){SH(psd);faixa(P,fino?Math.min(p.larg,.22):p.larg,-1,BR,p.laco);SH(null)}if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)},(real(p.t)!=null||!p.estilo)&&sdDe(p,"caminhos")?sdDe(p,"caminhos")[1]:0);
   const onde=new Map();
   for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,r=real(o.t),l=r!=null?r:lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,r!=null?tingeDD(o,TEX[o.t]):o,l,r!=null?IND["rc:"+TEX[o.t]]:REC[l]);onde.set(o,off);nv+=12},o.s?(o.sd||SD_OBJ)[1]:0);
-  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?(IND["dd:origem"]?0:RAIO_PADRAO):w.raio,w.laco,w.raios),g=w.larg||.18,rw=real(w.t),vaos=vaosDe(A,w,P);
+  for(const w of A.paredes||[])add(500,()=>{const cvw=w.cv&&w.cv.some(Boolean),P=arredonda(cvw?curva(w.p,w.cv,w.laco):w.p,w.raio==null?(IND["dd:origem"]?0:RAIO_PADRAO):w.raio,w.laco,cvw?null:w.raios),g=w.larg||.18,rw=real(w.t),vaos=vaosDe(A,w,P);
     if(rw!=null){// parede com a arte do pacote: a imagem repete ao longo da parede (sem esticar); a espessura e a altura da imagem, como no Dungeondraft; portas e janelas abrem o vao
       const tx=TEX[w.t],gg=IND["h:"+tx]?Math.max(.04,Math.min(1,IND["h:"+tx]/256)):g,wsd=sdDe(w,"paredes");if(wsd){SH(wsd);fitaArte(P,gg,rw,BR,w.laco,tx,w.nuv!==false,vaos);SH(null)}fitaArte(P,gg,rw,w.c||BR,w.laco,tx,w.nuv!==false,vaos);
       // ponta da parede ("_end" do pacote), nas duas pontas soltas
@@ -93,9 +93,11 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   // portas e janelas: tipo proprio (porta, dupla, janela) ou pelo nome da arte importada; porta aberta gira na dobradica
   const rect=(cx,cy,ux,uy,hl,hw,l,c)=>{const nx=-uy,ny=ux;quadM([cx-ux*hl+nx*hw,cy-uy*hl+ny*hw],[cx+ux*hl+nx*hw,cy+uy*hl+ny*hw],[cx+ux*hl-nx*hw,cy+uy*hl-ny*hw],[cx-ux*hl-nx*hw,cy-uy*hl-ny*hw],l,c)};
   const MAD=[.55,.36,.2,1],VID=[.62,.82,.9,1];
-  for(const q of A.portais||[])add(510,()=>{const tp=q.tipo||(/window|sill|glass/.test(nome(q.t))?"janela":"porta"),L=q.raio,dx=q.dx,dy=q.dy,ab=q.fechado===false,rq=real(q.t);
+  for(const q of A.portais||[])add(510,()=>{const tp=q.tipo||(/window|sill|glass/.test(nome(q.t))?"janela":"porta"),L=q.raio,dx=q.dx,dy=q.dy,ab=q.fechado===false,rq=real(q.t),ea=q.ea||1,eh=q.eh||1;
+    // batente (moldura) do pacote: fica parado na parede, por baixo da porta
+    const rf=q.tq!=null?real(q.tq):null;if(rf!=null){const af=IND["a:"+TEX[q.tq]]||4,wf=2*L*ea,o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:wf,h:wf/af*eh,m:!!q.espelho},off=B.length;escreveObjeto(B,off,o,rf,IND["rc:"+TEX[q.tq]]);nv+=12}
     if(rq!=null){// porta ou janela do pacote: a imagem deitada ao longo da parede; aberta, gira 90 graus na dobradica
-      const asp=IND["a:"+TEX[q.t]]||4,w2=2*L,h2=w2/asp;let o;if(ab&&tp!=="janela"){const ux=-dy,uy=dx;o={x:q.x-dx*L+ux*L,y:q.y-dy*L+uy*L,r:Math.atan2(uy,ux),w:w2,h:h2}}else o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:w2,h:h2,m:!!q.espelho};
+      const asp=IND["a:"+TEX[q.t]]||4,w2=2*L*ea,h2=2*L/asp*eh;let o;if(ab&&tp!=="janela"){const ux=-dy,uy=dx;o={x:q.x-dx*L+ux*L,y:q.y-dy*L+uy*L,r:Math.atan2(uy,ux),w:w2,h:h2}}else o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:w2,h:h2,m:!!q.espelho};
       const qsd=sdDe(q,"portais");if(qsd){o.s=1;o.sd=qsd}const off=B.length;escreveObjeto(B,off,o,rq,IND["rc:"+TEX[q.t]]);nv+=12;return}
     {const qsd=sdDe(q,"portais");if(qsd){SH(qsd);rect(q.x,q.y,dx,dy,L+.04,tp==="janela"?.13:.16,-1,BR);SH(null)}}
     if(tp==="janela"){rect(q.x,q.y,dx,dy,L+.04,.13,-1,TINTA);rect(q.x,q.y,dx,dy,L-.02,.08,-1,VID);rect(q.x,q.y,dx,dy,L-.02,.012,-1,[.95,.98,1,1]);return}

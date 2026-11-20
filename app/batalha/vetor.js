@@ -39,3 +39,35 @@ export function formaPontos(modo,a,b,lados){const x0=Math.min(a[0],b[0]),x1=Math
   if(modo==="ret")return [[x0,y0],[x1,y0],[x1,y1],[x0,y1]];if(modo==="tri")return [[(x0+x1)/2,y0],[x1,y1],[x0,y1]];
   const R=hip(b[0]-a[0],b[1]-a[1]);if(R<1e-6)return [];const n=modo==="circ"?Math.max(16,Math.min(96,Math.ceil(2*Math.PI*R/.45))):Math.max(3,lados||6),a0=modo==="circ"?0:Math.atan2(b[1]-a[1],b[0]-a[0]),O=[];
   for(let i=0;i<n;i++){const an=a0+i*2*Math.PI/n;O.push([+(a[0]+Math.cos(an)*R).toFixed(4),+(a[1]+Math.sin(an)*R).toFixed(4)])}return O}
+// ---------- uniao de dois poligonos simples (juntar comodos e formas que se encostam) ----------
+// corta as bordas nos cruzamentos (inclusive trechos sobrepostos), fica com o que esta fora do outro poligono e liga os pedacos em lacos.
+// Devolve {fora:[pontos], furos:[[pontos]...]} ou null quando nao se tocam.
+const area2=P=>{let s=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];s+=a[0]*b[1]-b[0]*a[1]}return s/2};
+const EPS=1e-7;
+function noBorda(P,x,y){for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];if(distSeg(x,y,a,b)<1e-6)return true}return false}
+function cortes(A,B){// pontos de corte de cada borda de A pelas bordas de B (t de 0 a 1)
+  const out=[];for(let i=0;i<A.length;i++){const a=A[i],b=A[(i+1)%A.length],ts=[0,1],ex=b[0]-a[0],ey=b[1]-a[1],L2=ex*ex+ey*ey;
+    for(let j=0;j<B.length;j++){const c=B[j],d=B[(j+1)%B.length],fx=d[0]-c[0],fy=d[1]-c[1],den=ex*fy-ey*fx;
+      if(Math.abs(den)<1e-12){// paralelas: se estao na mesma reta, as pontas de uma cortam a outra
+        const cr=(c[0]-a[0])*ey-(c[1]-a[1])*ex;if(Math.abs(cr)>1e-9*Math.sqrt(L2))continue;for(const p of[c,d]){const t=((p[0]-a[0])*ex+(p[1]-a[1])*ey)/L2;if(t>EPS&&t<1-EPS)ts.push(t)}continue}
+      const t=((c[0]-a[0])*fy-(c[1]-a[1])*fx)/den,u=((c[0]-a[0])*ey-(c[1]-a[1])*ex)/den;if(t>EPS&&t<1-EPS&&u>-EPS&&u<1+EPS)ts.push(t)}
+    ts.sort((p,q)=>p-q);for(let k=0;k<ts.length-1;k++){if(ts[k+1]-ts[k]<EPS)continue;out.push([[a[0]+ex*ts[k],a[1]+ey*ts[k]],[a[0]+ex*ts[k+1],a[1]+ey*ts[k+1]]])}}
+  return out}
+export function uniao(A,B){A=limpa(A,true);B=limpa(B,true);if(A.length<3||B.length<3)return null;if(area2(A)<0)A=A.slice().reverse();if(area2(B)<0)B=B.slice().reverse();
+  const SA=cortes(A,B),SB=cortes(B,A),seg=[];let toca=false;
+  const mesmo=(s,L)=>L.some(t=>hip(t[0][0]-s[0][0],t[0][1]-s[0][1])<1e-6&&hip(t[1][0]-s[1][0],t[1][1]-s[1][1])<1e-6),contra=(s,L)=>L.some(t=>hip(t[0][0]-s[1][0],t[0][1]-s[1][1])<1e-6&&hip(t[1][0]-s[0][0],t[1][1]-s[0][1])<1e-6);
+  for(const s of SA){const mx=(s[0][0]+s[1][0])/2,my=(s[0][1]+s[1][1])/2;if(noBorda(B,mx,my)){toca=true;if(contra(s,SB))continue;seg.push(s);continue}if(dentro(B,mx,my)){toca=true;continue}seg.push(s)}
+  for(const s of SB){const mx=(s[0][0]+s[1][0])/2,my=(s[0][1]+s[1][1])/2;if(noBorda(A,mx,my)){toca=true;continue}if(dentro(A,mx,my)){toca=true;continue}seg.push(s)}
+  if(!toca)return null;
+  // liga os pedacos: cada um comeca onde o anterior termina
+  const k=p=>Math.round(p[0]*1e5)+","+Math.round(p[1]*1e5),porIni=new Map();for(const s of seg){const kk=k(s[0]);if(!porIni.has(kk))porIni.set(kk,[]);porIni.get(kk).push(s)}
+  const usado=new Set(),lacos=[];for(const s0 of seg){if(usado.has(s0))continue;const L=[];let s=s0,g=0;while(s&&!usado.has(s)&&g++<10000){usado.add(s);L.push(s[0]);const nx=(porIni.get(k(s[1]))||[]).filter(t=>!usado.has(t));s=nx[0]||null}if(L.length>=3)lacos.push(simplifica(L))}
+  if(!lacos.length)return null;lacos.sort((p,q)=>Math.abs(area2(q))-Math.abs(area2(p)));const fora=lacos[0];if(area2(fora)<=0)return null;
+  return {fora,furos:lacos.slice(1).filter(L=>area2(L)<0&&L.length>=3)}}
+// tira pontos no meio de trechos retos
+export function simplifica(P){let O=P.slice(),mudou=true;while(mudou&&O.length>3){mudou=false;for(let i=0;i<O.length;i++){const a=O[(i+O.length-1)%O.length],b=O[i],c=O[(i+1)%O.length],cr=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);if(Math.abs(cr)<1e-9||hip(b[0]-a[0],b[1]-a[1])<1e-7){O.splice(i,1);mudou=true;break}}}return O}
+// curvas de Bezier: cv[i] e a alca de saida do ponto i (a de entrada e o espelho). Sem alcas o trecho fica reto
+export function curva(P,cv,laco){if(!cv||!cv.some(Boolean)||P.length<2)return P;const n=P.length,O=[],N=16;
+  for(let i=0;i<n-(laco?0:1);i++){const a=P[i],b=P[(i+1)%n],h1=cv[i],h2=cv[(i+1)%n];O.push(a);if(!h1&&!h2)continue;
+    const c1=h1?[a[0]+h1[0],a[1]+h1[1]]:a,c2=h2?[b[0]-h2[0],b[1]-h2[1]]:b;for(let k=1;k<N;k++){const t=k/N,u=1-t,A=u*u*u,B=3*u*u*t,C=3*u*t*t,D=t*t*t;O.push([A*a[0]+B*c1[0]+C*c2[0]+D*b[0],A*a[1]+B*c1[1]+C*c2[1]+D*b[1]])}}
+  if(!laco)O.push(P[n-1]);return O}
