@@ -364,21 +364,26 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       oncontextmenu:p.k.startsWith("meu:")?async e=>{e.preventDefault();await PN.apagar(p.k);if(pinc.forma===p.k)pinc.forma="atlas:redondo";dica.textContent="Pincel “"+p.nome+"” apagado.";painel(true)}:null},PN.miniatura(p,44),el("span",{},p.nome))));
     return el("div",{},campo("Formato",G),el("button",{type:"button",class:"bt-a",onclick:()=>inpPinceis.click()},"Importar pincéis (imagens ou .zip)"))};
   // sombras do mapa: liga em todos os objetos e ajusta todas de uma vez (opacidade, suavidade, direcao, distancia, espalhamento); objetos novos seguem o ajuste
+  const SD_PAREDE=[.4,.3,.15,0,0];
   const painelSombras=()=>{const S0=M.sombra||{},sd0=S0.sd||[.5,.2,.08,.05,.08],dist0=Math.hypot(sd0[3],sd0[4]),ang0=Math.round(((Math.atan2(sd0[4],sd0[3])*180/Math.PI)+360)%360);let v={op:sd0[0],bl:sd0[1],sp:sd0[2],dist:dist0,ang:ang0};
-    const objsTodos=()=>M.andares.flatMap((A,a)=>(A.objetos||[]).map(e=>({a,k:"objetos",e})));
-    const muda2=(L,fn,nome,junta)=>{const ops=[];for(const s0 of L){const de=MD.foto(s0.e),para=MD.foto(s0.e);fn(para,s0.k);ops.push({op:"muda",a:s0.a,k:s0.k,id:s0.e.id,de,para})}if(ops.length||nome)exec(ops,nome,junta)};
+    const ALV=[["objetos","Objetos"],["paredes","Paredes"],["portais","Portas e janelas"],["caminhos","Caminhos"]],alvos=Object.assign({objetos:true,paredes:true,portais:true,caminhos:true},S0.alvos||{});
+    const tem=(k,e)=>k==="objetos"?!!e.s:!!(e.sd&&e.sd!==0);
+    const itens=(so)=>M.andares.flatMap((A,a)=>ALV.filter(([k])=>alvos[k]).flatMap(([k])=>(A[k]||[]).map(e=>({a,k,e})))).filter(x=>!so||tem(x.k,x.e));
+    const muda2=(L,fn,nome,junta)=>{const ops=[];for(const s0 of L){const de=MD.foto(s0.e),para=MD.foto(s0.e);fn(para,s0.k);ops.push({op:"muda",a:s0.a,k:s0.k,id:s0.e.id,de,para})}if(ops.length)exec(ops,nome,junta)};
     const sdDe=()=>{const r=v.ang*Math.PI/180;return [+v.op.toFixed(3),+v.bl.toFixed(3),+v.sp.toFixed(3),+(Math.cos(r)*v.dist).toFixed(3),+(Math.sin(r)*v.dist).toFixed(3)]};
-    const aplica=(nome,junta)=>{const sd=sdDe();M.sombra=Object.assign({},M.sombra,{sd});muda2(objsTodos().filter(x=>x.e.s),e=>{e.sd=sd.slice()},nome,junta);agendaSalvar()};
-    const n=objsTodos().length,com=objsTodos().filter(x=>x.e.s).length;
-    return sec("Sombras do mapa",el("p",{class:"bt-nota"},com+" de "+n+" objetos com sombra."),
-      el("div",{class:"bt-2"},el("button",{type:"button",class:"bt-a",onclick:()=>{const sd=sdDe();M.sombra=Object.assign({},M.sombra,{todos:true,sd});muda2(objsTodos(),e=>{e.s=1;e.sd=sd.slice()},"Sombra em todos os objetos");painel(true)}},"Pôr em todos"),
-        el("button",{type:"button",class:"bt-a",onclick:()=>{M.sombra=Object.assign({},M.sombra,{todos:false});muda2(objsTodos().filter(x=>x.e.s),e=>{delete e.s},"Tirar todas as sombras");painel(true)}},"Tirar de todos")),
+    const guarda=o=>{M.sombra=Object.assign({},M.sombra,{alvos:Object.assign({},alvos)},o||{});agendaSalvar()};
+    const aplica=(nome,junta)=>{const sd=sdDe();guarda({sd});muda2(itens(true),e=>{e.sd=sd.slice()},nome,junta)};
+    const tot=itens(false),com=tot.filter(x=>tem(x.k,x.e)).length;
+    return sec("Sombras do mapa",el("div",{class:"bt-chips"},ALV.map(([k,n])=>chip(n,null,()=>{alvos[k]=!alvos[k];guarda();painel(true)},!!alvos[k]))),
+      el("p",{class:"bt-nota"},com+" de "+tot.length+" com sombra (nos tipos marcados)."),
+      el("div",{class:"bt-2"},el("button",{type:"button",class:"bt-a",onclick:()=>{const sd=sdDe();guarda({todos:true,sd});muda2(itens(false),(e,k)=>{if(k==="objetos")e.s=1;e.sd=sd.slice()},"Sombra em todos");painel(true)}},"Pôr em todos"),
+        el("button",{type:"button",class:"bt-a",onclick:()=>{guarda({todos:false});muda2(itens(true),(e,k)=>{if(k==="objetos")delete e.s;else e.sd=0},"Tirar todas as sombras");painel(true)}},"Tirar de todos")),
       faixaC(x=>"Opacidade · "+Math.round(x*100)+"%",v.op,0,1,.05,x=>{v.op=x;aplica("Opacidade das sombras","somOp")}),
       faixaC(x=>"Suavidade · "+arr2(x,2)+" quadrados",v.bl,0,1,.02,x=>{v.bl=Math.max(.02,x);aplica("Suavidade das sombras","somBl")}),
       faixaC(x=>"Distância · "+arr2(x,2)+" quadrados",v.dist,0,1.5,.02,x=>{v.dist=x;aplica("Distância das sombras","somDi")}),
       faixaC(x=>"Direção · "+Math.round(x)+"°",v.ang,0,359,5,x=>{v.ang=x;aplica("Direção das sombras","somAn")}),
       faixaC(x=>"Tamanho · "+Math.round(x*100)+"%",v.sp,0,.5,.01,x=>{v.sp=x;aplica("Tamanho das sombras","somSp")}),
-      el("p",{class:"bt-nota"},"Muda todas as sombras do mapa de uma vez. Os objetos novos já entram assim."))};
+      el("p",{class:"bt-nota"},"Muda de uma vez as sombras dos tipos marcados. O que você colocar depois já entra assim."))};
   // ambiente do andar: prontos, cor e claridade (a luz que existe sem nenhuma luz acesa)
   const painelAmb=()=>{const A=fl(),am=A.ambiente||[1,1,1,1],cla=Math.max(am[0],am[1],am[2]),base=cla>0?[am[0]/cla,am[1]/cla,am[2]/cla]:[1,1,1],poe=(c,nome,junta)=>exec([{op:"andar",a:andar,de:{ambiente:A.ambiente},para:{ambiente:[c[0],c[1],c[2],1]}}],nome,junta),
       k=()=>{const a=A.ambiente||[1,1,1];return Math.max(a[0],a[1],a[2])};
@@ -529,9 +534,10 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       const pts=sel.filter(s=>s.k==="portais");if(pts.length&&pts.length===n){const q0=pts[0].e,tp=q0.tipo||(/window|sill|glass/.test((M.texturas[q0.t]||"").toLowerCase())?"janela":"porta");
         K.push(sec("Tipo",el("div",{class:"bt-chips"},[["porta","Porta"],["dupla","Porta dupla"],["janela","Janela"]].map(([k,nm])=>chip(nm,null,()=>{muda(pts,x=>{x.tipo=k;x.t=MD.texDe(M,"atlas:p/"+k)},"Tipo da peça");painel(true)},tp===k)))),
           BIB.estado().conectada||real(M.texturas[q0.t])?sec("Arte",escolhePC("Arte da peça",M.texturas[q0.t],["portals"],v=>{muda(pts,x=>{x.t=MD.texDe(M,v||"atlas:p/"+(x.tipo||"porta"))},"Arte da peça")}),ck("Espelhar",!!q0.espelho,v=>muda(pts,x=>{if(v)x.espelho=true;else delete x.espelho},"Espelhar a peça"))):null,
-          sec("Peça",faixaC(v=>"Largura · "+arr2(v*2,2)+" quadrados",q0.raio,.25,2,.125,v=>muda(pts,x=>{x.raio=v},"Largura","raio")),tp!=="janela"?ck("Aberta",q0.fechado===false,v=>muda(pts,x=>{x.fechado=!v},v?"Abrir":"Fechar")):null,el("p",{class:"bt-nota"},"Arraste a peça para ela deslizar pela parede.")))}
+          sec("Peça",faixaC(v=>"Largura · "+arr2(v*2,2)+" quadrados",q0.raio,.25,2,.125,v=>muda(pts,x=>{x.raio=v},"Largura","raio")),tp!=="janela"?ck("Aberta",q0.fechado===false,v=>muda(pts,x=>{x.fechado=!v},v?"Abrir":"Fechar")):null,ck("Faz sombra",q0.sd===0?false:!!(q0.sd||(M.sombra&&M.sombra.todos&&M.sombra.sd)),on=>muda(pts,x=>{x.sd=on?((M.sombra&&M.sombra.sd)||SD_PAREDE).slice():0},on?"Pôr sombra":"Tirar sombra")),el("p",{class:"bt-nota"},"Arraste a peça para ela deslizar pela parede.")))}
       const vet=sel.filter(s=>s.k==="paredes"||s.k==="caminhos"||s.k==="padroes");
       if(vet.length&&vet.length===n){const p0=vet[0],soPiso=vet.every(s=>s.k==="padroes"),soPar=vet.every(s=>s.k==="paredes"),soCam=vet.every(s=>s.k==="caminhos"),t0=M.texturas[p0.e.t]||"",mat=(soPiso?chaveM(t0):real(t0)&&BIB.tem(t0)&&(soPar||soCam)?t0:materialDe(t0));K.push(sec(vet.length===1?"Textura":"Textura de todos",escolheMat("Textura",mat,v=>muda(vet,e=>{e.t=MD.texDe(M,texM(v))},"Trocar a textura"),soPiso?undefined:soPar?["walls"]:soCam?["paths"]:false)));
+        {const sv=vet.filter(x=>x.k!=="padroes");if(sv.length){const SM=M.sombra,tem=e=>e.sd===0?false:!!(e.sd||(SM&&SM.todos&&SM.alvos&&SM.alvos[sv[0].k]!==false&&SM.sd));K.push(sec("Sombra",ck("Faz sombra",tem(sv[0].e),on=>muda(sv,e=>{e.sd=on?((M.sombra&&M.sombra.sd)||SD_PAREDE).slice():0},on?"Pôr sombra":"Tirar sombra"))))}}
         const pars=vet.filter(s=>s.k==="paredes");if(pars.length===n){const r=pars[0].e.raio==null?RAIO_PADRAO:pars[0].e.raio;K.push(sec("Cantos",faixaC(v=>"Arredondamento · "+arr2(v,2),r,0,1,.05,v=>muda(pars,e=>{e.raio=v},"Arredondar cantos","raio")),el("p",{class:"bt-nota"},"Toda parede nasce com o canto arredondado. Zero deixa o canto vivo."),
             faixaC(v=>"Espessura · "+arr2(v,2),pars[0].e.larg||.18,.08,.6,.02,v=>muda(pars,e=>{e.larg=v},"Espessura","larg")),ck("Parede fechada",pars[0].e.laco,v=>muda(pars,w=>{w.laco=v},"Fechar parede")),ck("Barra a luz (faz sombra)",pars[0].e.sombra!==false,v=>muda(pars,w=>{w.sombra=v},v?"Parede faz sombra":"Parede sem sombra")),el("p",{class:"bt-nota"},"Arraste os pontos para mudar a parede. Arraste a bolinha do meio de um trecho para criar um ponto novo.")));
           if(pars.length===1&&pars[0].e.laco){K.push(ambZona(pars));const w=pars[0].e,tl=(fl().telhados||[]).find(t=>t.parede===w.id);
