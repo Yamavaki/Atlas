@@ -29,7 +29,7 @@ async function borda(B,c){if(BORDA.has(c))return BORDA.get(c);let res={f:"",vis:
 // gera um comodo na forma P com as artes conectadas; devolve o que pos. o = {B, C, MD, V, e}
 export async function gerar(o,P,tipo,par,semente){const {B,C,MD,V,e}=o,M=e.mapa,a=0,A=M.andares[a];par=Object.assign({},Z.PADRAO,par);semente=semente||((Math.random()*2147483647)|0)||1;
   const idx=B.porSub(),es=Z.escolheArtes(tipo,{lista:s=>idx.get(s)||[]},par,semente),cat={};
-  const arte=async k=>{const d=await B.dims(k);if(!d)return null;let f=null;try{f=await C.fichaUma(k)}catch(x){}const pc=B.pacoteDe(k),nm=k.split("/").pop(),w=d[0]/256,h=d[1]/256,fa=pc&&/forgotten adventures/i.test(pc.autor||"");let fr=f&&f.length>=11?C.frente(nm,pc&&pc.autor,f):"?";const md=await borda(B,k);if(fr==="?"&&md.costas)fr={N:"S",S:"N",L:"W",W:"L"}[md.costas];if(fr==="?"&&fa)fr="S";
+  const arte=async k=>{const d=await B.dims(k);if(!d)return null;let f=null;try{f=await C.fichaUma(k)}catch(x){}const pc=B.pacoteDe(k),nm=k.split("/").pop(),w=d[0]/256,h=d[1]/256,fa=pc&&/forgotten adventures/i.test(pc.autor||"");let fr=f&&f.length>=11?C.frente(nm,pc&&pc.autor,f):"?";const md=await borda(B,k);if(fr!=="sim"&&md.costas)fr={N:"S",S:"N",L:"W",W:"L"}[md.costas];if(fr==="?"&&fa)fr="S";
     return {k,w:+w.toFixed(3),h:+h.toFixed(3),fr,funde:md.f,vis:md.vis||[0,0,1,1],cam:C.camada(nm,"objects",w,h)||200,redondo:!!f&&C.forma(f)==="o"}};
   for(const [p,ks] of Object.entries(es.papeis)){cat[p]=(await Promise.all(ks.map(arte))).filter(Boolean);if(!(Z.PAPEIS[p]&&Z.PAPEIS[p].borda))for(const x of cat[p])delete x.funde}
   const zid="t"+semente,ops=[],riq=par.riqueza==null?1:par.riqueza,portas=[];
