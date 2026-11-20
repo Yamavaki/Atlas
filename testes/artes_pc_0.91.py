@@ -50,7 +50,7 @@ async def main():
                 tem=await pg.locator(".bt-mats .bt-fonte button >> text=Minhas texturas").count();chk("aba minhas texturas",tem>=1)
                 if tem:
                     await pg.locator(".bt-mats .bt-fonte button >> text=Minhas texturas").first.click();await pg.wait_for_timeout(500)
-                    await pg.fill(".bt-busca[aria-label='Buscar nas suas texturas']","asphalt");await pg.wait_for_timeout(400)
+                    await pg.fill(".bt-busca[aria-label='Buscar nos seus pacotes']","asphalt");await pg.wait_for_timeout(400)
                     k=await pg.locator(".bt-mats .bt-mgr:not([hidden]) .bt-mo").count();chk("acha asfalto",k>0)
                     if k:
                         await pg.locator(".bt-mats .bt-mgr:not([hidden]) .bt-mo").first.click();await pg.wait_for_timeout(2500)

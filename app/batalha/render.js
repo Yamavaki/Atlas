@@ -1,7 +1,7 @@
 // Atlas - Modo Batalha: renderizador WebGL2. Uma chamada de desenho por andar (malha unica + matriz de texturas),
 // terreno com mistura de 4 texturas na placa, luz acumulada num alvo separado e composicao final com a grade.
 import {gerarArtes,materialDe,objetoDe} from "./arte.js";
-import {malhaAndar,malhaLuzes,VERT,N_OBJ,escreveObjeto,escreveLuz} from "./malha.js";
+import {malhaAndar,malhaLuzes,VERT,N_OBJ,escreveObjeto,escreveLuz,tingeDD} from "./malha.js";
 import {deB64} from "./formato.js";
 const VS=`#version 300 es
 layout(location=0) in vec2 aP;layout(location=1) in vec2 aU;layout(location=2) in float aL;layout(location=3) in vec4 aC;layout(location=4) in vec3 aA;
@@ -54,11 +54,11 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
   function montaMatriz(reais){const L=[...(reais||new Map())].filter(x=>x[1]),n=L.length,S=n?(n<=160?512:256):ART.T;if(TA)gl.deleteTexture(TA);TA=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D_ARRAY,TA);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
     gl.texStorage3D(gl.TEXTURE_2D_ARRAY,Math.log2(S)+1,gl.RGBA8,S,S,G+n);const tmp=S===ART.T?null:document.createElement("canvas");if(tmp){tmp.width=S;tmp.height=S}const tc=tmp&&tmp.getContext("2d");
     ART.quadros.forEach((cv,i)=>{let src=cv;if(tc){tc.clearRect(0,0,S,S);tc.drawImage(cv,0,0,S,S);src=tmp}gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,i,S,S,1,gl.RGBA,gl.UNSIGNED_BYTE,src)});
-    for(const k in ART.indice)if(k.startsWith("r:"))delete ART.indice[k];ART.recorte.length=G;
+    for(const k in ART.indice)if(/^[rah]:/.test(k))delete ART.indice[k];ART.recorte.length=G;
     const c2=document.createElement("canvas");c2.width=S;c2.height=S;const g2=c2.getContext("2d");g2.imageSmoothingQuality="high";
     L.forEach(([p,bm],j)=>{g2.clearRect(0,0,S,S);if(ehMat(p)){// chao: o quadro cobre 2 quadrados do mapa (512 px no Dungeondraft); textura menor repete, maior encolhe
         const rep=Math.max(1,Math.round(512/Math.max(bm.width,1))),t=S/rep;for(let y=0;y<rep;y++)for(let x=0;x<rep;x++)g2.drawImage(bm,x*t,y*t,t,t)}else g2.drawImage(bm,0,0,S,S);
-      gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,G+j,S,S,1,gl.RGBA,gl.UNSIGNED_BYTE,c2);ART.indice["r:"+p]=G+j;ART.recorte[G+j]=[0,0,1,1]});
+      gl.texSubImage3D(gl.TEXTURE_2D_ARRAY,0,0,0,G+j,S,S,1,gl.RGBA,gl.UNSIGNED_BYTE,c2);ART.indice["r:"+p]=G+j;ART.indice["a:"+p]=bm.width/Math.max(1,bm.height);ART.indice["h:"+p]=bm.height;ART.recorte[G+j]=[0,0,1,1]});
     gl.generateMipmap(gl.TEXTURE_2D_ARRAY);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D_ARRAY,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,false);LADO=S;NREAIS=n}
   montaMatriz(null);const tArte=performance.now()-t0;
   const quadVAO=gl.createVertexArray();gl.bindVertexArray(quadVAO);const qb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,qb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
@@ -95,7 +95,7 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     return {ms:performance.now()-t,verts}}
   // reescreve so os objetos e luzes dados, no lugar (arrastar 1 ou 3.000 sem refazer a malha). Devolve false se algum nao esta na malha.
   function atualiza(i,objs,luzes){const a=AND[i];if(!a)return false;const TEXS=M.texturas;
-    if(objs&&objs.length){let mn=1e12,mx=-1;for(const o of objs){const off=a.onde.get(o);if(off==null)return false;const k="o:"+objetoDe(TEXS[o.t]),r=ART.indice["r:"+TEXS[o.t]],l=r!=null?r:ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k];escreveObjeto(a.cpu,off,o,l,ART.recorte[l]);if(off<mn)mn=off;if(off+N_OBJ>mx)mx=off+N_OBJ}
+    if(objs&&objs.length){let mn=1e12,mx=-1;for(const o of objs){const off=a.onde.get(o);if(off==null)return false;const k="o:"+objetoDe(TEXS[o.t]),r=ART.indice["r:"+TEXS[o.t]],l=r!=null?r:ART.indice[k]==null?ART.indice["m:neutro"]:ART.indice[k];escreveObjeto(a.cpu,off,r!=null?tingeDD(o,TEXS[o.t]):o,l,ART.recorte[l]);if(off<mn)mn=off;if(off+N_OBJ>mx)mx=off+N_OBJ}
       gl.bindBuffer(gl.ARRAY_BUFFER,a.buf);gl.bufferSubData(gl.ARRAY_BUFFER,mn*4,a.cpu,mn,mx-mn)}
     if(luzes&&luzes.length){const z=malhaLuzes(M.andares[i],a.cacheL,M.texturas);a.cacheL=z.cache;a.luzes=z.verts;a.nl=z.n;gl.bindBuffer(gl.ARRAY_BUFFER,a.bufL);gl.bufferData(gl.ARRAY_BUFFER,z.verts,gl.DYNAMIC_DRAW)}
     return true}

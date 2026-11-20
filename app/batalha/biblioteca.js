@@ -98,6 +98,6 @@ export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))re
   const p=createImageBitmap(b).then(async bm=>{const s=Math.min(1,tam/Math.max(bm.width,bm.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(bm.width*s));cv.height=Math.max(1,Math.round(bm.height*s));cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);bm.close();
     const bl=await new Promise(ok=>cv.toBlob(ok,"image/webp",.85));return bl?URL.createObjectURL(bl):null}).catch(()=>null);guarda(MINI,k,p,LIM_MINI);return p}
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
-export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?)\//.test(c);
+export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals)\//.test(c);
 export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?)\//.test(c);
 if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,miniatura,tem,pacotes,usavel,ehMaterial};

@@ -8,6 +8,9 @@ const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,pars
 const BR=[1,1,1,1],TINTA=hex("#2a2018");
 // um objeto = 12 vertices (sombra + arte) escritos em B a partir de off; l = camada da arte na matriz de texturas, rc = recorte da arte
 export const N_OBJ=12*VERT;const UM=[1,1,1],TODO=[0,0,1,1],SX=.07,SY=.11;
+// cor do Dungeondraft (custom_color) nas artes coloriveis: gira o matiz a partir do vermelho, como o Dungeondraft
+export function tingeDD(o,tex){if(!o.c||o.mz!=null||o.cor||!/colorable/i.test(tex||""))return o;const [r,g,b]=o.c,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d>0){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4}h*=60;if(h>180)h-=360;if(h<-180)h+=360;
+  return Object.assign({},o,{mz:h,sat:mx?d/mx:0,bri:Math.max(.15,mx)})}
 export function escreveObjeto(B,off,o,l,rc){rc=rc||TODO;const c=Math.cos(o.r),s=Math.sin(o.r),hw=o.w/2,hh=o.h/2,e=.004,ua=rc[0]+e,ub=rc[2]-e,u0=o.m?ub:ua,u1=o.m?ua:ub,v0=rc[1]+e,v1=rc[3]-e,a=o.a==null?1:o.a,q=o.cor||UM,
     mz=(o.mz||0)/360,sa=o.sat==null?1:o.sat,br=o.bri==null?1:o.bri,X=[-hw,hw,hw,-hw,hw,-hw],Y=[-hh,-hh,hh,-hh,hh,hh],U=[u0,u1,u1,u0,u1,u0],V=[v0,v0,v1,v0,v1,v1];
   for(let p=0;p<2;p++){const sb=p===0,dx=sb?SX:0,dy=sb?SY:0;for(let i=0;i<6;i++){const k=off+(p*6+i)*VERT;B[k]=o.x+X[i]*c-Y[i]*s+dx;B[k+1]=o.y+X[i]*s+Y[i]*c+dy;B[k+2]=U[i];B[k+3]=V[i];B[k+4]=l;
@@ -38,6 +41,8 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   // fita continua: uma peca so, com a juncao calculada em cada ponto; pontas soltas fecham em meia-lua
   const faixa=(P,larg,l,c,laco,pontas)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco);for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n;quadM(E[i],E[k],D[k],D[i],l,c)}
     if(pontas&&!laco)for(const [p,q] of[[P[0],P[1]],[P[n-1],P[n-2]]]){const T=tampa(p,q,larg);for(let i=0;i<T.length-1;i++)for(const z of[p,T[i],T[i+1]])v(z[0],z[1],z[0]*.5,z[1]*.5,l,c)}};
+  const fitaArte=(P,larg,l,c,laco,tex)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco),asp=IND["a:"+tex]||4,rep=Math.max(.05,asp*larg);let acc=0;
+    for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n,L=Math.hypot(P[k][0]-P[i][0],P[k][1]-P[i][1]),u0=acc/rep,u1=(acc+L)/rep;quad(E[i],E[k],D[k],D[i],[[u0,0],[u1,0],[u1,1],[u0,1]],l,c);acc+=L}};
   const suaviza=(P,s)=>{if(!s||P.length<3)return P;const O=[];for(let i=0;i<P.length-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)];for(let k=0;k<6;k++){const t=k/6,t2=t*t,t3=t2*t;O.push([.5*(2*p1[0]+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),.5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)])}}O.push(P[P.length-1]);return O};
   const add=(l,fn)=>itens.push([l,ordem++,fn]);
   for(const z of A.pisos||[])add(-50,()=>{const [i,j,t,c]=z;quadM([i,j],[i+1,j],[i+1,j+1],[i,j+1],mat(t),c||BR)});
@@ -46,17 +51,23 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,true,w.raios):(p.raio?arredonda(p.p,p.raio,true):p.p),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=.5/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
     for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es+(p.ox||0),w2=(-q[0]*sr+q[1]*cr)*es+(p.oy||0);v(q[0],q[1],u,w2,l,c)}
     if(p.borda>0){const cb=p.cb||[.55,.45,.3,1];faixa(B0,p.borda,-1,cb,true);for(const h of p.furos||[])faixa(p.raio?arredonda(h,p.raio,true):h,p.borda,-1,cb,true)}});
-  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco);
+  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco),rl=real(p.t);if(rl!=null&&!p.estilo){fitaArte(P,p.larg,rl,p.c||BR,p.laco,TEX[p.t]);return}
     if(p.estilo){const E=p.estilo,cb=p.cb||[.25,.19,.12,.6];if(E==="cerca"){faixa(P,.16,-1,TINTA,p.laco,true);faixa(P,.09,-1,[.62,.47,.3,1],p.laco,true);let acc=0;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);while(acc<=L){const t=acc/L,x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;quadM([x-.11,y-.11],[x+.11,y-.11],[x+.11,y+.11],[x-.11,y+.11],-1,TINTA);quadM([x-.07,y-.07],[x+.07,y-.07],[x+.07,y+.07],[x-.07,y+.07],-1,[.5,.36,.22,1]);acc+=1}acc-=L}return}
       if(p.borda>0)faixa(P,p.larg+2*p.borda,-1,cb,p.laco,true);if(E==="penhasco")faixa(P,p.larg+.14,-1,[.08,.07,.06,.95],p.laco,true);faixa(P,p.larg,mat(p.t),p.c||BR,p.laco,true);return}if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
       const fino=/fence|rail|rope|chain|vine|web/.test(n);if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)});
   const onde=new Map();
-  for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,r=real(o.t),l=r!=null?r:lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,o,l,REC[l]);onde.set(o,off);nv+=12});
-  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios),g=w.larg||.18;faixa(P,g+.12,-1,TINTA,w.laco,true);faixa(P,g,mat(w.t),w.c||[.86,.84,.8,1],w.laco,true)});
+  for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,r=real(o.t),l=r!=null?r:lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,r!=null?tingeDD(o,TEX[o.t]):o,l,REC[l]);onde.set(o,off);nv+=12});
+  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios),g=w.larg||.18,rw=real(w.t);
+    if(rw!=null){// parede com a arte do pacote: a faixa da imagem corre ao longo da parede; a espessura vem da imagem quando ela e mais grossa
+      const gg=Math.max(g,Math.min(.6,(IND["h:"+TEX[w.t]]||0)/256));faixa(P,gg+.04,-1,[0,0,0,.55],w.laco,true);fitaArte(P,gg,rw,w.c||BR,w.laco,TEX[w.t]);return}
+    faixa(P,g+.12,-1,TINTA,w.laco,true);faixa(P,g,mat(w.t),w.c||[.86,.84,.8,1],w.laco,true)});
   // portas e janelas: tipo proprio (porta, dupla, janela) ou pelo nome da arte importada; porta aberta gira na dobradica
   const rect=(cx,cy,ux,uy,hl,hw,l,c)=>{const nx=-uy,ny=ux;quadM([cx-ux*hl+nx*hw,cy-uy*hl+ny*hw],[cx+ux*hl+nx*hw,cy+uy*hl+ny*hw],[cx+ux*hl-nx*hw,cy+uy*hl-ny*hw],[cx-ux*hl-nx*hw,cy-uy*hl-ny*hw],l,c)};
   const MAD=[.55,.36,.2,1],VID=[.62,.82,.9,1];
-  for(const q of A.portais||[])add(510,()=>{const tp=q.tipo||(/window|sill|glass/.test(nome(q.t))?"janela":"porta"),L=q.raio,dx=q.dx,dy=q.dy,ab=q.fechado===false;
+  for(const q of A.portais||[])add(510,()=>{const tp=q.tipo||(/window|sill|glass/.test(nome(q.t))?"janela":"porta"),L=q.raio,dx=q.dx,dy=q.dy,ab=q.fechado===false,rq=real(q.t);
+    if(rq!=null){// porta ou janela do pacote: a imagem deitada ao longo da parede; aberta, gira 90 graus na dobradica
+      const asp=IND["a:"+TEX[q.t]]||4,w2=2*L,h2=w2/asp;let o;if(ab&&tp!=="janela"){const ux=-dy,uy=dx;o={x:q.x-dx*L+ux*L,y:q.y-dy*L+uy*L,r:Math.atan2(uy,ux),w:w2,h:h2}}else o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:w2,h:h2,m:!!q.espelho};
+      const off=B.length;escreveObjeto(B,off,o,rq,REC[rq]);nv+=12;return}
     if(tp==="janela"){rect(q.x,q.y,dx,dy,L+.04,.13,-1,TINTA);rect(q.x,q.y,dx,dy,L-.02,.08,-1,VID);rect(q.x,q.y,dx,dy,L-.02,.012,-1,[.95,.98,1,1]);return}
     const folhas=tp==="dupla"?[[-L,L],[L,L]]:[[-L,2*L]];rect(q.x,q.y,dx,dy,L,.16,-1,[.16,.12,.09,.9]);
     for(const [o,c] of folhas){const hx=q.x+dx*o,hy=q.y+dy*o,s=o<0?1:-1;if(ab){const ux=-dy,uy=dx;rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2,.07,-1,TINTA);rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2-.03,.045,-1,MAD)}
