@@ -34,7 +34,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     if(m&&+m[1]<=40&&+m[2]<=40){const nw=+m[1],nh=+m[2],k2=nw/(d[0]/256);return [i?i.nome:"Arte",nw,Math.abs(k2*(d[1]/256)-nh)<.3?nh:+(d[1]/256*k2).toFixed(3),300]}return [i?i.nome:"Arte",d[0]/256,d[1]/256,300]};
   const nomeArte=t=>{if(real(t)){const i=BIB.info(t);if(i)return i.nome}return (MD.ARTES[objetoDe(t)]||["Arte"])[0]};
   // carrega as imagens que o mapa usa (e as escolhidas no pincel) e refaz a matriz de texturas
-  async function carregaReais(extra){const quer=new Set();for(const t of M.texturas)if(real(t)&&BIB.tem(t)&&BIB.usavel(t))quer.add(t);for(const t of extra||[])if(real(t)&&BIB.tem(t))quer.add(t);
+  async function carregaReais(extra){const quer=new Set();for(const t of M.texturas)if(real(t)&&BIB.tem(t)&&BIB.usavel(t)){quer.add(t);if(/\/textures\/walls\//.test(t)){const pe=t.replace(/(\.\w+)$/,"_end$1");if(BIB.tem(pe))quer.add(pe)}}for(const t of extra||[])if(real(t)&&BIB.tem(t))quer.add(t);
     const novos=[...quer].filter(t=>!REAIS.has(t));if(!novos.length&&[...REAIS.keys()].every(t=>quer.has(t)))return 0;let feito=0;
     for(const t of novos){const [bm,d]=await Promise.all([BIB.imagem(t),BIB.dims(t)]);if(d)DIMR.set(t,d);REAIS.set(t,bm||null);feito++;if(feito%25===0){dica.textContent="Carregando suas artes… "+feito+"/"+novos.length}}
     for(const t of [...REAIS.keys()])if(!quer.has(t))REAIS.delete(t);if(!vivo)return 0;
@@ -313,9 +313,9 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     marcaTudo();filtra();return [el("input",{type:"search",class:"bt-busca",placeholder:"Buscar arte…",value:busca,"aria-label":"Buscar arte",oninput:e=>{busca=e.target.value;filtra()}}),chips,caixa,vazia]};
   // luz: prontas, cor, forca, luz plena e penumbra. aplica(fn, nome, junta) muda a luz escolhida (ou o pincel de luz)
   const painelLuz=(l,aplica)=>{const claro=l.claro==null?l.raio*.45:l.claro;
-    return [sec("Luzes prontas",el("div",{class:"bt-chips"},MD.LUZES.map(([k,n,r,cl,f,c])=>chip(n,c,()=>{aplica(e=>{e.raio=r;e.claro=cl;e.forca=f;e.c=[c[0],c[1],c[2],1]},"Luz: "+n.toLowerCase());painel(true)})))),
+    return [sec("Luzes prontas",el("div",{class:"bt-chips"},MD.LUZES.map(([k,n,r,cl,f,c])=>chip(n,c,()=>{aplica(e=>{e.raio=r;e.claro=cl;e.forca=f;e.c=[c[0],c[1],c[2],1];delete e.dd},"Luz: "+n.toLowerCase());painel(true)})))),
       sec("Cor e força",corC("Cor da luz",l.c,c=>aplica(e=>{e.c=[c[0],c[1],c[2],1]},"Cor da luz","c")),faixaC(v=>"Força · "+Math.round(v*100)+"%",l.forca,.05,3,.05,v=>aplica(e=>{e.forca=v},"Força da luz","forca"))),
-      sec("Alcance",faixaC(v=>"Luz plena · "+arr2(v,1)+" quadrados",claro,0,30,.25,v=>aplica(e=>{e.claro=Math.min(v,e.raio)},"Luz plena","claro")),faixaC(v=>"Penumbra até · "+arr2(v,1)+" quadrados",l.raio,.5,40,.5,v=>aplica(e=>{e.raio=v;if(e.claro!=null&&e.claro>v)e.claro=v},"Alcance da luz","raio")),
+      sec("Alcance",faixaC(v=>"Luz plena · "+arr2(v,1)+" quadrados",claro,0,30,.25,v=>aplica(e=>{e.claro=Math.min(v,e.raio);delete e.dd},"Luz plena","claro")),faixaC(v=>"Penumbra até · "+arr2(v,1)+" quadrados",l.raio,.5,40,.5,v=>aplica(e=>{e.raio=v;if(e.claro!=null&&e.claro>v)e.claro=v},"Alcance da luz","raio")),
         el("p",{class:"bt-nota"},"Dentro da luz plena fica tudo claro. Na penumbra a luz cai devagar até sumir.")),
       sec("Sombra",ck("As paredes fazem sombra",l.sombras!==false,v=>aplica(e=>{e.sombras=v},v?"Luz com sombra":"Luz sem sombra")),el("p",{class:"bt-nota"},"Janelas e portas abertas deixam a luz passar."))]};
   // ambiente proprio dentro de um comodo ou forma (ex.: interior escuro com o lado de fora de dia)

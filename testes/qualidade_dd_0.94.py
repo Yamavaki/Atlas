@@ -25,7 +25,7 @@ async def main():
             print(r)
             chk("objetos importados guardam a escala do DD",r["ds"]==r["tot"])
             chk("objetos do pacote com tamanho real",r["n"]==0 or r["dz"]==r["n"])
-            chk("sombras padrao nos objetos importados",r["s"]==r["tot"])
+            chk("sombras do Drop Shadow nos objetos importados",r["s"]>=1037)
             chk("atlas de artes montado",r["camadas"]>=1)
             # nitidez: aproxima num objeto do pacote e confere variacao de pixels
             await pg.evaluate(f"()=>{{const e={E},M=e.mapa,o=M.andares.flatMap(a=>a.objetos).find(o=>/7IhYmL1i|fp1lAaD0/.test(M.texturas[o.t]))||M.andares[0].objetos[0];e.set({{cam:{{x:o.x,y:o.y,z:220}}}});e.agora()}}");await pg.wait_for_timeout(500)

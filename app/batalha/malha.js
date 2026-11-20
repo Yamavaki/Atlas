@@ -7,17 +7,31 @@ export const VERT=12;
 const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255,1];
 const BR=[1,1,1,1],TINTA=hex("#2a2018");
 // um objeto = 12 vertices (sombra + arte) escritos em B a partir de off; l = camada da arte na matriz de texturas, rc = recorte da arte
-export const N_OBJ=12*VERT;const UM=[1,1,1],TODO=[0,0,1,1],SX=.07,SY=.11;
+export const N_OBJ=12*VERT;const UM=[1,1,1],TODO=[0,0,1,1];
+// sombra projetada (como o mod Drop Shadow): [opacidade, desfoque em quadrados, espalhamento, desloca x, desloca y]
+export const SD_OBJ=[.5,.2,.08,.05,.08],SD_PAREDE=[.4,.3,.15,0,0];
+// trechos de um trajeto que sobram depois de tirar os vaos (portas e janelas). Cada pedaco: pontos, distancia de cada ponto no trajeto e se as pontas sao pontas de verdade
+export const arcos=(P,laco)=>{const S=[0];for(let i=1;i<P.length+(laco?1:0);i++){const a=P[i-1],b=P[i%P.length];S.push(S[i-1]+Math.hypot(b[0]-a[0],b[1]-a[1]))}return S};
+export function naParede(P,laco,x,y){const n=P.length;let best=1e18,res=0,acc=0;for(let i=0;i<n-(laco?0:1);i++){const a=P[i],b=P[(i+1)%n],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy);if(L<1e-9)continue;let t=((x-a[0])*dx+(y-a[1])*dy)/(L*L);t=Math.max(0,Math.min(1,t));const d=Math.hypot(a[0]+dx*t-x,a[1]+dy*t-y);if(d<best){best=d;res=acc+t*L}acc+=L}return {d:res,dist:best}}
+export function pedacos(P,laco,vaos){const S=arcos(P,laco),T=S[S.length-1],n=P.length;if(!vaos||!vaos.length||T<1e-9)return [{pts:P,s:S.slice(0,n),laco:!!laco,ini:!laco,fim:!laco}];
+  let K=[[0,T]];const tira=(a,b)=>{const N=[];for(const [s0,s1] of K){if(b<=s0||a>=s1){N.push([s0,s1]);continue}if(a>s0)N.push([s0,a]);if(b<s1)N.push([b,s1])}K=N};
+  for(const [a,b] of vaos){tira(a,b);if(laco){tira(a-T,b-T);tira(a+T,b+T)}}
+  K=K.filter(([a,b])=>b-a>1e-3);if(laco&&K.length>1&&K[0][0]<1e-9&&K[K.length-1][1]>T-1e-9){const f=K.pop();K[0]=[f[0],K[0][1]+T]}
+  const em=s=>{s=laco?((s%T)+T)%T:Math.max(0,Math.min(T,s));let j=0;while(j<S.length-2&&S[j+1]<s)j++;const a=P[j],b=P[(j+1)%n],L=S[j+1]-S[j]||1,t=Math.max(0,Math.min(1,(s-S[j])/L));return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t]};
+  return K.map(([s0,s1])=>{const pts=[em(s0)],ss=[s0];for(let j=0;j<S.length-1;j++)for(const sh of laco?[0,T]:[0]){const sj=S[j]+sh;if(sj>s0+1e-6&&sj<s1-1e-6){pts.push(P[j%n]);ss.push(sj)}}
+    const o=pts.map((p,i)=>[ss[i],p]).sort((a,b)=>a[0]-b[0]);o.push([s1,em(s1)]);return {pts:o.map(x=>x[1]),s:o.map(x=>x[0]),laco:false,ini:!laco&&s0<1e-9,fim:!laco&&s1>T-1e-9}})}
+// vaos de uma parede: portas e janelas presas nela (distancia no trajeto, guardada ou achada pela posicao)
+export function vaosDe(A,w,P){const V=[];for(const q of A.portais||[]){if(q.parede==null||q.parede!==w.id)continue;let d=q.d;if(d==null){const r=naParede(P,w.laco,q.x,q.y);if(r.dist>.75)continue;d=r.d}V.push([d-q.raio,d+q.raio])}return V}
 // cor do Dungeondraft (custom_color) nas artes coloriveis: gira o matiz a partir do vermelho, como o Dungeondraft
 export function tingeDD(o,tex){if(!o.c||o.mz!=null||o.cor||!/colorable/i.test(tex||""))return o;const [r,g,b]=o.c,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d>0){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4}h*=60;if(h>180)h-=360;if(h<-180)h+=360;
   return Object.assign({},o,{mz:h,sat:mx?d/mx:0,bri:Math.max(.15,mx)})}
-export function escreveObjeto(B,off,o,l,rc){rc=rc||TODO;const c=Math.cos(o.r),s=Math.sin(o.r),hw=o.w/2,hh=o.h/2,e=.004,ua=rc[0]+e,ub=rc[2]-e,u0=o.m?ub:ua,u1=o.m?ua:ub,v0=rc[1]+e,v1=rc[3]-e,a=o.a==null?1:o.a,q=o.cor||UM,
+export function escreveObjeto(B,off,o,l,rc){rc=rc||TODO;const c=Math.cos(o.r),s=Math.sin(o.r),hw=o.w/2,hh=o.h/2,e=.004,sd=o.sd||SD_OBJ,ua=rc[0]+e,ub=rc[2]-e,u0=o.m?ub:ua,u1=o.m?ua:ub,v0=rc[1]+e,v1=rc[3]-e,a=o.a==null?1:o.a,q=o.cor||UM,
     mz=(o.mz||0)/360,sa=o.sat==null?1:o.sat,br=o.bri==null?1:o.bri,X=[-hw,hw,hw,-hw,hw,-hw],Y=[-hh,-hh,hh,-hh,hh,hh],U=[u0,u1,u1,u0,u1,u0],V=[v0,v0,v1,v0,v1,v1];
-  for(let p=0;p<2;p++){const sb=p===0,dx=sb?SX:0,dy=sb?SY:0;for(let i=0;i<6;i++){const k=off+(p*6+i)*VERT;B[k]=o.x+X[i]*c-Y[i]*s+dx;B[k+1]=o.y+X[i]*s+Y[i]*c+dy;B[k+2]=U[i];B[k+3]=V[i];B[k+4]=l;
-    if(sb){B[k+5]=0;B[k+6]=0;B[k+7]=0;B[k+8]=o.s?.5*a:0;B[k+9]=-2;B[k+10]=1;B[k+11]=1}else{B[k+5]=q[0];B[k+6]=q[1];B[k+7]=q[2];B[k+8]=a;B[k+9]=mz;B[k+10]=sa;B[k+11]=br}}}}
+  for(let p=0;p<2;p++){const sb=p===0,dx=sb?sd[3]:0,dy=sb?sd[4]:0;for(let i=0;i<6;i++){const k=off+(p*6+i)*VERT;B[k]=o.x+X[i]*c-Y[i]*s+dx;B[k+1]=o.y+X[i]*s+Y[i]*c+dy;B[k+2]=U[i];B[k+3]=V[i];B[k+4]=l;
+    if(sb){B[k+5]=0;B[k+6]=0;B[k+7]=0;B[k+8]=o.s?sd[0]*a:0;B[k+9]=-2;B[k+10]=sd[2];B[k+11]=1}else{B[k+5]=q[0];B[k+6]=q[1];B[k+7]=q[2];B[k+8]=a;B[k+9]=mz;B[k+10]=sa;B[k+11]=br}}}}
 // luz: 6 vertices de 9 numeros: x, y, lx, ly, r, g, b, forca, nucleo (luz plena / alcance)
 export const N_LUZ=54;
-export function escreveLuz(B,off,l){const R=l.raio,f=l.forca,k0=Math.max(0,Math.min(.98,(l.claro==null?R*.45:l.claro)/R)),Q=[[-1,-1],[1,-1],[1,1],[-1,-1],[1,1],[-1,1]];for(let i=0;i<6;i++){const k=off+i*9;B[k]=l.x+Q[i][0]*R;B[k+1]=l.y+Q[i][1]*R;B[k+2]=Q[i][0];B[k+3]=Q[i][1];B[k+4]=l.c[0];B[k+5]=l.c[1];B[k+6]=l.c[2];B[k+7]=f;B[k+8]=k0}}
+export function escreveLuz(B,off,l){const R=l.raio,f=l.forca,k0=l.dd?-1:Math.max(0,Math.min(.98,(l.claro==null?R*.45:l.claro)/R)),Q=[[-1,-1],[1,-1],[1,1],[-1,-1],[1,1],[-1,1]];for(let i=0;i<6;i++){const k=off+i*9;B[k]=l.x+Q[i][0]*R;B[k+1]=l.y+Q[i][1]*R;B[k+2]=Q[i][0];B[k+3]=Q[i][1];B[k+4]=l.c[0];B[k+5]=l.c[1];B[k+6]=l.c[2];B[k+7]=f;B[k+8]=k0}}
 // triangulacao por "orelhas" (poligonos simples, concavos ou nao)
 export function triangula(P){const n=P.length;if(n<3)return [];let A=0;for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n];A+=a[0]*b[1]-b[0]*a[1]}const V=[];for(let i=0;i<n;i++)V.push(A>0?i:n-1-i);const T=[];let g=0;
   const cr=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]),den=(a,b,c,p)=>cr(a,b,p)>=0&&cr(b,c,p)>=0&&cr(c,a,p)>=0;
@@ -35,32 +49,43 @@ export function comFuros(P,F){if(!F||!F.length)return P;const area=Q=>{let s=0;f
     const anel=h.slice(mi).concat(h.slice(0,mi+1));O=O.slice(0,best+1).concat(anel,[O[best]],O.slice(best+1))}return O}
 export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
   const mat=t=>{const r=real(t);return r!=null?r:lay("m:"+materialDe(TEX[t]||""))},nome=t=>(TEX[t]||"").split("/").pop().toLowerCase();
-  const B=[];let nv=0;const v=(x,y,u,w,l,c)=>{B.push(x,y,u,w,l,c[0],c[1],c[2],c[3],0,1,1);nv++};
+  const B=[];let nv=0,SOMB=null;const v=(x,y,u,w,l,c)=>{if(SOMB)B.push(x,y,u,w,l,0,0,0,SOMB[0],-2,SOMB[2],1);else B.push(x,y,u,w,l,c[0],c[1],c[2],c[3],0,1,1);nv++};
   const quad=(p0,p1,p2,p3,uv,l,c)=>{v(p0[0],p0[1],uv[0][0],uv[0][1],l,c);v(p1[0],p1[1],uv[1][0],uv[1][1],l,c);v(p2[0],p2[1],uv[2][0],uv[2][1],l,c);v(p0[0],p0[1],uv[0][0],uv[0][1],l,c);v(p2[0],p2[1],uv[2][0],uv[2][1],l,c);v(p3[0],p3[1],uv[3][0],uv[3][1],l,c)};
   const kuv=t=>{const tx=TEX[t],w=IND["w:"+tx];return w&&IND["r:"+tx]!=null?256/w:.5};const mundo=(p,k)=>[p[0]*(k||.5),p[1]*(k||.5)],quadM=(a,b,c_,d,l,c,k)=>quad(a,b,c_,d,[mundo(a,k),mundo(b,k),mundo(c_,k),mundo(d,k)],l,c);
   // fita continua: uma peca so, com a juncao calculada em cada ponto; pontas soltas fecham em meia-lua
   const faixa=(P,larg,l,c,laco,pontas)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco);for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n;quadM(E[i],E[k],D[k],D[i],l,c)}
-    if(pontas&&!laco)for(const [p,q] of[[P[0],P[1]],[P[n-1],P[n-2]]]){const T=tampa(p,q,larg);for(let i=0;i<T.length-1;i++)for(const z of[p,T[i],T[i+1]])v(z[0],z[1],z[0]*.5,z[1]*.5,l,c)}};
-  const fitaArte=(P,larg,l,c,laco,tex)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco),asp=IND["a:"+tex]||4,rep=Math.max(.05,asp*larg);let acc=0;
-    for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n,L=Math.hypot(P[k][0]-P[i][0],P[k][1]-P[i][1]),u0=acc/rep,u1=(acc+L)/rep;quad(E[i],E[k],D[k],D[i],[[u0,0],[u1,0],[u1,1],[u0,1]],l,c);acc+=L}};
+    const PT=Array.isArray(pontas)?pontas:[pontas,pontas];if(!laco)for(const [p,q,ok] of[[P[0],P[1],PT[0]],[P[n-1],P[n-2],PT[1]]]){if(!ok)continue;const T=tampa(p,q,larg);for(let i=0;i<T.length-1;i++)for(const z of[p,T[i],T[i+1]])v(z[0],z[1],z[0]*.5,z[1]*.5,l,c)}};
+  // faixa com a arte do pacote: a imagem repete ao longo do trajeto (a altura dela e a largura da faixa). nuv: como o "normalize_uv" do Dungeondraft, cada trecho reto recebe um numero inteiro de repeticoes
+  const fitaArte=(P,larg,l,c,laco,tex,nuv,vaos)=>{if(P.length<2)return;const asp=IND["a:"+tex]||4,rep=Math.max(.05,asp*larg),PS=arcos(P,laco),TT=PS[PS.length-1];
+    for(const pc of pedacos(P,laco,vaos)){const Q=pc.pts,n=Q.length;if(n<2)continue;const {E,D}=fita(Q,larg,pc.laco);
+      for(let i=0;i<n-(pc.laco?0:1);i++){const k=(i+1)%n,s0=pc.s[i],s1=pc.laco&&k===0?TT:pc.s[k];if(s1-s0<1e-6)continue;let u0,u1;
+        if(nuv){const sm=(s0+s1)/2,b=sm>TT?TT:0;let j=0;while(j<PS.length-2&&PS[j+1]<=sm-b)j++;const Lj=PS[j+1]-PS[j]||1,nr=Math.max(1,Math.round(Lj/rep));u0=(s0-b-PS[j])/Lj*nr;u1=(s1-b-PS[j])/Lj*nr}else{u0=s0/rep;u1=s1/rep}
+        // u segue a projecao no eixo do trecho (nos cantos a fita e um trapezio: assim a arte nao entorta na diagonal do quadrilatero)
+        const dx=Q[k][0]-Q[i][0],dy=Q[k][1]-Q[i][1],Ls=Math.hypot(dx,dy)||1,ux=dx/Ls,uy=dy/Ls,du=(u1-u0)/(s1-s0),pj=(p,q)=>((p[0]-q[0])*ux+(p[1]-q[1])*uy)*du;
+        quad(E[i],E[k],D[k],D[i],[[u0+pj(E[i],Q[i]),0],[u1+pj(E[k],Q[k]),0],[u1+pj(D[k],Q[k]),1],[u0+pj(D[i],Q[i]),1]],l,c)}}};
   const suaviza=(P,s)=>{if(!s||P.length<3)return P;const O=[];for(let i=0;i<P.length-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)];for(let k=0;k<6;k++){const t=k/6,t2=t*t,t3=t2*t;O.push([.5*(2*p1[0]+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),.5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)])}}O.push(P[P.length-1]);return O};
-  const add=(l,fn)=>itens.push([l,ordem++,fn]);
+  // l = camada, fn desenha, sb = desfoque da sombra (0 = nao faz sombra)
+  const add=(l,fn,sb)=>itens.push([l,ordem++,fn,sb||0]);const SH=sd=>{SOMB=sd};
   for(const z of A.pisos||[])add(-50,()=>{const [i,j,t,c]=z;quadM([i,j],[i+1,j],[i+1,j+1],[i,j+1],mat(t),c||BR,kuv(t))});
   const PAR=new Map();for(const w of A.paredes||[])if(w.id!=null)PAR.set(w.id,w);
   // pisos de comodo seguem a parede (com os mesmos cantos arredondados); textura com escala, giro e deslocamento
   for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,true,w.raios):(p.raio?arredonda(p.p,p.raio,true):p.p),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
     for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es+(p.ox||0),w2=(-q[0]*sr+q[1]*cr)*es+(p.oy||0);v(q[0],q[1],u,w2,l,c)}
     if(p.borda>0){const cb=p.cb||[.55,.45,.3,1];faixa(B0,p.borda,-1,cb,true);for(const h of p.furos||[])faixa(p.raio?arredonda(h,p.raio,true):h,p.borda,-1,cb,true)}});
-  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco),rl=real(p.t);if(rl!=null&&!p.estilo){fitaArte(P,p.larg,rl,p.c||BR,p.laco,TEX[p.t]);return}
+  for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),P=limpa(suaviza(p.p,p.suave),p.laco),rl=real(p.t);if(rl!=null&&!p.estilo){if(p.sd){SH(p.sd);fitaArte(P,p.larg,rl,BR,p.laco,TEX[p.t]);SH(null)}fitaArte(P,p.larg,rl,p.c||BR,p.laco,TEX[p.t]);return}
     if(p.estilo){const E=p.estilo,cb=p.cb||[.25,.19,.12,.6];if(E==="cerca"){faixa(P,.16,-1,TINTA,p.laco,true);faixa(P,.09,-1,[.62,.47,.3,1],p.laco,true);let acc=0;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);while(acc<=L){const t=acc/L,x=a[0]+(b[0]-a[0])*t,y=a[1]+(b[1]-a[1])*t;quadM([x-.11,y-.11],[x+.11,y-.11],[x+.11,y+.11],[x-.11,y+.11],-1,TINTA);quadM([x-.07,y-.07],[x+.07,y-.07],[x+.07,y+.07],[x-.07,y+.07],-1,[.5,.36,.22,1]);acc+=1}acc-=L}return}
       if(p.borda>0)faixa(P,p.larg+2*p.borda,-1,cb,p.laco,true);if(E==="penhasco")faixa(P,p.larg+.14,-1,[.08,.07,.06,.95],p.laco,true);faixa(P,p.larg,mat(p.t),p.c||BR,p.laco,true);return}if(/shadow/.test(n)){faixa(P,p.larg,-1,[0,0,0,.22],p.laco);return}
-      const fino=/fence|rail|rope|chain|vine|web/.test(n);if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)});
+      const fino=/fence|rail|rope|chain|vine|web/.test(n);if(!fino)faixa(P,p.larg+.08,-1,[.16,.12,.09,.85],p.laco);faixa(P,fino?Math.min(p.larg,.22):p.larg,mat(p.t),fino?[.62,.5,.36,1]:BR,p.laco)},p.sd&&real(p.t)!=null&&!p.estilo?p.sd[1]:0);
   const onde=new Map();
-  for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,r=real(o.t),l=r!=null?r:lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,r!=null?tingeDD(o,TEX[o.t]):o,l,r!=null?IND["rc:"+TEX[o.t]]:REC[l]);onde.set(o,off);nv+=12});
-  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?RAIO_PADRAO:w.raio,w.laco,w.raios),g=w.larg||.18,rw=real(w.t);
-    if(rw!=null){// parede com a arte do pacote: a faixa da imagem corre ao longo da parede; a espessura vem da imagem quando ela e mais grossa
-      const gg=Math.max(g,Math.min(.6,(IND["h:"+TEX[w.t]]||0)/256));faixa(P,gg+.04,-1,[0,0,0,.55],w.laco,true);fitaArte(P,gg,rw,w.c||BR,w.laco,TEX[w.t]);return}
-    faixa(P,g+.12,-1,TINTA,w.laco,true);faixa(P,g,mat(w.t),w.c||[.86,.84,.8,1],w.laco,true)});
+  for(const o of A.objetos||[])add(o.l,()=>{const off=B.length,r=real(o.t),l=r!=null?r:lay("o:"+objetoDe(TEX[o.t]));escreveObjeto(B,off,r!=null?tingeDD(o,TEX[o.t]):o,l,r!=null?IND["rc:"+TEX[o.t]]:REC[l]);onde.set(o,off);nv+=12},o.s?(o.sd||SD_OBJ)[1]:0);
+  for(const w of A.paredes||[])add(500,()=>{const P=arredonda(w.p,w.raio==null?(IND["dd:origem"]?0:RAIO_PADRAO):w.raio,w.laco,w.raios),g=w.larg||.18,rw=real(w.t),vaos=vaosDe(A,w,P);
+    if(rw!=null){// parede com a arte do pacote: a imagem repete ao longo da parede (sem esticar); a espessura e a altura da imagem, como no Dungeondraft; portas e janelas abrem o vao
+      const tx=TEX[w.t],gg=IND["h:"+tx]?Math.max(.04,Math.min(1,IND["h:"+tx]/256)):g;if(w.sd){SH(w.sd);fitaArte(P,gg,rw,BR,w.laco,tx,w.nuv!==false,vaos);SH(null)}fitaArte(P,gg,rw,w.c||BR,w.laco,tx,w.nuv!==false,vaos);
+      // ponta da parede ("_end" do pacote), nas duas pontas soltas
+      const pe=tx.replace(/(\.\w+)$/,"_end$1"),re=IND["r:"+pe];if(re!=null&&!w.laco&&P.length>1){const asp=IND["a:"+pe]||.5,len=gg*asp;for(const [p,q,m] of[[P[0],P[1],1],[P[P.length-1],P[P.length-2],0]]){const L=Math.hypot(p[0]-q[0],p[1]-q[1])||1,ux=(p[0]-q[0])/L,uy=(p[1]-q[1])/L;
+        const o={x:p[0],y:p[1],r:Math.atan2(uy,ux),w:len,h:gg,m:m};const off=B.length;escreveObjeto(B,off,o,re,IND["rc:"+pe]);nv+=12}}return}
+    if(w.sd){SH(w.sd);for(const pc of pedacos(P,w.laco,vaos))faixa(pc.pts,g+.12,-1,BR,pc.laco);SH(null)}
+    for(const pc of pedacos(P,w.laco,vaos))faixa(pc.pts,g+.12,-1,TINTA,pc.laco,[pc.ini,pc.fim]);for(const pc of pedacos(P,w.laco,vaos))faixa(pc.pts,g,mat(w.t),w.c||[.86,.84,.8,1],pc.laco,[pc.ini,pc.fim])},w.sd?w.sd[1]:0);
   // portas e janelas: tipo proprio (porta, dupla, janela) ou pelo nome da arte importada; porta aberta gira na dobradica
   const rect=(cx,cy,ux,uy,hl,hw,l,c)=>{const nx=-uy,ny=ux;quadM([cx-ux*hl+nx*hw,cy-uy*hl+ny*hw],[cx+ux*hl+nx*hw,cy+uy*hl+ny*hw],[cx+ux*hl-nx*hw,cy+uy*hl-ny*hw],[cx-ux*hl-nx*hw,cy-uy*hl-ny*hw],l,c)};
   const MAD=[.55,.36,.2,1],VID=[.62,.82,.9,1];
@@ -72,18 +97,21 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
     const folhas=tp==="dupla"?[[-L,L],[L,L]]:[[-L,2*L]];rect(q.x,q.y,dx,dy,L,.16,-1,[.16,.12,.09,.9]);
     for(const [o,c] of folhas){const hx=q.x+dx*o,hy=q.y+dy*o,s=o<0?1:-1;if(ab){const ux=-dy,uy=dx;rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2,.07,-1,TINTA);rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2-.03,.045,-1,MAD)}
       else{rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2,.11,-1,TINTA);rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2-.04,.075,-1,MAD)}}});
-  itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);for(const it of itens)it[2]();
+  itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const G=[];for(const it of itens){const v0=nv;SOMB=null;it[2]();SOMB=null;if(!it[3]||nv===v0)continue;const g=G[G.length-1];if(g&&g.l===it[0]){g.v1=nv;g.b+=it[3];g.k++}else G.push({l:it[0],v0,v1:nv,b:it[3],k:1})}
+  // grupos de sombra: um por camada que faz sombra (a sombra fica embaixo da camada inteira); no maximo 8, juntando os vizinhos menores
+  while(G.length>8){let m=0,mk=1e9;for(let i=0;i<G.length-1;i++)if(G[i].k+G[i+1].k<mk){mk=G[i].k+G[i+1].k;m=i}const a=G[m],b=G[m+1];G.splice(m,2,{l:a.l,v0:a.v0,v1:b.v1,b:a.b+b.b,k:a.k+b.k})}
+  const grupos=G.map(g=>({v0:g.v0,v1:g.v1,bl:g.b/g.k}));
   // luzes: x, y, lx, ly, r, g, b, forca
   const lz=malhaLuzes(A,null,TEX),tl=malhaTelhados(A,TEX,IND,PAR);
   // zonas com ambiente proprio (comodo ou forma): triangulos de cor lisa desenhados no alvo da luz antes das luzes
   const Z=[];let nz=0;const zv=(q,c)=>{Z.push(q[0],q[1],0,0,-1,c[0],c[1],c[2],1,0,1,1);nz++};
   for(const w of A.paredes||[])if(w.amb&&w.laco){const P=trajeto(w),T=triangula(P);for(const k of T)zv(P[k],w.amb)}
   for(const p of A.padroes||[])if(p.amb&&p.parede==null){const P=p.raio?arredonda(p.p,p.raio,true):p.p,T=triangula(P);for(const k of T)zv(P[k],p.amb)}
-  return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz,telhados:tl.verts,nt:tl.n}}
+  return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz,telhados:tl.verts,nt:tl.n,grupos}}
 // ---------- luz com sombra das paredes ----------
 // trechos que barram a luz: paredes (caminho arredondado), menos as janelas e as portas abertas
 export function barreiras(A,TEX){const S=[];for(const w of A.paredes||[]){if(w.sombra===false)continue;const P=trajeto(w),n=P.length;if(n<2)continue;
-    const fur=(A.portais||[]).filter(q=>q.parede===w.id&&q.d!=null&&(tipoPortal(q,TEX)==="janela"||q.fechado===false)).map(q=>[q.d-q.raio,q.d+q.raio]);let acc=0;
+    const fur=(A.portais||[]).filter(q=>q.parede!=null&&q.parede===w.id&&(tipoPortal(q,TEX)==="janela"||q.fechado===false)).map(q=>{const d=q.d!=null?q.d:naParede(P,w.laco,q.x,q.y).d;return [d-q.raio,d+q.raio]});let acc=0;
     for(let i=0;i<n-(w.laco?0:1);i++){const a=P[i],b=P[(i+1)%n],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-9)continue;let cortes=[[0,L]];
       for(const [d0,d1] of fur){const u0=d0-acc,u1=d1-acc;if(u1<=0||u0>=L)continue;const N=[];for(const [s0,s1] of cortes){if(u1<=s0||u0>=s1){N.push([s0,s1]);continue}if(u0>s0)N.push([s0,u0]);if(u1<s1)N.push([u1,s1])}cortes=N}
       for(const [s0,s1] of cortes){const ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;S.push([a[0]+ux*s0,a[1]+uy*s0,a[0]+ux*s1,a[1]+uy*s1])}acc+=L}}
@@ -94,8 +122,8 @@ export function visibilidade(cx,cy,R,S){const segs=S.filter(s=>{const dx=s[2]-s[
   const P=[];for(const a of ang){const dx=Math.cos(a),dy=Math.sin(a);let tm=R;for(const s of segs){const ex=s[2]-s[0],ey=s[3]-s[1],den=dx*ey-dy*ex;if(Math.abs(den)<1e-12)continue;const fx=s[0]-cx,fy=s[1]-cy,t=(fx*ey-fy*ex)/den,u=(fx*dy-fy*dx)/den;if(t>1e-6&&u>=-1e-9&&u<=1+1e-9&&t<tm)tm=t}P.push([cx+dx*tm,cy+dy*tm])}return P}
 // todas as luzes do andar: quadrado simples sem parede perto; leque com sombra quando ha. cache por luz (refaz so a que mudou)
 export function malhaLuzes(A,cache,TEX){const S=cache&&cache.S||barreiras(A,TEX),novo=new Map(),partes=[];let tot=0;novo.S=S;
-  for(const l of A.luzes||[]){const k=l.x+","+l.y+","+l.raio+","+(l.claro==null?"":l.claro)+","+l.forca+","+l.c.join(",")+","+(l.sombras!==false);let ent=cache&&cache.get(l);
-    if(!ent||ent.k!==k){const B=[];const k0=Math.max(0,Math.min(.98,(l.claro==null?l.raio*.45:l.claro)/l.raio)),put=(x,y)=>B.push(x,y,(x-l.x)/l.raio,(y-l.y)/l.raio,l.c[0],l.c[1],l.c[2],l.forca,k0);
+  for(const l of A.luzes||[]){const k=l.x+","+l.y+","+l.raio+","+(l.claro==null?"":l.claro)+","+l.forca+","+l.c.join(",")+","+(l.sombras!==false)+","+(l.dd?1:0);let ent=cache&&cache.get(l);
+    if(!ent||ent.k!==k){const B=[];const k0=l.dd?-1:Math.max(0,Math.min(.98,(l.claro==null?l.raio*.45:l.claro)/l.raio)),put=(x,y)=>B.push(x,y,(x-l.x)/l.raio,(y-l.y)/l.raio,l.c[0],l.c[1],l.c[2],l.forca,k0);
       const P=l.sombras===false?null:visibilidade(l.x,l.y,l.raio,S);if(!P){const Q=[];escreveLuz(Q,0,l);B.push(...Q)}else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];put(l.x,l.y);put(a[0],a[1]);put(b[0],b[1])}ent={k,v:new Float32Array(B)}}
     novo.set(l,ent);partes.push(ent.v);tot+=ent.v.length}
   const out=new Float32Array(tot);let o=0;for(const v of partes){out.set(v,o);o+=v.length}return {verts:out,n:tot/9,cache:novo}}
