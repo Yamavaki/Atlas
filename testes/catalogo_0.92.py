@@ -43,7 +43,7 @@ async def main():
             await pg.locator(".bt-wrap").click(position={"x":600,"y":400});await pg.keyboard.press("o");await pg.wait_for_timeout(400)
             if await pg.locator(".bt-fonte button[aria-selected=false] >> text=Minhas artes").count():await pg.click(".bt-fonte button >> text=Minhas artes")
             await pg.wait_for_timeout(300);n0=await pg.evaluate("()=>document.querySelector('.bt-palpc~.bt-nota').innerText");print("todas:",n0)
-            await pg.select_option("select[aria-label='Tamanho']","g");await pg.wait_for_timeout(600);ng=await pg.evaluate("()=>document.querySelector('.bt-palpc~.bt-nota').innerText");print("grandes:",ng)
+            await pg.evaluate("()=>document.querySelectorAll('.bt-mais').forEach(d=>d.open=true)");await pg.select_option("select[aria-label='Tamanho']","g");await pg.wait_for_timeout(600);ng=await pg.evaluate("()=>document.querySelector('.bt-palpc~.bt-nota').innerText");print("grandes:",ng)
             nomes=await pg.locator(".bt-palpc .bt-arte").evaluate_all("bs=>bs.slice(0,5).map(b=>b.title)");print(nomes)
             chk("filtro de tamanho reduz",ng!=n0)
             await pg.select_option("select[aria-label='Tamanho']","");await pg.select_option("select[aria-label='Pacote']","PieHCLp9");await pg.wait_for_timeout(300)

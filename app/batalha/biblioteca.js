@@ -1,6 +1,7 @@
 // Atlas - Artes do PC: le os pacotes .dungeondraft_pack direto da pasta do usuario, sem copiar nem enviar nada.
 // Um pacote e um arquivo PCK do Godot: cabecalho, tabela (caminho, posicao, tamanho) e os arquivos em seguida.
 // Guardamos so a tabela (no IndexedDB); cada imagem e lida na hora, cortando o pedaco do arquivo.
+import {classifica} from "./classifica.js";
 const TXT=new TextDecoder();
 // md5 curto (RFC 1321), so para nomes de arquivo
 export function md5(s){const b=new TextEncoder().encode(s),n=((b.length+8>>6)+1)*16,w=new Int32Array(n);for(let i=0;i<b.length;i++)w[i>>2]|=b[i]<<(i%4*8);w[b.length>>2]|=0x80<<(b.length%4*8);w[n-2]=b.length*8;
@@ -61,7 +62,7 @@ async function montar(lista,progresso,acrescenta){ESTADO.lendo=true;if(!acrescen
     ESTADO.arquivos.set(rel,f);let P=antigos.get(rel);if(!P||P.v!==IDX||P.tam!==f.size||P.mod!==(f.lastModified||0)){try{P=await indexarPacote(f,rel);await tx("pacotes","readwrite",s=>{s.put(P,rel)})}catch(e){ESTADO.problemas.push([rel,e&&e.name==="NotReadableError"?"não deu para ler (se está no OneDrive, deixe “sempre neste dispositivo”)":(e.message||"erro ao ler")]);continue}}
     if(ESTADO.pacotes.has(P.id)){ESTADO.problemas.push([rel,"é cópia de “"+ESTADO.pacotes.get(P.id).arquivo+"”"]);continue}
     ESTADO.pacotes.set(P.id,P);if(P.permitido)for(const a of P.artes)ESTADO.caminho.set("res://packs/"+P.id+"/"+a[0],[P,a]);if(progresso)progresso(i,lista.length,P.nome)}
-  ESTADO.lendo=false;avisa();return estado()}
+  ESTADO.lendo=false;preparando=null;avisa();return estado()}
 export async function conectarPasta(progresso){const dir=await window.showDirectoryPicker({id:"atlas-artes",mode:"read"});ESTADO.pasta=dir;ESTADO.nome=dir.name;ESTADO.precisa=false;try{await poeCfg("pasta",dir)}catch(e){}
   const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
 // sem escolher pasta (Firefox, Safari, celular): os arquivos escolhidos valem so enquanto a pagina estiver aberta
@@ -77,6 +78,12 @@ export async function restaurar(){let dir=null;try{dir=await pegaCfg("pasta")}ca
 export async function reautorizar(progresso){const dir=ESTADO._dir;if(!dir)return estado();if((await dir.requestPermission({mode:"read"}))!=="granted")return estado();ESTADO.pasta=dir;ESTADO.precisa=false;const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
 export async function desconectar(){ESTADO.pasta=null;ESTADO._dir=null;ESTADO.precisa=false;ESTADO.nome="";ESTADO.arquivos.clear();ESTADO.pacotes.clear();ESTADO.caminho.clear();try{await poeCfg("pasta",null);await tx("pacotes","readwrite",s=>{s.clear()})}catch(e){}avisa()}
 export const tem=c=>ESTADO.caminho.has(c);
+// classificacao (categoria, ambientes, material, encosta, passavel) de uma arte
+const classeDe=(P,a)=>classifica(a[0],(a[4]||[]).map(i=>P.tags[i]));
+export const classe=c=>{const z=ESTADO.caminho.get(c);return z?classeDe(z[0],z[1]):null};
+export const pacoteDe=c=>{const z=ESTADO.caminho.get(c);return z?{id:z[0].id,nome:z[0].nome,autor:z[0].autor,arquivo:z[0].arquivo,pref:z[0].pref}:null};
+// classifica tudo aos poucos (sem travar a tela); as buscas com filtro ficam rapidas depois
+let preparando=null;export function prepararClasses(){if(preparando)return preparando;preparando=(async()=>{let n=0;for(const P of [...ESTADO.pacotes.values()]){if(!P.permitido)continue;for(const a of P.artes){classeDe(P,a);if(++n%4000===0)await new Promise(r=>setTimeout(r,0))}}return n})();return preparando}
 // etiquetas mais usadas (de um pacote ou de todos), so de uma categoria
 export function etiquetas(pacote,cat){const N=new Map();for(const P of ESTADO.pacotes.values()){if(!P.permitido||(pacote&&P.id!==pacote))continue;for(const a of P.artes){if(cat&&categoria(a[0])!==cat)continue;for(const t of a[4]||[]){const k=P.tags[t];if(!/colorable/i.test(k))N.set(k,(N.get(k)||0)+1)}}}return [...N].sort((a,b)=>b[1]-a[1])}
 export const pacotesCompletos=()=>[...ESTADO.pacotes.values()].filter(P=>P.permitido);
@@ -85,10 +92,13 @@ export const pacotes=()=>[...ESTADO.pacotes.values()].map(P=>({id:P.id,nome:P.no
 // busca nas artes: q (texto), cat (objects, terrain, patterns...), pacote (id); devolve {caminho, nome, grupo, cat, pacote}
 const semAc=s=>(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 export function buscar(o){o=o||{};const q=semAc(o.q).split(/\s+/).filter(Boolean),R=[],lim=o.todos?Infinity:(o.limite||300);let total=0;
+  const F=o.cl,fac=o.facetas?{cat:new Map(),sub:new Map(),amb:new Map(),mat:new Map(),enc:new Map()}:null,conta=(m,k)=>m.set(k,(m.get(k)||0)+1);
   for(const P of ESTADO.pacotes.values()){if(!P.permitido||(o.pacote&&P.id!==o.pacote))continue;const ti=o.tag?(P.tags||[]).indexOf(o.tag):-2;if(o.tag&&ti<0)continue;for(const a of P.artes){const cat=categoria(a[0]);if(o.cats&&!o.cats.includes(cat))continue;if(o.cat&&cat!==o.cat)continue;
+    if(F||fac){const k=classeDe(P,a);if(fac){conta(fac.cat,k.cat);if(!F||!F.cat||k.cat===F.cat)conta(fac.sub,k.sub);for(const x of k.amb)conta(fac.amb,x);for(const x of k.mat)conta(fac.mat,x);conta(fac.enc,k.enc)}
+      if(F&&((F.cat&&k.cat!==F.cat)||(F.sub&&k.sub!==F.sub)||(F.amb&&!k.amb.includes(F.amb))||(F.mat&&!k.mat.includes(F.mat))||(F.enc&&k.enc!==F.enc)||(F.pas!=null&&k.pas!==F.pas)))continue}
     if(ti>=0&&!(a[4]||[]).includes(ti))continue;if(o.lista&&!o.lista.has("res://packs/"+P.id+"/"+a[0]))continue;if(o.filtro&&!o.filtro("res://packs/"+P.id+"/"+a[0],a))continue;
     if(q.length){const t=semAc(a[0]+" "+a[3]);if(!q.every(w=>t.includes(w)))continue}total++;if(R.length<lim)R.push(o.todos?[P,a,cat]:{caminho:"res://packs/"+P.id+"/"+a[0],nome:nomeBonito(a[0],P.pref),grupo:grupoBonito(a[3]),cat,pacote:P.nome})}}
-  return {itens:R,total,item:o.todos?r=>({caminho:"res://packs/"+r[0].id+"/"+r[1][0],nome:nomeBonito(r[1][0],r[0].pref),grupo:grupoBonito(r[1][3]),cat:r[2],pacote:r[0].nome}):x=>x}}
+  return {itens:R,total,fac,item:o.todos?r=>({caminho:"res://packs/"+r[0].id+"/"+r[1][0],nome:nomeBonito(r[1][0],r[0].pref),grupo:grupoBonito(r[1][3]),cat:r[2],pacote:r[0].nome}):x=>x}}
 export const info=c=>{const z=ESTADO.caminho.get(c);return z?{nome:nomeBonito(z[1][0],z[0].pref),grupo:grupoBonito(z[1][3]),tags:(z[1][4]||[]).map(i=>z[0].tags[i]),cat:categoria(z[1][0]),pacote:z[0].nome,autor:z[0].autor}:null};
 const blobDe=c=>{const z=ESTADO.caminho.get(c);if(!z)return null;const f=ESTADO.arquivos.get(z[0].arquivo);if(!f)return null;const a=z[1],tipo=/\.png$/i.test(a[0])?"image/png":/\.jpe?g$/i.test(a[0])?"image/jpeg":"image/webp";return f.slice(a[1],a[1]+a[2],tipo)};
 const DIM=new Map();
@@ -106,4 +116,4 @@ export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))re
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
 export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets|lights)\//.test(c);
 export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
-if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial,acrescentarArquivos,removerPacote};
+if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial,acrescentarArquivos,removerPacote,classe,pacoteDe};

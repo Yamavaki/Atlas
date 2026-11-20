@@ -806,3 +806,12 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .bt-prev img,.bt-prev canvas{display:block;max-width:100%;max-height:min(60vh,512px);margin:0 auto;border-radius:6px;background:repeating-conic-gradient(#2a241b 0 25%,#1f1a13 0 50%) 0 0/16px 16px}
 .bt-prev p{margin:6px 0 0;font:12px var(--body);color:var(--muted)}
 .bt-prev img,.bt-prev canvas{width:min(420px,46vw);height:min(420px,52vh);object-fit:contain}
+/* 0.98: filtros inteligentes */
+.bt-mais{margin:4px 0}.bt-mais>summary{cursor:pointer;font:12px var(--body);color:var(--muted);padding:2px 0}
+.bt-mais .bt-2{margin-top:4px}
+.bt-combina{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.bt-ficha dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:12px}
+.bt-ficha dt{color:var(--muted)}.bt-ficha dd{margin:0;overflow-wrap:anywhere;white-space:normal;min-width:0}
+.bt-ficha .bt-arq{font:11px ui-monospace,monospace;color:var(--muted);overflow-wrap:anywhere;white-space:normal;margin:6px 0 0}
+.bt-ficha-bts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.bt-subs{flex-wrap:wrap;margin:4px 0}.bt-subs .bt-chip{font-size:11px;padding:2px 8px}
