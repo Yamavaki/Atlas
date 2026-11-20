@@ -62,8 +62,7 @@ function formasLuz(){const S=256,mk=fn=>{const c=document.createElement("canvas"
   const P=new Uint8Array(512);{let s=1234567;const p=[...Array(256).keys()];for(let i=255;i>0;i--){s=(s*16807)%2147483647;const j=s%(i+1);[p[i],p[j]]=[p[j],p[i]]}for(let i=0;i<512;i++)P[i]=p[i&255]}
   const h2=(x,y)=>P[(P[x&255]+y)&255]/255,rv=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),fx=x-xi,fy=y-yi,a=h2(xi,yi),b=h2(xi+1,yi),c=h2(xi,yi+1),d=h2(xi+1,yi+1),ux=fx*fx*(3-2*fx),uy=fy*fy*(3-2*fy);return a+(b-a)*ux+(c-a)*uy+(a-b-c+d)*ux*uy},fbm=(x,y)=>rv(x,y)*.55+rv(x*2.1,y*2.1)*.28+rv(x*4.3,y*4.3)*.17;
   const cone=ab=>(u,v,r,a)=>{const lado=1-ss(ab*.82,ab,Math.abs(a));return cai(r)*lado*ss(0,.06,r+.02)};
-  return [["atlas:luz/redonda","Redonda",mk((u,v,r)=>cai(r))],
-    ["atlas:luz/cone","Cone",mk(cone(.62))],["atlas:luz/farol","Farol",mk(cone(.3))],
+  return [["atlas:luz/cone","Cone",mk(cone(.62))],["atlas:luz/farol","Farol",mk(cone(.3))],
     ["atlas:luz/folhas","Entre folhas",mk((u,v,r)=>{const n=fbm(u*5+3,v*5+7),m=ss(.42,.58,n);return cai(r*.95)*(.18+.82*m)})],
     // cauticas: a rede clara entre celulas (Voronoi F2-F1), um pouco torta
     ["atlas:luz/caustica","Água (cáusticas)",mk((u,v,r)=>{const x=u*4.5+.37*Math.sin(v*5.1),y=v*4.5+.37*Math.sin(u*4.3),xi=Math.floor(x),yi=Math.floor(y);let f1=9,f2=9;for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const cx=xi+i,cy=yi+j,px=cx+h2(cx+50,cy+50),py=cy+h2(cx+91,cy+17),d=Math.hypot(px-x,py-y);if(d<f1){f2=f1;f1=d}else if(d<f2)f2=d}
