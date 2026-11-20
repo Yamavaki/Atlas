@@ -37,7 +37,10 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     return [i?i.nome:"Arte",d[0]/256,d[1]/256,300]};
   const nomeArte=t=>{if(real(t)){const i=BIB.info(t);if(i)return i.nome}return (MD.ARTES[objetoDe(t)]||["Arte"])[0]};
   // carrega as imagens que o mapa usa (e as escolhidas no pincel) e refaz a matriz de texturas
-  async function carregaReais(extra){const quer=new Set();for(const t of M.texturas)if(real(t)&&BIB.tem(t)&&BIB.usavel(t)){quer.add(t);if(/\/textures\/walls\//.test(t)){const pe=t.replace(/(\.\w+)$/,"_end$1");if(BIB.tem(pe))quer.add(pe)}}for(const t of extra||[])if(real(t)&&BIB.tem(t))quer.add(t);
+  // artes dos pacotes que o mapa usa de verdade (os nomes que ficaram na lista de texturas sem uso nao sao carregados)
+  const usadosReais=()=>{const S=new Set(),T=M.texturas;for(const A of M.andares)for(const k of MD.TIPOS.concat(["camadas"]))for(const e of A[k]||[]){if(typeof e.t==="number"&&real(T[e.t]))S.add(T[e.t]);if(typeof e.tq==="number"&&real(T[e.tq]))S.add(T[e.tq])}return S};
+  let tVer=0;const verReais=()=>{clearTimeout(tVer);tVer=setTimeout(()=>{if(!vivo)return;for(const t of usadosReais())if(BIB.tem(t)&&BIB.usavel(t)&&!REAIS.has(t)){atualizaReais();return}},60)};
+  async function carregaReais(extra){const quer=new Set();for(const t of usadosReais())if(BIB.tem(t)&&BIB.usavel(t)){quer.add(t);if(/\/textures\/walls\//.test(t)){const pe=t.replace(/(\.\w+)$/,"_end$1");if(BIB.tem(pe))quer.add(pe)}}for(const t of extra||[])if(real(t)&&BIB.tem(t))quer.add(t);
     for(const A of M.andares)for(const l of A.luzes||[])if(real(l.tex)&&BIB.tem(l.tex))quer.add(l.tex);if(real(luzP.tex)&&BIB.tem(luzP.tex))quer.add(luzP.tex);
     const novos=[...quer].filter(t=>!REAIS.has(t));if(!novos.length&&[...REAIS.keys()].every(t=>quer.has(t)))return 0;let feito=0;
     const chao=t=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(t);
@@ -64,7 +67,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const estado=el("span",{class:"bt-est"}),info=el("span",{class:"bt-info"});
   const salvaJa=async()=>{clearTimeout(tSalvar);tSalvar=0;if(!opt.salvar)return;salvando=true;estado.textContent="Salvando…";try{await opt.salvar(M);estado.textContent="Salvo"}catch(e){console.error(e);estado.textContent="Não foi possível salvar"}salvando=false};
   const agendaSalvar=()=>{estado.textContent="Alterado";clearTimeout(tSalvar);tSalvar=setTimeout(salvaJa,700)};
-  const H=criaHistorico(M,(lote,sentido)=>{for(const A of M.andares)MD.sincroniza(A);if(sentido!==0){for(const o of lote.ops)if(o.op==="mascara"){const c=H.item(o.a,"camadas",o.id);if(c)R.subeMascara(c,o.ret)}}if(lote.ops.some(o=>o.op==="andar"||(o.k==="camadas"&&o.op!=="muda")))R.limpaMascaras();if(lote.ops.some(o=>o.op==="mapa"&&o.para.andares)){if(andar>=M.andares.length)andar=M.andares.length-1;andares()}if(vsel&&(!vsel.e.p||vsel.i>=vsel.e.p.length))vsel=null;if(sentido!==0){const al=alcance(lote);if(al.tudo){R.carregar(M);H.esquece()}else for(const a of al.andares){let ok=false;
+  const H=criaHistorico(M,(lote,sentido)=>{for(const A of M.andares)MD.sincroniza(A);if(sentido!==0){for(const o of lote.ops)if(o.op==="mascara"){const c=H.item(o.a,"camadas",o.id);if(c)R.subeMascara(c,o.ret)}}if(lote.ops.some(o=>o.op==="andar"||(o.k==="camadas"&&o.op!=="muda")))R.limpaMascaras();if(lote.ops.some(o=>o.op==="mapa"&&o.para.andares)){if(andar>=M.andares.length)andar=M.andares.length-1;andares()}if(vsel&&(!vsel.e.p||vsel.i>=vsel.e.p.length))vsel=null;if(lote.ops.some(o=>o.op==="cria"||o.op==="muda"||o.op==="mapa"))verReais();if(sentido!==0){const al=alcance(lote);if(al.tudo){R.carregar(M);H.esquece()}else for(const a of al.andares){let ok=false;
         if(al.leve){const objs=[],luzes=[];for(const o of lote.ops){if(o.a!==a)continue;const e=H.item(a,o.k,o.id);if(e)(o.k==="luzes"?luzes:objs).push(e)}ok=R.atualiza(a,objs,luzes)}if(!ok)R.refazAndar(a)}}
     // tira da selecao o que deixou de existir
     if(sel.length){const A=fl(),V={};sel=sel.filter(s=>(V[s.k]||(V[s.k]=new Set(A[s.k]))).has(s.e))}
@@ -129,8 +132,11 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const zonaP={modo:"ret",lados:8,tipo:"quarto",par:Object.assign({},ZN.PADRAO)};let zsel=null,zOcupado=false,zMsg="";
   const zonasDe=()=>fl().zonas||(fl().zonas=[]),zonaSel=()=>zonasDe().find(z=>z.id===zsel)||null;
   // marca de como o gerador deixou a peca: se mudou, foi mexida a mao e fica travada
-  const assinatura=e=>[e.x,e.y,e.r||0,e.t,e.w,e.h,e.raio].map(v=>typeof v==="number"?+v.toFixed(3):v).join("|");
-  const daZona=z=>{const A=fl(),L=[];for(const k of ["objetos","luzes"])for(const e of A[k]||[])if(e.z===z.id)L.push({k,e});return L};
+  const assinatura=e=>[e.x,e.y,e.r||0,e.t,e.w,e.h,e.raio,e.d,e.p?e.p.length+":"+e.p.map(q=>q[0].toFixed(2)+","+q[1].toFixed(2)).join(";"):""].map(v=>typeof v==="number"?+v.toFixed(3):v).join("|");
+  const KZ=["objetos","luzes","paredes","padroes","portais"];
+  const daZona=z=>{const A=fl(),L=[];for(const k of KZ)for(const e of A[k]||[])if(e.z===z.id)L.push({k,e});return L};
+  // piso conforme o tipo e a riqueza (materiais do Atlas)
+  const pisoZona=(tipo,riq)=>/cozinha|despensa|guarda|banheiro/.test(tipo)?(riq>=2?"ladrilho":"pedra"):tipo==="oficina"?"terra":tipo==="capela"?(riq>=2?"ladrilho":"pedra"):riq>=2?"madeiraEscura":"madeira";
   const apagaOps=L=>L.map(s=>({op:"apaga",a:andar,k:s.k,item:s.e,pos:fl()[s.k].indexOf(s.e)})).sort((a,b)=>a.k===b.k?b.pos-a.pos:a.k<b.k?-1:1);
   // artes do Atlas para cada papel (quando nao ha pacotes conectados)
   const catAtlas=()=>{const A=(k,ex)=>{const md=medida(k,1);return Object.assign({k,w:arr2(md.w,3),h:arr2(md.h,3),fr:"S",vis:[0,0,1,1],cam:MD.ARTES[k][3]},ex)},m=[A("mesa"),A("mesaRedonda",{redondo:true})];
@@ -141,25 +147,33 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     let fr=f&&f.length>=11?CAT.frente(nm,pc&&pc.autor,f):"?";if(fr==="?"&&fa)fr="S";
     return {k,w:+w.toFixed(3),h:+h.toFixed(3),fr,vis:f&&f.length>=11&&f[4]>f[2]&&f[5]>f[3]?[f[2]/255,f[3]/255,f[4]/255,f[5]/255]:[0,0,1,1],cam:CAT.camada(nm,"objects",w,h)||200,redondo:!!f&&CAT.forma(f)==="o"}};
   const geraZona=async(z,o)=>{o=o||{};if(zOcupado||!z)return null;zOcupado=true;zMsg="Gerando…";painel(true);
-    try{const A=fl(),a0=andar,par=Object.assign({},ZN.PADRAO,z.par),semente=o.variar?((Math.random()*2147483647)|0)||1:z.semente,meus=daZona(z),travados=meus.filter(s=>s.e.zg!==assinatura(s.e)),soltos=meus.filter(s=>!travados.includes(s)),fixo=new Set(travados.map(s=>s.e));
+    try{const A=fl(),a0=andar,par=Object.assign({},ZN.PADRAO,z.par),semente=o.variar?((Math.random()*2147483647)|0)||1:z.semente,meus=daZona(z),trav0=meus.filter(s=>s.e.zg!==assinatura(s.e)),pTrav=trav0.some(s=>s.k==="paredes"||s.k==="portais"),travados=pTrav?trav0.concat(meus.filter(s=>(s.k==="paredes"||s.k==="padroes"||s.k==="portais")&&!trav0.includes(s))):trav0,soltos=meus.filter(s=>!travados.includes(s)),fixo=new Set(travados.map(s=>s.e));
       // o que ja esta no lugar (mexido a mao ou posto pelo usuario) vira obstaculo
       const obst=[];for(const e of A.objetos||[]){if(e.z===z.id&&!fixo.has(e))continue;if((e.l||0)<150||(e.l||0)>=400||!dentroP(z.p,e.x,e.y))continue;obst.push({x:e.x,y:e.y,w:e.w*.9,h:e.h*.9,r:e.r||0})}
-      const portas=[],janelas=[];for(const q of A.portais||[]){if(distPoli(z.p,q.x,q.y,true)>.6)continue;(MD.tipoPortal(q,M.texturas)==="janela"?janelas:portas).push([q.x,q.y])}
-      const m0=[(z.p[0][0]+z.p[1][0])/2,(z.p[0][1]+z.p[1][1])/2],mg=(A.paredes||[]).some(w=>w.p.length>1&&distPoli(MD.trajeto(w),m0[0],m0[1],w.laco)<.3)?.14:.05;
+      const portas=[],janelas=[];for(const q of A.portais||[]){if((q.z===z.id&&!pTrav)||distPoli(z.p,q.x,q.y,true)>.6)continue;(MD.tipoPortal(q,M.texturas)==="janela"?janelas:portas).push([q.x,q.y])}
+      // paredes, piso e porta feitos pela propria zona (quando ela nao esta num comodo que ja tem paredes)
+      const fazParede=par.paredes&&z.parede==null&&!pTrav,extra=[];
+      if(fazParede){const wid=MD.novoId(M),w={id:wid,t:MD.texDe(M,texM(paredeP.tex)),p:z.p.map(q=>[q[0],q[1]]),laco:true,raio:paredeP.raio,larg:paredeP.larg,tipo:0,sombra:true,z:z.id};
+        extra.push({k:"paredes",e:w},{k:"padroes",e:{id:MD.novoId(M),t:MD.texDe(M,texM(pisoZona(z.tipo,par.riqueza==null?1:par.riqueza))),p:w.p,l:-40,parede:wid,z:z.id}});
+        // porta: no lado comprido mais ao sul (o usuario pode arrastar depois); se ja havia porta travada, fica ela
+        const pt=meus.find(s=>s.k==="portais"&&travados.includes(s));if(!pt){let best=null;for(let i=0;i<z.p.length;i++){const a=z.p[i],b=z.p[(i+1)%z.p.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1.6)continue;const my=(a[1]+b[1])/2,nota=my+L*.15;if(!best||nota>best.nota)best={nota,mx:(a[0]+b[0])/2,my}}
+          if(best){const T=MD.trajeto(w),pj=projeta(T,true,best.mx,best.my),pe=pontoEm(T,true,pj.d);extra.push({k:"portais",e:{id:MD.novoId(M),t:MD.texDe(M,"atlas:p/porta"),tipo:"porta",parede:wid,d:+pj.d.toFixed(4),raio:.5,fechado:true,x:pe[0],y:pe[1],dx:pe[2],dy:pe[3],r:Math.atan2(pe[3],pe[2]),z:z.id}});portas.push([pe[0],pe[1]])}}}
+      const m0=[(z.p[0][0]+z.p[1][0])/2,(z.p[0][1]+z.p[1][1])/2],mg=fazParede||pTrav||(A.paredes||[]).some(w=>w.z!==z.id&&w.p.length>1&&distPoli(MD.trajeto(w),m0[0],m0[1],w.laco)<.3)?.14:.05;
       let cat={},info={};
       if(par.fonte==="atlas"||!BIB.estado().conectada){cat=catAtlas();info={pacote:"Artes do Atlas",estilo:""}}
       else{zMsg="Escolhendo as artes…";painel(true);await new Promise(r=>setTimeout(r,20));const idx=BIB.porSub(),e=ZN.escolheArtes(z.tipo,{lista:s=>idx.get(s)||[]},par,semente),pk=BIB.pacotes().find(p=>p.id===e.pacote);info={pacote:pk?pk.nome.replace(/_/g," "):"",pid:e.pacote||"",estilo:e.estilo||""};
-        for(const [p,ks] of Object.entries(e.papeis))cat[p]=(await Promise.all(ks.map(arteReal))).filter(Boolean)}
+        for(const [p,ks] of Object.entries(e.papeis)){cat[p]=(await Promise.all(ks.map(arteReal))).filter(Boolean);if(ZN.PAPEIS[p]&&ZN.PAPEIS[p].borda)for(const a of cat[p])a.funde=await CAT.bordaApagada(a.k)}}
       const r=ZN.geraComodo({p:z.p,tipo:z.tipo,par,semente},cat,{portas,janelas,obst,mg});
       const ks=[...new Set(r.objs.map(x=>x.k).filter(real))];if(ks.length){zMsg="Carregando as artes…";painel(true);await atualizaReais(ks)}
       if(a0!==andar||!zonasDe().includes(z))return null;
-      const ops=apagaOps(soltos),sd=M.sombra&&M.sombra.sd?{sd:M.sombra.sd.slice()}:{};
+      const ops=apagaOps(soltos),sd=M.sombra&&M.sombra.sd?{sd:M.sombra.sd.slice()}:{};for(const x of extra){x.e.zg=assinatura(x.e);ops.push({op:"cria",a:andar,k:x.k,item:x.e})}
       for(const x of r.objs){const e={id:MD.novoId(M),t:MD.texDe(M,texO(x.k)),x:x.x,y:x.y,r:x.r,w:x.w,h:x.h,l:x.l,...(real(x.k)||M.sombra&&M.sombra.todos?{s:1}:{}),...sd,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"objetos",item:e})}
       for(const l of r.luzes){const P=MD.LUZES.find(q=>q[0]===l.pre)||MD.LUZES[0],e={id:MD.novoId(M),x:l.x,y:l.y,raio:P[2],claro:P[3],forca:P[4],c:P[5].concat(1),sombras:true,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"luzes",item:e})}
-      info.n=r.objs.length;info.avisos=r.avisos;info.travados=travados.length;ops.push({op:"muda",a:andar,k:"zonas",id:z.id,de:MD.foto(z),para:Object.assign(MD.foto(z),{semente,info})});
+      info.n=r.objs.length;info.travados=travados.filter(s=>s.k==="objetos"||s.k==="luzes").length;info.avisos=r.avisos;ops.push({op:"muda",a:andar,k:"zonas",id:z.id,de:MD.foto(z),para:Object.assign(MD.foto(z),{semente,info})});
       exec(ops,o.variar?"Variar zona":"Gerar zona");pendente=true;return r}
     catch(e){console.error(e);dica.textContent="Erro ao gerar: "+(e.message||e);return null}finally{zOcupado=false;zMsg="";painel(true);sujo=true}};
-  const criaZona=(P,parede)=>{if(!P||P.length<3)return null;zonasDe();const z={id:MD.novoId(M),p:P.map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)]),tipo:zonaP.tipo,par:Object.assign({},zonaP.par),semente:((Math.random()*2147483647)|0)||1};if(parede!=null)z.parede=parede;
+  const criaZona=(P,parede)=>{if(!P||P.length<3)return null;zonasDe();
+    if(zonaP.somar&&parede==null){const z0=zonaSel();if(z0){const u=uniao(z0.p,P);if(!u){dica.textContent="A forma nova precisa encostar na zona escolhida para somar.";return null}mudaZona(z0,x=>{x.p=u.fora.map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)]);delete x.parede});geraZona(zonaSel());return z0}}const z={id:MD.novoId(M),p:P.map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)]),tipo:zonaP.tipo,par:Object.assign({},zonaP.par,{paredes:parede==null&&zonaP.par.paredes!==false}),semente:((Math.random()*2147483647)|0)||1};if(parede!=null)z.parede=parede;
     exec([{op:"cria",a:andar,k:"zonas",item:z}],"Nova zona");zsel=z.id;geraZona(z);return z};
   // clique sem arrastar: escolhe a zona sob o ponteiro ou cria uma no comodo fechado
   const areaP=P=>{let s=0;for(let i=0;i<P.length;i++){const u=P[i],v=P[(i+1)%P.length];s+=u[0]*v[1]-v[0]*u[1]}return Math.abs(s)/2};
@@ -171,17 +185,19 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const soltaZona=z=>{const ops=daZona(z).map(s=>{const de=MD.foto(s.e),para=MD.foto(s.e);delete para.z;delete para.zg;return {op:"muda",a:andar,k:s.k,id:s.e.id,de,para}});ops.push({op:"apaga",a:andar,k:"zonas",item:z,pos:zonasDe().indexOf(z)});exec(ops,"Soltar zona");zsel=null};
   const mudaZona=(z,fn,junta)=>{const de=MD.foto(z),para=MD.foto(z);para.par=Object.assign({},z.par);fn(para);exec([{op:"muda",a:andar,k:"zonas",id:z.id,de,para}],"Mudar zona",junta)};
   function painelZona(K){pTit.textContent="Zona (gerador)";const TZ=Object.entries(ZN.COMODOS),MODOS=[["ret","Retângulo"],["circ","Círculo"],["poli","Polígono"],["linha","Ponto a ponto"],["livre","À mão livre"]],z=zonaSel(),conectada=BIB.estado().conectada;
-    const selT=(v,fn)=>campo("Tipo de cômodo",el("select",{"aria-label":"Tipo de cômodo",onchange:e=>fn(e.target.value)},TZ.map(([k,c])=>el("option",{value:k,selected:k===v?"":null},c.nome))));
+    const selT=(v,fn)=>campo("Tipo de cômodo",el("select",{"aria-label":"Tipo de cômodo",onchange:e=>{fn(e.target.value)}},TZ.map(([k,c])=>el("option",{value:k,selected:k===v?"":null},c.nome))));
     K.push(sec("Nova zona",el("p",{class:"bt-nota"},"Arraste uma área no mapa, ou clique dentro de um cômodo fechado para usar as paredes dele. O gerador mobilia a área e você pode gerar de novo quando quiser."),
-      selT(zonaP.tipo,v=>{zonaP.tipo=v}),el("div",{class:"bt-chips"},MODOS.map(([k,n])=>chip(n,null,()=>{if(traco)fimTraco(false);zonaP.modo=k;painel(true)},zonaP.modo===k))),zonaP.modo==="poli"?num("Lados",zonaP.lados,{passo:1,min:3,max:16,casas:0},v=>{zonaP.lados=Math.round(v)}):null));
+      el("div",{class:"bt-chips"},chip("Nova zona",null,()=>{zonaP.somar=false;painel(true)},!zonaP.somar),chip("Somar à zona escolhida",null,()=>{zonaP.somar=true;painel(true)},!!zonaP.somar)),
+      zonaP.somar?el("p",{class:"bt-nota"},zonaSel()?"Desenhe uma forma encostada na zona escolhida: ela cresce e gera de novo.":"Escolha uma zona primeiro (clique nela)."):selT(zonaP.tipo,v=>{zonaP.tipo=v}),
+      zonaP.somar?null:ck("Criar paredes, piso e porta",zonaP.par.paredes!==false,v=>{zonaP.par.paredes=v}),el("div",{class:"bt-chips"},MODOS.map(([k,n])=>chip(n,null,()=>{if(traco)fimTraco(false);zonaP.modo=k;painel(true)},zonaP.modo===k))),zonaP.modo==="poli"?num("Lados",zonaP.lados,{passo:1,min:3,max:16,casas:0},v=>{zonaP.lados=Math.round(v)}):null));
     const L=zonasDe();if(L.length)K.push(sec("Zonas deste andar",el("div",{class:"bt-chips bt-zlista"},L.map((x,i)=>chip((ZN.COMODOS[x.tipo]||{nome:"Zona"}).nome+" "+(i+1),null,()=>{zsel=x.id;painel(true);sujo=true},x.id===zsel)))));
     if(!z)return;const par=Object.assign({},ZN.PADRAO,z.par),inf=z.info||{},pacs=conectada?BIB.pacotes().filter(p=>p.permitido):[];
     const selF=campo("Artes",el("select",{"aria-label":"Artes da zona",onchange:e=>{const v=e.target.value;mudaZona(z,x=>{x.par.fonte=v==="atlas"?"atlas":"auto";x.par.pacote=v==="atlas"||v==="auto"?"":v;x.par.estilo=""});painel(true)}},
       [["auto","Automático (o pacote que mais combina)"],...pacs.map(p=>[p.id,p.nome.replace(/_/g," ")]),["atlas","Artes do Atlas"]].map(([v,t])=>el("option",{value:v,selected:(par.fonte==="atlas"?"atlas":par.pacote||"auto")===v?"":null},t))));
-    K.push(sec("Zona escolhida",selT(z.tipo,v=>{mudaZona(z,x=>{x.tipo=v});painel(true)}),conectada?selF:el("p",{class:"bt-nota"},"Sem pacotes conectados: o gerador usa as artes do Atlas. Conecte suas artes para ter mais variedade."),
-      campo("Riqueza do lugar",el("select",{"aria-label":"Riqueza do lugar",onchange:e=>{mudaZona(z,x=>{x.par.riqueza=+e.target.value});painel(true)}},ZN.RIQUEZAS.map((n,i)=>el("option",{value:i,selected:i===(par.riqueza==null?1:par.riqueza)?"":null},n)))),
+    K.push(sec("Zona escolhida",selT(z.tipo,v=>{mudaZona(z,x=>{x.tipo=v});geraZona(zonaSel())}),conectada?selF:el("p",{class:"bt-nota"},"Sem pacotes conectados: o gerador usa as artes do Atlas. Conecte suas artes para ter mais variedade."),
+      campo("Riqueza do lugar",el("select",{"aria-label":"Riqueza do lugar",onchange:e=>{mudaZona(z,x=>{x.par.riqueza=+e.target.value});geraZona(zonaSel())}},ZN.RIQUEZAS.map((n,i)=>el("option",{value:i,selected:i===(par.riqueza==null?1:par.riqueza)?"":null},n)))),
       faixaC(v=>"Quantidade de móveis · "+Math.round(v*100)+"%",par.dens,0,1,.05,v=>mudaZona(z,x=>{x.par.dens=v},"zdens")),faixaC(v=>"Coisas em cima dos móveis · "+Math.round(v*100)+"%",par.bag,0,1,.05,v=>mudaZona(z,x=>{x.par.bag=v},"zbag")),
-      ck("Acender velas, tochas e lareiras",par.luz,v=>mudaZona(z,x=>{x.par.luz=v})),ck("Aceitar peças quebradas e sujas",par.estado>=2,v=>mudaZona(z,x=>{x.par.estado=v?2:0})),
+      z.parede==null?ck("Paredes, piso e porta",!!par.paredes,v=>{mudaZona(z,x=>{x.par.paredes=v});geraZona(zonaSel())}):null,ck("Acender velas, tochas e lareiras",par.luz,v=>mudaZona(z,x=>{x.par.luz=v})),ck("Aceitar peças quebradas e sujas",par.estado>=2,v=>mudaZona(z,x=>{x.par.estado=v?2:0})),
       el("div",{class:"bt-2"},el("button",{type:"button",class:"bt-a",disabled:zOcupado?"":null,onclick:()=>geraZona(z)},"Gerar de novo"),el("button",{type:"button",class:"bt-a",disabled:zOcupado?"":null,onclick:()=>geraZona(z,{variar:true})},"Variar")),
       el("div",{class:"bt-2"},el("button",{type:"button",class:"bt-a",onclick:()=>{limpaZona(z);painel(true)}},"Limpar"),el("button",{type:"button",class:"bt-a",title:"As peças ficam no mapa como objetos comuns e a zona some",onclick:()=>{soltaZona(z);painel(true)}},"Soltar")),
       el("button",{type:"button",class:"bt-a",onclick:()=>{apagaZona(z);painel(true)}},"Apagar a zona e as peças"),
@@ -443,7 +459,13 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       troca.replaceChildren(el("p",{class:"bt-pgrp"},c.sub+" · "+r.total.toLocaleString("pt-BR")+" (o mesmo pacote primeiro)"),G.el)};if(trocaAberta)montaTroca();
     const bts=el("div",{class:"bt-ficha-bts"},objs?el("button",{type:"button",class:"bt-a","aria-expanded":String(trocaAberta),onclick:e=>{trocaAberta=!trocaAberta;e.currentTarget.setAttribute("aria-expanded",String(trocaAberta));troca.hidden=!trocaAberta;if(trocaAberta&&!troca.children.length)montaTroca()}},"Trocar por outra do mesmo tipo"):null,
       /objects/.test(k)?el("button",{type:"button",class:"bt-a",onclick:()=>{if(c){catPC=c.cat;subPC=c.sub}ambPC=encPC=matPC=tagPC=tamPC=pacPC=grpPC="";buscaPC="";modoPC="";fonte="pc";pincel.arte=k;pincel.camada=null;seleciona([]);usa("obj")}},"Ver na biblioteca"):null);
-    return sec("Arte",el("div",{class:"bt-ficha"},dl,arq),bts,troca)};
+    // variacoes da mesma familia (mesma pasta, o nome so muda na letra, no numero, na cor ou no tamanho)
+    let vari=null;if(objs&&/objects/.test(k)){const dir=k.slice(0,k.lastIndexOf("/")+1),ch=famChave(k),r=BIB.buscar({cats:[k.split("/")[5]],todos:true,filtro:c=>c.startsWith(dir)&&c.indexOf("/",dir.length)<0&&famChave(c)===ch});
+      if(r.total>1){const G=gradeV("vari:"+ch,Math.min(260,Math.ceil(r.itens.length/3)*86+4),84,80,"bt-palpc");G.poe(r.itens.length,j=>{const x=r.item(r.itens[j]);return el("button",{type:"button",class:"bt-arte","data-k":x.caminho,title:x.nome,"aria-selected":String(x.caminho===k),onclick:async()=>{await preparaArte(x.caminho);trocaPor(x.caminho,objs)}},miniatura(x.caminho,52),el("span",{},x.nome))});
+        vari=el("div",{},el("p",{class:"bt-pgrp"},"Variações desta arte ("+r.total+")"),G.el)}}
+    return sec("Arte",el("div",{class:"bt-ficha"},dl,arq),vari,bts,troca)};
+  const VAR_COR=new Set("black white gray grey red blue green yellow orange purple pink brown dark light pale beige teal cyan magenta gold golden silver copper bronze rust rusty clean dirty cream tan olive navy maroon violet mint colorable lime aqua azure crimson ivory ashen walnut".split(" "));
+  const famChave=c=>c.split("/").pop().replace(/\.[a-z0-9]+$/i,"").split(/[_ ]+/).filter(t=>!(VAR_COR.has(t.toLowerCase())||/^([A-Z]{1,2}\d{0,3}|[A-Z]?\d{1,3})[a-z]?$/.test(t)&&t.length<=4||/^\d+x\d+$/.test(t)||/^\d+[a-z]?$/.test(t))).join("_").toLowerCase();
   // troca a arte dos objetos escolhidos mantendo centro, giro e a escala usada no mapa
   const trocaPor=(k,objs)=>{if(!objs||!objs.length)return;const dn=DIMR.get(k);muda(objs,e=>{const t0=M.texturas[e.t],d0=DIMR.get(t0),es=d0?e.w/(d0[0]/256):1;e.t=MD.texDe(M,k);if(dn){e.w=+(dn[0]/256*es).toFixed(4);e.h=+(dn[1]/256*es).toFixed(4);if(e.ds)e.ds=[+es.toFixed(4),+es.toFixed(4)];e.dz=1}delete e.c},"Trocar a arte");pendente=true;painel(true)};
   // do mesmo conjunto: artes da mesma pasta e do mesmo estilo (material, cor), de outro tipo, para combinar com a escolhida
@@ -803,7 +825,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   painelEl.addEventListener("pointerdown",()=>{clearTimeout(tPrev);prevBox.hidden=true});PN.carregar().then(()=>{if(vivo&&ferr==="pin")painel(true)});const soltaPN=PN.ouvir(()=>{if(vivo&&ferr==="pin")painel(true)});if(BIB.estado().conectada)atualizaReais();
   const soltaBIB=BIB.ouvir(s=>{if(!vivo){soltaBIB();return}if(janArtes&&janArtes.refaz)janArtes.refaz();if(!s.lendo){atualizaReais();painel(true);if(s.conectada)setTimeout(()=>BIB.prepararClasses(),800)}});
   const abertura=performance.now()-t0;
-  return {cam,render:R,artesPC:()=>({reais:R.reais(),carregadas:REAIS.size,espera:()=>cargaReais||Promise.resolve()}),hist:H,abertura,carga,mapa:M,fechar:()=>{vivo=false;soltaBIB();document.removeEventListener("keydown",tecla);document.removeEventListener("keyup",teclaSolta);if(tSalvar)salvaJa()},irPara,usa,selecao:()=>sel,seleciona,zonas:{lista:()=>zonasDe(),criar:(P,tipo,par)=>{if(tipo)zonaP.tipo=tipo;if(par)Object.assign(zonaP.par,par);return criaZona(P)},gerar:(id,o)=>geraZona(zonasDe().find(z=>z.id===id),o),ocupado:()=>zOcupado,escolher:id=>{zsel=id;painel(true)},daZona:id=>daZona({id}).map(s=>s.e)},tudo,apagar,duplicar,girar,espelhar,ordem,copiar,colar,estado:()=>({andar,luz,grade,ferr,snap:Object.assign({},snap),sel:sel.length}),
+  return {cam,render:R,artesPC:()=>({reais:R.reais(),carregadas:REAIS.size,espera:()=>cargaReais||Promise.resolve(),faltam:()=>[...usadosReais()].filter(t=>BIB.tem(t)&&BIB.usavel(t)&&!REAIS.get(t)).length,usadas:()=>usadosReais().size}),hist:H,abertura,carga,mapa:M,fechar:()=>{vivo=false;soltaBIB();document.removeEventListener("keydown",tecla);document.removeEventListener("keyup",teclaSolta);if(tSalvar)salvaJa()},irPara,usa,selecao:()=>sel,seleciona,zonas:{lista:()=>zonasDe(),criar:(P,tipo,par)=>{if(tipo)zonaP.tipo=tipo;if(par)Object.assign(zonaP.par,par);return criaZona(P)},gerar:(id,o)=>geraZona(zonasDe().find(z=>z.id===id),o),ocupado:()=>zOcupado,escolher:id=>{zsel=id;painel(true)},daZona:id=>daZona({id}).map(s=>s.e)},tudo,apagar,duplicar,girar,espelhar,ordem,copiar,colar,estado:()=>({andar,luz,grade,ferr,snap:Object.assign({},snap),sel:sel.length}),
     set:o=>{if(o.luz!=null)luz=o.luz;if(o.grade!=null)grade=o.grade;if(o.cam)Object.assign(cam,o.cam);if(o.snap!=null)snap.on=o.snap;if(o.passo)snap.passo=o.passo;if(o.arte)pincel.arte=o.arte;sujo=true},
     // ponto do mapa -> ponto da janela (para testes e ajudas)
     naTela:(x,y)=>{const r=cv.getBoundingClientRect(),p=tela(x,y);return [r.left+p[0]/dpr(),r.top+p[1]/dpr()]},salvarAgora:salvaJa,

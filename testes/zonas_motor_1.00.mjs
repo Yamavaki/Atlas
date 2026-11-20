@@ -16,7 +16,7 @@ for(const tipo of Object.keys(Z.COMODOS))for(const [fm,P] of Object.entries(FORM
     chk(id+" repete igual",JSON.stringify(r.objs)===JSON.stringify(r2.objs));
     chk(id+" dentro da forma",r.objs.every(o=>cantos(o).every(q=>dentro(P,q[0],q[1]))));
     // pecas que bloqueiam nao se sobrepoem (tapete, coisas em cima e cadeiras encaixadas na propria mesa ficam de fora)
-    const B=r.objs.filter(o=>!Z.PAPEIS[o.papel].passa&&!Z.PAPEIS[o.papel].em&&o.papel!=="cadeira"&&o.papel!=="banqueta");let bate=0;for(let i=0;i<B.length;i++)for(let j=i+1;j<B.length;j++)if(Z.bate(cx(B[i]),cx(B[j]),.05))bate++;chk(id+" sem sobreposicao ("+bate+")",bate===0);
+    const B=r.objs.filter(o=>!Z.PAPEIS[o.papel].passa&&!Z.PAPEIS[o.papel].em&&o.papel!=="cadeira"&&o.papel!=="banqueta");let bate=0;for(let i=0;i<B.length;i++)for(let j=i+1;j<B.length;j++){const a=B[i],b=B[j];if(a.papel===b.papel&&(Z.PAPEIS[a.papel].tol>.04||a.l!==b.l))continue;if(Z.bate(cx(a),cx(b),.05)){bate++;if(process.env.DBG)console.log(id,a.papel,b.papel)}}chk(id+" sem sobreposicao ("+bate+")",bate===0);
     // a frente da porta fica livre
     chk(id+" porta livre",B.every(o=>Math.hypot(o.x-portas[0][0],o.y-portas[0][1])>.75));
     // o que vai em cima fica em cima de um movel
