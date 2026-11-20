@@ -12,9 +12,9 @@ const u32=(dv,o)=>dv.getUint32(o,true),u64=(dv,o)=>dv.getUint32(o,true)+dv.getUi
 const fatia=async(blob,ini,fim)=>new DataView(await blob.slice(ini,fim).arrayBuffer());
 
 // ---------- leitura de um pacote ----------
-export async function lerTabela(blob){let dv=await fatia(blob,0,Math.min(blob.size,1<<18));if(dv.byteLength<92||TXT.decode(new Uint8Array(dv.buffer,0,4))!=="GDPC")throw new Error("Não é um pacote do Dungeondraft.");
-  const fmt=u32(dv,4);let p=20,base=0;if(fmt>=2){const flags=u32(dv,20);base=u64(dv,24);p=32;if(flags&1)throw new Error("Pacote cifrado.")}p+=64;const n=u32(dv,p);p+=4;if(n>200000)throw new Error("Tabela estranha.");
-  let ini=0;const E=[];const garante=async k=>{if(p+k<=dv.byteLength)return;ini+=p;dv=await fatia(blob,ini,Math.min(blob.size,ini+Math.max(1<<18,k*2)));p=0;if(dv.byteLength<k)throw new Error("Pacote cortado.")};
+export async function lerTabela(blob){let dv=await fatia(blob,0,Math.min(blob.size,1<<22));if(dv.byteLength<92||TXT.decode(new Uint8Array(dv.buffer,0,4))!=="GDPC")throw new Error("Não é um pacote do Dungeondraft.");
+  const fmt=u32(dv,4);let p=20,base=0;if(fmt>=2){const flags=u32(dv,20);base=u64(dv,24);p=32;if(flags&1)throw new Error("Pacote cifrado.")}p+=64;const n=u32(dv,p);p+=4;if(n>5000000)throw new Error("Tabela estranha.");
+  let ini=0;const E=[];const garante=async k=>{if(p+k<=dv.byteLength)return;ini+=p;dv=await fatia(blob,ini,Math.min(blob.size,ini+Math.max(1<<22,k*2)));p=0;if(dv.byteLength<k)throw new Error("Pacote cortado.")};
   for(let i=0;i<n;i++){await garante(4);const L=u32(dv,p);p+=4;await garante(L+32+(fmt>=2?4:0));let s=new Uint8Array(dv.buffer,dv.byteOffset+p,L);let z=s.indexOf(0);if(z>=0)s=s.subarray(0,z);const nome=TXT.decode(s);p+=L;
     const off=u64(dv,p)+base,tam=u64(dv,p+8);p+=32;if(fmt>=2)p+=4;E.push([nome,off,tam])}
   return E}
@@ -98,6 +98,6 @@ export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))re
   const p=createImageBitmap(b).then(async bm=>{const s=Math.min(1,tam/Math.max(bm.width,bm.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(bm.width*s));cv.height=Math.max(1,Math.round(bm.height*s));cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);bm.close();
     const bl=await new Promise(ok=>cv.toBlob(ok,"image/webp",.85));return bl?URL.createObjectURL(bl):null}).catch(()=>null);guarda(MINI,k,p,LIM_MINI);return p}
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
-export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals)\//.test(c);
-export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?)\//.test(c);
+export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets)\//.test(c);
+export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
 if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,miniatura,tem,pacotes,usavel,ehMaterial};

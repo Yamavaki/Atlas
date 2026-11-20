@@ -11,7 +11,7 @@ export function desenhaTexto(gc,t,tl,z){const p=tl(t.x,t.y),px=t.tam*z;if(px<2)r
 // ---------- imagem de um andar ----------
 // px = pixels por quadrado. Desenha em pedacos de ate 2048 px e junta numa tela 2D (os textos vao por cima).
 export async function imagemAndar(M,i,o){o=o||{};const px=o.px||100,W=Math.round(M.larg*px),H=Math.round(M.alt*px),cv=document.createElement("canvas");let T=2048;cv.width=T;cv.height=T;
-  const R=criaRender(cv);if(!R)throw new Error("Este navegador não liberou o WebGL2 para exportar.");T=Math.min(T,R.gl.getParameter(R.gl.MAX_VIEWPORT_DIMS)[0]||T);cv.width=T;cv.height=T;R.carregar(M);
+  const R=criaRender(cv);if(!R)throw new Error("Este navegador não liberou o WebGL2 para exportar.");T=Math.min(T,R.gl.getParameter(R.gl.MAX_VIEWPORT_DIMS)[0]||T);cv.width=T;cv.height=T;if(o.reais&&o.reais.size)R.usarReais(o.reais);R.carregar(M);
   const big=document.createElement("canvas");big.width=W;big.height=H;const g=big.getContext("2d");
   for(let ty=0;ty<H;ty+=T)for(let tx=0;tx<W;tx+=T){const cam={x:(tx+T/2)/px,y:(ty+T/2)/px,z:px};R.desenhar(cam,i,{luz:o.luz!==false,grade:!!o.grade,telhados:o.telhados!==false});R.terminar();g.drawImage(cv,0,0,Math.min(T,W-tx),Math.min(T,H-ty),tx,ty,Math.min(T,W-tx),Math.min(T,H-ty));if(o.progresso)o.progresso((ty*W+tx)/(W*H));await new Promise(r=>setTimeout(r,0))}
   if(o.textos!==false)for(const t of M.andares[i].textos||[])desenhaTexto(g,t,(x,y)=>[x*px,y*px],px);

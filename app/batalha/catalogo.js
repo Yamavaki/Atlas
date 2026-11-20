@@ -98,9 +98,9 @@ function linhaFamilia(F,P,nivel){const f0=F.itens[0].f,sz=tamFam(F.itens);let s=
   if(nivel>=2){const tg=[...new Set(F.itens.flatMap(x=>x.tags||[]))].filter(t=>!/colorable/i.test(t)).slice(0,3);if(tg.length)partes.push(tg.map(t=>"#"+t.replace(/\s+/g,"_")).join(" "))}
   return partes.join(" · ")}
 function linhaSimples(F,cat,nivel){const f0=F.itens[0].f,partes=[nivel<3&&F.modelo.length>140?F.itens[0].base+" (+"+(F.n-1)+")":F.modelo];
-  if(cat==="paths"&&f0&&f0[1])partes.push("largura "+q(f0[1]/QUAD));if((cat==="terrain"||cat==="patterns"||cat==="textures")&&f0&&f0[0])partes.push("repete "+q(f0[0]/QUAD)+"x"+q(f0[1]/QUAD));if(cat==="portals"&&f0&&f0[0])partes.push(tamQ(f0));
+  if(cat==="paths"&&f0&&f0[1])partes.push("largura "+q(f0[1]/QUAD));if((cat==="terrain"||cat==="patterns"||cat==="textures"||cat==="tilesets")&&f0&&f0[0])partes.push("repete "+q(f0[0]/QUAD)+"x"+q(f0[1]/QUAD));if(cat==="portals"&&f0&&f0[0])partes.push(tamQ(f0));
   if(nivel>=2&&f0&&f0[8])partes.push("cor "+cor3(f0[8]));return partes.join(" · ")}
-const NOMES_CAT={objects:"Objetos",terrain:"Terrenos (pincel de chão)",patterns:"Padrões e pisos",textures:"Texturas",walls:"Paredes",paths:"Caminhos",portals:"Portas e janelas",lights:"Luzes",materials:"Materiais",material:"Materiais"};
+const NOMES_CAT={tilesets:"Pisos em quadrados (tilesets)",objects:"Objetos",terrain:"Terrenos (pincel de chão)",patterns:"Padrões e pisos",textures:"Texturas",walls:"Paredes",paths:"Caminhos",portals:"Portas e janelas",lights:"Luzes",materials:"Materiais",material:"Materiais"};
 async function montaDados(ids){const out=[];for(const P of BIB.pacotesCompletos()){if(ids&&!ids.includes(P.id))continue;const fx=await fichasDe(P),cats=new Map();
     P.artes.forEach((a,i)=>{const cat=BIB.categoria(a[0]);if(!cats.has(cat))cats.set(cat,new Map());const pa=pasta(a[0]),m=cats.get(cat);if(!m.has(pa))m.set(pa,[]);m.get(pa).push({rel:a[0],base:base(a[0],""),f:fx?fx.fichas[i]:null,tags:(a[4]||[]).map(t=>P.tags[t])})});
     const ext=[...new Set(P.artes.map(a=>a[0].split(".").pop()))].join("/");out.push({P,fx:!!fx,cats,ext})}return out}
