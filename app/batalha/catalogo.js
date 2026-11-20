@@ -29,12 +29,14 @@ function mede(bm){const W=bm.width,H=bm.height;if(!tela){tela=typeof OffscreenCa
   const bw=x1-x0+1,bh=y1-y0+1;
   return {x0:Math.round(x0/w*255),y0:Math.round(y0/h*255),x1:Math.round((x1+1)/w*255),y1:Math.round((y1+1)/h*255),fill:Math.round(n/(bw*bh)*255),mask:m.toString(16).padStart(16,"0"),
     cor:wa?[r/wa,gg/wa,b/wa].map(v=>Math.round(v).toString(16).padStart(2,"0")).join(""):"000000",sh:Math.round(sh/n*255),sv:Math.round(sv/n*255)}}
-async function fichaArte(P,f,a){const c="res://packs/"+P.id+"/"+a[0];let px=null;try{px=await BIB.medidas(f,a[1])}catch(e){}
-  let src=null,mini=P.mini&&P.mini[BIB.md5(c)];if(mini)src=f.slice(mini[0],mini[0]+mini[1],"image/png");
+// a miniatura do Dungeondraft vem recortada no desenho: serve para cor e forma, mas a caixa (x0..y1) dela nao vale.
+// fichas com [11]=2 foram medidas na arte original (caixa certa); sem isso, a caixa e a da miniatura.
+async function fichaArte(P,f,a,orig){const c="res://packs/"+P.id+"/"+a[0];let px=null;try{px=await BIB.medidas(f,a[1])}catch(e){}
+  let src=null,mini=!orig&&P.mini&&P.mini[BIB.md5(c)];if(mini)src=f.slice(mini[0],mini[0]+mini[1],"image/png");
   let bm=null;try{if(src)bm=await createImageBitmap(src);else{const tipo=/\.png$/i.test(a[0])?"image/png":/\.jpe?g$/i.test(a[0])?"image/jpeg":"image/webp",bl=f.slice(a[1],a[1]+a[2],tipo);
       const k=px?Math.min(1,64/Math.max(px[0],px[1])):1;bm=px&&k<1?await createImageBitmap(bl,{resizeWidth:Math.max(1,Math.round(px[0]*k)),resizeHeight:Math.max(1,Math.round(px[1]*k)),resizeQuality:"low"}):await createImageBitmap(bl)}}catch(e){}
   if(!bm)return px?[px[0],px[1]]:[0,0];if(!px)px=[bm.width,bm.height];const M=mede(bm);bm.close&&bm.close();
-  if(M.vazio)return [px[0],px[1],0,0,0,0,0,"0","000000",0,0];return [px[0],px[1],M.x0,M.y0,M.x1,M.y1,M.fill,M.mask,M.cor,M.sh,M.sv]}
+  if(M.vazio)return [px[0],px[1],0,0,0,0,0,"0","000000",0,0,src?1:2];return [px[0],px[1],M.x0,M.y0,M.x1,M.y1,M.fill,M.mask,M.cor,M.sh,M.sv,src?1:2]}
 // analisa todos os pacotes (retoma de onde parou: cada pacote pronto fica guardado)
 export async function analisar(o){o=o||{};const L=BIB.pacotesCompletos();let total=0,feito=0;for(const P of L)total+=P.artes.length;const t0=performance.now();
   for(const P of L){if(o.parar&&o.parar())break;const ja=await fichasDe(P);if(ja){feito+=P.artes.length;if(o.progresso)o.progresso(feito,total,P.nome,0);continue}
@@ -250,8 +252,8 @@ export async function bordaApagada(c){if(BORDA.has(c))return BORDA.get(c);const 
   BORDA.set(c,res);return res}
 // ficha de uma arte so, medida na hora quando o pacote ainda nao foi analisado (para o gerador de zonas)
 const UMA=new Map();
-export async function fichaUma(c){const ja=await fichaDe(c);if(ja)return ja;if(UMA.has(c))return UMA.get(c);const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const a=P.artes.find(x=>x[0]===m[2]),f=BIB.arquivoDe(P);if(!a||!f)return null;
-  let r=null;try{r=await fichaArte(P,f,a)}catch(e){}UMA.set(c,r);return r}
+export async function fichaUma(c){const ja=await fichaDe(c);if(ja&&ja[11]===2)return ja;if(UMA.has(c))return UMA.get(c);const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const a=P.artes.find(x=>x[0]===m[2]),f=BIB.arquivoDe(P);if(!a||!f)return null;
+  let r=null;try{r=await fichaArte(P,f,a,true)}catch(e){}if(!r||r.length<11)r=ja||r;UMA.set(c,r);return r}
 // para a busca e o gerador: ficha de um caminho (se ja analisado)
 export async function fichaDe(c){const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const fx=await fichasDe(P);if(!fx)return null;const i=P.artes.findIndex(a=>a[0]===m[2]);return i<0?null:fx.fichas[i]}
 export {familias,camada,frente,forma};
