@@ -9,10 +9,14 @@
   const K_CFG="atlas:drive:cfg",K_TOK="atlas:drive:tok",K_BASE="atlas:drive:base",K_EST="atlas:drive:estado",IDX=".atlas/indice.json",BACKUPS="Backups";
   const tauri=()=>window.__TAURI__&&window.__TAURI__.core?window.__TAURI__:null;
   const ls=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
-  const cfg=()=>Object.assign({clientId:"",clientSecret:"",pasta:null,batalhas:true,imagens:true,backup:false,conta:null},ls(K_CFG)||{});
-  const salvaCfg=c=>ls(K_CFG,c);
-  const estado=()=>Object.assign({ultima:null,acao:null,sujo:false},ls(K_EST)||{});
-  const salvaEstado=e=>{ls(K_EST,e);atualizaBotao()};
+  // cada mundo (pasta) tem a sua pasta no Drive e o seu estado; a conta e o ID do Google Cloud valem para todos
+  const mk=()=>{const AP=window.AtlasPasta,a=AP&&AP.atual&&AP.atual(),A=window.AtlasApp;return a&&A&&A.Store&&A.Store.pasta?"pasta:"+a.chave:"app"},kM=k=>k+"@"+mk();
+  function migra(g){if(!g.pasta)return null;const w={pasta:g.pasta,batalhas:g.batalhas,imagens:g.imagens,backup:g.backup};ls(kM(K_CFG),w);const b=ls(K_BASE),e=ls(K_EST);if(b)ls(kM(K_BASE),b);if(e)ls(kM(K_EST),e);
+    const g2=Object.assign({},g);delete g2.pasta;delete g2.batalhas;delete g2.imagens;delete g2.backup;ls(K_CFG,g2);try{localStorage.removeItem(K_BASE);localStorage.removeItem(K_EST)}catch(x){}return w}
+  const cfg=()=>{const g=ls(K_CFG)||{},w=ls(kM(K_CFG))||migra(g)||{};return Object.assign({clientId:"",clientSecret:"",pasta:null,batalhas:true,imagens:true,backup:false,conta:null},w,{clientId:g.clientId||"",clientSecret:g.clientSecret||"",conta:g.conta||null})};
+  const salvaCfg=c=>{const g=ls(K_CFG)||{};ls(K_CFG,Object.assign(g,{clientId:c.clientId,clientSecret:c.clientSecret,conta:c.conta}));ls(kM(K_CFG),{pasta:c.pasta,batalhas:c.batalhas,imagens:c.imagens,backup:c.backup})};
+  const estado=()=>Object.assign({ultima:null,acao:null,sujo:false},ls(kM(K_EST))||{});
+  const salvaEstado=e=>{ls(kM(K_EST),e);atualizaBotao()};
   const safe=s=>String(s||"Sem título").replace(/[\\/:*?"<>|#^[\]]+/g,"-").replace(/\s+/g," ").trim().slice(0,120)||"Sem título";
   const junta=(...p)=>p.filter(Boolean).join("/").replace(/\/+/g,"/");
   const uidN=()=>"n"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -126,10 +130,10 @@
 
   // ---------- as duas ações ----------
   async function prepara(modo){const c=cfg();if(!c.pasta)throw new Error("Escolha a pasta do mundo no Drive.");
-    const [{L,ind},R]=await Promise.all([montaLocal(c),listaRemota(c.pasta.id)]);const bt=ls(K_BASE)||{},base=bt.pasta===c.pasta.id?bt.arq||{}:{};
+    const [{L,ind},R]=await Promise.all([montaLocal(c),listaRemota(c.pasta.id)]);const bt=ls(kM(K_BASE))||{},base=bt.pasta===c.pasta.id?bt.arq||{}:{};
     return {c,L,ind,R,base,itens:compara(c,L,R.arqs,base,modo),docs:R.docs}}
   const fila=async(lista,n,fn,prog)=>{let i=0,f=0;const vai=async()=>{while(i<lista.length){const k=i++;await fn(lista[k]);f++;prog&&prog(f,lista.length,lista[k])}};await Promise.all(Array.from({length:Math.min(n,lista.length)},vai))};
-  function fechaBase(P,feitos){const base=Object.assign({},P.base);for(const [p,x] of Object.entries(feitos)){if(x===null)delete base[p];else base[p]=x}ls(K_BASE,{pasta:P.c.pasta.id,arq:base})}
+  function fechaBase(P,feitos){const base=Object.assign({},P.base);for(const [p,x] of Object.entries(feitos)){if(x===null)delete base[p];else base[p]=x}ls(kM(K_BASE),{pasta:P.c.pasta.id,arq:base})}
   let quieto=false;
   const indiceRemoto=async P=>{const ix=P.R.arqs.get(IDX);if(ix)try{return JSON.parse(await baixaTexto(ix.id))}catch(e){}return {}};
   // conflito resolvido: "minha" manda a deste computador, "drive" traz a do Drive, "duas" guarda as duas

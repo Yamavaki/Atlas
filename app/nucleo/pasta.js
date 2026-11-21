@@ -47,9 +47,9 @@
   const API={
     suporta:()=>{if(tauri())return true;let solto=true;try{solto=window.self===window.top}catch(e){solto=false}return solto&&typeof window.showDirectoryPicker==="function"},
     noApp:()=>!!tauri(),
-    atual:()=>D?{nome:D.nome,tipo:D.tipo}:null,
+    atual:()=>D?{nome:D.nome,tipo:D.tipo,chave:D.caminho||D.nome}:null,
     // escolher a pasta (precisa de um clique do usuario no navegador)
-    async escolher(){if(tauri()){const T=tauri(),dl=T.dialog;if(!dl)throw new Error("O seletor de pastas não está disponível.");const p=await dl.open({directory:true,multiple:false,title:"Escolha a pasta do mundo"});if(!p)return null;D=discoTauri(String(p));localStorage.setItem("atlas:pasta",String(p));await guardaRecente(D.nome,String(p));return D.nome}
+    async escolher(titulo){if(tauri()){const T=tauri(),dl=T.dialog;if(!dl)throw new Error("O seletor de pastas não está disponível.");const p=await dl.open({directory:true,multiple:false,title:titulo||"Escolha a pasta do mundo"});if(!p)return null;D=discoTauri(String(p));localStorage.setItem("atlas:pasta",String(p));await guardaRecente(D.nome,String(p));return D.nome}
       if(typeof window.showDirectoryPicker!=="function")throw new Error("Este navegador não abre pastas. Use o Chrome, o Edge ou o app do Atlas.");
       const h=await window.showDirectoryPicker({id:"atlas-mundo",mode:"readwrite"});D=discoFSA(h);await kv("atual",h);await guardaRecente(D.nome,null,h);return D.nome},
     // a pasta da ultima vez (no navegador so volta com um clique, por causa da permissao)
