@@ -816,3 +816,8 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .bt-ficha-bts{display:flex;flex-direction:column;gap:6px;margin-top:8px}
 .bt-subs{flex-wrap:wrap;margin:4px 0}.bt-subs .bt-chip{font-size:11px;padding:2px 8px}
 .bt-zlista{flex-wrap:wrap}.bt-zinfo{color:var(--text,#e9dfcc)}.bt-zaviso{color:#e0a15f}
+
+/* mundo numa pasta (1.1) */
+.hmundo{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:6px 0 18px;background:rgba(255,255,255,.02)}
+.hmundo p{margin:0 0 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.hmundo .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}

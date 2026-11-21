@@ -96,22 +96,35 @@ const svgI=(d)=>{const n="http://www.w3.org/2000/svg",sv=document.createElementN
 
 // ---------- armazenamento ----------
 const Store={db:null,dl:null,dirty:new Set(),timers:new Map(),chain:new Map(),
+  pasta:false,pastaPend:null,
   async init(){
+    // mundo numa pasta do PC: no app instalado sempre; no navegador quando a pasta ja tem permissao
+    const AP=window.AtlasPasta;if(AP&&AP.suporta()){try{const u=await AP.ultima();if(u&&u.pronta&&await AP.reabrir(false)){await this.dePasta();return}if(u)this.pastaPend=u.nome}catch(e){console.warn("pasta",e)}}
     let db=null;try{if(window.claude&&claude.use){db=await Promise.race([claude.use("db"),new Promise(r=>setTimeout(()=>r(null),9000))]);claude.use("downloads").then(d=>this.dl=d,()=>{})}}catch(e){}
     if(db){this.db=db;let first=0;const done=()=>{if(++first===2)ready()};const t=setTimeout(()=>{if(first<2){first=2;pill("Sem resposta do vault","warn");ready()}},10000);
       for(const kind of["notes","maps"]){let got=false;db.collection(kind).onSnapshot(sn=>{applySnap(kind,sn);if(!got){got=true;done();if(first>=2)clearTimeout(t)}},e=>{pill("Vault indisponível","warn");if(!got){got=true;done()}})}
       pill("Vault na nuvem","ok")}
     else{for(const kind of["notes","maps"]){try{const raw=JSON.parse(localStorage.getItem("atlas:"+kind)||"[]");for(const o of raw)S[kind].set(o.id,o)}catch(e){}}pill("Salvo só neste navegador","warn");ready()}},
+  // le a pasta aberta e passa a gravar nela
+  async dePasta(migrar){const AP=window.AtlasPasta,r=await AP.carregar();const antes={notes:[...S.notes.values()],maps:[...S.maps.values()]};
+    this.pasta=true;this.db=null;this.pastaPend=null;S.notes.clear();S.maps.clear();for(const o of r.notas)S.notes.set(o.id,o);for(const m of r.mapas)S.maps.set(m.id,m);
+    if(migrar&&!r.notas.length&&!r.mapas.length&&(antes.notes.length||antes.maps.length)){for(const o of antes.notes){S.notes.set(o.id,o);AP.gravaNota(o)}for(const m of antes.maps){S.maps.set(m.id,m);AP.gravaMapa(m)}toast(antes.notes.length+" nota(s) e "+antes.maps.length+" mapa(s) copiados para a pasta.")}
+    pill("Pasta: "+r.nome,"ok");if(booted){S.note=null;S.map=null;drawAll()}else ready()},
+  async abrirPasta(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return toast("Este navegador não abre pastas. Use o Chrome, o Edge ou o app do Atlas.");
+    try{const n=await AP.escolher();if(!n)return;await this.dePasta(true);toast("Mundo aberto: "+n)}catch(e){if(e&&e.name==="AbortError")return;console.warn(e);toast(e.message||"Não foi possível abrir a pasta.")}},
+  async reabrirPasta(){const AP=window.AtlasPasta;try{if(await AP.reabrir(true))await this.dePasta(false);else toast("Sem permissão para abrir a pasta.")}catch(e){toast("Não foi possível abrir a pasta.")}},
+  async fecharPasta(){const AP=window.AtlasPasta;await AP.espera();await AP.fechar();location.reload()},
   save(kind,o){o.updated=now();const key=kind+"/"+o.id;this.dirty.add(key);clearTimeout(this.timers.get(key));pill("Salvando…");
     this.timers.set(key,setTimeout(()=>this.flush(kind,o.id),700))},
   flush(kind,id){const key=kind+"/"+id,o=S[kind].get(id);if(!o){this.dirty.delete(key);return}
+    if(this.pasta){const AP=window.AtlasPasta;(kind==="notes"?AP.gravaNota(o):AP.gravaMapa(o)).then(()=>{this.dirty.delete(key);if(!this.dirty.size)pill("Salvo na pasta","ok")},e=>{console.warn(e);pill("Erro ao salvar","warn");toast("Não foi possível gravar na pasta.")});return}
     if(!this.db){this.local(kind);this.dirty.delete(key);pill("Salvo só neste navegador","warn");return}
     const body=JSON.parse(JSON.stringify(o));delete body.id;const stamp=o.updated;
     const p=(this.chain.get(key)||Promise.resolve()).then(()=>this.db.doc(key).set(body)).then(()=>{if(S[kind].get(id)&&S[kind].get(id).updated===stamp){this.dirty.delete(key)}if(!this.dirty.size)pill("Salvo","ok")},
       e=>{pill("Erro ao salvar","warn");toast(e&&e.code==="invalid_argument"?"Sem permissão para salvar neste vault.":"Não foi possível salvar agora. Tente de novo em instantes.")});
     this.chain.set(key,p)},
   local(kind){try{localStorage.setItem("atlas:"+kind,JSON.stringify([...S[kind].values()]))}catch(e){toast("Sem espaço para salvar neste navegador.")}},
-  remove(kind,id){S[kind].delete(id);const key=kind+"/"+id;clearTimeout(this.timers.get(key));this.dirty.delete(key);if(this.db)this.db.doc(key).delete().catch(()=>toast("Não foi possível excluir."));else this.local(kind)}};
+  remove(kind,id){const o0=S[kind].get(id);if(this.pasta&&o0){const AP=window.AtlasPasta;(kind==="notes"?AP.apagaNota(o0):AP.apagaMapa(o0)).catch(()=>toast("Não foi possível excluir da pasta."))}S[kind].delete(id);const key=kind+"/"+id;clearTimeout(this.timers.get(key));this.dirty.delete(key);if(this.pasta)return;if(this.db)this.db.doc(key).delete().catch(()=>toast("Não foi possível excluir."));else this.local(kind)}};
 function pill(t,c){const p=$("#sync");p.textContent=t;p.className="pill "+(c||"")}
 function applySnap(kind,sn){const m=S[kind],seen=new Set(),changed=[];
   for(const d of sn.docs){seen.add(d.id);if(Store.dirty.has(kind+"/"+d.id))continue;const body=JSON.parse(JSON.stringify(d.data()||{}));body.id=d.id;const old=m.get(d.id);
@@ -1078,8 +1091,17 @@ function drawHome(){const main=$("#main");main.replaceChildren();const notas=[..
   const itens=rec.map(r=>{if(r.k==="m"){const mi=MIC[r.o.type]||["regiao","#8db06a","Mapa de região"];return h("button",{type:"button",class:"hrec",onclick:()=>openMap(r.o.id)},h("i",{class:"tic",style:"color:"+mi[1]},icone(mi[0],20)),h("span",{class:"hrt"},h("b",{},r.o.name),h("small",{},mi[2]+(r.t?" · "+quando(r.t):""))))}
     const ty=fm(r.o.content).props.tipo||"livre",qd=r.o.kind==="canvas";return h("button",{type:"button",class:"hrec",onclick:()=>openNote(r.o.id)},h("i",{class:"tic",style:"color:"+(qd?"#a88bd6":TCOL[ty]||TCOL.livre)},icone(qd?"quadro":TICO[ty]||"livre",20)),h("span",{class:"hrt"},h("b",{},r.o.title),h("small",{},(qd?"Quadro":TYPES[ty]||"Nota")+(r.t?" · "+quando(r.t):""))))});
   main.append(h("div",{class:"home"},h("h1",{},vazio?"Seu mundo começa aqui":"Seu mundo"),h("p",{class:"hsub"},vazio?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":notas.length+" nota"+(notas.length===1?"":"s")+" e "+mapas.length+" mapa"+(mapas.length===1?"":"s")+". Continue de onde parou ou comece algo novo."),
-    h("h2",{},"Começar"),h("div",{class:"hcards"},cards),vazio?h("div",{class:"row"},h("button",{type:"button",onclick:sample},icone("estrela",16),"Criar mundo de exemplo")):null,
+    blocoMundo(),h("h2",{},"Começar"),h("div",{class:"hcards"},cards),vazio?h("div",{class:"row"},h("button",{type:"button",onclick:sample},icone("estrela",16),"Criar mundo de exemplo")):null,
     rec.length?h("h2",{},"Recentes"):null,rec.length?h("div",{class:"hrecs"},itens):null))}
+// onde o mundo esta guardado: pasta do PC (como o Obsidian), nuvem do Claude ou so este navegador
+function blocoMundo(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return null;const at=AP.atual(),box=h("div",{class:"hmundo"});
+  if(Store.pasta&&at)box.append(h("p",{},icone("pasta",16)," Mundo na pasta ",h("b",{},at.nome),". Tudo é gravado lá: notas em .md, quadros em .canvas e mapas em arquivos próprios (abre no Obsidian também)."),
+    h("div",{class:"row"},h("button",{type:"button",onclick:()=>Store.abrirPasta()},"Abrir outra pasta"),h("button",{type:"button",class:"ghost",onclick:()=>Store.fecharPasta()},"Fechar a pasta")));
+  else{box.append(h("p",{},Store.db?"Seu mundo está salvo na nuvem deste chat.":"Seu mundo está salvo só neste navegador.",AP.noApp()?"":" Guarde numa pasta do PC para não perder nada e abrir no Obsidian também."),
+    h("div",{class:"row"},Store.pastaPend?h("button",{type:"button",onclick:()=>Store.reabrirPasta()},icone("pasta",16)," Reabrir “"+Store.pastaPend+"”"):null,h("button",{type:"button",onclick:()=>Store.abrirPasta()},icone("pasta",16)," Abrir pasta do mundo")),
+    h("p",{class:"hsub"},"Se a pasta estiver vazia, as notas e mapas daqui são copiados para ela."))
+    AP.recentes().then(L=>{L=L.filter(r=>r.nome!==Store.pastaPend);if(L.length)box.append(h("div",{class:"row"},h("small",{},"Recentes:"),...L.slice(0,5).map(r=>h("button",{type:"button",class:"ghost",onclick:async()=>{if(await AP.abrirRecente(r))await Store.dePasta(false);else toast("Sem permissão para abrir a pasta.")}},r.nome))))})}
+  return box}
 function sample(){const m=newMap();m.name="Vale do Sasau";m.params=Object.assign({},DEF);Store.save("maps",m);
   newNote("livre","Bem-vindo ao Atlas",{content:"# Bem-vindo ao Atlas\n\nEste vault de exemplo mostra o básico.\n\n- Abra **Mapas** e toque num povoado para criar a nota dele.\n- Em qualquer nota, escreva `[[Nome]]` para ligar a outra. Exemplo: [[Irmã Ludmila]].\n- No mapa, use as ferramentas para pintar terra, mar, relevo e floresta. A ferramenta **Fronteiras** desenha reinos.\n- Missões com **Onde acontece** aparecem como marcadores no mapa. Veja o quadro em **Notas › Missões**.\n- Texto entre %%dois sinais de porcentagem%% é segredo do mestre e some na **Visão dos jogadores**.\n"});
   const n=newNote("personagem","Irmã Ludmila",{content:"---\ntipo: personagem\nlocal: \n---\n\n## Aparência\n\nHábito gasto, mãos manchadas de tinta.\n\n## O que quer\n\nTerminar a crônica do mosteiro antes do inverno.\n\n## O que esconde\n\n> [!info] Só para o mestre\n> Ela sabe quem incendiou o celeiro.\n"});n.folder="Personagens";Store.save("notes",n);
@@ -1294,7 +1316,9 @@ function exportFoundry(players){const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkl
   const entry={name:players?"Atlas (jogadores)":"Atlas",pages,folder:null,sort:0,ownership:{default:players?2:0},flags:{atlas:{exported:new Date().toISOString()}}};
   saveFile(players?"atlas-foundry-jogadores.json":"atlas-foundry.json",new Blob([JSON.stringify(entry)],{type:"application/json"}));toast("No Foundry: crie um diário, clique com o botão direito nele e use Importar dados.")}
 function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}if(!btn||!btn.isConnected)btn=$("#bExp");const r=btn.getBoundingClientRect();
-  m=h("div",{id:"expm",class:"mpop fixed exp",style:"left:"+Math.max(8,Math.min(innerWidth-330,r.right-320))+"px;top:"+(r.bottom+6)+"px"},h("button",{type:"button",class:"x","aria-label":"Fechar",onclick:()=>m.remove()},"×"),h("b",{},"Exportar"),
+  m=h("div",{id:"expm",class:"mpop fixed exp",style:"left:"+Math.max(8,Math.min(innerWidth-330,r.right-320))+"px;top:"+(r.bottom+6)+"px"},h("button",{type:"button",class:"x","aria-label":"Fechar",onclick:()=>m.remove()},"×"),h("b",{},"Mundo"),
+    window.AtlasPasta&&window.AtlasPasta.suporta()?h("button",{type:"button",class:"mi",onclick:()=>{m.remove();Store.abrirPasta()}},h("b",{},Store.pasta?"Abrir outra pasta":"Abrir pasta do mundo"),h("small",{},Store.pasta?"Agora: "+((window.AtlasPasta.atual()||{}).nome||""):"Guarda tudo numa pasta do PC, como o Obsidian")):null,
+    h("b",{},"Exportar"),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault()}},h("b",{},"Vault completo (.zip)"),h("small",{},"Markdown para o Obsidian, com segredos e mapas")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault(true)}},h("b",{},"Para os jogadores (.zip)"),h("small",{},"Sem segredos do mestre")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportFoundry(false)}},h("b",{},"Foundry VTT, diário do mestre (.json)"),h("small",{},"Uma página por nota, segredos como seções secretas")),
