@@ -28,7 +28,7 @@ export const PAPEIS={
   escrivaninha:{sub:["Mesas"],q:["desk"],nao:["arrangement","covered","cabinet","lamp","clutter","reception"],t:[.8,3.6],lugar:"p"},
   bancada:{sub:["Mesas","Oficina e trabalho","Balcões e bares"],q:["workbench","work","counter","bench"],nao:["seat","park","pew"],t:[.8,4.2],lugar:"p"},
   cadeira:{sub:["Cadeiras, bancos e sofás"],q:["chair"],nao:["arm","throne","wheel","electric","torture","rocking","high","deck","lounge","beach","barber","dentist","bar","child","childs","baby","folding","stool"],naoRe:/^Chair_Wood_[A-Za-z]+_A_1x1$/,t:[.4,1.4],lugar:"s"},
-  banqueta:{sub:["Cadeiras, bancos e sofás"],q:["stool"],nao:["foot"],t:[.3,1.2],lugar:"s"},
+  banqueta:{sub:["Cadeiras, bancos e sofás"],q:["stool"],nao:["foot","diner","gold","chrome","metal","plastic","office"],t:[.3,1.2],lugar:"s"},
   bancoLongo:{sub:["Cadeiras, bancos e sofás"],q:["bench","pew"],nao:["work","press","park"],t:[.4,4.2],lugar:"m",grande:true},
   sofa:{sub:["Cadeiras, bancos e sofás"],q:["sofa","couch"],nao:["piece","armrest","corner","pillow","cushion"],t:[.7,4.2],lugar:"p"},
   poltrona:{sub:["Cadeiras, bancos e sofás"],q:["armchair"],t:[.6,2],lugar:"s",varia:2},
@@ -88,7 +88,7 @@ export const COMODOS={
   banheiro:{nome:"Banheiro",amb:"Banheiro",itens:[{p:"banheira",n:[0,3],por:20,chave:true,min:6},{p:"vaso",n:[1,4],por:16,arranjo:"fileira"},{p:"pia",n:[1,3],por:18,perto:"vaso",arranjo:"fileira"},{p:"armario",n:[0,1],min:10},{p:"pote",n:[0,3],por:14},{p:"tapete",n:[0,1],prob:.3},{p:"planta",n:[0,1],prob:.2},{p:"bancoLongo",n:[0,2],min:24,por:30,lugar:"p"}],rico:[{p:"planta",n:[1,2]},{p:"velaChao",n:[1,2]}]},
   escritorio:{nome:"Escritório",amb:"Escritório",itens:[{p:"tapete",n:[0,1],prob:.7},{p:"escrivaninha",n:[1,1],chave:true,meio:.5,com:{p:"cadeira",n:1},em:[["livros",1],["velaMesa",.5]]},{p:"estante",n:[1,4],por:10},{p:"armario",n:[0,1]},{p:"poltrona",n:[0,2],por:18},{p:"bau",n:[0,1],prob:.5},{p:"planta",n:[0,1],prob:.5},{p:"velaChao",n:[0,1],prob:.6}],rico:[{p:"tapete",n:[1,1]},{p:"estatua",n:[0,1],min:16},{p:"velaChao",n:[1,2]}]},
   biblioteca:{nome:"Biblioteca",amb:"Biblioteca e estudo",itens:[{p:"estante",n:[3,24],por:3.5},{p:"tapete",n:[0,1],prob:.6},{p:"mesa",n:[1,3],por:30,grade:true,com:{p:"cadeira",lados:4},em:[["livros",1.4],["velaMesa",.4]]},{p:"poltrona",n:[0,2],por:26},{p:"velaChao",n:[1,4],por:18}],rico:[{p:"tapete",n:[1,2],por:40},{p:"estatua",n:[0,2],por:40},{p:"planta",n:[1,2]}]},
-  taverna:{nome:"Salão de taverna",amb:"Taverna",itens:[{p:"balcao",n:[1,1],chave:true,com:{p:"banqueta",frente:true}},{p:"lareira",n:[0,1],min:30},{p:"mesa",n:[2,10],por:15,grade:true,com:{p:"cadeira",lados:4,varia:true},em:[["louca",1.2],["comida",.6],["velaMesa",.3]]},{p:"barril",n:[1,5],por:16,perto:"balcao"},{p:"armario",n:[0,1],perto:"balcao"},{p:"tocha",n:[2,6],por:14}],rico:[{p:"velaChao",n:[1,3],por:20},{p:"tapete",n:[0,1]}]},
+  taverna:{nome:"Salão de taverna",amb:"Taverna",itens:[{p:"balcao",n:[1,1],chave:true,com:{p:"banqueta",frente:true}},{p:"lareira",n:[0,1],min:30},{p:"mesa",n:[2,10],por:15,grade:true,com:{p:"cadeira",lados:4,varia:true},em:[["louca",1.2],["comida",.6],["velaMesa",.3]]},{p:"barril",n:[1,5],por:16,perto:"balcao"},{p:"armario",n:[0,1],perto:"balcao"},{p:"tocha",n:[2,6],por:14}],rico:[{p:"velaChao",n:[1,3],por:20},{p:"tapete",n:[0,1],sob:"lareira"}]},
   oficina:{nome:"Oficina e forja",amb:"Oficina e forja",itens:[{p:"forja",n:[1,1],chave:true},{p:"bigorna",n:[1,1],perto:"forja"},{p:"bancada",ou:"mesa",n:[1,2],por:16},{p:"ferramentas",n:[1,3],por:12},{p:"barril",n:[1,3],por:14},{p:"caixote",n:[1,4],por:12},{p:"armas",n:[0,2],por:20},{p:"tocha",n:[1,3],por:18}]},
   capela:{nome:"Capela",amb:"Templo",itens:[{p:"altar",n:[1,1],chave:true,fundo:true,lugar:"p",afasta:.9,em:[["velaMesa",1],["livros",.3]]},{p:"bancoLongo",n:[2,12],por:6,fileira:true},{p:"estatuaSanta",n:[0,2],por:30,perto:"altar"},{p:"velaChao",n:[2,6],por:10,perto:"altar"}],rico:[{p:"estatuaSanta",n:[1,2],por:30,perto:"altar"},{p:"velaChao",n:[2,4],por:10}]},
   guarda:{nome:"Sala de guarda e armaria",amb:"Militar e combate",itens:[{p:"armas",n:[1,4],por:9},{p:"manequim",n:[0,2],por:18},{p:"mesa",n:[1,1],com:{p:"cadeira",lados:2},em:[["louca",.8]]},{p:"bau",n:[1,3],por:14},{p:"barril",n:[0,2],por:18},{p:"caixote",n:[0,3],por:14},{p:"tocha",n:[1,3],por:14}]},
@@ -102,7 +102,7 @@ const DECOR=new Set(["tapete","planta","velaChao","estatua","estatuaSanta","polt
 
 // ---------- escolha das artes nos pacotes ----------
 // palavras de riqueza: o lugar rico prefere pecas finas, o pobre as simples
-const RICO_P=["fancy","ornate","noble","royal","gold","golden","silver","velvet","marble","luxury","gilded","decorated","carved","elegant","polished","fine","rich","silk","crystal"],POBRE_P=["plain","simple","rough","crude","straw","hay","cot","rustic","cheap","wicker","stool","bedroll","shabby","worn","old","commoner","sack"];
+const RICO_P=["fancy","ornate","noble","royal","gold","golden","silver","velvet","marble","luxury","gilded","decorated","carved","elegant","polished","fine","rich","silk","crystal"],POBRE_P=["plain","simple","rough","crude","straw","hay","cot","rustic","cheap","wicker","bedroll","shabby","worn","old","commoner","sack"];
 export const valorRiqueza=nome=>{const t=pal(nome);let v=0;for(const w of t){if(RICO_P.includes(w))v++;if(POBRE_P.includes(w))v--}return v};
 const pal=s=>(s||"").replace(/([a-z])([A-Z])/g,"$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 // item da fonte: {k, nome, pacote, estilo, sub}. Devolve os que servem para o papel
@@ -116,7 +116,9 @@ export function escolheArtes(tipo,fonte,par,semente){par=Object.assign({},PADRAO
   // riqueza manda mais que o estilo: comodo pobre nao leva peca "fancy/ornate", rico nao leva "plain/worn" (se houver outra); o estilo e escolhido depois disso
   const rqv=par.riqueza==null?1:par.riqueza;
   for(const p of ps){let L=[];for(const s of PAPEIS[p].sub)for(const it of lista(s))if(serve(p,it,par.estado))L.push(it);
-    if(rqv<=1){const F=L.filter(it=>valorRiqueza(it.nome)<=(rqv<=0?0:1));if(F.length)L=F}else{const F=L.filter(it=>valorRiqueza(it.nome)>=0);if(F.length)L=F}cand[p]=L}
+    // por pacote: um pacote sem peca do nivel certo fica com as dele (nao some da escolha por isso)
+    const ok=rqv<=1?it=>valorRiqueza(it.nome)<=(rqv<=0?0:1):it=>valorRiqueza(it.nome)>=0,porPc=new Map();for(const it of L){if(!porPc.has(it.pacote))porPc.set(it.pacote,[]);porPc.get(it.pacote).push(it)}
+    L=[];for(const G of porPc.values()){const F=G.filter(ok);L.push(...(F.length?F:G))}cand[p]=L}
   // pacote: o que cobre mais papeis (as pecas principais pesam mais); entre os 3 melhores, sorteia
   const C=COMODOS[tipo],peso=new Map();for(const it of C.itens)peso.set(it.p,Math.max(peso.get(it.p)||0,it.chave?3:PAPEIS[it.p].em?.5:1));
   const cob=new Map();for(const p of ps){const vistos=new Set();for(const it of cand[p]){if(vistos.has(it.pacote))continue;vistos.add(it.pacote);cob.set(it.pacote,(cob.get(it.pacote)||0)+(peso.get(p)||.5)*Math.min(1,.4+cand[p].filter(x=>x.pacote===it.pacote).length/40))}}
@@ -191,7 +193,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   const cabe=(a,vx,vy,r,o)=>{o=o||{};const V=visDe(a),fol=o.folga||0,L=casas(vx,vy,V[2]+fol*2,V[3]+fol*2,r),m=o.mg==null?mg:o.mg;
     // os quatro cantos e os meios dos lados precisam estar dentro, com a margem da parede
     for(const [a1,b1] of [[-1,-1],[1,-1],[1,1],[-1,1],[0,-1],[1,0],[0,1],[-1,0]]){const q=gira(a1*V[2]/2,b1*V[3]/2,r);if(dist(vx+q[0],vy+q[1])<m-.02)return null}
-    const pro=o.passa?0:(1|2|(o.parede?8:0));if(pro)for(const k of L)if(OC[k]&pro)return null;
+    const pro=o.passa?0:(1|2|16|(o.parede?8:0));if(pro)for(const k of L)if(OC[k]&pro)return null;
     // conferencia exata contra as pecas ja postas (a grade sozinha deixaria passar ate 1/4 de quadrado)
     let cx=null;if(!o.passa){cx=caixaDe(vx,vy,V[2]+fol*2,V[3]+fol*2,r,a.redondo);const tg=o.tolGrupo&&PAPEIS[o.tolGrupo]?(PAPEIS[o.tolGrupo].tol||0):0;for(const q of postas)if(q!==o.ignora&&bate(cx,q,q.cadeira&&o.cadeira?.12:tg&&q.grupo===o.tolGrupo?Math.max(.03,tg):.03))return null;if(fol)cx=caixaDe(vx,vy,V[2],V[3],r,a.redondo)}
     if(o.passa)for(const k of L)if(D[k]<0)return null;
@@ -226,7 +228,10 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
         let nota=R()*(it.fundo?.2:2.2);if(it.chave)nota+=Math.min(dPorta(x,y),8)*.12-Math.abs(t-s.L/2)/s.L*.8+Math.min(s.L,lg*2)*.1;if(it.perto){const d=dPapel(x,y,it.perto);if(d<90)nota-=d*.45}if(it.fundo)nota+=Math.min(dPorta(x,y),20)*.4-Math.abs(t-s.L/2)*3+(s.L>=3?1:-2);
         if(papel==="tocha")nota+=Math.min(dPapel(x,y,"tocha"),6)*.25;T.push([nota,s,x,y])}}
     T.sort((u,v)=>v[0]-u[0]);const r0=o=>o;
-    for(const [,s,x,y] of T.slice(0,90)){const r=giroPara(a,s.n);for(const emp of [0,.12,.25,.4]){const d=mg+fd/2+emp+af,ob=poe(a,papel,x+s.n[0]*d,y+s.n[1]*d,r,{parede:true});if(ob){ob.n=s.n;return r0(ob)}}}return null};
+    for(const [,s,x,y] of T.slice(0,90)){const r=giroPara(a,s.n);for(const emp of [0,.12,.25,.4]){const d=mg+fd/2+emp+af,ob=poe(a,papel,x+s.n[0]*d,y+s.n[1]*d,r,{parede:true});if(ob){ob.n=s.n;
+          // o corredor entre a peca afastada e a parede fica reservado (o atendente passa; nada se poe ali)
+          if(af>.2){const cx=x+s.n[0]*(mg+af/2),cy=y+s.n[1]*(mg+af/2),L2=casas(cx,cy,lg+.2,af,Math.atan2(s.t[1],s.t[0]));for(const k of L2)OC[k]|=16}
+          return r0(ob)}}}return null};
   // canto: vertices com angulo perto de 90 graus
   const noCanto=(a,papel,it)=>{const V=visDe(a),T=[];for(let i=0;i<lados.length;i++){const s=lados[i],p=lados[(i+lados.length-1)%lados.length];if(s.L<.8||p.L<.8)continue;const cr=p.t[0]*s.t[1]-p.t[1]*s.t[0],dt=p.t[0]*s.t[0]+p.t[1]*s.t[1];if(cr<.5||Math.abs(dt)>.5)continue;T.push([R()+Math.min(dPorta(s.a[0],s.a[1]),6)*.1,s,p])}
     T.sort((u,v)=>v[0]-u[0]);for(const [,s,p] of T){const r=giroPara(a,s.n),w2=(Math.abs(Math.cos(r))>.7?V[2]:V[3])/2;for(const emp of [0,.15,.3]){const d1=mg+fundoDe(a)/2+emp,d2=mg+largDe(a)/2+emp,ob=poe(a,papel,s.a[0]+s.n[0]*d1+p.n[0]*d2,s.a[1]+s.n[1]*d1+p.n[1]*d2,r,{parede:true});if(ob)return ob}}return naParede(a,papel,it)};
