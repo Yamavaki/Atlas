@@ -195,7 +195,7 @@ function linhaV2(F,P,cat,ambP,esc){const f0=F.itens[0].f,b0=F.itens[0].base,nm0=
     if(f0&&f0.length>=11){partes.push("vis "+[pct(f0[2]),pct(f0[3]),pct(f0[4]-f0[2]),pct(f0[5]-f0[3])].join(","));const fo=forma(f0);if(fo)partes.push("f "+fo);partes.push("cor "+cor3(f0[8]))}
     const fl=(F.itens.some(x=>/colorable/i.test(x.base)||(x.tags||[]).some(t=>/colorable/i.test(t)))?"C":"")+(F.itens.some(x=>/(^|_)lit(_|$)|lamp|lantern|torch|candle|neon/i.test(x.base))?"L":"");if(fl)partes.push(fl);
     const tg=[...new Set(F.itens.flatMap(x=>x.tags||[]))].filter(t=>!/colorable/i.test(t)).slice(0,3);if(tg.length)partes.push(tg.map(t=>"#"+t.replace(/\s+/g,"_")).join(" "))}
-  else{if(cat==="paths"&&f0&&f0[1])partes.push("largura "+q(f0[1]/QUAD));if(/^(terrain|patterns|textures|tilesets|materials?)$/.test(cat)&&f0&&f0[0])partes.push("repete "+q(f0[0]/QUAD)+"x"+q(f0[1]/QUAD));if(cat==="portals"&&f0&&f0[0])partes.push(tamQ(f0));if(cat==="walls"&&/(Stone|Brick|Plaster|Mudbrick|Adobe|Mosaic)Wood_/i.test(b0))partes.push("2 lados: madeira embaixo");if(f0&&f0[8])partes.push("cor "+cor3(f0[8]))}
+  else{if(cat==="paths"&&f0&&f0[1])partes.push("largura "+q(f0[1]/QUAD));if(/^(terrain|patterns|textures|tilesets|materials?)$/.test(cat)&&f0&&f0[0])partes.push("repete "+q(f0[0]/QUAD)+"x"+q(f0[1]/QUAD));if(cat==="portals"&&f0&&f0[0])partes.push(tamQ(f0));if(cat==="walls"&&/(Stone|Brick|Plaster|Mudbrick|Adobe|Mosaic)Wood_/i.test(nm0))partes.push("2 lados: madeira embaixo");if(f0&&f0[8])partes.push("cor "+cor3(f0[8]))}
   return partes.join(" · ")}
 // dados de um pacote agrupados por categoria do Atlas > tipo > pasta, com familias
 function gruposV2(d){const P=d.P,G=new Map(),amb=new Map();let nObj=0;
