@@ -40,7 +40,8 @@ export const PAPEIS={
   banheira:{sub:["Banheiras e chuveiros"],q:["bath","tub","shower"],nao:["baby","mat","curtain","head","drain","water","foam","bubble"],t:[.7,3.2],lugar:"p"},
   tapete:{sub:["Tapetes"],q:["rug","carpet"],nao:["path","rim","modular","rolled","stair","runner","corner","end","door","bath","beater"],t:[1.2,6.5],lugar:"m",passa:true},
   planta:{sub:["Plantas em vaso"],nao:["empty","hanging","wall","dead"],t:[.4,1.6],lugar:"k",varia:3},
-  estatua:{sub:["Estátuas"],nao:["head","arm","piece","rubble","base","fallen","part","fragment","cube","obelisk","sphere","pyramid","orb","pottery","clay","bust","tiny","small","miniature","death","skull"],pref:["figure","hooded","praying","knight","mage","man","woman","saint","angel","king","queen","lion"],t:[.8,3.2],lugar:"p",varia:2},
+  estatua:{sub:["Estátuas"],nao:["head","arm","piece","rubble","base","fallen","part","fragment","cube","obelisk","sphere","pyramid","orb","pottery","clay","bust","tiny","small","miniature","death","skull"],pref:["figure","hooded","praying","knight","mage","man","woman","saint","angel","king","queen"],t:[.6,1.7],lugar:"p",varia:2},
+  estatuaSanta:{sub:["Estátuas"],q:["angel","saint","praying","priest","monk","nun","hooded","cleric","god","goddess","holy","prophet","paladin","deity","virgin","madonna","robed"],nao:["head","arm","piece","rubble","base","fallen","part","fragment","broken","bust","tiny","small","miniature","death","skull","demon","devil","evil","dark","dragon","lion","beast"],t:[.5,2.4],lugar:"p",varia:1},
   altar:{sub:["Magia e alquimia","Mesas"],q:["altar"],nao:["cloth","runner","candle","blood","offering","rim"],t:[.8,4.2],lugar:"m"},
   armas:{sub:["Armas e armaduras"],q:["rack","stand","display"],nao:["target"],t:[.5,3.2],lugar:"p",varia:6},
   manequim:{sub:["Armas e armaduras","Pessoas e manequins"],q:["mannequin","dummy","armor"],nao:["arm","guard","leg","helmet","piece","glove","boot","rack","skirt","module"],t:[.6,2.2],lugar:"s",varia:2},
@@ -48,14 +49,14 @@ export const PAPEIS={
   forja:{sub:["Oficina e trabalho","Fogões, fornos e lareiras"],q:["forge","furnace","smelter","kiln"],nao:["tool","tongs","bellows"],t:[.9,4.2],lugar:"p",luz:"lareira"},
   ferramentas:{sub:["Ferramentas","Oficina e trabalho"],q:["tool","tools","grindstone","bellows","workbench","rack"],nao:["box"],t:[.4,3.2],lugar:"p",varia:8},
   velaChao:{sub:["Velas e candelabros"],q:["candelabra","candelabrum","candlestick","standing"],nao:["wall","table","holder","small","wax"],t:[.3,1.6],lugar:"k",luz:"vela",varia:2},
-  tocha:{sub:["Tochas e braseiros"],q:["torch","sconce","brazier"],nao:["unlit","off","burnt","stake","holder","handle","empty","hand","brazier"],t:[.3,1.6],lugar:"p",luz:"tocha",fino:true},
+  tocha:{sub:["Tochas e braseiros"],q:["torch","sconce","brazier"],nao:["unlit","off","burnt","stake","holder","handle","empty","hand","brazier","blue","green","purple","pink","cyan","magic"],pref:["orange","lit","torch"],t:[.3,1.6],lugar:"p",luz:"tocha",fino:true},
   lampada:{sub:["Lâmpadas e lanternas"],q:["lamp","lantern"],nao:["street","post","off","unlit","broken","table","desk","ceiling","hanging","shade"],t:[.3,1.6],lugar:"k",luz:"lampiao"},
   arranjoDep:{sub:["Outros","Caixas e caixotes"],todas:["storage","arrangement"],t:[.8,5.2],lugar:"k",varia:4},
   // em cima dos moveis
   louca:{sub:["Louça e copos"],q:["plate","mug","cup","bowl","tankard","goblet","jug","bottle","glass","dish","stein"],nao:["side","broken","stack","rack","shelf","counter","case","crate","empty","spill"],t:[.1,.7],em:true,varia:12},
   comida:{sub:["Comida"],q:["bread","cheese","meat","fruit","pie","food","apple","fish","cake","ham","chicken","soup","stew"],nao:["raw","rotten","mill","crop","sack","crate","barrel","tray","stall","cut","slice","hook","piece","grinder","cleaver"],t:[.1,.8],em:true,varia:12},
   livros:{sub:["Livros e papéis"],q:["book","books","scroll","paper","papers","letter","tome","journal","quill","ink"],nao:["shelf","stack","pile","case","stand","bloody","burnt","rolls","box","sheet"],t:[.1,.8],em:true,varia:12},
-  velaMesa:{sub:["Velas e candelabros"],q:["candle","candles"],nao:["wall","stand","unlit","holder","candelabra","arranged","melted","chandelier","wreath","snuffer","mold","box"],t:[.08,.6],em:true,luz:"vela",varia:6},
+  velaMesa:{sub:["Velas e candelabros"],q:["candle","candles"],nao:["wall","stand","unlit","holder","candelabra","arranged","melted","chandelier","wreath","snuffer","mold","box","wax","cluster","group","pile","bunch"],t:[.08,.35],em:true,luz:"vela",varia:6},
 };
 // palavras que so entram quando o estado do lugar e ruim
 const RUIM=["torn","ragged","tattered","messy","spilled","bloodied","broken","damaged","fallen","bloody","blood","burnt","burned","ruined","destroyed","dirty","overturned","toppled","rotten","smashed","cracked","rusty","rusted","moldy","abandoned","collapsed","debris","dead"];
@@ -63,7 +64,7 @@ const NUNCA=["shadow","overlay","colorable","glow","highlight","outline","mask",
 // conjuntos tematicos dos pacotes: so entram quando o tema pedir (proximas versoes)
 const TEMATICO=["ceremorph","dwarven","drow","covered","torment","snowy","frosty","frozen","elven","orc","goblin","undead","xmas","christmas","halloween","spooky","wedding","nursery","invocation"];
 // papeis cujo material define o estilo do comodo (madeira clara, escura...)
-const MOVEIS=new Set(["cama","criado","guardaRoupa","estante","armario","bau","mesa","mesaPronta","mesinha","escrivaninha","bancada","cadeira","banqueta","bancoLongo","sofa","poltrona","balcao"]);
+const MOVEIS=new Set(["cama","criado","guardaRoupa","estante","armario","bau","mesa","mesaLonga","mesaPronta","mesinha","escrivaninha","bancada","cadeira","banqueta","bancoLongo","sofa","poltrona","balcao"]);
 
 // ---------- comodos: receita de cada tipo ----------
 // n = [minimo, maximo]; por = uma peca a cada N quadrados de area; chave = peca principal (vai primeiro, longe da porta, no meio da parede)
@@ -83,15 +84,15 @@ export const COMODOS={
   biblioteca:{nome:"Biblioteca",amb:"Biblioteca e estudo",itens:[{p:"estante",n:[3,24],por:3.5},{p:"tapete",n:[0,1],prob:.6},{p:"mesa",n:[1,3],por:30,grade:true,com:{p:"cadeira",lados:4},em:[["livros",1.4],["velaMesa",.4]]},{p:"poltrona",n:[0,2],por:26},{p:"velaChao",n:[1,4],por:18}],rico:[{p:"tapete",n:[1,2],por:40},{p:"estatua",n:[0,2],por:40},{p:"planta",n:[1,2]}]},
   taverna:{nome:"Salão de taverna",amb:"Taverna",itens:[{p:"balcao",n:[1,1],chave:true,com:{p:"banqueta",frente:true}},{p:"lareira",n:[0,1],min:30},{p:"mesa",n:[2,10],por:15,grade:true,com:{p:"cadeira",lados:4,varia:true},em:[["louca",1.2],["comida",.6],["velaMesa",.3]]},{p:"barril",n:[1,5],por:16,perto:"balcao"},{p:"armario",n:[0,1],perto:"balcao"},{p:"tocha",n:[2,6],por:14}],rico:[{p:"velaChao",n:[1,3],por:20},{p:"tapete",n:[0,1]}]},
   oficina:{nome:"Oficina e forja",amb:"Oficina e forja",itens:[{p:"forja",n:[1,1],chave:true},{p:"bigorna",n:[1,1],perto:"forja"},{p:"bancada",ou:"mesa",n:[1,2],por:16},{p:"ferramentas",n:[1,3],por:12},{p:"barril",n:[1,3],por:14},{p:"caixote",n:[1,4],por:12},{p:"armas",n:[0,2],por:20},{p:"tocha",n:[1,3],por:18}]},
-  capela:{nome:"Capela",amb:"Templo",itens:[{p:"altar",n:[1,1],chave:true,fundo:true,lugar:"p",afasta:.9,em:[["velaMesa",1],["livros",.3]]},{p:"bancoLongo",n:[2,12],por:6,fileira:true},{p:"estatua",n:[0,2],por:30,perto:"altar"},{p:"velaChao",n:[2,6],por:10,perto:"altar"}],rico:[{p:"estatua",n:[1,2],por:30,perto:"altar"},{p:"velaChao",n:[2,4],por:10}]},
+  capela:{nome:"Capela",amb:"Templo",itens:[{p:"altar",n:[1,1],chave:true,fundo:true,lugar:"p",afasta:.9,em:[["velaMesa",1],["livros",.3]]},{p:"bancoLongo",n:[2,12],por:6,fileira:true},{p:"estatuaSanta",n:[0,2],por:30,perto:"altar"},{p:"velaChao",n:[2,6],por:10,perto:"altar"}],rico:[{p:"estatuaSanta",n:[1,2],por:30,perto:"altar"},{p:"velaChao",n:[2,4],por:10}]},
   guarda:{nome:"Sala de guarda e armaria",amb:"Militar e combate",itens:[{p:"armas",n:[1,4],por:9},{p:"manequim",n:[0,2],por:18},{p:"mesa",n:[1,1],com:{p:"cadeira",lados:2},em:[["louca",.8]]},{p:"bau",n:[1,3],por:14},{p:"barril",n:[0,2],por:18},{p:"caixote",n:[0,3],por:14},{p:"tocha",n:[1,3],por:14}]},
   loja:{nome:"Loja",amb:"Loja e mercado",itens:[{p:"balcao",n:[1,1],chave:true},{p:"armario",n:[2,8],por:7},{p:"estante",n:[0,3],por:14},{p:"caixote",n:[1,5],por:10},{p:"barril",n:[0,3],por:14},{p:"saco",n:[0,3],por:14},{p:"tapete",n:[0,1],prob:.4},{p:"lampada",n:[0,2],por:20}],rico:[{p:"planta",n:[1,2]},{p:"tapete",n:[1,1]},{p:"velaChao",n:[1,2]}]},
 };
-export const NOME_PAPEL={cama:"cama",criado:"criado-mudo",guardaRoupa:"guarda-roupa",estante:"estante",armario:"armário",bau:"baú",mesa:"mesa",mesaLonga:"mesa comprida",mesinha:"mesinha",escrivaninha:"escrivaninha",bancada:"bancada",cadeira:"cadeira",banqueta:"banqueta",bancoLongo:"banco",sofa:"sofá",poltrona:"poltrona",balcao:"balcão",barril:"barril",caixote:"caixote",saco:"saco",pote:"pote",fogao:"fogão",lareira:"lareira",pia:"pia",vaso:"vaso sanitário",banheira:"banheira",tapete:"tapete",planta:"planta",estatua:"estátua",altar:"altar",armas:"suporte de armas",manequim:"manequim",bigorna:"bigorna",forja:"forja",ferramentas:"ferramentas",velaChao:"candelabro",tocha:"tocha",lampada:"lâmpada",louca:"louça",comida:"comida",livros:"livros",velaMesa:"vela"};
+export const NOME_PAPEL={cama:"cama",criado:"criado-mudo",guardaRoupa:"guarda-roupa",estante:"estante",armario:"armário",bau:"baú",mesa:"mesa",mesaLonga:"mesa comprida",mesinha:"mesinha",escrivaninha:"escrivaninha",bancada:"bancada",cadeira:"cadeira",banqueta:"banqueta",bancoLongo:"banco",sofa:"sofá",poltrona:"poltrona",balcao:"balcão",barril:"barril",caixote:"caixote",saco:"saco",pote:"pote",fogao:"fogão",lareira:"lareira",pia:"pia",vaso:"vaso sanitário",banheira:"banheira",tapete:"tapete",planta:"planta",estatua:"estátua",estatuaSanta:"imagem sacra",altar:"altar",armas:"suporte de armas",manequim:"manequim",bigorna:"bigorna",forja:"forja",ferramentas:"ferramentas",velaChao:"candelabro",tocha:"tocha",lampada:"lâmpada",louca:"louça",comida:"comida",livros:"livros",velaMesa:"vela"};
 export const PADRAO={dens:.7,bag:.6,riqueza:1,luz:true,estado:0,fonte:"auto",pacote:"",estilo:""};
 export const RIQUEZAS=["Pobre","Comum","Rico","Nobre"];
 // enfeites: a riqueza do lugar decide quantos entram (o essencial nao muda)
-const DECOR=new Set(["tapete","planta","velaChao","estatua","poltrona","mesinha","lampada","tocha","estante","manequim","pote"]);
+const DECOR=new Set(["tapete","planta","velaChao","estatua","estatuaSanta","poltrona","mesinha","lampada","tocha","estante","manequim","pote"]);
 
 // ---------- escolha das artes nos pacotes ----------
 // palavras de riqueza: o lugar rico prefere pecas finas, o pobre as simples
@@ -202,7 +203,13 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   const giroPara=(a,n)=>{const f=frenteDe(a);return Math.atan2(n[1],n[0])-Math.atan2(f[1],f[0])};
   const fundoDe=a=>{const V=visDe(a),f=frenteDe(a);return f[0]?V[2]:V[3]},largDe=a=>{const V=visDe(a),f=frenteDe(a);return f[0]?V[3]:V[2]};
   // encostar na parede: anda pelo contorno e experimenta; quem tem nota maior vai primeiro
-  const naParede=(a,papel,it)=>{const fd=fundoDe(a),lg=largDe(a),T=[],fu=it._semFu?null:FUNDE(a),af=it.afasta!=null?it.afasta:(PAPEIS[papel].afasta||0);
+  // peca de conjunto (ponta apagada para encaixar): monta duas pecas espelhadas, pontas apagadas uma sobre a outra no meio
+  const montaPar=(a,b)=>{const F=a.funde,ax=F==="W"||F==="L",Va=visDe(a),Vb=visDe(b),da=ax?Va[2]:Va[3],db=ax?Vb[2]:Vb[3],dp=Math.max(ax?Va[3]:Va[2],ax?Vb[3]:Vb[2]),ov=.9;if(Math.min(da,db)<ov+.6)return null;const Lc=da+db-ov;
+    return {k:a.k,w:ax?Lc:dp,h:ax?dp:Lc,vis:[0,0,1,1],fr:a.fr,cam:a.cam,_comp:{a,b,F,ax,Lc}}};
+  const naParede=(a,papel,it)=>{if(!it._semFu&&!a._comp&&FUNDE(a)){const fam=x=>x.k.replace(/_[A-Z]\d*_\d+x\d+\.\w+$/,""),irmas=(cat[papel]||[]).filter(x=>x.funde===a.funde&&fam(x)===fam(a)),C=[];
+      for(const b of irmas.length?irmas:[a])for(const c of irmas.length?irmas:[a]){const m=montaPar(b,c);if(m&&Math.max(visDe(m)[2],visDe(m)[3])<=PAPEIS[papel].t[1]+.5)C.push(m)}
+      C.sort((u,v)=>Math.max(v.w,v.h)-Math.max(u.w,u.h));const top=C.slice(0,3),ord=[...top.sort(()=>R()-.5),...C.slice(3)];for(const m of ord){const ob=naParede(m,papel,Object.assign({},it,{_semFu:true}));if(ob)return ob}return null}
+    const fd=fundoDe(a),lg=largDe(a),T=[],fu=it._semFu?null:FUNDE(a),af=it.afasta!=null?it.afasta:(PAPEIS[papel].afasta||0);
     for(const s of lados){if(s.L<Math.min(lg,1)*.6)continue;let t0=Math.min(s.L/2,lg/2+.05),t1=s.L-t0;
       // ponta apagada: so nas pontas do lado, com a ponta virada para o canto
       if(fu){const r=giroPara(a,s.n),d=gira(fu[0],fu[1],r),pr=d[0]*s.t[0]+d[1]*s.t[1];if(Math.abs(pr)<.7)continue;const t=pr<0?lg/2+.02:s.L-lg/2-.02;if(t<0||t>s.L)continue;t0=t1=t}
@@ -210,7 +217,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
         let nota=R()*(it.fundo?.2:2.2);if(it.chave)nota+=Math.min(dPorta(x,y),8)*.12-Math.abs(t-s.L/2)/s.L*.8+Math.min(s.L,lg*2)*.1;if(it.perto){const d=dPapel(x,y,it.perto);if(d<90)nota-=d*.45}if(it.fundo)nota+=Math.min(dPorta(x,y),20)*.4-Math.abs(t-s.L/2)*3+(s.L>=3?1:-2);
         if(papel==="tocha")nota+=Math.min(dPapel(x,y,"tocha"),6)*.25;T.push([nota,s,x,y])}}
     T.sort((u,v)=>v[0]-u[0]);const r0=o=>o;
-    for(const [,s,x,y] of T.slice(0,90)){const r=giroPara(a,s.n);for(const emp of [0,.12,.25,.4]){const d=mg+fd/2+emp+af,ob=poe(a,papel,x+s.n[0]*d,y+s.n[1]*d,r,{parede:true});if(ob){ob.n=s.n;return r0(ob)}}}return fu?naParede(a,papel,Object.assign({},it,{_semFu:true})):null};
+    for(const [,s,x,y] of T.slice(0,90)){const r=giroPara(a,s.n);for(const emp of [0,.12,.25,.4]){const d=mg+fd/2+emp+af,ob=poe(a,papel,x+s.n[0]*d,y+s.n[1]*d,r,{parede:true});if(ob){ob.n=s.n;return r0(ob)}}}return null};
   // canto: vertices com angulo perto de 90 graus
   const noCanto=(a,papel,it)=>{const V=visDe(a),T=[];for(let i=0;i<lados.length;i++){const s=lados[i],p=lados[(i+lados.length-1)%lados.length];if(s.L<.8||p.L<.8)continue;const cr=p.t[0]*s.t[1]-p.t[1]*s.t[0],dt=p.t[0]*s.t[0]+p.t[1]*s.t[1];if(cr<.5||Math.abs(dt)>.5)continue;T.push([R()+Math.min(dPorta(s.a[0],s.a[1]),6)*.1,s,p])}
     T.sort((u,v)=>v[0]-u[0]);for(const [,s,p] of T){const r=giroPara(a,s.n),w2=(Math.abs(Math.cos(r))>.7?V[2]:V[3])/2;for(const emp of [0,.15,.3]){const d1=mg+fundoDe(a)/2+emp,d2=mg+largDe(a)/2+emp,ob=poe(a,papel,s.a[0]+s.n[0]*d1+p.n[0]*d2,s.a[1]+s.n[1]*d1+p.n[1]*d2,r,{parede:true});if(ob)return ob}}return naParede(a,papel,it)};
@@ -234,7 +241,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   // cadeiras em volta, banquetas na frente, e o que vai em cima
   const emVolta=(mesa,it)=>{const cd=arteDe(it.com.p);if(!cd)return;const Vc=visDe(cd),fc=fundoDe(cd),lc=largDe(cd),ux=gira(1,0,mesa.r),uy=gira(0,1,mesa.r),S=[];
     const lado=(dir,meia,comp)=>{const n=it.com.n||Math.max(1,Math.floor((comp+.15)/Math.max(.95,lc+.25)));for(let i=0;i<n;i++){const t=(i+.5)/n-.5;S.push([dir,t*comp,meia])}};
-    const fMesa=frenteDe(cat[mesa.papel].find(a=>a.k===mesa.k)||{}),lf=it.com.frente||it.com.n===1?[fMesa]:mesa.vw>=mesa.vh?[[0,1],[0,-1],[1,0],[-1,0]]:[[1,0],[-1,0],[0,1],[0,-1]];
+    const fMesa=frenteDe(mesa._art||cat[mesa.papel].find(a=>a.k===mesa.k)||{}),lf=it.com.frente||it.com.n===1?[fMesa]:mesa.vw>=mesa.vh?[[0,1],[0,-1],[1,0],[-1,0]]:[[1,0],[-1,0],[0,1],[0,-1]];
     const usa=lf.slice(0,it.com.varia&&!it.com.frente?Math.max(2,Math.min(4,(it.com.lados||4)-Math.floor(R()*3))):it.com.lados||(it.com.frente||it.com.n===1?1:4));for(const d of usa)lado(d,d[0]?mesa.vw/2:mesa.vh/2,d[0]?mesa.vh:mesa.vw);
     for(const k of mesa._L)OC[k]&=~1;
     for(const [d,t,meia] of S){const off=meia+fc/2-Math.min(.1,fc*.15),lx=d[0]*off+(d[0]?0:t),ly=d[1]*off+(d[1]?0:t),x=mesa.vx+ux[0]*lx+uy[0]*ly,y=mesa.vy+ux[1]*lx+uy[1]*ly,para=gira(-d[0],-d[1],mesa.r);
@@ -304,6 +311,12 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   if(ocup<piso){const extras=itens.filter(it=>!it.chave&&!it.fileira&&!it.grade&&!PAPEIS[it.p].passa&&!PAPEIS[it.p].em&&(it.lugar||PAPEIS[it.p].lugar)!=="m"&&arteDe(it.p)&&!(it.min&&A<it.min));
     for(let volta=0,pos=true;volta<4&&pos&&ocup<piso;volta++){pos=false;for(const it of extras){if(ocup>=piso)break;if(objs.filter(o=>o.papel===it.p).length>=it.n[1])continue;if(it.arranjo||PAPEIS[it.p].arranjo){const F=grupo(it,Math.min(3,it.n[1]-objs.filter(o=>o.papel===it.p).length));if(F.length)pos=true;continue}const a=arteDe(it.p),lugar=it.lugar||PAPEIS[it.p].lugar,ob=lugar==="p"?naParede(a,it.p,it):lugar==="k"?noCanto(a,it.p,it):solto(a,it.p,it);if(ob){pos=true;emCima(ob,it)}}}}
   if(faltou.size)avisos.push("Sem arte para: "+[...faltou].map(p=>NOME_PAPEL[p]||p).join(", ")+".");
+  {const saida=[];for(const o of objs){const cp=o._art&&o._art._comp;if(!cp){saida.push(o);continue}const {a,b,F,ax,Lc}=cp,cs=Math.cos(o.r),sn=Math.sin(o.r),W=(lx,ly)=>[o.vx+lx*cs-ly*sn,o.vy+lx*sn+ly*cs];
+      // a peca "crua" fica do lado para onde a ponta dela nao aponta; a outra e espelhada (no eixo vertical, espelhada e virada 180)
+      const sinal=F==="W"||F==="N"?1:-1;
+      for(const [p,lado,esp] of [[a,sinal,false],[b,-sinal,true]]){const V=visDe(p),dl=ax?V[2]:V[3],t=lado*(Lc/2-dl/2),cen=ax?W(t,0):W(0,t),off=!esp?[V[0],V[1]]:ax?[-V[0],V[1]]:[V[0],-V[1]],g=[off[0]*cs-off[1]*sn,off[0]*sn+off[1]*cs],r=esp&&!ax?o.r+Math.PI:o.r;
+        const q={k:p.k,papel:o.papel,x:+(cen[0]-g[0]).toFixed(3),y:+(cen[1]-g[1]).toFixed(3),r:+r.toFixed(4),w:p.w,h:p.h,l:(o.l||200)+(esp?1:0)};if(esp)q.m=1;saida.push(q)}}
+    objs.length=0;objs.push(...saida)}
   for(const l of luzes)delete l._de;for(const o of objs){delete o.vx;delete o.vy;delete o.vw;delete o.vh;delete o._L;delete o._c;delete o._a;delete o.n;delete o.red;delete o._art}
   return {objs,luzes,avisos,area:A,anda:totalAnda}}
 

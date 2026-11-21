@@ -61,7 +61,8 @@ const RE_SOBRE=P_("book|cup|mug|plate|bottle|candle|food|paper|scroll|letter|coi
 const RE_LUZ=/(^|_)lit(_|$)|lamp|lantern|torch|candle|fire|neon|light/i;
 function camada(nome,cat,wq,hq){if(cat!=="objects")return null;if(K(nome,RE_CHAO))return 100;if(K(nome,RE_ALTO))return 400;if(K(nome,RE_SOBRE)&&Math.max(wq,hq)<=1)return 300;return 200}
 // frente na imagem: convencao do autor + excecoes conhecidas
-const EXCECOES=[[/Fireplace_Rectangle/i,"W"]];
+// (FA) arandelas e tochas de parede: o suporte fica a direita, a chama para a esquerda
+const EXCECOES=[[/Fireplace_Rectangle/i,"W"],[/^(Sconce|Wall_Torch)_/i,"W"]];
 // costas: lado reto e cheio medido na arte (perfilArte); vale mais que o costume do autor
 function frente(nome,autor,f,costas){for(const [re,d] of EXCECOES)if(re.test(nome))return d;if(!f||f.length<11)return costas?{N:"S",S:"N",L:"W",W:"L"}[costas]:"?";const sh=f[9]/255,sv=f[10]/255;
   if(sh>.86&&sv>.86)return "sim";if(costas)return {N:"S",S:"N",L:"W",W:"L"}[costas];const fa=/forgotten adventures/i.test(autor);if(sh>.72&&sv<.72)return fa?"S":"N|S";if(sv>.72&&sh<.72)return fa?"S":"L|W";return fa?"S":"?"}
@@ -252,7 +253,9 @@ export async function perfilArte(c){if(BORDA.has(c))return BORDA.get(c);const va
     const bw=x1-x0+1,bh=y1-y0+1,ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
     const meio=faixa(mx0,mx1,my0,my1)||1,Lw=faixa(x0,x0+ex-1,my0,my1)/meio,Le=faixa(x1-ex+1,x1,my0,my1)/meio,Ln=faixa(mx0,mx1,y0,y0+ey-1)/meio,Ls=faixa(mx0,mx1,y1-ey+1,y1)/meio;
     const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([,v,o])=>v<.72&&o>.78).sort((p,q)=>p[1]-q[1]);res.funde=C.length?C[0][0]:"";
-    if(bh>=bw*1.4&&Math.abs(Lw-Le)>.08)res.costas=Lw>Le?"W":"L";else if(bw>=bh*1.4&&Math.abs(Ln-Ls)>.08)res.costas=Ln>Ls?"N":"S"}catch(e){}
+    // costas: o lado cheio no comprimento todo (a boca da lareira e o arco, que so ocupa o meio; no balcao, a barra de apoio e fina)
+    const i0=Math.round(bh*.06),i1=Math.round(bw*.06),FW=faixa(x0,x0+ex-1,y0+i0,y1-i0),FE=faixa(x1-ex+1,x1,y0+i0,y1-i0),FN=faixa(x0+i1,x1-i1,y0,y0+ey-1),FS=faixa(x0+i1,x1-i1,y1-ey+1,y1);
+    if(bh>=bw*1.4&&Math.abs(FW-FE)>12)res.costas=FW>FE?"W":"L";else if(bw>=bh*1.4&&Math.abs(FN-FS)>12)res.costas=FN>FS?"N":"S"}catch(e){}
   BORDA.set(c,res);return res}
 // ficha de uma arte so, medida na hora quando o pacote ainda nao foi analisado (para o gerador de zonas)
 const UMA=new Map();

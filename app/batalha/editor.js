@@ -189,7 +189,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       const ks=[...new Set(r.objs.map(x=>x.k).filter(real))];if(ks.length){zMsg="Carregando as artes…";painel(true);await atualizaReais(ks)}
       if(a0!==andar||!zonasDe().includes(z))return null;
       const ops=apagaOps(soltos),sd=M.sombra&&M.sombra.sd?{sd:M.sombra.sd.slice()}:{};for(const x of extra){x.e.zg=assinatura(x.e);ops.push({op:"cria",a:andar,k:x.k,item:x.e})}
-      for(const x of r.objs){const e={id:MD.novoId(M),t:MD.texDe(M,texO(x.k)),x:x.x,y:x.y,r:x.r,w:x.w,h:x.h,l:x.l,...(real(x.k)||M.sombra&&M.sombra.todos?{s:1}:{}),...sd,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"objetos",item:e})}
+      for(const x of r.objs){const e={id:MD.novoId(M),t:MD.texDe(M,texO(x.k)),x:x.x,y:x.y,r:x.r,w:x.w,h:x.h,l:x.l,...(x.m?{m:1}:{}),...(real(x.k)||M.sombra&&M.sombra.todos?{s:1}:{}),...sd,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"objetos",item:e})}
       for(const l of r.luzes){const P=MD.LUZES.find(q=>q[0]===l.pre)||MD.LUZES[0],e={id:MD.novoId(M),x:l.x,y:l.y,raio:P[2],claro:P[3],forca:P[4],c:P[5].concat(1),sombras:true,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"luzes",item:e})}
       info.n=r.objs.length;info.travados=travados.filter(s=>s.k==="objetos"||s.k==="luzes").length;info.avisos=r.avisos;ops.push({op:"muda",a:andar,k:"zonas",id:z.id,de:MD.foto(z),para:Object.assign(MD.foto(z),{semente,info})});
       exec(ops,o.variar?"Variar zona":"Gerar zona");pendente=true;return r}
