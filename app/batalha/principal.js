@@ -19,5 +19,6 @@ async function abrir(id,raiz,opt){if(atual){atual.fechar();atual=null}const r=aw
 const novoId=()=>"bt"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 async function novo(o){const M=novoMapa(o),id=novoId();await loja.salvar(id,M.nome,M);return {id,nome:M.nome,avisos:[],novo:true}}
 BIB.restaurar().catch(()=>{});
-window.AtlasBatalha={VERSAO,artes:BIB,EXEMPLOS,novo,abrirEditor,atual:()=>atual,importarArquivo,importarExemplo,carregarCatalogo,abrir,apagar:loja.apagar,listar:loja.listar,resumo,abrirVisor,importarDD};
+const copiarParaPasta=async()=>{let n=0;for(const r of await loja.listar()){const x=await loja.ler(r.id);if(x){await loja.salvar(x.id,x.nome,x.mapa);n++}}return n};
+window.AtlasBatalha={VERSAO,copiarParaPasta,artes:BIB,EXEMPLOS,novo,abrirEditor,atual:()=>atual,importarArquivo,importarExemplo,carregarCatalogo,abrir,apagar:loja.apagar,listar:loja.listar,resumo,abrirVisor,importarDD};
 window.dispatchEvent(new Event("atlas-batalha"));

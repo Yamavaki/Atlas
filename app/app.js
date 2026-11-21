@@ -108,7 +108,7 @@ const Store={db:null,dl:null,dirty:new Set(),timers:new Map(),chain:new Map(),
   // le a pasta aberta e passa a gravar nela
   async dePasta(migrar){const AP=window.AtlasPasta,r=await AP.carregar();const antes={notes:[...S.notes.values()],maps:[...S.maps.values()]};
     this.pasta=true;this.db=null;this.pastaPend=null;S.notes.clear();S.maps.clear();for(const o of r.notas)S.notes.set(o.id,o);for(const m of r.mapas)S.maps.set(m.id,m);
-    if(migrar&&!r.notas.length&&!r.mapas.length&&(antes.notes.length||antes.maps.length)){for(const o of antes.notes){S.notes.set(o.id,o);AP.gravaNota(o)}for(const m of antes.maps){S.maps.set(m.id,m);AP.gravaMapa(m)}toast(antes.notes.length+" nota(s) e "+antes.maps.length+" mapa(s) copiados para a pasta.")}
+    if(migrar&&!r.notas.length&&!r.mapas.length&&(antes.notes.length||antes.maps.length)){for(const o of antes.notes){S.notes.set(o.id,o);AP.gravaNota(o)}for(const m of antes.maps){S.maps.set(m.id,m);AP.gravaMapa(m)}if(window.AtlasBatalha&&AtlasBatalha.copiarParaPasta)AtlasBatalha.copiarParaPasta().catch(e=>console.warn(e));if(window.AtlasQuadro&&AtlasQuadro.copiarImgsParaPasta)AtlasQuadro.copiarImgsParaPasta().catch(e=>console.warn(e));toast(antes.notes.length+" nota(s) e "+antes.maps.length+" mapa(s) copiados para a pasta.")}
     pill("Pasta: "+r.nome,"ok");if(booted){S.note=null;S.map=null;drawAll()}else ready()},
   async abrirPasta(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return toast("Este navegador não abre pastas. Use o Chrome, o Edge ou o app do Atlas.");
     try{const n=await AP.escolher();if(!n)return;await this.dePasta(true);toast("Mundo aberto: "+n)}catch(e){if(e&&e.name==="AbortError")return;console.warn(e);toast(e.message||"Não foi possível abrir a pasta.")}},

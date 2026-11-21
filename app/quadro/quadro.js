@@ -7,8 +7,10 @@ const ic=(n,t)=>window.icone?window.icone(n,t||18):el("span");
 const uid=()=>Math.random().toString(16).slice(2,10)+Math.random().toString(16).slice(2,10);
 // ---------- imagens: guardadas no navegador (IndexedDB), reduzidas para no maximo 2048 px ----------
 let pdb=null;const db=()=>pdb||(pdb=new Promise((ok,er)=>{const r=indexedDB.open("atlas-arquivos",1);r.onupgradeneeded=()=>r.result.createObjectStore("img");r.onsuccess=()=>ok(r.result);r.onerror=()=>er(r.error)}));
-const guardaImg=async(k,blob)=>{const d=await db();return new Promise((ok,er)=>{const t=d.transaction("img","readwrite");t.objectStore("img").put(blob,k);t.oncomplete=()=>ok(k);t.onerror=()=>er(t.error)})};
-const leImg=async k=>{const d=await db();return new Promise(ok=>{const t=d.transaction("img","readonly"),q=t.objectStore("img").get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})};
+// com o mundo numa pasta, a imagem vai tambem para Imagens/<id>.webp (e e lida de la se nao estiver no navegador)
+const naPasta=()=>window.AtlasPasta&&window.AtlasApp&&window.AtlasApp.Store&&window.AtlasApp.Store.pasta;
+const guardaImg=async(k,blob)=>{if(naPasta())window.AtlasPasta.gravaArquivo("Imagens/"+k+".webp",blob).catch(e=>console.warn("imagem na pasta",e));const d=await db();return new Promise((ok,er)=>{const t=d.transaction("img","readwrite");t.objectStore("img").put(blob,k);t.oncomplete=()=>ok(k);t.onerror=()=>er(t.error)})};
+const leImg=async k=>{const d=await db();const b=await new Promise(ok=>{const t=d.transaction("img","readonly"),q=t.objectStore("img").get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)});if(b||!naPasta())return b;const f=await window.AtlasPasta.leArquivo("Imagens/"+k+".webp");return f?new Blob([f],{type:"image/webp"}):null};
 const urls=new Map();const urlImg=async k=>{if(urls.has(k))return urls.get(k);const b=await leImg(k);const u=b?URL.createObjectURL(b):null;urls.set(k,u);return u};
 const abreImg=async arq=>{try{return await createImageBitmap(arq)}catch(e){const im=new Image(),u=URL.createObjectURL(arq);im.src=u;try{await im.decode();return im}finally{setTimeout(()=>URL.revokeObjectURL(u),0)}}};
 export async function reduzImagem(arq,max){max=max||2048;const bmp=await abreImg(arq),k=Math.min(1,max/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
@@ -170,5 +172,6 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   tudo();requestAnimationFrame(enquadra);
   return {dados:D,enquadra,selecao:()=>[...sel],linhaSel:()=>selL,cria,criaNota,criaTexto,apaga,desfazer:()=>volta(pilha,refaz),refazer:()=>volta(refaz,pilha),cam:()=>cam,
     noNaTela:id=>{const d=elNo.get(id);return d?d.getBoundingClientRect():null},atualiza:()=>tudo()}}
-window.AtlasQuadro={abrirQuadro,reduzImagem,leImg};
+const copiarImgsParaPasta=async()=>{const d=await db();const ks=await new Promise(ok=>{const q=d.transaction("img","readonly").objectStore("img").getAllKeys();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>ok([])});for(const k of ks){const b=await leImg(k);if(b)await window.AtlasPasta.gravaArquivo("Imagens/"+k+".webp",b)}return ks.length};
+window.AtlasQuadro={abrirQuadro,reduzImagem,leImg,copiarImgsParaPasta};
 window.dispatchEvent(new Event("atlas-quadro"));
