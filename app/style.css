@@ -856,3 +856,12 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .cm-panels{background:var(--panel);color:var(--text);border-color:var(--line)!important}
 .cm-panels input,.cm-panels button{font-size:13px}
 .cm-searchMatch{background:rgba(212,166,74,.25)}
+
+/* ===================== 1.3 missoes em teia ===================== */
+.qd-objs{display:flex;flex-direction:column;gap:2px;margin-top:6px;font-family:var(--body);font-size:13px;overflow:hidden}
+.qd-obj{display:flex;gap:6px;align-items:flex-start;cursor:pointer;line-height:1.3}
+.qd-obj input{accent-color:var(--gold);margin:2px 0 0;flex:none}
+.qd-obj.feito span{color:var(--muted);text-decoration:line-through}
+.qd-mais{color:var(--muted);font-size:12px}
+.qd-nome{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.qd-nome input{width:270px;font-size:15px}

@@ -1059,9 +1059,31 @@ function resumoNota(t){const n=findNote(t);if(!n||n.kind==="canvas")return n?{ti
   if(ty==="missao"){const q=QST.find(x=>x[0]===(props.status||"aberta"));if(q)ch.push({txt:q[1],cor:{concluida:"#8db06a",falhou:"#e0776b",andamento:"#7fa9cc",oculta:"#95886e",abandonada:"#95886e"}[q[0]]||"#d4a64a"});if(props.peso)ch.push({txt:props.peso==="secundaria"?"Secundária":"Principal"})}
   if(ty==="personagem"){if(props.lado)ch.push({txt:{aliado:"Aliado",neutro:"Neutro",inimigo:"Inimigo"}[props.lado]||props.lado,cor:{aliado:"#8db06a",inimigo:"#e0776b"}[props.lado]});if(props.papel)ch.push({txt:props.papel})}
   if(ty==="local"&&props.categoria)ch.push({txt:props.categoria});if(ty==="campanha"&&props.estado)ch.push({txt:props.estado});
-  return {titulo:n.title,ic:TICO[ty]||"livre",cor:TCOL[ty]||TCOL.livre,trecho:resumoMd(body),chips:ch}}
+  let objs=null;if(ty==="missao"){objs=[];body.split("\n").forEach((l,i)=>{const m=TASK.exec(l);if(m&&m[2].trim())objs.push({txt:m[2].replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,(_,a,b)=>b||a).trim(),feito:m[1]!==" ",i})})}
+  return {titulo:n.title,ic:TICO[ty]||"livre",cor:TCOL[ty]||TCOL.livre,trecho:resumoMd(body),chips:ch,objetivos:objs}}
 function ligarNotas(de,para,rot){const n=findNote(de);if(!n)return;let c=n.content||"";const linha="- [["+para+"]]"+(rot?" — "+rot:"");if(c.includes("[["+para+"]]")&&c.includes(linha))return;
   if(/\n## Ligações\n/.test("\n"+c))c=c.replace(/(\n?## Ligações\n(?:- .*\n?)*)/,m=>m.replace(/\n?$/,"\n")+linha+"\n");else c=c.replace(/\s*$/,"")+"\n\n## Ligações\n"+linha+"\n";n.content=c;n.updated=now();Store.save("notes",n)}
+// ---------- 1.3 missoes em teia: criar e ligar notas direto no quadro ----------
+const LIGS=[{k:"abre",nome:"Abre / leva a",det:"a missão seguinte da história",cor:"3",so:["missao"],para:["missao"]},{k:"requer",nome:"Precisa de",det:"só começa depois da outra",cor:"1",so:["missao"],para:["missao"]},
+  {k:"local",nome:"Acontece em",det:"lugar ou região",cor:"5",para:["local"]},{k:"contratante",nome:"Quem dá a missão",cor:"1",so:["missao"],para:["personagem","faccao"]},{k:"envolvido",nome:"Envolvido",det:"personagem ou facção",cor:"1",para:["personagem","faccao"]},
+  {k:"item",nome:"Item ou recompensa",cor:"4",para:["item"]},{k:"campanha",nome:"Faz parte da campanha",cor:"3"},{k:"livre",nome:"Ligação livre",det:"escreve em “Ligações” na nota"}];
+const addProp=(n,k,v)=>{const L=splitL(fm(n.content).props[k]);if(L.some(x=>norm(x)===norm(v)))return;L.push(v);setProps(n,{[k]:L.join(", ")})};
+const tiraProp=(n,k,v)=>{const p=fm(n.content).props;if(!p[k])return;const L=splitL(p[k]).filter(x=>norm(x)!==norm(v));setProps(n,{[k]:L.length?L.join(", "):null})};
+function tiposLigacao(a,b){const A=findNote(a),B=findNote(b),ta=A?tipoDe(A):"livre",tb=B?tipoDe(B):"livre",camp=(ta==="campanha"&&tb!=="campanha")||(tb==="campanha"&&ta!=="campanha");
+  const bom=L=>(!L.so||L.so.includes(ta))&&(!L.para||L.para.includes(tb));return LIGS.filter(L=>L.k!=="campanha"||camp).map(L=>Object.assign({},L,{bom:L.k==="campanha"||L.k==="livre"||bom(L)})).sort((x,y)=>(y.bom-x.bom)).map(L=>Object.assign(L,{ic:L.k==="livre"?"link":L.k==="campanha"?"campanha":L.para?TICO[L.para[0]]:"missao"}))}
+function ligarTipo(a,b,k,rot){const A=findNote(a),B=findNote(b);if(!A||!B)return null;const tb=tipoDe(B);
+  if(k==="abre"){addProp(A,"libera",B.title);const sec=qPeso(A)==="secundaria"||qPeso(B)==="secundaria";return {cor:sec?"2":"3",atlas:sec?{auto:"abre"}:{auto:"abre",grossa:true},rotulo:"abre"}}
+  if(k==="requer"){addProp(A,"requer",B.title);return {inverte:true,cor:"1",atlas:{auto:"requer",estilo:"tracejada"},rotulo:"precisa de"}}
+  if(k==="local"){addProp(A,"local",B.title);return {cor:"5",atlas:{auto:"local"}}}
+  if(k==="contratante"||k==="envolvido"){addProp(A,k==="contratante"?"contratante":"envolvidos",B.title);const f=tb==="faccao";return {cor:f?"6":"1",atlas:{auto:f?"faccao":"personagem",estilo:"pontilhada"},rotulo:k==="contratante"?"quem dá":null}}
+  if(k==="item"){addProp(A,"itens",B.title);return {cor:"4",atlas:{auto:"item"}}}
+  if(k==="campanha"){const co=tipoDe(A)==="campanha"?A:B,m=co===A?B:A;setProps(m,{campanha:"[["+co.title+"]]"});const sec=qPeso(m)==="secundaria";return {inverte:co!==A,cor:sec?"2":"3",atlas:sec?{auto:"secundaria"}:{auto:"campanha",grossa:true}}}
+  ligarNotas(a,b,rot);return {cor:null,atlas:null}}
+function desligarTipo(de,para,auto){const A=findNote(de),B=findNote(para);if(!A||!B)return;
+  if(auto==="abre")tiraProp(A,"libera",B.title);else if(auto==="requer")tiraProp(B,"requer",A.title);else if(auto==="local")tiraProp(A,"local",B.title);
+  else if(auto==="personagem"||auto==="faccao"){tiraProp(A,"contratante",B.title);tiraProp(A,"envolvidos",B.title)}else if(auto==="item")tiraProp(A,"itens",B.title);
+  else if(auto==="campanha"||auto==="secundaria"){if(norm(qCamp(B))===norm(A.title))setProps(B,{campanha:null})}}
+function marcarObjetivo(t,i){const n=findNote(t);if(!n)return;const {props}=fm(n.content),L=fm(n.content).body.split("\n");const m=TASK.exec(L[i]||"");if(!m)return;L[i]=L[i].replace(/\[( |x|X)\]/,m[1]===" "?"[x]":"[ ]");const ks=Object.keys(props);n.content=(ks.length?"---\n"+ks.map(k=>k+": "+props[k]).join("\n")+"\n---\n\n":"")+L.join("\n");n.updated=now();Store.save("notes",n)}
 function drawQuadro(o,main){const AQ=window.AtlasQuadro,area=h("div",{class:"qd-area"}),nome=h("input",{type:"text",class:"title qd-titulo",value:o.title,"aria-label":"Nome do quadro",onchange:e=>{const v=e.target.value.trim()||o.title,ex=findNote(v);if(ex&&ex.id!==o.id){toast("Já existe uma nota com esse nome.");e.target.value=o.title;return}o.title=v;Store.save("notes",o);drawSide()}});
   let armed=false;const del=h("button",{type:"button",class:"ghost sm",onclick:()=>{if(!armed){armed=true;del.textContent="Confirmar";setTimeout(()=>{armed=false;del.textContent="Excluir"},3000);return}Store.remove("notes",o.id);S.note=null;drawAll()}},"Excluir");
   const exp=h("button",{type:"button",class:"sm ico-m","aria-label":"Baixar como .canvas",title:"Baixar como .canvas (abre no Obsidian)",onclick:()=>saveFile(safe(o.title)+".canvas",new Blob([JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1)],{type:"application/json"}))},icone("exportar",16),".canvas");
@@ -1069,7 +1091,10 @@ function drawQuadro(o,main){const AQ=window.AtlasQuadro,area=h("div",{class:"qd-
   main.append(h("div",{class:"qd-top"},h("i",{class:"tic",style:"color:#a88bd6"},icone("quadro",22)),nome,o.campanha?h("button",{type:"button",class:"qd-campl",onclick:()=>openTitle(o.campanha)},icone("campanha",15),o.campanha):null,h("span",{class:"grow"}),atu,exp,del),area);
   if(!AQ){area.append(h("p",{class:"empty",style:"padding:24px"},"O quadro não carregou neste navegador."));return}
   const MIC={battle:["batalha","Mapa de batalha"],city:["cidade","Mapa de cidade"]};
-  S.quadro=AQ.abrirQuadro(area,{oculto:ocultoNoQuadro,legenda:o.campanha?LEGENDA_CAMP:null,dados:o.canvas||(o.canvas={nodes:[],edges:[]}),salvar:D=>{o.canvas=D;o.updated=now();Store.save("notes",o)},resumoNota,ligarNotas,aviso:toast,
+  S.quadro=AQ.abrirQuadro(area,{oculto:ocultoNoQuadro,legenda:o.campanha?LEGENDA_CAMP:null,dados:o.canvas||(o.canvas={nodes:[],edges:[]}),salvar:D=>{o.canvas=D;o.updated=now();Store.save("notes",o)},resumoNota,ligarNotas,aviso:toast,tiposLigacao,ligarTipo,desligarTipo,marcarObjetivo,
+    tiposNota:()=>Object.entries(TYPES).filter(([k])=>k!=="campanha"||!o.campanha).map(([k,v])=>({k,nome:v,ic:TICO[k],cor:TCOL[k]})),
+    novaNotaTipo:(k,nm)=>{const n=newNote(k,nm);if(o.campanha&&(k==="missao"))setProps(n,{campanha:"[["+o.campanha+"]]"});drawSide();return n.title},
+    mudaArco:o.campanha?(t,arco)=>{const n=findNote(t);if(n&&tipoDe(n)==="missao"&&fm(n.content).props.arco!==arco){setProps(n,{arco});toast("“"+t+"” agora é do arco "+arco+".")}}:null,
     notas:()=>[...S.notes.values()].filter(n=>n.kind!=="canvas").map(n=>{const ty=fm(n.content).props.tipo||"livre";return {titulo:n.title,ic:TICO[ty]||"livre",cor:TCOL[ty],tipo:TYPES[ty]||"Nota"}}).sort((a,b)=>a.titulo.localeCompare(b.titulo)),
     mapas:()=>[...S.maps.values()].filter(m=>m.type!=="assets").map(m=>{const mi=MIC[m.type]||["regiao","Mapa de região"];return {id:m.id,nome:m.name,ic:mi[0],det:mi[1]}}),
     abrirNota:t=>openTitle(t),criarNota:t=>openTitle(t),abrirMapa:id=>{if(S.maps.has(id))openMap(id);else toast("Esse mapa foi apagado.")}})}
