@@ -44,11 +44,11 @@ void main(){if(vT.x>-.5){if(abs(vQ.x)>=1.||abs(vQ.y)>=1.)discard;float c=cos(vT.
 const VC=`#version 300 es
 layout(location=0) in vec2 aP;out vec2 vU;void main(){gl_Position=vec4(aP,0.,1.);vU=aP*.5+.5;}`;
 const FC=`#version 300 es
-precision highp float;in vec2 vU;uniform sampler2D uA;uniform sampler2D uB;uniform vec4 uCam;uniform vec2 uRes;uniform vec2 uTam;uniform vec4 uGrade;uniform float uLuz;out vec4 o;
-void main(){vec3 c=texture(uA,vU).rgb;if(uLuz>.5)c=min(c*texture(uB,vU).rgb*2.,vec3(1.));
+precision highp float;in vec2 vU;uniform sampler2D uA;uniform sampler2D uB;uniform vec4 uCam;uniform vec2 uRes;uniform vec2 uTam;uniform vec4 uGrade;uniform float uLuz;uniform float uAlfa;out vec4 o;
+void main(){vec4 a0=texture(uA,vU);vec3 c=a0.rgb;if(uLuz>.5)c=min(c*texture(uB,vU).rgb*2.,vec3(1.));
  vec2 w=uCam.xy+vec2(gl_FragCoord.x-uRes.x*.5,uRes.y*.5-gl_FragCoord.y)/uCam.z;
  if(uGrade.a>0.&&w.x>=0.&&w.y>=0.&&w.x<=uTam.x&&w.y<=uTam.y){vec2 f=abs(fract(w-.5)-.5)*uCam.z;float l=1.-clamp(min(f.x,f.y)-.25,0.,1.);c=mix(c,uGrade.rgb,l*uGrade.a*clamp(uCam.z/14.,0.,1.));}
- o=vec4(c,1.);}`;
+ o=vec4(c,uAlfa>.5?a0.a:1.);}`;
 // desfoque gaussiano numa direcao (13 amostras), so o alfa
 const FB=`#version 300 es
 precision highp float;in vec2 vU;uniform sampler2D uS;uniform vec2 uD;out vec4 o;
@@ -71,7 +71,7 @@ function formasLuz(){const S=256,mk=fn=>{const c=document.createElement("canvas"
     ["atlas:luz/persiana","Persiana",mk((u,v,r)=>{const lin=.5+.5*Math.cos(v*30);return cai(r)*(.12+.88*ss(.35,.65,lin))})],
     ["atlas:luz/fragmentos","Fragmentos",mk((u,v,r,a)=>{const n=fbm(Math.cos(a)*2+5,Math.sin(a)*2+5);return cai(r/(.7+.5*n))})],
     ["atlas:luz/anel","Anel",mk((u,v,r)=>Math.max(0,1-Math.abs(r-.62)/.22)*.95+cai(r)*.15)]]}
-export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialias:false,alpha:false,powerPreference:"high-performance"});if(!gl)return null;
+export function criaRender(canvas,cfg){const gl=canvas.getContext("webgl2",{antialias:false,alpha:!!(cfg&&cfg.alfa),powerPreference:"high-performance"});if(!gl)return null;
   const prog=(vs,fs)=>{const p=gl.createProgram();for(const [t,s] of[[gl.VERTEX_SHADER,vs],[gl.FRAGMENT_SHADER,fs]]){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh));gl.attachShader(p,sh)}gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));const U={};const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(let i=0;i<n;i++){const u=gl.getActiveUniform(p,i);U[u.name]=gl.getUniformLocation(p,u.name)}return {p,U}};
   const PM=prog(VS,FS),PT=prog(VT,FT),PL=prog(VL,FL),PC=prog(VC,FC),PK=prog(VT,FK),PB=prog(VC,FB),PSo=prog(VC,FSo);
   const ANI=gl.getExtension("EXT_texture_filter_anisotropic"),MAXT=gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096;const aniso=()=>{if(ANI)gl.texParameterf(gl.TEXTURE_2D_ARRAY,ANI.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,gl.getParameter(ANI.MAX_TEXTURE_MAX_ANISOTROPY_EXT)))};
@@ -175,15 +175,15 @@ export function criaRender(canvas){const gl=canvas.getContext("webgl2",{antialia
     gl.bindFramebuffer(gl.FRAMEBUFFER,alvoA.f);gl.viewport(0,0,W,H);if(TES){gl.enable(gl.SCISSOR_TEST);gl.scissor(TES[0],TES[1],TES[2],TES[3])}
     gl.useProgram(PSo.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,alvoS.t);gl.uniform1i(PSo.U.uS,0);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.drawArrays(gl.TRIANGLES,0,6)}
   let sombras=true;
-  function desenhar(cam,i,opt){if(!M)return;tam();opt=opt||{};sombras=opt.sombras!==false;gl.viewport(0,0,W,H);gl.bindFramebuffer(gl.FRAMEBUFFER,alvoA.f);gl.clearColor(.105,.095,.08,1);gl.clear(gl.COLOR_BUFFER_BIT);
+  function desenhar(cam,i,opt){if(!M)return;tam();opt=opt||{};sombras=opt.sombras!==false;gl.viewport(0,0,W,H);gl.bindFramebuffer(gl.FRAMEBUFFER,alvoA.f);if(opt.transparente)gl.clearColor(0,0,0,0);else gl.clearColor(.105,.095,.08,1);gl.clear(gl.COLOR_BUFFER_BIT);
     // andar de cima sem terreno: mostra o de baixo esmaecido
     {const sx=Math.floor((0-cam.x)*cam.z+W/2),sy=Math.floor((0-cam.y)*cam.z+H/2),sw=Math.ceil(M.larg*cam.z)+1,sh=Math.ceil(M.alt*cam.z)+1;gl.enable(gl.SCISSOR_TEST);TES=[sx,H-(sy+sh),sw,sh];gl.scissor(sx,H-(sy+sh),sw,sh)}
-    const temChao=k=>AND[k]&&(AND[k].terr||(M.andares[k].camadas&&M.andares[k].camadas.length));let base=i;while(base>0&&!temChao(base))base--;for(let k=base;k<i;k++){andar(k,cam,.45);const ak=AND[k];if(opt.telhados!==false&&ak&&ak.nt){gl.bindFramebuffer(gl.FRAMEBUFFER,alvoA.f);gl.viewport(0,0,W,H);gl.enable(gl.SCISSOR_TEST);gl.scissor(TES[0],TES[1],TES[2],TES[3]);gl.useProgram(PM.p);gl.uniform4f(PM.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PM.U.uRes,W,H);gl.uniform1f(PM.U.uEsc,1);gl.uniform1f(PM.U.uModo,0);ligaT(PM.U);gl.enable(gl.BLEND);gl.blendColor(.75,.75,.75,1);gl.blendFunc(gl.CONSTANT_COLOR,gl.ONE_MINUS_SRC_ALPHA);gl.bindVertexArray(ak.vaoT);gl.drawArrays(gl.TRIANGLES,0,ak.nt);gl.disable(gl.BLEND)}}andar(i,cam,1);const at=AND[i],TES0=TES;
+    const temChao=k=>AND[k]&&(AND[k].terr||(M.andares[k].camadas&&M.andares[k].camadas.length));let base=i;if(!opt.soAndar)while(base>0&&!temChao(base))base--;for(let k=base;k<i;k++){andar(k,cam,.45);const ak=AND[k];if(opt.telhados!==false&&ak&&ak.nt){gl.bindFramebuffer(gl.FRAMEBUFFER,alvoA.f);gl.viewport(0,0,W,H);gl.enable(gl.SCISSOR_TEST);gl.scissor(TES[0],TES[1],TES[2],TES[3]);gl.useProgram(PM.p);gl.uniform4f(PM.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PM.U.uRes,W,H);gl.uniform1f(PM.U.uEsc,1);gl.uniform1f(PM.U.uModo,0);ligaT(PM.U);gl.enable(gl.BLEND);gl.blendColor(.75,.75,.75,1);gl.blendFunc(gl.CONSTANT_COLOR,gl.ONE_MINUS_SRC_ALPHA);gl.bindVertexArray(ak.vaoT);gl.drawArrays(gl.TRIANGLES,0,ak.nt);gl.disable(gl.BLEND)}}andar(i,cam,1);const at=AND[i],TES0=TES;
     gl.disable(gl.SCISSOR_TEST);TES=null;const a=AND[i];gl.bindFramebuffer(gl.FRAMEBUFFER,alvoB.f);const am=M.andares[i].ambiente||[1,1,1,1];gl.clearColor(am[0]*.5,am[1]*.5,am[2]*.5,1);gl.clear(gl.COLOR_BUFFER_BIT);
     if(opt.luz&&a.nz){gl.disable(gl.BLEND);gl.useProgram(PM.p);gl.uniform4f(PM.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PM.U.uRes,W,H);gl.uniform1f(PM.U.uEsc,.5);gl.uniform1f(PM.U.uModo,0);ligaT(PM.U);gl.bindVertexArray(a.vaoZ);gl.drawArrays(gl.TRIANGLES,0,a.nz)}
     if(opt.luz&&a.nl){gl.useProgram(PL.p);gl.uniform4f(PL.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PL.U.uRes,W,H);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D_ARRAY,TL);gl.uniform1i(PL.U.uL,5);gl.activeTexture(gl.TEXTURE0);gl.uniform1f(PL.U.uTempo,(opt.tempo!=null?opt.tempo:performance.now()/1000)%1000);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.bindVertexArray(a.vaoL);gl.drawArrays(gl.TRIANGLES,0,a.nl)}
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.disable(gl.BLEND);gl.useProgram(PC.p);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,alvoA.t);gl.uniform1i(PC.U.uA,0);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,alvoB.t);gl.uniform1i(PC.U.uB,1);
-    gl.uniform4f(PC.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PC.U.uRes,W,H);gl.uniform2f(PC.U.uTam,M.larg,M.alt);const g=M.grade&&M.grade.cor||[0,0,0,.5];gl.uniform4f(PC.U.uGrade,g[0],g[1],g[2],opt.grade?g[3]:0);gl.uniform1f(PC.U.uLuz,opt.luz?1:0);gl.bindVertexArray(quadVAO);gl.drawArrays(gl.TRIANGLES,0,6);
+    gl.uniform4f(PC.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PC.U.uRes,W,H);gl.uniform2f(PC.U.uTam,M.larg,M.alt);const g=M.grade&&M.grade.cor||[0,0,0,.5];gl.uniform4f(PC.U.uGrade,g[0],g[1],g[2],opt.grade?g[3]:0);gl.uniform1f(PC.U.uLuz,opt.luz?1:0);gl.uniform1f(PC.U.uAlfa,opt.transparente?1:0);gl.bindVertexArray(quadVAO);gl.drawArrays(gl.TRIANGLES,0,6);
     // telhados por cima de tudo, fora da luz de dentro (so o ambiente do andar escurece): a luz das salas nao vaza pelo telhado
     if(opt.telhados!==false&&at&&at.nt){const am2=opt.luz?(M.andares[i].ambiente||[1,1,1,1]):[1,1,1,1];gl.enable(gl.SCISSOR_TEST);gl.scissor(TES0[0],TES0[1],TES0[2],TES0[3]);gl.useProgram(PM.p);gl.uniform4f(PM.U.uCam,cam.x,cam.y,cam.z,0);gl.uniform2f(PM.U.uRes,W,H);gl.uniform1f(PM.U.uEsc,1);gl.uniform1f(PM.U.uModo,0);ligaT(PM.U);
       gl.enable(gl.BLEND);gl.blendColor(am2[0],am2[1],am2[2],1);gl.blendFunc(gl.CONSTANT_COLOR,gl.ONE_MINUS_SRC_ALPHA);gl.bindVertexArray(at.vaoT);gl.drawArrays(gl.TRIANGLES,0,at.nt);gl.disable(gl.BLEND);gl.disable(gl.SCISSOR_TEST)}}

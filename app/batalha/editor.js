@@ -1,7 +1,7 @@
 // Atlas - Modo Batalha: editor. Barra de cima (mapa), ferramentas a esquerda, propriedades a direita, dica embaixo.
 // Tudo o que muda o mapa passa pelo historico de comandos (desfazer e refazer) e e salvo sozinho.
 import {criaRender} from "./render.js";
-import {desenhaTexto,imagemAndar,cenaFoundry,atlasmapTexto,zip,nomeArquivo} from "./exportar.js";
+import {desenhaTexto,imagemAndar,cenaFoundry,cenaFoundryNiveis,EXT_IMG,atlasmapTexto,zip,nomeArquivo} from "./exportar.js";
 import {criaHistorico,alcance} from "./comandos.js";
 import * as MD from "./modelo.js";
 import {materialDe,objetoDe} from "./arte.js";
@@ -56,7 +56,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const atualizaReais=extra=>{cargaReais=(cargaReais||Promise.resolve()).then(()=>carregaReais(extra)).catch(e=>console.warn(e));return cargaReais};
   const preparaArte=async k=>{if(!real(k))return;if(!DIMR.has(k)){const d=await BIB.dims(k);if(d)DIMR.set(k,d)}await atualizaReais([k,...(pincel&&real(pincel.arte)?[pincel.arte]:[]),...[...(espalha?espalha.artes:[])].filter(real)])};
   const espalha={artes:new Set(["arvore","arvoreEscura","arbusto"]),raio:3,dens:.45,dist:.8,tamMin:.8,tamMax:1.2,giro:true,espelho:true,cor:true,apagar:false},luzP={raio:6,claro:2.5,forca:1,c:[1,.62,.25,1]};
-  const expP={px:100,formato:"webp",todos:true,grade:false,luz:true,telhados:true,dist:1,un:"m",ocupado:false};
+  const expP={px:100,formato:"webp",qual:.9,pacote:"niveis",todos:true,grade:false,luz:true,telhados:true,dist:1,un:"m",altAndar:0,ocupado:false};
   const baixaLocal=(nome,blob)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nome;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
   let busca="",cat="",pendente=false,bLuz=null,traco=null,vsel=null,pPrev=null;
   const camSel={},pinc={modo:"pincel",raio:2,dureza:.5,fluxo:.6,forma:"atlas:redondo",giroM:"acaso",ang:0,varia:.15,disp:.1,esp:.5,opac:1};
@@ -663,16 +663,29 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
           el("p",{class:"bt-nota"},"Branco na máscara mostra a textura; preto esconde.")))}}
     else if(ferr==="exp"){pTit.textContent="Exportar";const x=expP,st=el("p",{class:"bt-nota bt-st"},"");
       const roda=async(nome,fn)=>{if(x.ocupado)return;x.ocupado=true;st.textContent="Preparando…";try{const blob=await fn(f=>{st.textContent="Desenhando… "+Math.round(f*100)+"%"});st.textContent="Pronto: "+nome;await (opt.baixar||baixaLocal)(nome,blob)}catch(er){console.error(er);st.textContent=er.message||"Não foi possível exportar."}x.ocupado=false};
-      const base=nomeArquivo(M.nome),qual=()=>x.todos?M.andares.map((_,i)=>i):[andar],ext=()=>x.formato==="png"?"png":"webp";
-      const imgs=async prog=>{const L=[];const Q=qual();for(let k=0;k<Q.length;k++){const i=Q[k],b=await imagemAndar(M,i,{reais:REAIS,px:x.px,formato:x.formato,grade:x.grade,luz:x.luz,telhados:x.telhados,progresso:f=>prog((k+f)/Q.length)});L.push({nome:base+"-andar"+(i+1)+"."+ext(),blob:b,i})}return L};
-      K.push(sec("Imagem",campo("Pixels por quadrado",el("select",{onchange:ev=>{x.px=+ev.target.value;painel(true)}},[50,70,100,140,200,256].map(v=>el("option",{value:v,selected:x.px===v},v+" px")))),
-          el("p",{class:"bt-nota"},"Tamanho final: "+Math.round(M.larg*x.px)+" × "+Math.round(M.alt*x.px)+" px."),campo("Formato",el("select",{onchange:ev=>{x.formato=ev.target.value}},el("option",{value:"webp",selected:x.formato==="webp"},"WebP (menor)"),el("option",{value:"png",selected:x.formato==="png"},"PNG"))),
-          ck("Todos os andares",x.todos,v=>{x.todos=v}),ck("Com a grade",x.grade,v=>{x.grade=v}),ck("Com a luz",x.luz,v=>{x.luz=v}),ck("Com os telhados",x.telhados,v=>{x.telhados=v}),
-          el("button",{type:"button",class:"bt-a",onclick:()=>roda(x.todos&&M.andares.length>1?base+"-imagens.zip":base+"-andar"+(andar+1)+"."+ext(),async prog=>{const L=await imgs(prog);if(L.length===1)return L[0].blob;const A=[];for(const z of L)A.push({nome:z.nome,dados:new Uint8Array(await z.blob.arrayBuffer())});return zip(A)})},ico("baixar"),el("span",{},"Baixar imagem"))),
-        sec("Foundry VTT",campo("Medida do quadrado",el("select",{onchange:ev=>{const v=ev.target.value.split("|");x.dist=+v[0];x.un=v[1]}},el("option",{value:"1|m",selected:x.un==="m"&&x.dist===1},"1 m"),el("option",{value:"1.5|m",selected:x.un==="m"&&x.dist===1.5},"1,5 m"),el("option",{value:"5|ft",selected:x.un==="ft"},"5 pés"))),
-          el("p",{class:"bt-nota"},"Um .zip com a imagem e a cena de cada andar: paredes, portas, janelas, luzes e escuridão. No Foundry, envie as imagens para a pasta atlas/ dos dados, crie uma cena e use Importar dados com o arquivo .json."),
-          el("button",{type:"button",class:"bt-a",onclick:()=>roda(base+"-foundry.zip",async prog=>{const A=[],Q=qual();const L=await imgs(prog);for(const z of L){A.push({nome:z.nome,dados:new Uint8Array(await z.blob.arrayBuffer())});const c=cenaFoundry(M,z.i,{px:x.px,distancia:x.dist,unidade:x.un,imagem:"atlas/"+z.nome,versao:opt.versao});A.push({nome:z.nome.replace(/\.\w+$/,".json"),dados:new TextEncoder().encode(JSON.stringify(c,null,1))})}
-            A.push({nome:"LEIA.txt",dados:new TextEncoder().encode("Mapa exportado pelo Atlas.\n1. Copie as imagens para a pasta Data/atlas/ do Foundry.\n2. Crie uma cena vazia, clique com o botão direito nela e escolha Importar dados.\n3. Escolha o .json do andar.\nA imagem e as paredes já ficam no lugar certo.\n")});return zip(A)})},ico("baixar"),el("span",{},"Baixar cena do Foundry"))),
+      const base=nomeArquivo(M.nome),nA=M.andares.length,ext=()=>EXT_IMG[x.formato]||"webp",pac=x.pacote||"niveis",temQ=x.formato!=="png";
+      // imagens: na cena com niveis os andares de cima saem transparentes (so o que e do andar), entao JPEG vira WebP neles
+      const imgs=async(prog,Q,niveis)=>{const L=[];for(let k=0;k<Q.length;k++){const i=Q[k],tr=niveis&&i>0,fmt=tr&&x.formato==="jpeg"?"webp":x.formato,b=await imagemAndar(M,i,{reais:REAIS,px:x.px,formato:fmt,qualidade:x.qual,grade:x.grade,luz:x.luz,telhados:x.telhados,transparente:tr,soAndar:tr,progresso:f=>prog((k+f)/Q.length)});L.push({nome:base+"-andar"+(i+1)+"."+(EXT_IMG[fmt]||"webp"),blob:b,i})}return L};
+      const bin=async L=>{const A=[];for(const z of L)A.push({nome:z.nome,dados:new Uint8Array(await z.blob.arrayBuffer())});return A},txt=t=>new TextEncoder().encode(t);
+      const PACS=[["niveis","Foundry V14 · cena única","Um .zip com uma cena só: cada andar vira um nível do Foundry V14 (imagem e altura), com paredes, portas e luzes no nível certo. Andares de cima saem transparentes."],
+        ["cenas","Foundry · uma cena por andar","Um .zip com a imagem e a cena de cada andar (funciona no V13 e no V14), como antes."],["imagens","Só as imagens","A imagem de cada andar (ou só do andar aberto)."]];
+      const exporta=()=>{const todos=x.todos||pac==="niveis";
+        if(pac==="imagens"){const Q=todos?M.andares.map((_,i)=>i):[andar];return roda(Q.length>1?base+"-imagens.zip":base+"-andar"+(Q[0]+1)+"."+ext(),async prog=>{const L=await imgs(prog,Q,false);return L.length===1?L[0].blob:zip(await bin(L))})}
+        if(pac==="cenas"){const Q=todos?M.andares.map((_,i)=>i):[andar];return roda(base+"-foundry.zip",async prog=>{const L=await imgs(prog,Q,false),A=await bin(L);for(const z of L)A.push({nome:z.nome.replace(/\.\w+$/,".json"),dados:txt(JSON.stringify(cenaFoundry(M,z.i,{px:x.px,distancia:x.dist,unidade:x.un,imagem:"atlas/"+z.nome,versao:opt.versao}),null,1))});
+          A.push({nome:"LEIA.txt",dados:txt("Mapa exportado pelo Atlas.\n1. Copie as imagens para a pasta Data/atlas/ do Foundry.\n2. Crie uma cena vazia, clique com o botão direito nela e escolha Importar dados.\n3. Escolha o .json do andar.\nA imagem e as paredes já ficam no lugar certo.\n")});return zip(A)})}
+        return roda(base+"-foundry-v14.zip",async prog=>{const Q=M.andares.map((_,i)=>i),L=await imgs(prog,Q,true),A=await bin(L);const c=cenaFoundryNiveis(M,{px:x.px,distancia:x.dist,unidade:x.un,alturaAndar:x.altAndar,imagens:L.map(z=>"atlas/"+z.nome),versao:opt.versao});
+          A.push({nome:base+".json",dados:txt(JSON.stringify(c,null,1))});A.push({nome:"LEIA.txt",dados:txt("Mapa exportado pelo Atlas para o Foundry V14 (níveis da cena).\n1. Copie as imagens para a pasta Data/atlas/ do Foundry.\n2. Crie uma cena vazia, clique com o botão direito nela e escolha Importar dados.\n3. Escolha "+base+".json.\nCada andar vira um nível da mesma cena, com paredes, portas e luzes no nível certo.\n")});return zip(A)})};
+      K.push(sec("O que exportar",el("div",{class:"bt-chips"},PACS.map(([k,n])=>chip(n,null,()=>{x.pacote=k;painel(true)},pac===k))),el("p",{class:"bt-nota"},(PACS.find(q=>q[0]===pac)||PACS[0])[2]),
+          pac!=="niveis"&&nA>1?ck("Todos os andares",x.todos,v=>{x.todos=v}):null),
+        sec("Imagem",campo("Formato",el("div",{class:"bt-chips"},[["webp","WebP"],["png","PNG"],["jpeg","JPEG"]].map(([k,n])=>chip(n,null,()=>{x.formato=k;painel(true)},x.formato===k)))),
+          el("p",{class:"bt-nota"},x.formato==="webp"?"WebP: arquivo menor, com transparência. O melhor para o Foundry.":x.formato==="png"?"PNG: sem perda nenhuma, arquivo bem maior.":"JPEG: arquivo pequeno, sem transparência."+(pac==="niveis"&&nA>1?" Os andares de cima saem em WebP para ficarem transparentes.":"")),
+          temQ?faixaC(v=>"Qualidade · "+Math.round(v*100)+"%",x.qual,.5,1,.01,v=>{x.qual=v}):null,
+          campo("Pixels por quadrado",el("select",{onchange:ev=>{x.px=+ev.target.value;painel(true)}},[50,70,100,140,200,256].map(v=>el("option",{value:v,selected:x.px===v},v+" px")))),
+          el("p",{class:"bt-nota"},"Tamanho final: "+Math.round(M.larg*x.px)+" × "+Math.round(M.alt*x.px)+" px."),
+          ck("Com a grade",x.grade,v=>{x.grade=v}),ck("Com a luz",x.luz,v=>{x.luz=v}),ck("Com os telhados",x.telhados,v=>{x.telhados=v})),
+        pac==="imagens"?null:sec("Foundry VTT",campo("Medida do quadrado",el("select",{onchange:ev=>{const v=ev.target.value.split("|");x.dist=+v[0];x.un=v[1];painel(true)}},el("option",{value:"1|m",selected:x.un==="m"&&x.dist===1},"1 m"),el("option",{value:"1.5|m",selected:x.un==="m"&&x.dist===1.5},"1,5 m"),el("option",{value:"5|ft",selected:x.un==="ft"},"5 pés"))),
+          pac==="niveis"?num("Altura de cada andar ("+(x.un==="ft"?"pés":"m")+")",x.altAndar||(x.un==="ft"?10:3),{passo:1,min:1,max:100,casas:0},v=>{x.altAndar=v}):null),
+        sec("",el("button",{type:"button",class:"bt-a",onclick:exporta},ico("baixar"),el("span",{},pac==="imagens"?"Baixar imagens":"Baixar para o Foundry"))),
         sec("Arquivo do Atlas",el("p",{class:"bt-nota"},"O mapa inteiro, editável, para guardar ou abrir em outro navegador."),el("button",{type:"button",class:"bt-a",onclick:()=>roda(base+".atlasmap",async()=>new Blob([atlasmapTexto(M)],{type:"application/json"}))},ico("baixar"),el("span",{},"Baixar .atlasmap"))),st)}
     else if(ferr==="cam"){pTit.textContent="Caminho";const c=caminhoP;
       K.push(sec("Tipo",el("div",{class:"bt-chips"},MD.CAMINHOS.map(([k,n,mat,lg,est,bo,cb])=>chip(n,null,()=>{Object.assign(c,{pre:k,tex:mat,larg:lg,estilo:est,borda:bo,cb:cb&&cb.slice()});painel(true);sujo=true},c.pre===k)))),
