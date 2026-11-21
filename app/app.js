@@ -1446,5 +1446,5 @@ Store.init();
 // app instalado: avisa quando houver versao nova nos Releases do GitHub
 (async()=>{const T=window.__TAURI__;if(!T||!T.app)return;try{const v=await T.app.getVersion(),r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return;const L=await r.json(),u=L&&L[0];if(!u)return;const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
   if(cmp(nova,v)>0)setTimeout(()=>{const t=$("#toast");toast("Versão nova do Atlas: "+nova+". Clique aqui para atualizar.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,15000);t.onclick=()=>{const ex=(u.assets||[]).find(x=>/setup\.exe$/i.test(x.name)),url=ex?ex.browser_download_url:u.html_url;try{T.opener.openUrl(url)}catch(e){window.open(url)}toast(ex?"Baixando o instalador: abra o arquivo quando terminar e o Atlas é atualizado.":"Abrindo a página da versão nova.")}},4000)}catch(e){}})();
-window.AtlasApp={S,Store,openNote};
+window.AtlasApp={S,Store,openNote,exportMundo,importMundo};
 })();
