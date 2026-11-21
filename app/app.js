@@ -1180,6 +1180,7 @@ function zip(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
   const cds=cd.reduce((a,b)=>a+b.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cds,true);e.setUint32(16,off,true);
   return new Blob([...parts,...cd,new Uint8Array(e.buffer)])}
 async function saveFile(name,blob){if(!blob){toast("Nada para salvar.");return}
+  const T=window.__TAURI__;if(T&&T.dialog&&T.fs){try{const p=await T.dialog.save({defaultPath:name,title:"Salvar"});if(!p)return;await T.fs.writeFile(p,new Uint8Array(await blob.arrayBuffer()));toast("Arquivo salvo.")}catch(e){console.warn(e);toast("Não foi possível salvar o arquivo.")}return}
   if(Store.dl){try{await Store.dl.save({filename:name,data:blob});toast("Arquivo salvo.")}catch(e){if(!e||e.code!=="declined")toast("Não foi possível salvar o arquivo aqui.")}return}
   try{const a=h("a",{href:URL.createObjectURL(blob),download:name});document.body.append(a);a.click();a.remove()}catch(e){toast("Este navegador não permitiu salvar o arquivo.")}}
 window.atlasSalvar=saveFile; // o Modo Batalha baixa arquivos pelo mesmo caminho (no artifact usa a permissao de download)
