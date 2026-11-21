@@ -9,13 +9,13 @@ async fn atualizar(app: tauri::AppHandle, url: String) -> Result<(), String> {
     if !url.starts_with("https://github.com/Yamavaki/Atlas/releases/download/") {
         return Err("Endereço de atualização inválido.".into());
     }
-    let resp = reqwest::get(&url).await.map_err(|e| format!("Não deu para baixar: {e}"))?;
+    let resp = reqwest::get(&url).await.map_err(|e| format!("Não foi possível baixar a atualização: {e}"))?;
     if !resp.status().is_success() {
-        return Err(format!("O GitHub respondeu {}.", resp.status()));
+        return Err(format!("O servidor de atualizações respondeu {}.", resp.status()));
     }
-    let bytes = resp.bytes().await.map_err(|e| format!("Download cortado: {e}"))?;
+    let bytes = resp.bytes().await.map_err(|e| format!("O download foi interrompido: {e}"))?;
     if bytes.len() < 500_000 {
-        return Err("O arquivo baixado é pequeno demais para ser o instalador.".into());
+        return Err("O arquivo baixado não é um instalador válido.".into());
     }
     let dir = std::env::temp_dir().join("atlas-atualizacao");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
@@ -38,7 +38,7 @@ async fn atualizar(app: tauri::AppHandle, url: String) -> Result<(), String> {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000); // sem janela preta do cmd
     }
-    cmd.spawn().map_err(|e| format!("Não deu para abrir o instalador: {e}"))?;
+    cmd.spawn().map_err(|e| format!("Não foi possível abrir o instalador: {e}"))?;
     app.exit(0);
     Ok(())
 }

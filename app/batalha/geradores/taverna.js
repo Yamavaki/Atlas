@@ -4,7 +4,7 @@ import {ret,oct,chanf} from "./castelo_planta.js";
 export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];if(e.tamanho&&(M.larg!==46||M.alt!==36))e.tamanho(46,36);
   const SDM=[.5,.35,.1,.05,.08];M.sombra={todos:true,alvos:{objetos:true,paredes:true,portais:true,caminhos:true},sd:SDM.slice()};
   const all=B.buscar({todos:true}),TOD=[];for(const i of all.itens)TOD.push(all.item(i).caminho);const FA=TOD.filter(k=>/\/packs\/FA35/.test(k)),TEX=TOD.filter(k=>/\/packs\/FA35TX/.test(k));
-  if(!FA.length)throw new Error("Este gerador usa as artes da Forgotten Adventures. Conecte a pasta de pacotes do Dungeondraft em Minhas artes.");
+  if(!FA.length)throw new Error("Este gerador usa os pacotes de arte da Forgotten Adventures. Conecte a pasta dos pacotes em Minhas artes.");
   const acha=re=>FA.filter(k=>re.test(k)),um=re=>{const L=acha(re);if(!L.length){log.push("faltou "+re);return null}return L[0]},tx=re=>{const L=TEX.filter(k=>re.test(k));if(!L.length){log.push("faltou "+re);return null}return L[0]};
   const R=(()=>{let s=(Math.random()*1e9)|0;return()=>((s=Math.imul(s^s>>>15,2246822519)+0x9e3779b9|0)>>>0)/4294967296})(),esc=L=>L[Math.floor(R()*L.length)];
   const ART=new Map(),FR={S:[0,1],N:[0,-1],L:[1,0],W:[-1,0]};

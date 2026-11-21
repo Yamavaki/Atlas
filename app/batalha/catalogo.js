@@ -253,9 +253,9 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
       if(!subs.length)continue;Kt.push("### "+K.C+" "+K.P.nome.replace(/_/g," ")+" · "+K.amb.get(a)+" artes de "+a.toLowerCase()+(eTop?" · estilo mais comum: "+eTop:""));
       for(const t of subs){const S=K.subs.get(t),it=exemplo(S.itens,a,eTop),f=it.f,fr=frente((it.rel||it.base).split("/").pop().replace(/\.\w+$/,""),K.P.autor,f);
         Kt.push("- "+t+" ("+S.itens.length+") · "+K.C+(nPartes.get(K.C)>1?"."+S.parte:"")+" textures/"+it.pa+"/"+it.base+" · "+tamReal(it,escP.get(K.C)||1)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
-  const LEIA=["# Catálogo de artes do Atlas · v3","","v3: tamanho, parte desenhada e frente medidos na arte original (a miniatura do Dungeondraft vem recortada), peças de conjunto (conj) e paredes de dois lados.","","Este catálogo descreve as artes dos seus pacotes para uma IA (por exemplo o Claude) montar mapas com elas.","",
-    "## Numa conversa","1. Anexe 00-indice.md e 01-kits.md e peça o mapa.","2. A IA diz quais arquivos de pacote precisa (ex.: P07). Anexe esses da pasta pacotes/.","3. Pronto: ela usa os nomes exatos e os detalhes de lá.","",
-    "## Num Projeto do Claude","Envie todos os arquivos para o conhecimento do projeto. A IA busca sozinha o que precisar.","",
+  const LEIA=["# Catálogo de artes do Atlas · v3","","v3: tamanho, parte desenhada e frente medidos na arte original (a miniatura do pacote vem recortada), peças de conjunto (conj) e paredes de dois lados.","","Este catálogo descreve as artes dos seus pacotes para uma IA (por exemplo o Claude) montar mapas com elas.","",
+    "## Numa conversa","1. Anexe 00-indice.md e 01-kits.md e peça o mapa.","2. A IA diz quais arquivos de pacote precisa (ex.: P07). Anexe esses da pasta pacotes/.","3. A IA usa os nomes exatos e os detalhes desses arquivos.","",
+    "## Num Projeto do Claude","Envie todos os arquivos para o conhecimento do projeto. A IA consulta o que precisar.","",
     "## Tamanhos",...[["00-indice.md",tokens(I.join("\n"))],["01-kits.md",tokens(Kt.join("\n"))]].map(([n,t])=>"- "+n+": ~"+Math.round(t/1000)+" mil tokens"),"- pacotes/: "+arqs.length+" arquivos, até ~"+Math.round(limPart/1000)+" mil tokens cada"];
   const todos=[{nome:"LEIA-ME.md",texto:LEIA.join("\n")+"\n"},{nome:"00-indice.md",texto:I.join("\n")+"\n"},{nome:"01-kits.md",texto:Kt.join("\n")+"\n"},...arqs];
   const enc=new TextEncoder(),total=todos.reduce((s,a)=>s+tokens(a.texto),0);

@@ -327,7 +327,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   const itens=C.itens.map(it=>junta.has(it)?Object.assign({},it,{n:junta.get(it)}):it).concat(riq<=0&&C.pobre?C.pobre.map(x=>Object.assign({pobre:true},x)):[]).concat(ricos).map((it,i)=>[ordem(it),i,it]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]).map(x=>x[2]);let faltou=new Set();
   for(let it of itens){const n=quantos(it);if(!n)continue;if(!arteDe(it.p)&&it.ou&&arteDe(it.ou))it=Object.assign({},it,{p:it.ou,lugar:PAPEIS[it.p].lugar});const Rp=PAPEIS[it.p];if(!arteDe(it.p)){if(it.n[0]>0||it.chave)faltou.add(it.p);continue}
     if(it.fileira){fileiras(it,n);continue}
-    if((it.arranjo||Rp.arranjo)&&n>1){const F=grupo(it,n);if(F.length){if(F.length<it.n[0])avisos.push("Não coube: "+(NOME_PAPEL[it.p]||it.p)+".");continue}}
+    if((it.arranjo||Rp.arranjo)&&n>1){const F=grupo(it,n);if(F.length){if(F.length<it.n[0])avisos.push("Sem espaço para: "+(NOME_PAPEL[it.p]||it.p)+".");continue}}
     if(it.grade&&n>1){const a=arteDe(it.p),F=emGrade(a,it,n);if(F.length){for(const ob of F){if(it.com)emVolta(ob,it);emCima(ob,it)}continue}}
     for(let q=0;q<n;q++){if(q>=Math.max(1,it.n[0])&&!Rp.passa&&ocup>teto)break;const a=arteDe(it.p);let ob=null;const lugar=it.lugar||Rp.lugar;
       // tapete: debaixo da peca principal (mesa, cama, sofa), depois que ela ja esta no lugar
@@ -337,7 +337,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
       else if(lugar==="m")ob=noMeio(a,it.p,it,{folga:it.com?.75:.3})||noMeio(a,it.p,it,{folga:.15});else ob=solto(a,it.p,it);
       if(!ob&&q===0&&!Rp.em){const E=escolhidas.get(it.p)||[],todas=(cat[it.p]||[]).filter(x=>!E.includes(x)&&Math.max(visDe(x)[2],visDe(x)[3])<Math.max(visDe(a)[2],visDe(a)[3])-.2&&Math.max(visDe(x)[2],visDe(x)[3])<=Rp.t[1]&&Math.min(visDe(x)[2],visDe(x)[3])>=Rp.t[0]*.6);
         for(const b of todas.slice(0,3)){escolhidas.set(it.p,[b]);ob=lugar==="p"?naParede(b,it.p,it):lugar==="k"?noCanto(b,it.p,it):lugar==="m"?noMeio(b,it.p,it,{folga:.15}):solto(b,it.p,it);if(ob)break}}
-      if(!ob){if(q<it.n[0])avisos.push("Não coube: "+(NOME_PAPEL[it.p]||it.p)+".");break}
+      if(!ob){if(q<it.n[0])avisos.push("Sem espaço para: "+(NOME_PAPEL[it.p]||it.p)+".");break}
       if(it.com)emVolta(ob,it);emCima(ob,it)}}
   // piso: se ficou vazio demais, completa com pecas de parede, canto e soltas da propria receita (uma de cada por vez)
   if(ocup<piso){const extras=itens.filter(it=>!it.chave&&!it.fileira&&!it.grade&&!PAPEIS[it.p].passa&&!PAPEIS[it.p].em&&(it.lugar||PAPEIS[it.p].lugar)!=="m"&&arteDe(it.p)&&!(it.min&&A<it.min));

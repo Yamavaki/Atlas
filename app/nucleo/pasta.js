@@ -3,7 +3,7 @@
 // O que o arquivo .md nao guarda (id, pasta das imagens, tipo) fica em .atlas/indice.json.
 (function(){
   "use strict";
-  const LEIA_ASSETS="Coloque nesta pasta os pacotes de arte do Dungeondraft (.dungeondraft_pack).\nO Modo Batalha do Atlas encontra os pacotes daqui sozinho ao abrir.\nPacotes que não permitem leitura por outros programas ficam de fora.\n";
+  const LEIA_ASSETS="Coloque nesta pasta seus pacotes de arte (.dungeondraft_pack).\nO Modo Batalha do Atlas carrega os pacotes desta pasta automaticamente ao abrir.\nPacotes cujos autores não permitem a leitura por outros programas são ignorados.\n";
   const IDX=".atlas/indice.json",MAPAS="Mapas",LIXO=".atlas/lixeira";
   const tauri=()=>window.__TAURI__&&window.__TAURI__.fs?window.__TAURI__:null;
   const safe=s=>String(s||"Sem título").replace(/[\\/:*?"<>|#^[\]]+/g,"-").replace(/\s+/g," ").trim().slice(0,120)||"Sem título";
@@ -49,7 +49,7 @@
     noApp:()=>!!tauri(),
     atual:()=>D?{nome:D.nome,tipo:D.tipo}:null,
     // escolher a pasta (precisa de um clique do usuario no navegador)
-    async escolher(){if(tauri()){const T=tauri(),dl=T.dialog;if(!dl)throw new Error("Sem o diálogo de pastas no app.");const p=await dl.open({directory:true,multiple:false,title:"Escolha a pasta do mundo"});if(!p)return null;D=discoTauri(String(p));localStorage.setItem("atlas:pasta",String(p));await guardaRecente(D.nome,String(p));return D.nome}
+    async escolher(){if(tauri()){const T=tauri(),dl=T.dialog;if(!dl)throw new Error("O seletor de pastas não está disponível.");const p=await dl.open({directory:true,multiple:false,title:"Escolha a pasta do mundo"});if(!p)return null;D=discoTauri(String(p));localStorage.setItem("atlas:pasta",String(p));await guardaRecente(D.nome,String(p));return D.nome}
       if(typeof window.showDirectoryPicker!=="function")throw new Error("Este navegador não abre pastas. Use o Chrome, o Edge ou o app do Atlas.");
       const h=await window.showDirectoryPicker({id:"atlas-mundo",mode:"readwrite"});D=discoFSA(h);await kv("atual",h);await guardaRecente(D.nome,null,h);return D.nome},
     // a pasta da ultima vez (no navegador so volta com um clique, por causa da permissao)

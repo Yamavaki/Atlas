@@ -12,7 +12,7 @@ export const nomeArte=t=>(t||"").split("/").pop().replace(/\.(png|webp|jpe?g)$/i
 const b64=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return (typeof btoa==="function"?btoa(s):Buffer.from(s,"binary").toString("base64"))};
 export const deB64=s=>{const b=typeof atob==="function"?atob(s):Buffer.from(s,"base64").toString("binary"),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
 
-// indice de tamanhos a partir do catalogo compacto do mod "Catalogo de Artes" ({assets:{Categoria:{"caminho|pacote|pasta":[[arquivo,larg_px,alt_px,..]]}}})
+// indice de tamanhos a partir do catalogo compacto do mod "Catálogo de Artes" ({assets:{Categoria:{"caminho|pacote|pasta":[[arquivo,larg_px,alt_px,..]]}}})
 export function indiceTamanhos(cat){const M=new Map();if(!cat||!cat.assets)return M;for(const c in cat.assets)for(const k in cat.assets[c]){const base=k.split("|")[0];for(const a of cat.assets[c][k])M.set(base+"/"+a[0],[a[1],a[2]])}return M}
 // tamanho de uma arte em quadrados: catalogo, depois o "_LxA" do nome (padrao FA), depois um palpite pela familia
 export function tamanhoArte(tex,TAM){const z=TAM&&TAM.get(tex);if(z&&z[0]>0)return [z[0]/PX,z[1]/PX,1];const m=/(\d+)x(\d+)(?:\.\w+)?$/.exec(tex||"");if(m)return [+m[1],+m[2],0];

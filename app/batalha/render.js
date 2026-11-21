@@ -76,7 +76,7 @@ export function criaRender(canvas,cfg){const gl=canvas.getContext("webgl2",{anti
   const PM=prog(VS,FS),PT=prog(VT,FT),PL=prog(VL,FL),PC=prog(VC,FC),PK=prog(VT,FK),PB=prog(VC,FB),PSo=prog(VC,FSo);
   const ANI=gl.getExtension("EXT_texture_filter_anisotropic"),MAXT=gl.getParameter(gl.MAX_TEXTURE_SIZE)||4096;const aniso=()=>{if(ANI)gl.texParameterf(gl.TEXTURE_2D_ARRAY,ANI.TEXTURE_MAX_ANISOTROPY_EXT,Math.min(8,gl.getParameter(ANI.MAX_TEXTURE_MAX_ANISOTROPY_EXT)))};
   // matriz de texturas com as artes proprias
-  const t0=performance.now(),ART=gerarArtes((w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c}),G=ART.quadros.length;let TA=null,TR=null,TMt=null,TFx=null,LADO=ART.T,NREAIS=0,CAMADAS_R=0;if(G>255)throw new Error("artes demais");
+  const t0=performance.now(),ART=gerarArtes((w,h)=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c}),G=ART.quadros.length;let TA=null,TR=null,TMt=null,TFx=null,LADO=ART.T,NREAIS=0,CAMADAS_R=0;if(G>255)throw new Error("O mapa usa artes diferentes demais (limite de 255).");
   // matriz de texturas: as artes do Atlas e, depois delas, as artes do PC usadas no mapa (Artes do PC)
   const ehMat=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
   const ehFaixa=c=>/\/textures\/(walls|paths)\//.test(c);

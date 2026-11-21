@@ -50,7 +50,7 @@ export async function deImagem(blob,nome){const bm=await createImageBitmap(blob)
   if(temAlfa)for(let i=0;i<w*h;i++)d[i]=px[i*4+3];
   return {k:"meu:"+nome+":"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),nome:nome.replace(/\.[a-z0-9]+$/i,"").replace(/^\d+[_ -]*/,"").replace(/[_-]+/g," ").trim()||"Pincel",w,h,d}}
 // .zip simples (sem senha): le o indice central e abre cada arquivo (guardado ou deflate)
-export async function lerZip(file){const buf=new Uint8Array(await file.arrayBuffer()),dv=new DataView(buf.buffer);let e=-1;for(let i=buf.length-22;i>=Math.max(0,buf.length-65557);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}if(e<0)throw new Error("zip sem índice");
+export async function lerZip(file){const buf=new Uint8Array(await file.arrayBuffer()),dv=new DataView(buf.buffer);let e=-1;for(let i=buf.length-22;i>=Math.max(0,buf.length-65557);i--)if(dv.getUint32(i,true)===0x06054b50){e=i;break}if(e<0)throw new Error("O arquivo .zip de pincéis está incompleto.");
   const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out=[];
   for(let i=0;i<n;i++){if(dv.getUint32(p,true)!==0x02014b50)break;const met=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true),nome=new TextDecoder().decode(buf.subarray(p+46,p+46+nl));p+=46+nl+xl+cl;
     if(nome.endsWith("/")||!/\.(png|webp|jpe?g|gif|bmp)$/i.test(nome)||/(^|\/)__MACOSX\//.test(nome))continue;const ln=dv.getUint16(lo+26,true),lx=dv.getUint16(lo+28,true),ini=lo+30+ln+lx,dados=buf.subarray(ini,ini+cs);

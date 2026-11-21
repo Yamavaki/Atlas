@@ -33,5 +33,5 @@
     junta};
   window.AtlasArquivoTauri=API;
   // primeira vez: cria Documentos/Atlas/Assets com um aviso do que por la
-  (async()=>{try{const d=await T().path.documentDir();if(d)await API.criaPasta(junta(junta(d,"Atlas"),"Assets"),"Coloque nesta pasta os pacotes de arte do Dungeondraft (.dungeondraft_pack).\nO Modo Batalha do Atlas encontra os pacotes daqui sozinho ao abrir.\nPacotes que não permitem leitura por outros programas ficam de fora.\n")}catch(e){}})();
+  (async()=>{try{const d=await T().path.documentDir();if(d)await API.criaPasta(junta(junta(d,"Atlas"),"Assets"),"Coloque nesta pasta seus pacotes de arte (.dungeondraft_pack).\nO Modo Batalha do Atlas carrega os pacotes desta pasta automaticamente ao abrir.\nPacotes cujos autores não permitem a leitura por outros programas são ignorados.\n")}catch(e){}})();
 })();

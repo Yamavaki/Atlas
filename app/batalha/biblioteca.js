@@ -13,9 +13,9 @@ const u32=(dv,o)=>dv.getUint32(o,true),u64=(dv,o)=>dv.getUint32(o,true)+dv.getUi
 const fatia=async(blob,ini,fim)=>new DataView(await blob.slice(ini,fim).arrayBuffer());
 
 // ---------- leitura de um pacote ----------
-export async function lerTabela(blob){let dv=await fatia(blob,0,Math.min(blob.size,1<<22));if(dv.byteLength<92||TXT.decode(new Uint8Array(dv.buffer,0,4))!=="GDPC")throw new Error("Não é um pacote do Dungeondraft.");
-  const fmt=u32(dv,4);let p=20,base=0;if(fmt>=2){const flags=u32(dv,20);base=u64(dv,24);p=32;if(flags&1)throw new Error("Pacote cifrado.")}p+=64;const n=u32(dv,p);p+=4;if(n>5000000)throw new Error("Tabela estranha.");
-  let ini=0;const E=[];const garante=async k=>{if(p+k<=dv.byteLength)return;ini+=p;dv=await fatia(blob,ini,Math.min(blob.size,ini+Math.max(1<<22,k*2)));p=0;if(dv.byteLength<k)throw new Error("Pacote cortado.")};
+export async function lerTabela(blob){let dv=await fatia(blob,0,Math.min(blob.size,1<<22));if(dv.byteLength<92||TXT.decode(new Uint8Array(dv.buffer,0,4))!=="GDPC")throw new Error("Este arquivo não é um pacote de arte válido.");
+  const fmt=u32(dv,4);let p=20,base=0;if(fmt>=2){const flags=u32(dv,20);base=u64(dv,24);p=32;if(flags&1)throw new Error("Pacote criptografado.")}p+=64;const n=u32(dv,p);p+=4;if(n>5000000)throw new Error("Índice do pacote inválido.");
+  let ini=0;const E=[];const garante=async k=>{if(p+k<=dv.byteLength)return;ini+=p;dv=await fatia(blob,ini,Math.min(blob.size,ini+Math.max(1<<22,k*2)));p=0;if(dv.byteLength<k)throw new Error("Pacote incompleto.")};
   for(let i=0;i<n;i++){await garante(4);const L=u32(dv,p);p+=4;await garante(L+32+(fmt>=2?4:0));let s=new Uint8Array(dv.buffer,dv.byteOffset+p,L);let z=s.indexOf(0);if(z>=0)s=s.subarray(0,z);const nome=TXT.decode(s);p+=L;
     const off=u64(dv,p)+base,tam=u64(dv,p+8);p+=32;if(fmt>=2)p+=4;E.push([nome,off,tam])}
   return E}
@@ -65,12 +65,12 @@ async function* varre(dir,pre){for await (const [n,h] of dir.entries()){if(h.kin
 // monta o indice: reaproveita o que ja foi lido se o arquivo nao mudou
 async function montar(lista,progresso,acrescenta){ESTADO.lendo=true;if(!acrescenta)ESTADO.problemas=[];avisa();const antigos=new Map();try{for(const P of (await tx("pacotes","readonly",s=>s.getAll()))||[])antigos.set(P.arquivo,P)}catch(e){}
   if(!acrescenta){ESTADO.arquivos.clear();ESTADO.pacotes.clear();ESTADO.caminho.clear()}let i=0;
-  for(const [rel,pega] of lista){i++;let f;try{f=await pega()}catch(e){ESTADO.problemas.push([rel,"não deu para abrir (se está no OneDrive, deixe “sempre neste dispositivo”)"]);continue}
-    ESTADO.arquivos.set(rel,f);let P=antigos.get(rel);if(!P||P.v!==IDX||P.tam!==f.size||P.mod!==(f.lastModified||0)){try{P=await indexarPacote(f,rel);await tx("pacotes","readwrite",s=>{s.put(P,rel)})}catch(e){ESTADO.problemas.push([rel,e&&e.name==="NotReadableError"?"não deu para ler (se está no OneDrive, deixe “sempre neste dispositivo”)":(e.message||"erro ao ler")]);continue}}
+  for(const [rel,pega] of lista){i++;let f;try{f=await pega()}catch(e){ESTADO.problemas.push([rel,"não foi possível abrir (no OneDrive, marque “Sempre manter neste dispositivo”)"]);continue}
+    ESTADO.arquivos.set(rel,f);let P=antigos.get(rel);if(!P||P.v!==IDX||P.tam!==f.size||P.mod!==(f.lastModified||0)){try{P=await indexarPacote(f,rel);await tx("pacotes","readwrite",s=>{s.put(P,rel)})}catch(e){ESTADO.problemas.push([rel,e&&e.name==="NotReadableError"?"não foi possível ler (no OneDrive, marque “Sempre manter neste dispositivo”)":(e.message||"erro ao ler")]);continue}}
     if(ESTADO.pacotes.has(P.id)){ESTADO.problemas.push([rel,"é cópia de “"+ESTADO.pacotes.get(P.id).arquivo+"”"]);continue}
     ESTADO.pacotes.set(P.id,P);if(P.permitido)for(const a of P.artes)ESTADO.caminho.set("res://packs/"+P.id+"/"+a[0],[P,a]);if(progresso)progresso(i,lista.length,P.nome)}
   ESTADO.lendo=false;preparando=null;idxSub=null;avisa();return estado()}
-export async function conectarPasta(progresso){if(AT()){const p=await window.__TAURI__.dialog.open({directory:true,title:"Escolha a pasta dos pacotes do Dungeondraft"});if(!p)return estado();return abreCaminho(String(p),progresso,true)}const dir=await window.showDirectoryPicker({id:"atlas-artes",mode:"read"});ESTADO.pasta=dir;ESTADO.nome=dir.name;ESTADO.precisa=false;try{await poeCfg("pasta",dir)}catch(e){}
+export async function conectarPasta(progresso){if(AT()){const p=await window.__TAURI__.dialog.open({directory:true,title:"Escolha a pasta dos pacotes de arte"});if(!p)return estado();return abreCaminho(String(p),progresso,true)}const dir=await window.showDirectoryPicker({id:"atlas-artes",mode:"read"});ESTADO.pasta=dir;ESTADO.nome=dir.name;ESTADO.precisa=false;try{await poeCfg("pasta",dir)}catch(e){}
   const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
 // sem escolher pasta (Firefox, Safari, celular): os arquivos escolhidos valem so enquanto a pagina estiver aberta
 export async function conectarArquivos(files,progresso){ESTADO.pasta=null;const L=[...files].filter(f=>/\.dungeondraft_pack$/i.test(f.name)).map(f=>[f.webkitRelativePath||f.name,async()=>f]);ESTADO.nome=L.length?(L[0][0].includes("/")?L[0][0].split("/")[0]:L.length+" pacotes"):"";return montar(L,progresso)}
