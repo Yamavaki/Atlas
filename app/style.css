@@ -879,3 +879,30 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .qwrap.qteia{display:flex;flex-direction:column;height:100%;max-width:none}
 .qd-area.qd-teia{position:relative;flex:none;height:72vh;min-height:520px;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:8px}
 .qteia-nota{margin:6px 0 0;font-size:13px}
+
+/* ===================== 1.7 regiao e cidade no desenho do Modo Batalha ===================== */
+.mapv2{display:grid;grid-template-rows:auto auto minmax(0,1fr);height:100%;min-height:0}
+.mapv2 .mbarra{position:static;display:flex;align-items:center;gap:4px;padding:6px 18px;border:0;border-bottom:1px solid var(--panel-3);border-radius:0;background:var(--panel);box-shadow:none;overflow-x:auto;scrollbar-width:none}
+.mapv2 .mbarra .zl{margin:0 2px}
+.mapv2 .mbody,.mapv2 .mbody.par{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:0;height:100%;align-items:stretch}
+.mapv2 .mwrap{min-height:0;height:100%}
+.mapv2 .mlado{display:flex;flex-direction:column;min-height:0;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line)}
+.mapv2 .mlado-ctx .ctx{position:static;display:flex;flex-direction:column;align-items:stretch;gap:10px;max-width:none;margin:0;padding:16px 18px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
+.mapv2 .mlado-ctx .ctx[hidden]{display:none}
+.mapv2 .mlado-ctx .ctx .seg{flex-wrap:wrap}
+.mapv2 .mlado-ctx .ctx .cname{font-size:18px;margin:0}
+.mapv2 .mlado-ctx .ctx>button,.mapv2 .mlado-ctx .ctx>label{width:100%}
+.mapv2 .mlado-ctx .ctx .ocell{flex:0 0 72px}
+.mapv2 .mlado .params,.mapv2 .mbody.par .params{position:static;border:0;border-radius:0;box-shadow:none;max-height:none;overflow:visible;padding:16px 18px;background:transparent}
+.mapv2 .mlado-vazio{display:none;margin:0;padding:18px;color:var(--muted);font-size:14px;line-height:1.5}
+.mapv2 .mlado:not(:has(.ctx:not([hidden]):not(:empty))):not(:has(.params:not([hidden]))) .mlado-vazio{display:block}
+@media (max-width:860px){.mapv2 .mlado-vazio{display:none!important}}
+.mapv2 .hintc{max-width:calc(100% - 90px)}
+@media (min-width:861px) and (max-width:1180px){.mapv2 .mbody,.mapv2 .mbody.par{grid-template-columns:minmax(0,1fr) 280px}.mapv2 .mbody.par .params{position:static;width:auto;box-shadow:none}}
+@media (max-width:860px){
+  .mapv2 .mbarra{padding:6px 8px}
+  .mapv2 .mbody,.mapv2 .mbody.par{grid-template-columns:minmax(0,1fr);position:relative}
+  .mapv2 .mlado,.mapv2 .mlado-ctx{display:contents}
+  .mapv2 .mlado-ctx .ctx{position:absolute;left:8px;right:8px;top:8px;z-index:6;flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(23,20,15,.94);box-shadow:var(--sombra)}
+  .mapv2 .mlado .params{position:fixed;left:0;right:0;bottom:56px;top:auto;max-height:55vh;overflow:auto;z-index:25;border-top:1px solid var(--line-2);border-radius:16px 16px 0 0;background:var(--panel);box-shadow:0 -10px 30px rgba(0,0,0,.5)}
+}
