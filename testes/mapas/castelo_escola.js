@@ -176,7 +176,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   telh(ret(8,16,72,62),{t:MD.texDe(M,TELHA),tq:CUME?MD.texDe(M,CUME):undefined,alas:[
     // alas que se sobrepoem (a juncao vira rincao, como num telhado de verdade); o salao e uma duas-aguas mais alta
     {x0:8,y0:16,x1:20,y1:56},{x0:8,y0:16,x1:72,y1:30},{x0:32,y0:16,x1:62,y1:30,tipo:"duas",eixo:"x",k:1.3},{x0:62,y0:16,x1:72,y1:40},
-    {x0:44,y0:28,x1:62,y1:62},{x0:20,y0:52,x1:62,y1:62},{x0:8,y0:52,x1:24,y1:56}],cq:[.42,.42,.46,1]});
+    {x0:44,y0:28,x1:62,y1:62},{x0:20,y0:52,x1:62,y1:62},{x0:8,y0:52,x1:24,y1:56}],cq:[.8,.8,.85,1]});
   const torreArte=cor=>um(new RegExp("Towers/Roof_A/Roof_A_"+cor+"_Tower_Round_C\\."))||um(/Towers\/Roof_A\/Roof_A_[A-Za-z]+_Tower_Round_C\./);
   for(const [cm,cor] of [[C_.dormitorio,"Gray"],[C_.diretor,"Gray"],[C_.astronomia,"Blue"],[C_.corujal,"Brown"]]){const k=torreArte(cor);telh(cm.P,k?{arte:MD.texDe(M,k),t:MD.texDe(M,TELHA2),escArte:1.15}:{t:MD.texDe(M,TELHA2),estilo:"quatro"})}
   telh(ret(78,18,96,28),{t:MD.texDe(M,TELHA_V),tq:CUME_V?MD.texDe(M,CUME_V):undefined,alas:[{x0:78,y0:18,x1:96,y1:28,tipo:"duas",eixo:"x"}]});
