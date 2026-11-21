@@ -1,0 +1,28 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Janela principal: pasta do mundo, artes do PC, escolher pasta, abrir links",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "opener:default",
+    "fs:default",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-mkdir",
+    "fs:allow-remove",
+    "fs:allow-read-dir",
+    "fs:allow-exists",
+    "fs:allow-stat",
+    "fs:allow-rename",
+    {
+      "identifier": "fs:scope",
+      "allow": [{ "path": "**" }, { "path": "**/.atlas/**" }, { "path": "**/.atlas" }]
+    }
+  ]
+}
