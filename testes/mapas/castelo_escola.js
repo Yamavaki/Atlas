@@ -31,7 +31,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   const P_MAD=tx(/Wood_Pattern\/Wood_Walnut_Flooring_[A-Z]\./)||tx(/Wood_Pattern\/.*Flooring/),P_MAD2=tx(/Wood_Pattern\/Wood_Dark_Flooring_[A-Z]\./)||P_MAD,P_MAD3=tx(/Wood_Pattern\/Wood_Ashen_Flooring_[A-Z]\./)||P_MAD;
   const P_COBB=tx(/patterns\/.*Cobblestone_A_.*Slate|patterns\/.*Cobblestone/),P_QUAD=tx(/Stone_Square_Tiles_Slate|Stone_Square_Tiles_Earthy/)||P_PEDRA,P_TERRA=tx(/patterns\/.*Dirt_Pattern\/Dirt_A|Dirt_Pattern/);
   const TELHA=tx(/Roof_Texture_Slate_Black_A1\./),TELHA2=tx(/Roof_Texture_Slate_Blue_A1\./)||TELHA,TELHA_V=tx(/Roof_Texture_Tile_Green_A1\./)||TELHA,TELHA_M=tx(/Roof_Texture_Wood_Dark_Shingle_A1\./)||TELHA;
-  const CUME=um(/paths\/.*Roof_Hip_Shingles_Gray\./),CUME_V=um(/paths\/.*Roof_Hip_Shingles_Green\./)||CUME,CUME_M=um(/paths\/.*Roof_Hip_Shingles_Brown\./)||CUME;
+  const CUME=um(/paths\/.*Roof_Hip_Shingles_Gray\./),CUME_V=um(/paths\/.*Roof_Hip_Shingles_DarkGreen\./)||CUME,CUME_M=um(/paths\/.*Roof_Hip_Shingles_Brown\./)||CUME;
   const PORTA=um(/portals\/Doors\/Door_Wood_Dark_[A-Z]_1x1\./)||um(/portals\/Doors\/Door_Wood_/),PORTA2=um(/portals\/Doors\/.*Double.*Wood_Dark|portals\/Doors\/Door_Wood_Dark_.*2x1/)||PORTA;
   const JANELA=um(/portals\/Windows\/Window_.*Stone.*_2x1\.|portals\/Windows\/Window_[A-Za-z_]*_2x1\./)||um(/portals\/Windows\//);
   // ---------- paredes, pisos, portas ----------
@@ -92,11 +92,12 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   // ---------- SALAO PRINCIPAL: quatro mesas compridas, bancos, mesa alta, velas flutuando ----------
   {const mesa=um(/Table_Rectangle_Wood_Dark_A_4x2\./),banco=um(/Bench_Wood_Dark_C1_3x1\./)||um(/Bench_Wood_Dark_/);
     const ys=[19.4,22.3,25.2,28.1].map(y=>y-.35);
-    for(const [i,y] of ys.entries()){for(let x=36;x<=52;x+=4){await put(mesa,x+2,y,[0,1]);}
-      for(let x=36.5;x<=53;x+=3.2){await put(banco,x+1.5,y-1.25,[0,1]);await put(banco,x+1.5,y+1.25,[0,-1])}
+    const Am=await arte(mesa),Ab=await arte(banco),pm=Am.vw-.05,pb=Ab.vw+.1,nm=Math.floor(19/pm),x0m=46-nm*pm/2;
+    for(const [i,y] of ys.entries()){for(let j=0;j<nm;j++)await put(mesa,x0m+pm*(j+.5),y,[0,1]);
+      const nb=Math.floor(nm*pm/pb);for(let j=0;j<nb;j++){const x=46-nb*pb/2+pb*(j+.5);await put(banco,x,y-Am.vh/2-Ab.vh/2-.02,[0,1]);await put(banco,x,y+Am.vh/2+Ab.vh/2+.02,[0,-1])}
       // loucas e comida nas mesas
       const louca=acha(/Decor\/Clutter\/Dishes\/(Plates|Goblets|Cups|Mugs|Bowls)\/.*_(Gold|Silver|Metal_Gold|Metal_Silver).*_1x1\./),comida=acha(/Clutter\/Food\/(Breads|Fruits|Meats\/Cooked|Pies|Cakes)\//);
-      for(let x=36.6;x<55.6;x+=.9){if(louca.length)await put(esc(louca),x,y-.45,null,{r:R()*6.28,l:300});if(louca.length)await put(esc(louca),x+.3,y+.45,null,{r:R()*6.28,l:300});if(comida.length&&R()<.45)await put(esc(comida),x+.45,y,null,{r:R()*6.28,l:300})}}
+      for(let x=x0m+.4;x<x0m+nm*pm-.4;x+=.9){if(louca.length)await put(esc(louca),x,y-.45,null,{r:R()*6.28,l:300});if(louca.length)await put(esc(louca),x+.3,y+.45,null,{r:R()*6.28,l:300});if(comida.length&&R()<.45)await put(esc(comida),x+.45,y,null,{r:R()*6.28,l:300})}}
     // mesa alta (leste), cadeiras viradas para o salao
     const mesaA=um(/Table_Rectangle_Wood_Walnut_A_4x2\./)||mesa,cad=um(/Fancy_Chair_Wood_Walnut_.*_1x1\./)||um(/Fancy_Chair_/),trono=um(/Throne_.*Gold|Throne_/);
     for(let y=17.8;y<=26;y+=4)await put(mesaA,58.6,y+2,[-1,0]);
@@ -114,6 +115,10 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
     const est=acha(/Statue_Marble_(Black|White)_Standing_Knight_[AB]_2x2\./);for(const [x,y] of [[21.5,26],[30.5,26]])if(est.length)await put(esc(est),x,y,[0,-1]);
     const tap=um(/Rugs_and_Carpets\/.*Runner.*Red.*_\dx\d\./)||um(/Rug_.*Red.*_2x[4-6]\./);if(tap)await put(tap,26,23,[0,1],{l:100});
     const toc=acha(/Wall_Torch_A_0[12]_1x1\./);for(const [x,y,n] of [[20,18,[1,0]],[20,28,[1,0]],[32,19,[-1,0]],[32,27,[-1,0]]])if(toc.length){await naParede(toc[0],x,y,n);luz(x+n[0]*.6,y+n[1]*.6,"tocha")}
+    const ar=acha(/Statue_(Marble|Metal)_[A-Za-z]+_Standing_(Knight|Mage|Hooded)_[AB]_2x2\./);for(const [x,y,n] of [[20,20.5,[1,0]],[32,21,[-1,0]],[20,25.5,[1,0]]])if(ar.length)await naParede(esc(ar),x,y,n,{s:.7});
+    const bc=um(/Bench_Wood_Dark_A1_2x1\./);for(const [x,y,n] of [[23,30,[0,-1]],[29,30,[0,-1]]])if(bc)await naParede(bc,x,y,n);
+    for(const [i,cn] of ["Red","Green","Yellow","Blue"].entries()){const b=um(new RegExp("Flag_Banner_Fabric_"+cn+"_Medium_A1_2x1\\."));if(b)await naParede(b,21.8+i*2.8,16,[0,1])}
+    const vs=acha(/Potted_Plant_.*_1x1\./);for(const [x,y] of [[21,17],[31,17],[21,29],[31,29]])if(vs.length)await put(esc(vs),x,y,null);
     const cand=um(/Chandelier_Metal_Gray_A_Lit_2x2\./);if(cand){await put(cand,26,23,null,{l:400});luz(26,23,"lampiao",{raio:8,claro:4})}}
   // ---------- SALAS DE AULA: carteiras em fileiras viradas para o quadro ----------
   const salaAula=async(x0,y0,x1,y1,tema)=>{const cart=acha(/Furniture\/Tables\/Desks\/Desk_Rectangle_Wood_(Dark|Walnut)_[A-D]1_2x1\./),cad=acha(/Seating\/Chairs\/.*Chair_Wood_(Dark|Walnut)_[B-H]_1x1\./),quadro=um(/Blackboard_Wood_Dark_A1_3x1\./);
@@ -125,6 +130,16 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   await salaAula(8,16,20,26,async(x0,y0,x1,y1)=>{const g=acha(/Domesticated_Animals\/.*(Cage|Bird|Cat).*_1x1\./);if(g.length)await put(esc(g),x1-1.2,y0+1.2,null,{r:0})});
   await salaAula(8,26,20,36,async(x0,y0,x1,y1)=>{const p=acha(/Feather|Quill/);if(p.length)for(let i=0;i<5;i++)await put(esc(p),x0+3+R()*7,y0+4+R()*5,null,{r:R()*6.28,l:300})});
   await salaAula(8,36,20,46,async(x0,y0,x1,y1)=>{const ar=acha(/Armor_Stand_Wood_.*_1x1\.|Mannequin_.*Armor/);if(ar.length){await put(esc(ar),x1-1,y0+1.2,[0,1]);await put(esc(ar),x1-1,y1-1.2,[0,-1])}});
+  // ---------- SALA DE TROFEUS: vitrines nas paredes, tacas e escudos ----------
+  {const vit=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-Z]_1x2\./),vit2=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-Z]_2x2\./),taca=acha(/(Goblet|Chalice|Trophy|Cup)_.*(Gold|Silver).*_1x1\./),esc_=acha(/Shield_.*_1x1\./);
+    for(let x=46;x<=60;x+=2.4){if(vit.length)await naParede(esc(vit),x,30,[0,1],{r:0});if(vit.length)await naParede(esc(vit),x,40,[0,-1])}
+    for(const x of [49,53,57])if(vit2.length){await put(esc(vit2),x,35,[0,1]);for(let k=0;k<3;k++)if(taca.length)await put(esc(taca),x-.5+k*.5,35,null,{r:R()*6.28,l:300})}
+    for(let i=0;i<10;i++)if(taca.length)await put(esc(taca),46+R()*14,31+R()*.4,null,{r:R()*6.28,l:300});luz(53,35,"lampiao",{raio:8,claro:4})}
+  // ---------- BIBLIOTECA: estantes nas paredes, fileiras de estantes duplas, mesas de leitura ----------
+  {const es=acha(/Furniture\/Shelves\/.*Shelf_Wood_(Dark|Walnut)_Filled_[A-Z]\d_2x1\./),mesa=acha(/Table_Rectangle_Wood_Walnut_[BC]_3x2\./),cad=acha(/Seating\/Chairs\/.*Chair_Wood_Walnut_[B-H]_1x1\./),liv=acha(/Books_and_Tomes\/Book_[A-Z]_.*_1x1\./),vela=acha(/Candle_(White|Yellow)_Wax_A\d_1x1\./);
+    if(es.length){for(let x=21.4;x<=38.6;x+=2.05)await naParede(esc(es),x,62,[0,-1]);for(let y=54;y<=60;y+=2.05)await naParede(esc(es),20,y,[1,0])}
+    if(es.length)for(const x of [24,27.5])for(let y=53.6;y<=58.8;y+=2.05){await put(esc(es),x,y,[1,0]);await put(esc(es),x+.62,y,[-1,0])}
+    for(const [x,y] of [[33,55.5],[33,59]])if(mesa.length){await put(esc(mesa),x,y,[0,1]);for(const dx of [-1,0,1])if(cad.length){await put(esc(cad),x+dx,y-1.35,[0,1]);await put(esc(cad),x+dx,y+1.35,[0,-1])}for(let k=0;k<4;k++)if(liv.length)await put(esc(liv),x-1+R()*2,y-.4+R()*.8,null,{r:R()*6.28,l:300});if(vela.length)await put(esc(vela),x,y,null,{l:300});luz(x,y,"vela",{raio:4})}}
   // ---------- TORRE DE ASTRONOMIA ----------
   {const tel=acha(/Decor\/Telescopes\/Telescope_Metal_Brass_A[12]_/);for(let i=0;i<5;i++){const t=i/5*Math.PI*2+.3;if(tel.length)await put(esc(tel),67.5+Math.cos(t)*3.8,47+Math.sin(t)*3.8,[Math.cos(t),Math.sin(t)])}
     const gl=acha(/Decor\/Office\/Globes\/Globe_Large_Brace_/);if(gl.length)await put(esc(gl),67.5,47,null);const esp=um(/Spiral_Staircase_Metal_Gray_A1_3x3\./);if(esp)await put(esp,69.5,44.5,null);luz(67.5,47,"lua",{raio:8,claro:4})}
@@ -161,17 +176,17 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   telh(ret(8,16,72,62),{t:MD.texDe(M,TELHA),tq:CUME?MD.texDe(M,CUME):undefined,alas:[
     // alas que se sobrepoem (a juncao vira rincao, como num telhado de verdade); o salao e uma duas-aguas mais alta
     {x0:8,y0:16,x1:20,y1:56},{x0:8,y0:16,x1:72,y1:30},{x0:32,y0:16,x1:62,y1:30,tipo:"duas",eixo:"x",k:1.3},{x0:62,y0:16,x1:72,y1:40},
-    {x0:44,y0:28,x1:62,y1:62},{x0:20,y0:52,x1:62,y1:62},{x0:8,y0:52,x1:24,y1:56}],cq:[.7,.7,.75,1]});
+    {x0:44,y0:28,x1:62,y1:62},{x0:20,y0:52,x1:62,y1:62},{x0:8,y0:52,x1:24,y1:56}],cq:[.42,.42,.46,1]});
   const torreArte=cor=>um(new RegExp("Towers/Roof_A/Roof_A_"+cor+"_Tower_Round_C\\."))||um(/Towers\/Roof_A\/Roof_A_[A-Za-z]+_Tower_Round_C\./);
-  for(const [cm,cor] of [[C_.dormitorio,"Red"],[C_.diretor,"Gray"],[C_.astronomia,"Blue"],[C_.corujal,"Gray"]]){const k=torreArte(cor);telh(cm.P,k?{arte:MD.texDe(M,k),t:MD.texDe(M,TELHA2),escArte:1.15}:{t:MD.texDe(M,TELHA2),estilo:"quatro"})}
+  for(const [cm,cor] of [[C_.dormitorio,"Gray"],[C_.diretor,"Gray"],[C_.astronomia,"Blue"],[C_.corujal,"Brown"]]){const k=torreArte(cor);telh(cm.P,k?{arte:MD.texDe(M,k),t:MD.texDe(M,TELHA2),escArte:1.15}:{t:MD.texDe(M,TELHA2),estilo:"quatro"})}
   telh(ret(78,18,96,28),{t:MD.texDe(M,TELHA_V),tq:CUME_V?MD.texDe(M,CUME_V):undefined,alas:[{x0:78,y0:18,x1:96,y1:28,tipo:"duas",eixo:"x"}]});
   telh(ret(84,40,91,46),{t:MD.texDe(M,TELHA_M),tq:CUME_M?MD.texDe(M,CUME_M):undefined,alas:[{x0:84,y0:40,x1:91,y1:46,tipo:"duas",eixo:"x"}]});
   e.hist.exec(ops,{nome:"Castelo-escola"});await new Promise(r=>setTimeout(r,300));await e.artesPC().espera();
   // ---------- comodos cheios pelo gerador de zonas (sem paredes proprias) ----------
   const inset=(P,d)=>{let cx=0,cy=0;for(const q of P){cx+=q[0];cy+=q[1]}cx/=P.length;cy/=P.length;return P.map(q=>{const dx=q[0]-cx,dy=q[1]-cy,L=Math.hypot(dx,dy)||1;return [q[0]-dx/L*d*1.41,q[1]-dy/L*d*1.41]})};
   const insetR=(x0,y0,x1,y1,d)=>ret(x0+d,y0+d,x1-d,y1-d);
-  const Z=[[insetR(62,16,72,24,.15),"cozinha",3],[insetR(62,24,72,30,.15),"despensa",2],[insetR(62,30,72,40,.15),"sala",3],[insetR(8,46,20,56,.15),"dormitorio",2],[insetR(20,52,40,62,.15),"biblioteca",3],
-    [insetR(52,52,62,62,.15),"despensa",1],[insetR(44,40,62,52,.15),"sala",3],[inset(C_.dormitorio.P,.2),"dormitorio",3],[inset(C_.diretor.P,.2),"escritorio",3],[insetR(84,40,91,46,.15),"quarto",0],[insetR(44,30,62,40,.15),"loja",3]];
+  const Z=[[insetR(62,16,72,24,.15),"cozinha",3],[insetR(62,24,72,30,.15),"despensa",2],[insetR(62,30,72,40,.15),"sala",3],[insetR(8,46,20,56,.15),"dormitorio",2],
+    [insetR(52,52,62,62,.15),"despensa",1],[insetR(44,40,62,52,.15),"sala",3],[inset(C_.dormitorio.P,.2),"dormitorio",3],[inset(C_.diretor.P,.2),"escritorio",3],[insetR(84,40,91,46,.15),"quarto",0]];
   for(const [P,tipo,rq] of Z){const z=e.zonas.criar(P,tipo,{riqueza:rq,dens:.75,bag:.7,paredes:false,fonte:"auto",pacote:"FA35OB01",estilo:""});await new Promise(r=>setTimeout(r,150));while(e.zonas.ocupado())await new Promise(r=>setTimeout(r,120));zonas.push(z&&z.id)}
   await e.artesPC().espera();
   // tira o que as zonas puseram na frente das portas
