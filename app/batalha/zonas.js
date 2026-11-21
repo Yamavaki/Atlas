@@ -75,10 +75,10 @@ const MOVEIS=new Set(["cama","criado","guardaRoupa","estante","armario","bau","m
 // com = pecas em volta (cadeiras); em = o que vai em cima (papel, quantidade relativa); perto = papel de quem fica ao lado
 export const COMODOS={
   // quarto: cama encostada, criado-mudo ao lado com vela, bau ao pe, tapete ao lado da cama; o resto conforme a riqueza
-  quarto:{nome:"Quarto",amb:"Quarto",itens:[{p:"cama",n:[1,2],por:34,chave:true},{p:"criado",n:[1,2],por:16,perto:"cama",em:[["velaMesa",1],["livros",.4],["louca",.3]]},{p:"bau",n:[0,1],prob:.8,perto:"cama"},{p:"tapete",n:[0,1],prob:.7,sob:"cama"},{p:"guardaRoupa",n:[1,2],por:22},{p:"escrivaninha",n:[0,1],min:24,com:{p:"cadeira",n:1},em:[["livros",1],["velaMesa",.5]]},{p:"cadeira",n:[0,1],prob:.5,lugar:"p"},{p:"penico",n:[0,1],prob:.5,perto:"cama"},{p:"cesto",n:[0,1],prob:.4},{p:"estante",n:[0,1],min:28},{p:"planta",n:[0,1],prob:.3},{p:"velaChao",n:[0,1],prob:.4}],
+  quarto:{nome:"Quarto",amb:"Quarto",itens:[{p:"cama",n:[1,2],por:34,chave:true},{p:"criado",n:[1,2],por:16,perto:"cama",aoLado:"cama",em:[["velaMesa",1],["livros",.4],["louca",.3]]},{p:"bau",n:[0,1],prob:.8,perto:"cama",aoPe:"cama"},{p:"tapete",n:[0,1],prob:.7,sob:"cama"},{p:"guardaRoupa",n:[1,2],por:22},{p:"escrivaninha",n:[0,1],min:24,com:{p:"cadeira",n:1},em:[["livros",1],["velaMesa",.5]]},{p:"cadeira",n:[0,1],prob:.5,lugar:"p"},{p:"penico",n:[0,1],prob:.5,perto:"cama"},{p:"cesto",n:[0,1],prob:.4},{p:"estante",n:[0,1],min:28},{p:"planta",n:[0,1],prob:.3},{p:"velaChao",n:[0,1],prob:.4}],
     pobre:[{p:"camaSimples",n:[0,1],prob:.4,lugar:"p"},{p:"balde",n:[1,1]},{p:"saco",n:[1,2]},{p:"cesto",n:[0,1],prob:.6},{p:"caixote",n:[0,1],prob:.6,em:[["velaMesa",1]]}],
     rico:[{p:"poltrona",n:[1,1]},{p:"mesinha",n:[0,0],prob:.6,em:[["livros",.6],["velaMesa",.5],["louca",.4]]},{p:"velaChao",n:[1,1],por:16},{p:"planta",n:[0,1],por:22},{p:"estatua",n:[0,0],prob:.4,min:36}]},
-  dormitorio:{nome:"Dormitório",amb:"Quarto",itens:[{p:"cama",n:[2,12],por:8,chave:true,arranjo:"fileira"},{p:"bau",n:[1,8],por:12,perto:"cama"},{p:"penico",n:[0,3],por:20},{p:"balde",n:[0,1],prob:.5},{p:"guardaRoupa",n:[0,2],por:30},{p:"mesa",n:[0,1],min:30,com:{p:"cadeira",lados:1},em:[["louca",.6]]},{p:"tocha",n:[1,4],por:18}],rico:[{p:"tapete",n:[1,2],por:30},{p:"velaChao",n:[1,3],por:20}]},
+  dormitorio:{nome:"Dormitório",amb:"Quarto",itens:[{p:"cama",n:[2,12],por:8,chave:true,arranjo:"fileira"},{p:"bau",n:[1,8],por:12,perto:"cama",aoPe:"cama"},{p:"penico",n:[0,3],por:20},{p:"balde",n:[0,1],prob:.5},{p:"guardaRoupa",n:[0,2],por:30},{p:"mesa",n:[0,1],min:30,com:{p:"cadeira",lados:1},em:[["louca",.6]]},{p:"tocha",n:[1,4],por:18}],rico:[{p:"tapete",n:[1,2],por:30},{p:"velaChao",n:[1,3],por:20}]},
   sala:{nome:"Sala de estar",amb:"Quarto",itens:[{p:"lareira",n:[0,1],chave:true,min:14},{p:"sofa",n:[1,1],chave:true,diante:{de:"lareira",d:2.6}},{p:"poltrona",n:[0,2],por:18,diante:{de:"lareira",d:1.5,lado:1.9}},{p:"mesinha",n:[0,1],diante:{de:"lareira",d:1.3},em:[["livros",.6],["velaMesa",.5]]},{p:"tapete",n:[1,1],sob:"mesinha"},{p:"sofa",n:[0,1],min:30},{p:"estante",n:[1,2],por:24},{p:"armario",n:[0,1],min:22},{p:"planta",n:[0,2],por:22},{p:"velaChao",n:[0,2],por:22}],
     rico:[{p:"estatua",n:[1,2],por:30},{p:"velaChao",n:[2,4],por:14},{p:"planta",n:[1,3],por:18},{p:"poltrona",n:[1,3],por:16}]},
   jantar:{nome:"Salão de jantar",amb:"Cozinha",itens:[{p:"tapete",n:[0,1],prob:.5},{p:"mesaLonga",ou:"mesa",n:[1,2],por:45,chave:true,grade:true,com:{p:"cadeira",lados:4},em:[["louca",1],["comida",.7],["velaMesa",.3]]},{p:"lareira",n:[0,1],min:22},{p:"armario",n:[1,2],por:26},{p:"velaChao",n:[0,2],por:20},{p:"planta",n:[0,1],prob:.3}],
@@ -253,7 +253,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
     // variedade: entre as escolhidas, a menos usada ate agora (empate: sorteio)
     let m=1e9,B=[];for(const a of E){const n=usos.get(a.k)||0;if(n<m){m=n;B=[a]}else if(n===m)B.push(a)}const a=B[Math.floor(R()*B.length)];usos.set(a.k,(usos.get(a.k)||0)+1);return a};
   const riq=Math.max(0,Math.min(3,par.riqueza==null?1:par.riqueza)),fRiq=[.15,1,1.6,2.2][riq];
-  const quantos=it=>{if(it.min&&A<it.min)return 0;const dec=DECOR.has(it.p),f=dec?fRiq:1;if(it.prob!=null&&R()>Math.min(1,it.prob*fRiq))return it.n[0];let n=it.por?A/it.por*(.45+par.dens*.8)*f:it.n[0]+(it.n[1]-it.n[0])*Math.min(1,par.dens*R()*1.2*f);return Math.max(it.n[0],Math.min(it.n[1],Math.round(n)))};
+  const quantos=it=>{if(it.min&&A<it.min)return 0;const dec=DECOR.has(it.p)&&!it.pobre,f=dec?fRiq:1;if(it.prob!=null&&R()>Math.min(1,it.prob*(it.pobre?1:fRiq)))return it.n[0];let n=it.por?A/it.por*(.45+par.dens*.8)*f:it.n[0]+(it.n[1]-it.n[0])*Math.min(1,par.dens*R()*1.2*f);return Math.max(it.n[0],Math.min(it.n[1],Math.round(n)))};
   // balanco: o chao ocupado por moveis tem um teto (nao lotar) e um piso (nao ficar vazio sem querer)
   let ocup=0;const teto=(.24+.14*par.dens)*[.8,1,1.08,1.15][riq]*A,piso=(.07+.11*par.dens)*[.55,1,1.2,1.35][riq]*A;
   // cadeiras em volta, banquetas na frente, e o que vai em cima
@@ -270,6 +270,11 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
       for(let t=0;t<10;t++){const lx=(R()*2-1)*mw,ly=(R()*2-1)*mh;if(base.red&&Math.hypot(lx,ly)>Math.min(base.vw,base.vh)/2-r2-.08)continue;if(postos.some(o=>Math.hypot(o[0]-lx,o[1]-ly)<o[2]+r2+.03))continue;postos.push([lx,ly,r2]);const g=gira(lx,ly,base.r),r=R()*6.283,c=gira(V[0],V[1],r);
         objs.push({k:a.k,papel:p,x:+(base.vx+g[0]-c[0]).toFixed(3),y:+(base.vy+g[1]-c[1]).toFixed(3),r:+r.toFixed(3),w:a.w,h:a.h,l:Math.max(300,(base.l||200)+50),vx:base.vx+g[0],vy:base.vy+g[1],vw:V[2],vh:V[3]});
         if(PAPEIS[p].luz&&par.luz&&!luzes.some(l=>Math.hypot(l.x-base.vx,l.y-base.vy)<2.5))luzes.push({x:+(base.vx+g[0]).toFixed(3),y:+(base.vy+g[1]).toFixed(3),pre:PAPEIS[p].luz});break}}};
+  // ao lado de outra peca encostada (criado-mudo na cabeceira): mesma parede, um de cada lado
+  const aoLado=(a,papel,it,q)=>{const bases=objs.filter(o=>o.papel===it.aoLado&&o.n);for(const ref of bases){const n=ref.n,t=[-n[1],n[0]],fa=fundoDe(ref._art),la=largDe(ref._art),fd=fundoDe(a),lg=largDe(a),w0=[ref.vx-n[0]*fa/2,ref.vy-n[1]*fa/2];
+      const lados=q%2?[-1,1]:[1,-1];for(const sg of lados){if(objs.some(o=>o.papel===papel&&o._lado===ref&&o._sg===sg))continue;const d=la/2+lg/2+.04,x=w0[0]+n[0]*fd/2+t[0]*sg*d,y=w0[1]+n[1]*fd/2+t[1]*sg*d,ob=poe(a,papel,x,y,giroPara(a,n));if(ob){ob.n=n;ob._lado=ref;ob._sg=sg;return ob}}}return null};
+  // ao pe de outra peca (bau no pe da cama), de frente para longe dela
+  const aoPe=(a,papel,it)=>{const bases=objs.filter(o=>o.papel===it.aoPe&&o.n&&!objs.some(b=>b.papel===papel&&b._pe===o));for(const ref of bases){const n=ref.n,fa=fundoDe(ref._art),fd=fundoDe(a);for(const e of [.04,.12]){const d=fa/2+fd/2+e,ob=poe(a,papel,ref.vx+n[0]*d,ref.vy+n[1]*d,giroPara(a,n));if(ob){ob.n=n;ob._pe=ref;return ob}}}return null};
   // diante de outra peca (sofa e poltronas virados para a lareira): no eixo dela, a d quadrados, com desvio lateral alternado
   const diante=(a,papel,it,q)=>{const D0=it.diante,ref=objs.find(o=>o.papel===D0.de&&o.n);if(!ref)return null;const n=ref.n,t=[-n[1],n[0]],prof=Math.min(ref.vw,ref.vh)/2,fd=fundoDe(a);
     const lado=D0.lado?(q%2?1:-1)*D0.lado:0;
@@ -317,7 +322,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
     if(it.grade&&n>1){const a=arteDe(it.p),F=emGrade(a,it,n);if(F.length){for(const ob of F){if(it.com)emVolta(ob,it);emCima(ob,it)}continue}}
     for(let q=0;q<n;q++){if(q>=Math.max(1,it.n[0])&&!Rp.passa&&ocup>teto)break;const a=arteDe(it.p);let ob=null;const lugar=it.lugar||Rp.lugar;
       // tapete: debaixo da peca principal (mesa, cama, sofa), depois que ela ja esta no lugar
-      if(it.diante&&!Rp.passa)ob=diante(a,it.p,it,q);
+      if(it.diante&&!Rp.passa)ob=diante(a,it.p,it,q);if(!ob&&it.aoLado)ob=aoLado(a,it.p,it,q);if(!ob&&it.aoPe)ob=aoPe(a,it.p,it);
       if(ob){}else if(Rp.passa){const sob=it.sob&&objs.some(o=>o.papel===it.sob)?it.sob:["mesa","cama","sofa","mesinha","escrivaninha","altar","balcao"].find(p=>objs.some(o=>o.papel===p&&!objs.some(t=>t.papel===it.p&&Math.hypot(t.vx-o.vx,t.vy-o.vy)<1)));ob=noMeio(a,it.p,Object.assign({},it,{perto:sob,pertoPeso:2.5}),{passa:true,l:a.cam&&a.cam<200?a.cam:100})}
       else if(lugar==="p")ob=naParede(a,it.p,it);else if(lugar==="k")ob=noCanto(a,it.p,it);
       else if(lugar==="m")ob=noMeio(a,it.p,it,{folga:it.com?.75:.3})||noMeio(a,it.p,it,{folga:.15});else ob=solto(a,it.p,it);
@@ -335,7 +340,7 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
       for(const [p,lado,esp] of [[a,sinal,false],[b,-sinal,true]]){const V=visDe(p),dl=ax?V[2]:V[3],t=lado*(Lc/2-dl/2),cen=ax?W(t,0):W(0,t),off=!esp?[V[0],V[1]]:ax?[-V[0],V[1]]:[V[0],-V[1]],g=[off[0]*cs-off[1]*sn,off[0]*sn+off[1]*cs],r=esp&&!ax?o.r+Math.PI:o.r;
         const q={k:p.k,papel:o.papel,x:+(cen[0]-g[0]).toFixed(3),y:+(cen[1]-g[1]).toFixed(3),r:+r.toFixed(4),w:p.w,h:p.h,l:(o.l||200)+(esp?1:0)};if(esp)q.m=1;saida.push(q)}}
     objs.length=0;objs.push(...saida)}
-  for(const l of luzes)delete l._de;for(const o of objs){delete o.vx;delete o.vy;delete o.vw;delete o.vh;delete o._L;delete o._c;delete o._a;delete o.n;delete o.red;delete o._art}
+  for(const l of luzes)delete l._de;for(const o of objs){delete o.vx;delete o.vy;delete o.vw;delete o.vh;delete o._L;delete o._c;delete o._a;delete o.n;delete o.red;delete o._art;delete o._lado;delete o._sg;delete o._pe}
   return {objs,luzes,avisos,area:A,anda:totalAnda}}
 
 // paredes de dois lados (FA: StoneWood, BrickWood, PlasterWood...): o primeiro material fica na metade de cima da arte e a madeira na de baixo.
