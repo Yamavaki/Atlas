@@ -80,9 +80,9 @@
       md,vivo,eventos,C.autocompletion({override:[sugestao],activateOnTyping:true,icons:false}),
       C.Prec.highest(teclas),keymap.of([...C.closeBracketsKeymap,...C.defaultKeymap,...C.historyKeymap,...C.completionKeymap,...C.searchKeymap,C.indentWithTab]),
       C.placeholder(cfg.dica||"Escreva aqui…"),
-      EditorView.contentAttributes.of({spellcheck:"true","aria-label":"Conteúdo da nota"}),
+      EditorView.contentAttributes.of({spellcheck:"true","aria-label":"Conteúdo da nota"}),EditorView.editorAttributes.of({class:"cm-atlas"}),
       EditorView.updateListener.of(u=>{if(u.docChanged&&cfg.mudou)cfg.mudou(u.state.doc.toString())})]});
-    const view=new EditorView({state});view.dom.classList.add("cm-atlas");
+    const view=new EditorView({state});
     return {dom:view.dom,view,texto:()=>view.state.doc.toString(),focar:()=>view.focus(),
       envolver:(a,b,ph)=>envolver(view,a,b,ph),prefixo:pre=>prefixo(view,pre),
       inserir:s=>{const r=view.state.selection.main;view.dispatch({changes:{from:r.from,to:r.to,insert:s},selection:{anchor:r.from+s.length}});view.focus()},

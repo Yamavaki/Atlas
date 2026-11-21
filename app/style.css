@@ -871,6 +871,6 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .ovl .pmt{font:700 11px var(--body);pointer-events:none}
 .ovl .pm:hover circle,.ovl .pm:focus circle{fill:#2a2216}
 .qlist .qi{border-left:3px solid transparent}
-.qd-mini{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:6px;margin-top:6px;opacity:.95}
+.qd-mapmini{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:6px;margin-top:6px;opacity:.95}
 .bt-gcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:rgba(255,255,255,.02)}
 .bt-gcard b{display:block;margin-bottom:2px}
