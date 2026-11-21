@@ -38,7 +38,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const nomeArte=t=>{if(real(t)){const i=BIB.info(t);if(i)return i.nome}return (MD.ARTES[objetoDe(t)]||["Arte"])[0]};
   // carrega as imagens que o mapa usa (e as escolhidas no pincel) e refaz a matriz de texturas
   // artes dos pacotes que o mapa usa de verdade (os nomes que ficaram na lista de texturas sem uso nao sao carregados)
-  const usadosReais=()=>{const S=new Set(),T=M.texturas;for(const A of M.andares)for(const k of MD.TIPOS.concat(["camadas"]))for(const e of A[k]||[]){if(typeof e.t==="number"&&real(T[e.t]))S.add(T[e.t]);if(typeof e.tq==="number"&&real(T[e.tq]))S.add(T[e.tq])}return S};
+  const usadosReais=()=>{const S=new Set(),T=M.texturas;for(const A of M.andares)for(const k of MD.TIPOS.concat(["camadas"]))for(const e of A[k]||[]){if(typeof e.t==="number"&&real(T[e.t]))S.add(T[e.t]);if(typeof e.tq==="number"&&real(T[e.tq]))S.add(T[e.tq]);if(typeof e.arte==="number"&&real(T[e.arte]))S.add(T[e.arte])}return S};
   let tVer=0;const verReais=()=>{clearTimeout(tVer);tVer=setTimeout(()=>{if(!vivo)return;for(const t of usadosReais())if(BIB.tem(t)&&BIB.usavel(t)&&!REAIS.has(t)){atualizaReais();return}},60)};
   const fechaBm=v=>{const b=v&&(v.bm||v);if(b&&b.close)try{b.close()}catch(e){}};
   async function carregaReais(extra){const quer=new Set();for(const t of usadosReais())if(BIB.tem(t)&&BIB.usavel(t)){quer.add(t);if(/\/textures\/walls\//.test(t)){const pe=t.replace(/(\.\w+)$/,"_end$1");if(BIB.tem(pe))quer.add(pe)}}for(const t of extra||[])if(real(t)&&BIB.tem(t))quer.add(t);

@@ -172,7 +172,11 @@ export function panosTelhado(ALAS){const PANOS=ALAS.map(panosAla),out=[];for(con
   return {panos:out,linhas}}
 export function malhaTelhados(A,TEX,IND,PAR){const B=[];let n=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
   const v=(x,y,u,w,l,c,br)=>{B.push(x,y,u,w,l,c[0]*br,c[1]*br,c[2]*br,c[3],0,1,1);n++};
-  for(const t of A.telhados||[]){if(t.alas&&t.alas.length){telhadoAlas(t,TEX,IND,PAR,v,lay,real);continue}const w=t.parede!=null&&PAR&&PAR.get(t.parede);let P=w?trajeto(w):(t.raio?arredonda(t.p,t.raio,true):t.p);if(!P||P.length<3)continue;
+  for(const t of A.telhados||[]){if(t.alas&&t.alas.length){telhadoAlas(t,TEX,IND,PAR,v,lay,real);continue}
+    // telhado pronto (arte de objeto, ex. telhado conico de torre da FA): cobre a caixa da forma
+    if(t.arte!=null&&real(t.arte)!=null){const tx=TEX[t.arte],rc=IND["rc:"+tx]||[0,0,1,1],l=real(t.arte);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.p){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
+      const k=t.escArte||1.12,cx=(x0+x1)/2,cy=(y0+y1)/2,hw=(x1-x0)/2*k,hh=(y1-y0)/2*k,cs=Math.cos(t.r||0),sn=Math.sin(t.r||0),P=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([a,b])=>[cx+a*cs-b*sn,cy+a*sn+b*cs]),e=.0003,U=[[rc[0]+e,rc[1]+e],[rc[2]-e,rc[1]+e],[rc[2]-e,rc[3]-e],[rc[0]+e,rc[3]-e]],c=t.c||[1,1,1,1];
+      for(const i of [0,1,2,0,2,3])v(P[i][0],P[i][1],U[i][0],U[i][1],l,c,1);continue}const w=t.parede!=null&&PAR&&PAR.get(t.parede);let P=w?trajeto(w):(t.raio?arredonda(t.p,t.raio,true):t.p);if(!P||P.length<3)continue;
     let ar=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];ar+=a[0]*b[1]-b[0]*a[1]}if(ar<0)P=P.slice().reverse();
     const rl=real(t.t),l=rl!=null?(rl>511.5&&rl<767.5?rl+.25:rl):lay("m:"+materialDe(TEX[t.t]||"atlas:m/telha")),c=t.c||[1,1,1,1],es=(rl!=null&&IND["w:"+TEX[t.t]]?256/IND["w:"+TEX[t.t]]:.5)/(t.esc||1),LX=-.6,LY=-.8;
     const pano=(Q,ang,br)=>{const T=triangula(Q),cs=Math.cos(ang),sn=Math.sin(ang);for(const k of T){const q=Q[k];v(q[0],q[1],(q[0]*cs+q[1]*sn)*es,(-q[0]*sn+q[1]*cs)*es,l,c,br)}};
