@@ -62,10 +62,11 @@ const RE_LUZ=/(^|_)lit(_|$)|lamp|lantern|torch|candle|fire|neon|light/i;
 function camada(nome,cat,wq,hq){if(cat!=="objects")return null;if(K(nome,RE_CHAO))return 100;if(K(nome,RE_ALTO))return 400;if(K(nome,RE_SOBRE)&&Math.max(wq,hq)<=1)return 300;return 200}
 // frente na imagem: convencao do autor + excecoes conhecidas
 // (FA) arandelas e tochas de parede: o suporte fica a direita, a chama para a esquerda
-const EXCECOES=[[/Fireplace_Rectangle/i,"W"],[/^(Sconce|Wall_Torch)_/i,"W"]];
+// (FA) lareiras em pe: a boca e a cornija ficam a direita (o lado de pedra curvo vai na parede); balcao: a barra de apoio (lado do cliente) embaixo
+const EXCECOES=[[/^Fireplace_(Rectangle|Rounded|Chimneyless|Filled)/i,"L"],[/^(Sconce|Wall_Torch)_/i,"W"],[/^Bar_[A-Za-z]+_[A-Za-z]+_A[12]_/i,"S"]];
 // costas: lado reto e cheio medido na arte (perfilArte); vale mais que o costume do autor
 function frente(nome,autor,f,costas){for(const [re,d] of EXCECOES)if(re.test(nome))return d;if(!f||f.length<11)return costas?{N:"S",S:"N",L:"W",W:"L"}[costas]:"?";const sh=f[9]/255,sv=f[10]/255;
-  if(sh>.86&&sv>.86)return "sim";if(costas)return {N:"S",S:"N",L:"W",W:"L"}[costas];const fa=/forgotten adventures/i.test(autor);if(sh>.72&&sv<.72)return fa?"S":"N|S";if(sv>.72&&sh<.72)return fa?"S":"L|W";return fa?"S":"?"}
+  if(sh>.86&&sv>.86)return "sim";if(costas&&!/forgotten adventures/i.test(autor||""))return {N:"S",S:"N",L:"W",W:"L"}[costas];const fa=/forgotten adventures/i.test(autor);if(sh>.72&&sv<.72)return fa?"S":"N|S";if(sv>.72&&sh<.72)return fa?"S":"L|W";return fa?"S":"?"}
 function forma(f){if(!f||f.length<11)return "";const w=(f[4]-f[2])||1,h=(f[5]-f[3])||1,ar=w/h,fill=f[6]/255;if(fill>.88)return "r";const mk=BigInt("0x"+(f[7]||"0")),canto=[0,7,56,63].some(b=>(mk>>BigInt(b))&1n);if(ar>.85&&ar<1.18&&fill>.68&&fill<.86&&!canto)return "o";return "i"}
 const q=v=>{const r=Math.round(v*4)/4;return Number.isInteger(r)?String(r):r.toFixed(2).replace(/0$/,"")};
 const tamQ=f=>f&&f[0]?q(f[0]/QUAD)+"x"+q(f[1]/QUAD):"?";
