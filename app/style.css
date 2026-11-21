@@ -98,7 +98,7 @@ input[type=range]{accent-color:var(--gold)}
 #mpins{position:absolute;inset:0}
 .stage.draw #mpins{pointer-events:none}
 .hit{all:unset;position:absolute;transform:translate(-50%,-62%);width:7%;aspect-ratio:1.5;cursor:pointer;border-radius:50%}
-.hit:hover,.hit:focus-visible{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(201,162,76,.6)}
+.hit:hover,.hit:focus-visible{background:transparent;border-color:transparent;box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(201,162,76,.6)}
 .hit.flash{animation:fl 1.6s ease-out 2}
 @keyframes fl{0%{box-shadow:0 0 0 3px var(--gold),0 0 30px 10px rgba(201,162,76,.9)}100%{box-shadow:0 0 0 0 transparent}}
 .pin{all:unset;position:absolute;transform:translate(-50%,-100%);cursor:pointer;display:flex;flex-direction:column;align-items:center;font-family:var(--display);font-size:clamp(8px,1vw,13px);color:var(--ink);white-space:nowrap}
@@ -906,3 +906,5 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
   .mapv2 .mlado-ctx .ctx{position:absolute;left:8px;right:8px;top:8px;z-index:6;flex-direction:row;flex-wrap:wrap;align-items:center;padding:6px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(23,20,15,.94);box-shadow:var(--sombra)}
   .mapv2 .mlado .params{position:fixed;left:0;right:0;bottom:56px;top:auto;max-height:55vh;overflow:auto;z-index:25;border-top:1px solid var(--line-2);border-radius:16px 16px 0 0;background:var(--panel);box-shadow:0 -10px 30px rgba(0,0,0,.5)}
 }
+
+button.hit,button.hit:hover,button.hit:focus-visible{background:transparent}
