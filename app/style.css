@@ -865,3 +865,10 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .qd-mais{color:var(--muted);font-size:12px}
 .qd-nome{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .qd-nome input{width:270px;font-size:15px}
+
+/* ===================== 1.4 quem esta em cada lugar ===================== */
+.ovl .pm{pointer-events:all;cursor:pointer;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.6))}
+.ovl .pmt{font:700 11px var(--body);pointer-events:none}
+.ovl .pm:hover circle,.ovl .pm:focus circle{fill:#2a2216}
+.qlist .qi{border-left:3px solid transparent}
+.qd-mini{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:6px;margin-top:6px;opacity:.95}
