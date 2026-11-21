@@ -57,7 +57,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   const camada=(nome,tex,fn,op)=>{if(!tex)return;const c=MD.novaCamada(M,{nome});c.t=MD.texDe(M,tex);if(op&&op.sobre)c.sobre=true;const m=c.m;
     for(let y=0;y<HM;y++)for(let x=0;x<WM;x++){const v=fn((x+.5)/r,(y+.5)/r);if(v>0)m[y*WM+x]=Math.min(255,Math.round(v*255))}ops().push({op:"cria",a:0,k:"camadas",item:c})};
   const A0=M.andares[0];
-  const GR=[tx(/terrain\/Grass_Terrain\/Grass_A_01\./),tx(/terrain\/Grass_Terrain\/Grass_B_02\./),tx(/terrain\/Grass_Terrain\/Grass_Short_A_01\./),tx(/terrain\/Grass_Terrain\/Grass_Rough_B_02\./)];
+  const GR=[tx(/terrain\/Grass_Terrain\/Grass_A_01\./),tx(/terrain\/Grass_Terrain\/Grass_B_02\./),tx(/terrain\/Grass_Terrain\/Grass_Short_A_01\./),tx(/terrain\/Grass_Terrain\/Grass_A_05\./)];
   if(A0.camadas&&A0.camadas[0]&&GR[0]){const c0=A0.camadas[0],de=MD.foto(c0);ops().push({op:"muda",a:0,k:"camadas",id:c0.id,de,para:Object.assign({},de,{t:MD.texDe(M,GR[0]),nome:"Grama"})})}
   // caminhos (linha do centro) e lago
   const CAM=[[[27,0],[27.5,6],[26.5,11],[27,15]],[[56,46.5],[66,47],[76,46],[85,50]],[[67,37.5],[74,35],[80,30],[86,27]],[[85,50],[90,55],[94,60.5]],[[56,47.5],[60,52],[67,62],[69,68]],[[27,6],[18,8],[11,12]]];
@@ -65,6 +65,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   const FLO=y=>99-4*fbm(3,y*.12);
   camada("Grama curta",GR[2],(x,y)=>ss(.45,.65,fbm(x*.09,y*.09)));
   camada("Grama alta",GR[3],(x,y)=>ss(.55,.75,fbm(x*.13+20,y*.13))*(1-ss(-1,1,y-margem(x))));
+  camada("Trevos",tx(/terrain\/Forest_Terrain\/Clover_A_02\./),(x,y)=>ss(.68,.8,fbm(x*.21+40,y*.21+9))*(1-ss(-2,0,y-margem(x))));
   camada("Chão da mata",tx(/terrain\/Forest_Terrain\/Forest_Floor_Leaves_A_0[12]\./)||GR[1],(x,y)=>ss(-2,2,x-FLO(y))*(.65+.35*fbm(x*.3,y*.3)));
   const TERRA=tx(/terrain\/Dirt_Terrain\/Dirt_(A|B)_0\d\./)||tx(/terrain\/Dirt_Terrain\/Cave_Floor_01_Earthy_A\./);
   camada("Lama da margem",TERRA,(x,y)=>{const d=y-margem(x);return ss(-3.2,-1,d+1.2*(fbm(x*.5,y*.5)-.5))});
@@ -99,7 +100,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
     // velas flutuando, estandartes das casas, lareiras
     for(let i=0;i<40;i++)if(ve.length)await put(esc(ve),35.5+R()*27,18.8+R()*12.5,null,{r:R()*6.28,l:900});
     for(const x of [38,48])for(const y of [22,28])luz(x,y,"vela",{raio:6,claro:2.5,forca:.85,c:[1,.82,.55]});luz(61,25,"vela",{raio:5,claro:2});
-    const cores=["Red","Green","Yellow","Blue"];for(const [i,cn] of cores.entries()){const b=um(new RegExp("Flag_Banner_Fabric_"+cn+"_Large_A1_3x1\\."));if(b)await naParede(b,42.5+i*5.5,18,[0,1])}
+    const cores=["Red","Green","Yellow","Blue"];for(const [i,cn] of cores.entries()){const b=um(new RegExp("Flag_Banner_Fabric_"+cn+"_Large_A1_3x1\\."));if(b)await naParede(b,42.5+i*5.5,18.25,[0,1])}
     const lar=um(/Fireplaces\/Fireplace_Rectangle_Chimney_Stone_Slate_A_Wood_Dark_2x2\./)||um(/Fireplace_Rectangle_Chimney_Stone_.*_2x2\./);for(const x of [39,52]){if(lar)await naParede(lar,x,32,[0,-1]);luz(x,30.8,"lareira")}}
   // ---------------- saguao ----------------
   {const es=um(/Stairs_Stone_Slate_Wide_A_2x3\./)||um(/Stairs_Stone_.*_Wide_A_2x3\./);if(es){await put(es,23.6,29.6,[1,0]);await put(es,32.4,29.6,[-1,0])}
@@ -127,9 +128,9 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   // ---------------- sala de trofeus: vitrines nas paredes e no meio, com tacas e escudos ----------------
   {const base=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-O]_1x2\./),top=acha(/Display_Cases\/Display_Case_Top_Metal_Gray_Clear_[AG]\d_1x2\./),base2=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[BCEJ]_2x2\./),top2=acha(/Display_Cases\/Display_Case_Top_Metal_Gray_Clear_[BCE]\d_2x2\./);
     const tc=acha(/Treasure\/Misc\/Chalice_Metal_Gold_A_.*_1x1\./),sh=acha(/Weapons\/Shields\/Shield_Metal_0[1-4]_A\d_1x1\./),it=tc.concat(sh);
-    for(const x of [39.6,41.6,44.4,46.4]){for(const [y,n] of [[53,[0,1]],[60,[0,-1]]]){if(!base.length)break;const b=await naParede(esc(base),x,y,n);if(!b)continue;for(const u of [-.25,.25])if(it.length)await sobre(b,esc(it),u*.3,u,{l:305});if(top.length)await put(esc(top),b.x,b.y,n,{l:320})}}
-    for(const [x,n] of [[38,[1,0]],[48,[-1,0]]]){if(!base.length)break;const b=await naParede(esc(base),x,56.5,n);if(b){for(const u of [-.25,.25])if(tc.length)await sobre(b,esc(tc),u,0,{l:305});if(top.length)await put(esc(top),b.x,b.y,n,{l:320})}}
-    if(base2.length){const b2=await put(esc(base2),43,56.5,[0,1]);if(b2){for(const [u,v] of [[-.22,-.22],[.22,-.22],[0,.2]])if(tc.length)await sobre(b2,esc(tc),u,v,{l:305,s:1.3});if(top2.length)await put(esc(top2),43,56.5,[0,1],{l:320})}}
+    for(const x of [39.6,41.6,44.4,46.4]){for(const [y,n] of [[53,[0,1]],[60,[0,-1]]]){if(!base.length)break;const b=await naParede(esc(base),x,y,n);if(!b)continue;for(const u of [-.25,.25])if(it.length)await sobre(b,esc(it),u*.3,u,{l:305});}}
+    for(const [x,n] of [[38,[1,0]],[48,[-1,0]]]){if(!base.length)break;const b=await naParede(esc(base),x,56.5,n);if(b){for(const u of [-.25,.25])if(tc.length)await sobre(b,esc(tc),u,0,{l:305});}}
+    if(base2.length){const b2=await put(esc(base2),43,56.5,[0,1]);if(b2){for(const [u,v] of [[-.22,-.22],[.22,-.22],[0,.2]])if(tc.length)await sobre(b2,esc(tc),u,v,{l:305,s:1.3});}}
     luz(43,56.5,"lampiao",{raio:6,claro:3,c:[1,.92,.7]})}
   // ---------------- pocoes ----------------
   {const mesa=acha(/Table_Rectangle_Wood_Dark_[EFG]_2x1\./),cal=acha(/Cauldrons\/Cauldron_Metal_(Gray|Rusty)_Filled_[AB]\d_1x1\./),fr=acha(/Alchemy\/Glassware\/Filled\/.*_1x1\./),es=acha(/Shelf_Wood_Dark_Filled_[A-Z]\d_2x1\./),bq=acha(/Stools\/Stool_Wood_Dark_[A-C]_1x1\./);
@@ -178,11 +179,11 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   await zona(enc(hut,.4),"quarto",0);await zona(enc(P.T.dorm,.5),"sala",3);await zona(enc(P.T.astro,.5),"despensa",1);
   // =========================== ANDAR 1: andar de cima das torres + telhado do resto ===========================
   const escadaC=um(/Stairs_Spiral\/Botanical_Garden_Spiral_Staircase_Metal_Gray_A1_3x3\./)||um(/Spiral_Staircase_Metal_.*_3x3\./);
-  const escadas=[[8.8,17.8],[38.4,14.6],[63.4,51.6]];A_=0;for(const [x,y] of escadas)if(escadaC)await put(escadaC,x,y,null,{l:190});e.hist.exec(ops(),{nome:"Escadas"});OPS[0]=[];
+  const escadas=[[8.8,17.8],[38.4,14.6],[63.4,51.6],[11,60]];A_=0;for(const [x,y] of escadas)if(escadaC)await put(escadaC,x,y,null,{l:190});e.hist.exec(ops(),{nome:"Escadas"});OPS[0]=[];
   const a1=M.andares.length>1?1:e.novoAndar("1º andar · torres e telhado");for(const k of MD.TIPOS)if(!M.andares[a1][k])M.andares[a1][k]=[];A_=a1;OPS[A_]=[];
   for(const t of [P.T.dorm,P.T.diretor,P.T.astro]){parede(t,{t:W_EXT,larg:.35});piso(t,t===P.T.astro?PISO.pedra:PISO.mad1)}
   for(const t of [P.T.dorm,P.T.diretor,P.T.astro])for(const j of [[t[2][0],(t[2][1]+t[3][1])/2],[t[6][0],(t[6][1]+t[7][1])/2]])porta(j[0],j[1],{tipo:"janela",t:JANELA,raio:.5,aberta:true});
-  for(const [x,y] of escadas)if(escadaC)await put(escadaC,x,y,null,{l:190});
+  for(const [x,y] of escadas.slice(0,3))if(escadaC)await put(escadaC,x,y,null,{l:190});
   // dormitorio (camas em volta), sala do diretor, observatorio
   {const cama=acha(/Arranged_Bed_Wood_(Walnut|Dark)_A(4|6|9|12)_1x2\./),bau=acha(/Chests\/Chest_Wood_(Dark|Walnut)_[A-D]_1x1\./),[cx,cy]=[11,20];
     for(let i=0;i<7;i++){const t=(i/7)*6.283+.3,n=[-Math.cos(t),-Math.sin(t)],x=cx+Math.cos(t)*3.3,y=cy+Math.sin(t)*3.3;if(Math.hypot(x-8.8,y-17.8)<2.3)continue;if(cama.length)await put(esc(cama),x,y,n);if(bau.length)await put(esc(bau),cx+Math.cos(t)*1.8,cy+Math.sin(t)*1.8,n)}

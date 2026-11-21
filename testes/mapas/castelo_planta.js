@@ -48,7 +48,7 @@ export function planta(){
     {id:"corrOeste",nome:"Corredor oeste",P:ret(19,20,22,60),piso:"corredor"},
     {id:"corrSul",nome:"Corredor sul",P:ret(22,50,54,53),piso:"corredor"},
     {id:"biblioteca",nome:"Biblioteca",P:une([ret(22,53,38,60),V.sacBib]),piso:"mad2"},
-    {id:"trofeus",nome:"Sala de troféus",P:ret(38,53,48,60),piso:"marmore2"},
+    {id:"trofeus",nome:"Sala de troféus",P:ret(38,53,48,60),piso:"marmore"},
     {id:"pocoes",nome:"Sala de Poções",P:ret(48,53,56,60),piso:"pedraEscura"},
     {id:"cozinha",nome:"Cozinha",P:une([ret(56,32,64,39),ret(64,34,67,39)]),piso:"quadrada"},
     {id:"despensa",nome:"Despensa",P:une([ret(56,39,64,44),ret(64,39,67,41)]),piso:"quadrada"},
