@@ -88,7 +88,7 @@
     apagaArquivo:rel=>D?(fila=fila.then(()=>D.apagar(rel))):Promise.resolve(),
     espera:()=>fila,
     // para testes: usar um disco em memoria
-    _disco:d=>{D=d}
+    _disco:d=>{D=d},_usarHandle:h=>{D=discoFSA(h);return D.nome}
   };
   async function guardaRecente(nome,caminho,h){try{let L=(await kv("recentes"))||[];L=L.filter(r=>!(caminho?r.caminho===caminho:r.nome===nome));L.unshift({nome,caminho,h,quando:Date.now()});await kv("recentes",L.slice(0,8))}catch(e){}}
   window.AtlasPasta=API;
