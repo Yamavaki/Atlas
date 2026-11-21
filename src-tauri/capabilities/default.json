@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Janela principal: pasta do mundo, artes do PC, escolher pasta, abrir links",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "dialog:default",
@@ -20,9 +22,57 @@
     "fs:allow-exists",
     "fs:allow-stat",
     "fs:allow-rename",
+    "fs:allow-open",
+    "fs:allow-read",
+    "fs:allow-seek",
+    "fs:allow-fstat",
+    "fs:allow-write",
+    "fs:allow-copy-file",
+    "core:path:default",
+    "core:app:default",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "**" }, { "path": "**/.atlas/**" }, { "path": "**/.atlas" }]
+      "allow": [
+        {
+          "path": "**"
+        },
+        {
+          "path": "$HOME/**"
+        },
+        {
+          "path": "$DOCUMENT/**"
+        },
+        {
+          "path": "$DESKTOP/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        },
+        {
+          "path": "$APPDATA/**"
+        },
+        {
+          "path": "$TEMP/**"
+        },
+        {
+          "path": "C:/**"
+        },
+        {
+          "path": "D:/**"
+        },
+        {
+          "path": "E:/**"
+        },
+        {
+          "path": "F:/**"
+        },
+        {
+          "path": "G:/**"
+        },
+        {
+          "path": "H:/**"
+        }
+      ]
     }
   ]
 }

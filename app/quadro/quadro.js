@@ -187,5 +187,6 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   return {dados:D,enquadra,selecao:()=>[...sel],linhaSel:()=>selL,cria,criaNota,criaTexto,apaga,desfazer:()=>volta(pilha,refaz),refazer:()=>volta(refaz,pilha),cam:()=>cam,
     noNaTela:id=>{const d=elNo.get(id);return d?d.getBoundingClientRect():null},atualiza:()=>tudo()}}
 const copiarImgsParaPasta=async()=>{const d=await db();const ks=await new Promise(ok=>{const q=d.transaction("img","readonly").objectStore("img").getAllKeys();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>ok([])});for(const k of ks){const b=await leImg(k);if(b)await window.AtlasPasta.gravaArquivo("Imagens/"+k+".webp",b)}return ks.length};
-window.AtlasQuadro={abrirQuadro,reduzImagem,leImg,copiarImgsParaPasta};
+const todasImgs=async()=>{const d=await db();const ks=await new Promise(ok=>{const q=d.transaction("img","readonly").objectStore("img").getAllKeys();q.onsuccess=()=>ok(q.result||[]);q.onerror=()=>ok([])});const L=[];for(const k of ks){const b=await leImg(k);if(b)L.push([k,b])}return L};
+window.AtlasQuadro={abrirQuadro,reduzImagem,leImg,copiarImgsParaPasta,todasImgs,poeImg:guardaImg};
 window.dispatchEvent(new Event("atlas-quadro"));

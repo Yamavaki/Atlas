@@ -23,7 +23,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];if(e.tamanho
   const porta=(x,y,op)=>{op=op||{};for(const w of PAR[A_]){const T=MD.trajeto(w),pj=V.projeta(T,w.laco,x,y);if(pj.dist>.3)continue;const pe=V.pontoEm(T,w.laco,pj.d);
     OPS.push({op:"cria",a:A_,k:"portais",item:{id:MD.novoId(M),t:MD.texDe(M,op.janela?JANELA:PORTA),tipo:op.janela?"janela":op.dupla?"dupla":"porta",parede:w.id,d:+pj.d.toFixed(4),raio:op.dupla?1:.5,fechado:!op.janela,x:pe[0],y:pe[1],dx:pe[2],dy:pe[3],r:Math.atan2(pe[3],pe[2]),sd:SDM.slice()}});return}};
   const exec=nome=>{if(OPS.length)e.hist.exec(OPS.splice(0),{nome})};const espera=ms=>new Promise(r=>setTimeout(r,ms));
-  const zona=async(Pz,tipo,rq)=>{e.zonas.criar(Pz,tipo,{riqueza:rq,dens:.8,bag:.7,paredes:false,fonte:"auto",pacote:"FA35OB01",estilo:""});await espera(150);while(e.zonas.ocupado())await espera(120)};
+  const zona=async(Pz,tipo,rq)=>{e.zonas.criar(Pz,tipo,{riqueza:rq,dens:tipo==="quarto"?.95:.8,bag:.7,paredes:false,fonte:"auto",pacote:"FA35OB01",estilo:""});await espera(150);while(e.zonas.ocupado())await espera(120)};
   // ---------- terreno ----------
   const r=MD.resolucao(M),WM=M.larg*r,HM=M.alt*r,hash=(x,y)=>{let h=Math.imul(x|0,374761393)+Math.imul(y|0,668265263)|0;h=Math.imul(h^h>>>13,1274126177);return ((h^h>>>16)>>>0)/4294967296};
   const vn=(x,y)=>{const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0,s=t=>t*t*(3-2*t),a=hash(x0,y0),b=hash(x0+1,y0),c=hash(x0,y0+1),d=hash(x0+1,y0+1);return a+(b-a)*s(fx)+(c-a)*s(fy)+(a-b-c+d)*s(fx)*s(fy)},fbm=(x,y)=>vn(x,y)*.55+vn(x*2.1+7,y*2.1+3)*.3+vn(x*4.3+11,y*4.3+5)*.15;
@@ -63,15 +63,17 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];if(e.tamanho
   piso(fora1,P_MAD2);piso(TORRE,P_PED,{l:-38});
   for(const [x,y] of [[17,15],[24,15],[15,17],[23.5,17],[28,16]])porta(x,y);for(const x of [14.5,23.5])porta(x,10,{janela:true});for(const x of [12.5,25.5])porta(x,22,{janela:true});porta(37,17.5,{janela:true});
   if(escada)await put(escada,9.6,9.6,null,{l:190});{const tp=um(/Rugs_and_Carpets\/.*Runner.*_\dx\d\./);if(tp)await put(tp,20,16,[1,0],{l:100})}
+  {const vs=acha(/Potted_Plant_.*Green.*_1x1\.|Potted_Plant_Multicolor1_A\d_1x1\./),cm=um(/Chests\/Chest_Wood_Dark_[A-D]_1x1\./),cand=um(/Candles\/Candle_Wax\/Candle_(White|Yellow)_Wax_A\d_1x1\./),arm=um(/Wardrobes?\/.*_2x1\.|Cabinets?\/.*Wood_Dark.*_2x1\./);
+    for(const x of [14,22,26.5])luz(x,16,"vela",{raio:3.5,claro:1.4});if(vs.length){await put(esc(vs),13.2,15.6,null);await put(esc(vs),27.4,16.4,null)}if(cm)await naParede(cm,21,15,[0,1]);if(arm)await naParede(arm,12.6,16,[1,0],{s:.8});if(cand)await put(cand,13.2,16.4,null,{l:310})}
   exec("Taverna · 1º andar");await espera(200);
-  for(const Q of [ret(13.2,10.2,19.8,14.8),ret(20.2,10.2,27.8,14.8),ret(10.2,17.2,18.8,21.8),ret(19.2,17.2,27.8,21.8)])await zona(Q,"quarto",1);await zona(ret(28.2,8.2,36.8,19.8),"quarto",2);
+  for(const Q of [ret(13.2,10.2,19.8,14.8),ret(20.2,10.2,27.8,14.8),ret(10.2,17.2,18.8,21.8),ret(19.2,17.2,27.8,21.8)])await zona(Q,"quarto",2);await zona(ret(28.2,8.2,36.8,19.8),"quarto",3);
   // telhado do alpendre neste andar
   const TELHA=tx(/Roof_Texture_Wood_Dark_Shingle_A1\./)||tx(/Roof_Texture_/),CUME=um(/paths\/.*Roof_Hip_Shingles_Brown\./);
   OPS.push({op:"cria",a:A_,k:"telhados",item:{id:MD.novoId(M),p:ALP,t:MD.texDe(M,TELHA),estilo:"duas"}});exec("Taverna · telhado do alpendre");
   // ---------- 2o andar: telhado ----------
   const a2=M.andares.length>2?2:e.novoAndar("Telhado");for(const k of MD.TIPOS)if(!M.andares[a2][k])M.andares[a2][k]=[];A_=a2;
   OPS.push({op:"cria",a:A_,k:"telhados",item:{id:MD.novoId(M),p:fora1,t:MD.texDe(M,TELHA),tq:CUME?MD.texDe(M,CUME):undefined,alas:[{x0:10,y0:10,x1:28,y1:22,tipo:"quatro",eixo:"x"},{x0:28,y0:8,x1:37,y1:20,tipo:"duas",eixo:"y"}],furos:[TORRE]}});
-  const cone=um(/Towers\/Roof_A\/Roof_A1_Wood_Dark_Brown_Tower_Octagon_C\./)||um(/Towers\/Roof_A\/.*Tower_Octagon_C\./);if(cone)OPS.push({op:"cria",a:A_,k:"telhados",item:{id:MD.novoId(M),p:TORRE,arte:MD.texDe(M,cone),t:MD.texDe(M,TELHA),escArte:1.2}});
+  const cone=um(/Towers\/Roof_A\/Roof_A1_Wood_Dark_Brown_Tower_Octagon_C\./)||um(/Towers\/Roof_A\/.*Tower_Octagon_C\./);if(cone)OPS.push({op:"cria",a:A_,k:"telhados",item:{id:MD.novoId(M),p:TORRE,arte:MD.texDe(M,cone),t:MD.texDe(M,TELHA),escArte:1.12}});
   exec("Taverna · telhado");
   M.andares[0].nome="Térreo";e.irPara(0);e.render.carregar(M);await espera(300);await e.artesPC().espera();
   return {andares:M.andares.map(A=>A.nome),objetos:M.andares.map(A=>(A.objetos||[]).length),falta:log}}

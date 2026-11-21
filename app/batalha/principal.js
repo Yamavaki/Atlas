@@ -5,7 +5,7 @@ import {abrirEditor} from "./editor.js";
 import {novoMapa} from "./modelo.js";
 import * as loja from "./loja.js";
 import * as BIB from "./biblioteca.js";
-export const VERSAO="1.5";
+export const VERSAO="1.6";
 const EXEMPLOS=[["floresta-gigante","Floresta gigante"],["praia-forte","Praia do forte"],["universidade-aster","Universidade Aster"],["mata-cerrada","Mata cerrada"]];
 const base=new URL(".",import.meta.url);let TAM=null,atual=null;
 async function importarArquivo(arq){const t=performance.now(),txt=await arq.text(),D=JSON.parse(txt,(k,v)=>v&&typeof v==="object"&&typeof v.$b64==="string"?deB64(v.$b64):v);let M;
@@ -19,6 +19,9 @@ async function abrir(id,raiz,opt){if(atual){atual.fechar();atual=null}const r=aw
 const novoId=()=>"bt"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 async function novo(o){const M=novoMapa(o),id=novoId();await loja.salvar(id,M.nome,M);return {id,nome:M.nome,avisos:[],novo:true}}
 BIB.restaurar().catch(()=>{});
+// backup do mundo inteiro: todos os mapas de batalha (com as mascaras) e de volta
+const exportarTudo=async()=>{const L=[];for(const r of await loja.listar()){const x=await loja.ler(r.id);if(x)L.push({id:x.id,nome:x.nome,mapa:x.mapa})}return L};
+const importarTudo=async L=>{let n=0;for(const x of L||[]){if(!x||!x.id||!x.mapa)continue;await loja.salvar(x.id,x.nome,x.mapa);n++}return n};
 const copiarParaPasta=async()=>{let n=0;for(const r of await loja.listar()){const x=await loja.ler(r.id);if(x){await loja.salvar(x.id,x.nome,x.mapa);n++}}return n};
-window.AtlasBatalha={VERSAO,copiarParaPasta,artes:BIB,EXEMPLOS,novo,abrirEditor,atual:()=>atual,importarArquivo,importarExemplo,carregarCatalogo,abrir,apagar:loja.apagar,listar:loja.listar,resumo,abrirVisor,importarDD};
+window.AtlasBatalha={VERSAO,copiarParaPasta,exportarTudo,importarTudo,artes:BIB,EXEMPLOS,novo,abrirEditor,atual:()=>atual,importarArquivo,importarExemplo,carregarCatalogo,abrir,apagar:loja.apagar,listar:loja.listar,resumo,abrirVisor,importarDD};
 window.dispatchEvent(new Event("atlas-batalha"));
