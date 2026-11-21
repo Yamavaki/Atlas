@@ -46,7 +46,7 @@ export function planta(){
     {id:"defesa",nome:"Defesa contra as Artes das Trevas",P:une([ret(10,41,19,49),V.sacDef]),piso:"mad3"},
     {id:"enfermaria",nome:"Enfermaria",P:ret(10,49,19,60),piso:"pedraClara"},
     {id:"corrOeste",nome:"Corredor oeste",P:ret(19,20,22,60),piso:"corredor"},
-    {id:"corrSul",nome:"Corredor sul",P:ret(22,50,54,53),piso:"corredor"},
+    {id:"corrSul",nome:"Corredor sul",P:[[22,50],[56,50],[54,52],[54,53],[22,53]],piso:"corredor"},
     {id:"biblioteca",nome:"Biblioteca",P:une([ret(22,53,38,60),V.sacBib]),piso:"mad2"},
     {id:"trofeus",nome:"Sala de troféus",P:ret(38,53,48,60),piso:"marmore"},
     {id:"pocoes",nome:"Sala de Poções",P:ret(48,53,56,60),piso:"pedraEscura"},

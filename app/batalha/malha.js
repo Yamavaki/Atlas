@@ -64,7 +64,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
     const nor=i=>{const a=D[(i+N-1)%N],b=D[(i+1)%N],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1;return [dy/L*S,-dx/L*S]};
     const IN=[],OUT=[];for(let i=0;i<N;i++){const q=D[i],n=nor(i),r=ru(ss[i]),di=w*.5*(1-rz*.5*r),dout=w*.5*(1+rz*r);IN.push([q[0]-n[0]*di,q[1]-n[1]*di]);OUT.push([q[0]+n[0]*dout,q[1]+n[1]*dout])}
     const uv=q=>[(q[0]*cr+q[1]*sr)*es+(p.ox||0),(-q[0]*sr+q[1]*cr)*es+(p.oy||0)],vc=(q,a2)=>{const t=uv(q);v(q[0],q[1],t[0],t[1],l,[c[0],c[1],c[2],c[3]*a2])};
-    const T=triangula(IN);for(const k of T)vc(IN[k],1);
+    const T=triangula(B0);for(const k of T)vc(B0[k],1);
     for(let i=0;i<N;i++){const k=(i+1)%N;vc(IN[i],1);vc(IN[k],1);vc(OUT[k],0);vc(IN[i],1);vc(OUT[k],0);vc(OUT[i],0)}};
   // fita continua: uma peca so, com a juncao calculada em cada ponto; pontas soltas fecham em meia-lua
   const faixa=(P,larg,l,c,laco,pontas)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco);for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n;quadM(E[i],E[k],D[k],D[i],l,c)}
@@ -108,8 +108,12 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
     // batente (moldura) do pacote: fica parado na parede, por baixo da porta
     const rf=q.tq!=null?real(q.tq):null;if(rf!=null){const af=IND["a:"+TEX[q.tq]]||4,wf=2*L*ea,o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:wf,h:wf/af*eh,m:!!q.espelho},off=B.length;escreveObjeto(B,off,o,rf,IND["rc:"+TEX[q.tq]]);nv+=12}
     if(rq!=null){// porta ou janela do pacote: a imagem deitada ao longo da parede; aberta, gira 90 graus na dobradica
-      const asp=IND["a:"+TEX[q.t]]||4,w2=2*L*ea,h2=2*L/asp*eh;let o;if(ab&&tp!=="janela"){const ux=-dy,uy=dx;o={x:q.x-dx*L+ux*L,y:q.y-dy*L+uy*L,r:Math.atan2(uy,ux),w:w2,h:h2}}else o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:w2,h:h2,m:!!q.espelho};
-      const qsd=sdDe(q,"portais");if(qsd){o.s=1;o.sd=qsd}const off=B.length;escreveObjeto(B,off,o,rq,IND["rc:"+TEX[q.t]]);nv+=12;return}
+      // porta dupla: a mesma arte duas vezes, cada folha com metade da largura, a segunda espelhada (como no Dungeondraft)
+      const asp=IND["a:"+TEX[q.t]]||4,dup=tp==="dupla",fl=dup?L:2*L,w2=fl*ea,h2=fl/asp*eh,qsd=sdDe(q,"portais");
+      for(const sx of dup?[-1,1]:[0]){const mir=!!q.espelho!==(sx>0);let o;
+        if(ab&&tp!=="janela"){const ux=-dy,uy=dx,hx=dup?q.x+dx*sx*L:q.x-dx*L,hy=dup?q.y+dy*sx*L:q.y-dy*L;o={x:hx+ux*fl/2,y:hy+uy*fl/2,r:Math.atan2(uy,ux),w:w2,h:h2,m:mir}}
+        else o={x:q.x+dx*sx*L/2,y:q.y+dy*sx*L/2,r:Math.atan2(dy,dx),w:w2,h:h2,m:mir};
+        if(qsd){o.s=1;o.sd=qsd}const off=B.length;escreveObjeto(B,off,o,rq,IND["rc:"+TEX[q.t]]);nv+=12}return}
     {const qsd=sdDe(q,"portais");if(qsd){SH(qsd);rect(q.x,q.y,dx,dy,L+.04,tp==="janela"?.13:.16,-1,BR);SH(null)}}
     if(tp==="janela"){rect(q.x,q.y,dx,dy,L+.04,.13,-1,TINTA);rect(q.x,q.y,dx,dy,L-.02,.08,-1,VID);rect(q.x,q.y,dx,dy,L-.02,.012,-1,[.95,.98,1,1]);return}
     const folhas=tp==="dupla"?[[-L,L],[L,L]]:[[-L,2*L]];rect(q.x,q.y,dx,dy,L,.16,-1,[.16,.12,.09,.9]);
