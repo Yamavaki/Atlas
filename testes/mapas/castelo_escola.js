@@ -80,9 +80,9 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   for(const d of P.portas)porta(d[0],d[1],{dupla:!!d[2]});
   for(const j of P.janelas)porta(j[0],j[1],{tipo:"janela",t:JANELA,raio:.5,aberta:true});
   // patio: caminhos de pedra com borda suave em cruz e roda em volta da fonte; grama por cima da pedra (camada "sobre")
-  piso([[22,40],[56,40],[56,42.2],[22,42.2]],PISO.cobb,{l:-45,extra:{suave:.6,ruido:.5}});piso([[38,32],[40.2,32],[40.2,50],[38,50]],PISO.cobb,{l:-45,extra:{suave:.6,ruido:.5}});
-  const roda=[];for(let i=0;i<20;i++){const t=i/20*6.283;roda.push([39.1+4*Math.cos(t),41.1+4*Math.sin(t)])}piso(roda,PISO.cobb,{l:-44,extra:{suave:.5,ruido:.4}});
-  piso([[24,12.6],[30,12.6],[30,15.2],[24,15.2]],PISO.cobb,{l:-45,extra:{suave:.5}});
+  piso([[22,40],[56,40],[56,42.2],[22,42.2]],PISO.cobb,{l:-45,extra:{suave:1.1,ruido:.6}});piso([[38,32],[40.2,32],[40.2,50],[38,50]],PISO.cobb,{l:-45,extra:{suave:1.1,ruido:.6}});
+  const roda=[];for(let i=0;i<20;i++){const t=i/20*6.283;roda.push([39.1+4*Math.cos(t),41.1+4*Math.sin(t)])}piso(roda,PISO.cobb,{l:-44,extra:{suave:1,ruido:.5}});
+  piso([[24,12.6],[30,12.6],[30,15.2],[24,15.2]],PISO.cobb,{l:-45,extra:{suave:1,ruido:.6}});
   // ---------------- salao principal ----------------
   {const mesas=acha(/Furniture\/Tables\/Rectangle_Tables\/Table_Rectangle_Wood_Dark_[E-K]_2x1\./),banco=um(/Bench_Wood_Dark_A1_2x1\./)||um(/Bench_Wood_Dark_/);
     const pr=acha(/Prepared_Meals\/Dishes\/Plates\/Plate_(Wood_Dark|Metal_Gray)_Filled_[AB]\d+_1x1\./),ca=acha(/Treasure\/Misc\/Chalice_Metal_(Gold|Silver)_A_(White|Yellow)_1x1\./),st=acha(/Steins\/Stein_Metal_(Gold|Silver)_A1_Water_1x1\./),
@@ -145,7 +145,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
     for(const [x,y] of [[29,36.2],[49,36.2],[29,46],[49,46.4]])if(arv.length)await put(esc(arv),x,y,null,{r:R()*6.28,l:900,c:esc(verdes)});
     const banco=um(/Bench_Wood_Dark_A1_2x1\./);for(const [x,y,f] of [[39.1,36.5,[0,1]],[39.1,45.7,[0,-1]],[34.5,41.1,[1,0]],[43.7,41.1,[-1,0]]])if(banco)await put(banco,x,y,f);
     const fl=acha(/Flora\/Flowers\/Flower_(Purple|Yellow|White|Blue)_A\d_1x1\./),tp=acha(/Topiary\/Topiary_Green_[AB]\d_2x2\./);
-    for(const [x0,y0,x1,y1] of [[24,34,34,38],[44,34,54,38],[24,44,34,48],[44,44,54,48]]){piso(chanf(x0,y0,x1,y1,1),PISO.terra,{l:-46,extra:{suave:.5,ruido:.5}});const cor=esc(["Purple","Yellow","White","Blue"]),F=fl.filter(k=>k.includes("Flower_"+cor));for(let x=x0+.8;x<x1-.5;x+=.85)for(let y=y0+.8;y<y1-.5;y+=.85)if(R()<.55&&F.length)await put(esc(F),x+R()*.3,y+R()*.3,null,{r:R()*6.28,l:120})}
+    for(const [x0,y0,x1,y1] of [[24,34,34,38],[44,34,54,38],[24,44,34,48],[44,44,54,48]]){piso(chanf(x0,y0,x1,y1,1),PISO.terra,{l:-46,extra:{suave:.9,ruido:.6}});const cor=esc(["Purple","Yellow","White","Blue"]),F=fl.filter(k=>k.includes("Flower_"+cor));for(let x=x0+.8;x<x1-.5;x+=.85)for(let y=y0+.8;y<y1-.5;y+=.85)if(R()<.55&&F.length)await put(esc(F),x+R()*.3,y+R()*.3,null,{r:R()*6.28,l:120})}
     for(const [x,y] of [[23.4,33.4],[54.6,33.4],[23.4,48.6],[33,48.9],[46,48.9]])if(tp.length)await put(esc(tp),x,y,null,{r:R()*6.28});
     const col=um(/Pillars\/Pillar_Stone_Earthy_A2_White_1x1\./)||um(/Pillars\/Pillar_Stone_/);for(const y of [45,46.8,48.6])if(col)await put(col,56.5,y,null);
     const lp=um(/Street_Lamps\/Lamp_Metal_Brass_A_1x1\./);for(const [x,y] of [[36.6,38.6],[41.6,43.6]])if(lp)await put(lp,x,y,null)}

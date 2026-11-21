@@ -57,7 +57,8 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   const kuv=t=>{const tx=TEX[t],w=IND["w:"+tx];return w&&IND["r:"+tx]!=null?256/w:.5};const mundo=(p,k)=>[p[0]*(k||.5),p[1]*(k||.5)],quadM=(a,b,c_,d,l,c,k)=>quad(a,b,c_,d,[mundo(a,k),mundo(b,k),mundo(c_,k),mundo(d,k)],l,c);
   // forma com borda suave: miolo encolhido opaco + faixa que esmaece para fora, com a beirada irregular (ruido ao longo do contorno)
   const formaSuave=p=>{const B0=p.raio?arredonda(curva(p.p,p.cv,true),p.raio,true):curva(p.p,p.cv,true),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0),w=p.suave,rz=p.ruido==null?.6:p.ruido;
-    let ar=0;for(let i=0;i<B0.length;i++){const a=B0[i],b=B0[(i+1)%B0.length];ar+=a[0]*b[1]-b[0]*a[1]}const S=ar<0?-1:1;
+    const dB=(x,y)=>{let c=false;for(let i=0,j=B0.length-1;i<B0.length;j=i++){const a=B0[i],b=B0[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c};
+    let S=1;{let bi=0,bL=0;for(let i=0;i<B0.length;i++){const a=B0[i],b=B0[(i+1)%B0.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L>bL){bL=L;bi=i}}const a=B0[bi],b=B0[(bi+1)%B0.length],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,nx=(b[1]-a[1])/bL,ny=-(b[0]-a[0])/bL;if(dB(mx+nx*.02,my+ny*.02))S=-1}
     const D=[];for(let i=0;i<B0.length;i++){const a=B0[i],b=B0[(i+1)%B0.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/.2));for(let k=0;k<n;k++)D.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}
     const N=D.length,sd=(p.id||7)*.37,F=[[.9,1],[2.3,.5],[5.1,.25]].map(([f,a2],j)=>[f,a2,sd*(j+1.7)]);let per=0;const ss=[0];for(let i=1;i<N;i++){per+=Math.hypot(D[i][0]-D[i-1][0],D[i][1]-D[i-1][1]);ss.push(per)}
     const ru=s=>{let r=0;for(const [f,a2,ph] of F)r+=a2*Math.sin(s*f+ph);return r/1.75};
