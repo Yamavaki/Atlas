@@ -207,7 +207,23 @@ function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChil
   else if(props.mapa){const mp=[...S.maps.values()].find(m=>norm(m.name)===norm(props.mapa));if(mp)placeCard=h("button",{type:"button",class:"placecard",onclick:()=>openMap(mp.id,props.pino||o.title)},h("span",{},h("b",{},props.pino||o.title),h("small",{},mp.name),h("em",{},"Abrir no mapa →")))}
   const head=h("div",{class:"row"},typeSel,folder,h("span",{class:"grow"}),tog,del);
   const emptyF=type==="livre"&&!o.img&&!props.data&&S.mode!=="edit";const wrap=h("div",{class:"note t-"+type},title,head,type==="missao"?barraObj(o):null,emptyF&&!placeCard?null:h("div",{class:"ntop"},emptyF?h("span"):ficha,placeCard),dl,dlf);
-  if(S.mode==="edit"){const sugg=h("div",{class:"sugg"}),ta=h("textarea",{class:"ed",spellcheck:"true","aria-label":"Conteúdo da nota",placeholder:"Escreva aqui. [[Nome]] liga a outra nota ou lugar do mapa · #etiqueta · %%segredo%% · arraste imagens para dentro."});ta.value=fm(o.content).body;
+  if(S.mode==="edit"&&window.AtlasEditor&&AtlasEditor.pronto()){
+    // editor ao vivo (1.2): o Markdown aparece formatado enquanto escreve
+    let tSave=0;const corpo0=fm(o.content).body;
+    const save=txt=>{const {props}=fm(o.content),ks=Object.keys(props);o.content=(ks.length?"---\n"+ks.map(k=>k+": "+props[k]).join("\n")+"\n---\n\n":"")+txt;o.updated=now();Store.save("notes",o)};
+    const nomes=()=>{const L=[],vis=new Set(),put=(n,t)=>{const k=norm(n);if(!n||vis.has(k))return;vis.add(k);L.push({nome:n,tipo:t})};for(const n of S.notes.values())if(n.id!==o.id)put(n.title,n.kind==="canvas"?"Quadro":TYPES[fm(n.content).props.tipo||"livre"]||"Nota");
+      for(const mp of S.maps.values()){put(mp.name,"Mapa");for(const t of mp.lock||[])put(t.name,"Lugar no mapa");for(const p of mp.places||[])put(p.name,"Lugar no mapa")}return L};
+    const addImgs=async files=>{const ids=[];for(const f of files){try{const u=await shrinkImg(f,1000),id=uid("i");o.images=o.images||{};o.images[id]=u;ids.push(id)}catch(e){toast("Não consegui ler essa imagem.")}}return ids};
+    const ed=AtlasEditor.criar({texto:corpo0,dica:"Escreva aqui. [[Nome]] liga a outra nota ou lugar do mapa · #etiqueta · %%segredo%% · cole ou arraste imagens.",
+      mudou:txt=>{clearTimeout(tSave);tSave=setTimeout(()=>save(txt),250)},nomes,imagens:addImgs,imagem:id=>o.images&&o.images[id],
+      estadoLink:t=>findNote(t)?"":findPlace(t)?"place":"miss",abrirLink:t=>{save(ed.texto());openTitle(t)},sair:()=>{save(ed.texto());S.mode="read";drawNote()}});
+    const ifile=h("input",{type:"file",accept:"image/*",multiple:true,hidden:true,onchange:async e=>{const ids=await addImgs([...e.target.files]);for(const id of ids)ed.inserir("\n![[img:"+id+"]]\n")}});
+    const B=(t,ti,fn)=>h("button",{type:"button",title:ti,onmousedown:e=>e.preventDefault(),onclick:fn},t);
+    const tb=h("div",{class:"tbar",role:"toolbar","aria-label":"Formatação"},B("B","Negrito (Ctrl+B)",()=>ed.envolver("**","**","negrito")),B("I","Itálico (Ctrl+I)",()=>ed.envolver("*","*","itálico")),B("S","Riscado (Ctrl+Shift+X)",()=>ed.envolver("~~","~~","riscado")),
+      B("T1","Título grande (Ctrl+1)",()=>ed.prefixo("# ")),B("T2","Título (Ctrl+2)",()=>ed.prefixo("## ")),B("T3","Subtítulo (Ctrl+3)",()=>ed.prefixo("### ")),B("Lista","Lista",()=>ed.prefixo("- ")),B("1.","Lista numerada",()=>ed.prefixo("1. ")),B("Tarefa","Caixa de marcar (Ctrl+L)",()=>ed.prefixo("- [ ] ")),B("Citação","Citação",()=>ed.prefixo("> ")),
+      B("[[ ]]","Ligar a nota ou lugar (Ctrl+K)",()=>ed.envolver("[[","]]","")),B("#","Etiqueta",()=>ed.envolver("#","","etiqueta")),B("Segredo","Só o mestre vê (Ctrl+Shift+S)",()=>ed.envolver("%%","%%","segredo")),B("Código","Código",()=>ed.envolver("`","`","código")),B("Imagem","Inserir imagem",()=>ifile.click()),ifile);
+    wrap.append(tb,ed.dom);setTimeout(()=>ed.focar(),0)}
+  else if(S.mode==="edit"){const sugg=h("div",{class:"sugg"}),ta=h("textarea",{class:"ed",spellcheck:"true","aria-label":"Conteúdo da nota",placeholder:"Escreva aqui. [[Nome]] liga a outra nota ou lugar do mapa · #etiqueta · %%segredo%% · arraste imagens para dentro."});ta.value=fm(o.content).body;
     const save=()=>{const {props}=fm(o.content),ks=Object.keys(props);o.content=(ks.length?"---\n"+ks.map(k=>k+": "+props[k]).join("\n")+"\n---\n\n":"")+ta.value;o.updated=now();Store.save("notes",o)};
     const wrapSel=(a,b,ph)=>{const s0=ta.selectionStart,s1=ta.selectionEnd,sel=ta.value.slice(s0,s1)||ph||"";ta.setRangeText(a+sel+b,s0,s1,"end");if(!ta.value.slice(s0,s1+a.length+b.length).length)return;ta.selectionStart=s0+a.length;ta.selectionEnd=s0+a.length+sel.length;ta.focus();save();suggest()};
     const linePre=pre=>{const s0=ta.value.lastIndexOf("\n",ta.selectionStart-1)+1;ta.setRangeText(pre,s0,s0,"end");ta.focus();save()};
