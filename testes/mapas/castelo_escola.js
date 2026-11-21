@@ -179,7 +179,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   // =========================== ANDAR 1: andar de cima das torres + telhado do resto ===========================
   const escadaC=um(/Stairs_Spiral\/Botanical_Garden_Spiral_Staircase_Metal_Gray_A1_3x3\./)||um(/Spiral_Staircase_Metal_.*_3x3\./);
   const escadas=[[8.8,17.8],[38.4,14.6],[63.4,51.6]];A_=0;for(const [x,y] of escadas)if(escadaC)await put(escadaC,x,y,null,{l:190});e.hist.exec(ops(),{nome:"Escadas"});OPS[0]=[];
-  const a1=M.andares.length>1?1:e.novoAndar("1º andar · torres e telhado");A_=a1;OPS[A_]=[];
+  const a1=M.andares.length>1?1:e.novoAndar("1º andar · torres e telhado");for(const k of MD.TIPOS)if(!M.andares[a1][k])M.andares[a1][k]=[];A_=a1;OPS[A_]=[];
   for(const t of [P.T.dorm,P.T.diretor,P.T.astro]){parede(t,{t:W_EXT,larg:.35});piso(t,t===P.T.astro?PISO.pedra:PISO.mad1)}
   for(const t of [P.T.dorm,P.T.diretor,P.T.astro])for(const j of [[t[2][0],(t[2][1]+t[3][1])/2],[t[6][0],(t[6][1]+t[7][1])/2]])porta(j[0],j[1],{tipo:"janela",t:JANELA,raio:.5,aberta:true});
   for(const [x,y] of escadas)if(escadaC)await put(escadaC,x,y,null,{l:190});
@@ -203,7 +203,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   cone(hut,"Brown",A_,1.3);cone(stH,"Brown",A_);
   e.hist.exec(ops(),{nome:"Castelo · 1º andar e telhado"});await new Promise(r=>setTimeout(r,300));
   // =========================== ANDAR 2: telhado das torres ===========================
-  const a2=M.andares.length>2?2:e.novoAndar("Telhado das torres");A_=a2;OPS[A_]=[];
+  const a2=M.andares.length>2?2:e.novoAndar("Telhado das torres");for(const k of MD.TIPOS)if(!M.andares[a2][k])M.andares[a2][k]=[];A_=a2;OPS[A_]=[];
   cone(P.T.dorm,"Red",A_);cone(P.T.diretor,"Gray",A_);cone(P.T.astro,"Blue",A_);
   e.hist.exec(ops(),{nome:"Castelo · telhado das torres"});
   e.irPara(0);await new Promise(r=>setTimeout(r,300));await e.artesPC().espera();

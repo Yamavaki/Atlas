@@ -53,7 +53,7 @@ const deB64=s=>{const b=typeof atob==="function"?atob(s):Buffer.from(s,"base64")
 export function terrenoLiso(larg,alt,tex){const w=larg*4,h=alt*4,u=new Uint8Array(w*h*4);for(let i=0;i<u.length;i+=4)u[i]=255;return {tex:[tex,-1,-1,-1],w,h,splat:b64(u)}}
 // muda o tamanho do terreno guardando o que ja estava pintado (canto de cima a esquerda fixo)
 export function terrenoRedim(T,larg,alt){const w=larg*4,h=alt*4,a=deB64(T.splat),u=new Uint8Array(w*h*4);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const k=(y*w+x)*4;if(x<T.w&&y<T.h){const j=(y*T.w+x)*4;u[k]=a[j];u[k+1]=a[j+1];u[k+2]=a[j+2];u[k+3]=a[j+3]}else u[k]=255}return {tex:T.tex.slice(),w,h,splat:b64(u)}}
-export function andarVazio(nome,terreno){return {nome,ambiente:[1,1,1,1],terreno,zonas:[],pisos:[],formas:[],padroes:[],paredes:[],portais:[],caminhos:[],objetos:[],luzes:[],textos:[]}}
+export function andarVazio(nome,terreno){return {nome,ambiente:[1,1,1,1],terreno,zonas:[],pisos:[],formas:[],padroes:[],paredes:[],portais:[],caminhos:[],objetos:[],luzes:[],textos:[],telhados:[]}}
 export function novoMapa(o){o=o||{};const larg=Math.max(4,Math.min(200,Math.round(o.larg||30))),alt=Math.max(4,Math.min(200,Math.round(o.alt||20)));
   const M={v:1,nome:o.nome||"Novo mapa de batalha",larg,alt,origem:"atlas",grade:{cor:[0,0,0,.35]},texturas:[],pacotes:[],andares:[],avisos:[],sid:1};
   const A=andarVazio("Térreo",null);A.camadas=[novaCamada(M,{mat:o.chao||"grama",nome:MATERIAIS_NOME[o.chao||"grama"],cheia:true})];M.andares.push(A);return M}
