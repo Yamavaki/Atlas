@@ -127,11 +127,11 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   // ---------------- sala de trofeus: vitrines compridas nas paredes, duas grandes no meio, cheias de tacas, escudos e coroas ----------------
   {const b3=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-O]_1x3\./),b2=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-O]_2x2\./);
     const tc=acha(/Treasure\/Misc\/Chalice_Metal_(Gold|Silver)_A_.*_1x1\./),sh=acha(/Weapons\/Shields\/Shield_Metal_0[1-4]_A\d_1x1\./),cr=acha(/Treasure\/.*Crown_.*_1x1\./),it=tc.concat(tc,sh,cr);
-    const enche=async(b,n)=>{if(!b)return;for(let i=0;i<n;i++)if(it.length)await sobre(b,esc(it),(i+.5)/n-.5,(R()-.5)*.15,{l:305,s:1.25})};
+    const enche=async(b,n)=>{if(!b)return;for(let i=0;i<n;i++)if(it.length){const k=esc(it);await sobre(b,k,(i+.5)/n-.5,(R()-.5)*.15,{l:305,s:sh.includes(k)?.85:1.2})}};
     const vit=async(x,y,deitada)=>{if(!b3.length)return;const b=await put(esc(b3),x,y,deitada?[1,0]:[0,1]);await enche(b,3)};
     for(const x of [39.9,45.6])await vit(x,53.72,true);for(const x of [39.8,43,46.2])await vit(x,59.28,true);
     for(const x of [38.72,47.28])await vit(x,56.5,false);
-    for(const x of [41.6,44.4]){if(!b2.length)break;const b=await put(esc(b2),x,56.5,[0,1]);if(b)for(const [u,v] of [[-.22,-.22],[.22,-.22],[-.22,.22],[.22,.22]])if(it.length)await sobre(b,esc(it),u,v,{l:305,s:1.25})}
+    for(const x of [41.6,44.4]){if(!b2.length)break;const b=await put(esc(b2),x,56.5,[0,1]);if(b)for(const [u,v] of [[-.22,-.22],[.22,-.22],[-.22,.22],[.22,.22]])if(it.length){const k=esc(it);await sobre(b,k,u,v,{l:305,s:sh.includes(k)?.8:1.15})}}
     luz(43,56.5,"lampiao",{raio:6,claro:3,c:[1,.92,.7]})}
   // ---------------- pocoes ----------------
   {const mesa=acha(/Table_Rectangle_Wood_Dark_[EFG]_2x1\./),cal=acha(/Cauldrons\/Cauldron_Metal_(Gray|Rusty)_Filled_[AB]\d_1x1\./),fr=acha(/Alchemy\/Glassware\/Filled\/.*_1x1\./),es=acha(/Shelf_Wood_Dark_Filled_[A-Z]\d_2x1\./),bq=acha(/Stools\/Stool_Wood_Dark_[A-C]_1x1\./);
@@ -147,7 +147,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
     for(const [x,y] of [[29,36.2],[49,36.2],[29,46],[49,46.4]])if(arv.length)await put(esc(arv),x,y,null,{r:R()*6.28,l:900,c:esc(verdes)});
     const banco=um(/Bench_Wood_Dark_A1_2x1\./);for(const [x,y,f] of [[39.1,36.5,[0,1]],[39.1,45.7,[0,-1]],[34.5,41.1,[1,0]],[43.7,41.1,[-1,0]]])if(banco)await put(banco,x,y,f);
     const fl=acha(/Flowers_Large\/Flower_Large_(Purple|Yellow|White|Blue)\d?_/),tp=acha(/Topiary\/Topiary_Green_[AB]\d_2x2\./);
-    for(const [x0,y0,x1,y1] of [[24,34,34,38],[44,34,54,38],[24,44,34,48],[44,44,54,48]]){piso(chanf(x0,y0,x1,y1,1),PISO.terra,{l:-46,extra:{suave:.9,ruido:.6}});const cor=esc(["Purple","Yellow","White","Blue"]),F=fl.filter(k=>k.includes("Flower_Large_"+cor));for(let x=x0+.9;x<x1-.6;x+=1.1)for(let y=y0+.9;y<y1-.6;y+=1.1)if(R()<.8&&F.length)await put(esc(F),x+R()*.3,y+R()*.3,null,{r:R()*6.28,l:120})}
+    for(const [x0,y0,x1,y1] of [[24,34,34,38],[44,34,54,38],[24,44,34,48],[44,44,54,48]]){piso(chanf(x0,y0,x1,y1,1),PISO.terra,{l:-46,extra:{suave:.9,ruido:.6}});const cor=esc(["Purple","Yellow","White","Blue"]),F=fl.filter(k=>k.includes("Flower_Large_"+cor));for(let x=x0+.8;x<x1-.5;x+=.8)for(let y=y0+.8;y<y1-.5;y+=.8)if(R()<.85&&F.length)await put(esc(F),x+R()*.3,y+R()*.3,null,{r:R()*6.28,l:120})}
     for(const [x,y] of [[23.4,33.4],[54.6,33.4],[23.4,48.6],[33,48.9],[46,48.9]])if(tp.length)await put(esc(tp),x,y,null,{r:R()*6.28});
     const col=um(/Pillars\/Pillar_Stone_Earthy_A2_White_1x1\./)||um(/Pillars\/Pillar_Stone_/);for(const y of [45,46.8,48.6])if(col)await put(col,56.5,y,null);
     const lp=um(/Street_Lamps\/Lamp_Metal_Brass_A_1x1\./);for(const [x,y] of [[36.6,38.6],[41.6,43.6]])if(lp)await put(lp,x,y,null)}
