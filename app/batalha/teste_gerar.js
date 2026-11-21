@@ -5,7 +5,7 @@ export {Z};
 const RUIM_MAT=/Cyberpunk|Sci_?Fi|Modern|Neon|Broken|Ruin|Destroyed|Cracked|Substrate|Snowy|Frosty|Mossy|Dirt\d|Damage|_Z_|Overlay|Ceremorph|Drow|Dwarven|Alien|Colorable|Blood/;
 const MAT_PC={
   parede:{pobre:/Walls_(Shack|Wood|Mudbrick|Adobe)\//,comum:/Walls_(PlasterWood|StoneWood|Wood|BrickWood)\//,rico:/Walls_(Stone|Brick|Plaster|PlasterWood|StoneWood)\//,nobre:/Walls_(Stone|Plaster|Brick|Mosaic)\/|Wall_Mosaic/,pedra:/Walls_(Stone|Brick|StoneWood)\//},
-  madeira:{pobre:/Shack_Floors?_Pattern\/|Wood_Pattern\/.*_Texture_/,outro:/Wood_Pattern\/.*Flooring/},
+  madeira:{pobre:/Wood_Pattern\/.*_Texture_/,outro:/Wood_Pattern\/.*Flooring/},
   pedra:{pobre:/Cobblestone_A_|Stone_Floor_Pattern\/Cobblestone_Square/,outro:/Stone_Tiles?_(Small|Medium)|Stone_Square_Tiles|Cobblestone_Square/,rico:/Stone_Tiles?_(Large|Medium)|Stone_Patterned_Tiles|Stone_Diagonal_Tiles|Marble/},
   ladrilho:{outro:/Ceramic_Tiles_(Large|Medium)|Ceramic_Diagonal_Tile|Stone_Tiles?_Large|Marble/}};
 const sorteia=(L,sem)=>L.length?L[Math.abs(Math.imul(sem|0,2654435761)>>>0)%L.length]:null;
