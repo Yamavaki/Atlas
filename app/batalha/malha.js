@@ -63,10 +63,10 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
     const N=D.length,sd=(p.id||7)*.37,F=[[.9,1],[2.3,.5],[5.1,.25]].map(([f,a2],j)=>[f,a2,sd*(j+1.7)]);let per=0;const ss=[0];for(let i=1;i<N;i++){per+=Math.hypot(D[i][0]-D[i-1][0],D[i][1]-D[i-1][1]);ss.push(per)}
     const ru=s=>{let r=0;for(const [f,a2,ph] of F)r+=a2*Math.sin(s*f+ph);return r/1.75};
     const nor=i=>{const a=D[(i+N-1)%N],b=D[(i+1)%N],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1;return [dy/L*S,-dx/L*S]};
-    const IN=[],OUT=[];for(let i=0;i<N;i++){const q=D[i],n=nor(i),r=ru(ss[i]),di=w*.5*(1-rz*.5*r),dout=w*.5*(1+rz*r);IN.push([q[0]-n[0]*di,q[1]-n[1]*di]);OUT.push([q[0]+n[0]*dout,q[1]+n[1]*dout])}
+    const MID=[],OUT=[];for(let i=0;i<N;i++){const q=D[i],n=nor(i),r=ru(ss[i]),dout=w*Math.max(.15,.8+rz*.55*r);MID.push([q[0]+n[0]*dout*.4,q[1]+n[1]*dout*.4]);OUT.push([q[0]+n[0]*dout,q[1]+n[1]*dout])}
     const uv=q=>[(q[0]*cr+q[1]*sr)*es+(p.ox||0),(-q[0]*sr+q[1]*cr)*es+(p.oy||0)],vc=(q,a2)=>{const t=uv(q);v(q[0],q[1],t[0],t[1],l,[c[0],c[1],c[2],c[3]*a2])};
     const T=triangula(B0);for(const k of T)vc(B0[k],1);
-    for(let i=0;i<N;i++){const k=(i+1)%N;vc(IN[i],1);vc(IN[k],1);vc(OUT[k],0);vc(IN[i],1);vc(OUT[k],0);vc(OUT[i],0)}};
+    const anel=(A1,a1,A2,a2)=>{for(let i=0;i<N;i++){const k=(i+1)%N;vc(A1[i],a1);vc(A1[k],a1);vc(A2[k],a2);vc(A1[i],a1);vc(A2[k],a2);vc(A2[i],a2)}};anel(D,1,MID,.62);anel(MID,.62,OUT,0)};
   // fita continua: uma peca so, com a juncao calculada em cada ponto; pontas soltas fecham em meia-lua
   const faixa=(P,larg,l,c,laco,pontas)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco);for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n;quadM(E[i],E[k],D[k],D[i],l,c)}
     const PT=Array.isArray(pontas)?pontas:[pontas,pontas];if(!laco)for(const [p,q,ok] of[[P[0],P[1],PT[0]],[P[n-1],P[n-2],PT[1]]]){if(!ok)continue;const T=tampa(p,q,larg);for(let i=0;i<T.length-1;i++)for(const z of[p,T[i],T[i+1]])v(z[0],z[1],z[0]*.5,z[1]*.5,l,c)}};

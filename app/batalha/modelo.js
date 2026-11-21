@@ -43,7 +43,7 @@ export const foto=e=>Object.assign({},e);
 export function poe(e,st){for(const k in e)if(!(k in st))delete e[k];Object.assign(e,st)}
 // T = {f:(x,y)=>[x,y], rot:radianos, s:escala}
 export function transforma(k,e,T){const rot=T.rot||0,s=T.s==null?1:T.s;
-  if(e.p){if(e.cv)e.cv=e.cv.map((h,i)=>{if(!h)return h;const p=e.p[i],a=T.f(p[0],p[1]),b=T.f(p[0]+h[0],p[1]+h[1]);return [+(b[0]-a[0]).toFixed(4),+(b[1]-a[1]).toFixed(4)]});e.p=e.p.map(p=>T.f(p[0],p[1]));if(e.furos)e.furos=e.furos.map(h=>h.map(p=>T.f(p[0],p[1])));if(k==="caminhos"&&s!==1)e.larg=(e.larg||.5)*s;return}
+  if(e.p){if(e.cv)e.cv=e.cv.map((h,i)=>{if(!h)return h;const p=e.p[i],a=T.f(p[0],p[1]),b=T.f(p[0]+h[0],p[1]+h[1]);return [+(b[0]-a[0]).toFixed(4),+(b[1]-a[1]).toFixed(4)]});e.p=e.p.map(p=>T.f(p[0],p[1]));if(e.furos)e.furos=e.furos.map(h=>h.map(p=>T.f(p[0],p[1])));if(e.alas){const q=Math.abs(Math.sin(rot))>.5;e.alas=e.alas.map(a=>{const A=T.f(a.x0,a.y0),B=T.f(a.x1,a.y1),n=Object.assign({},a,{x0:+Math.min(A[0],B[0]).toFixed(4),y0:+Math.min(A[1],B[1]).toFixed(4),x1:+Math.max(A[0],B[0]).toFixed(4),y1:+Math.max(A[1],B[1]).toFixed(4)});if(q&&a.eixo)n.eixo=a.eixo==="x"?"y":"x";return n})}if(k==="telhados"&&rot)e.r=(e.r||0)+rot;if(k==="caminhos"&&s!==1)e.larg=(e.larg||.5)*s;return}
   if(e.furos)e.furos=e.furos.map(h=>h.map(p=>T.f(p[0],p[1])));
   const q=T.f(e.x,e.y);e.x=q[0];e.y=q[1];if(k==="textos"){e.r=(e.r||0)+rot;e.tam*=s;if(e.lw)e.lw*=s}else if(k==="objetos"){e.r+=rot;e.w*=s;e.h*=s}else if(k==="luzes"){e.raio*=s;if(e.claro!=null)e.claro*=s;if(e.tex)e.gir=(e.gir||0)+rot}else if(k==="portais"){const c=Math.cos(rot),n=Math.sin(rot),dx=e.dx,dy=e.dy;e.dx=dx*c-dy*n;e.dy=dx*n+dy*c;e.r=(e.r||0)+rot;e.raio*=s}}
 // --- mapa ---
