@@ -35,7 +35,7 @@ function mede(bm){const W=bm.width,H=bm.height;if(!tela){tela=typeof OffscreenCa
     const cob=k=>{const yA=y0+Math.round(bh*.08),yB=y1-Math.round(bh*.08),xA=x0+Math.round(bw*.08),xB=x1-Math.round(bw*.08);let c=0,n=0;
       if(k==="W"||k==="L"){const x=k==="W"?x0+Math.floor(ex/2):x1-Math.floor(ex/2);for(let y=yA;y<=yB;y++){n++;if(al(x,y)>10)c++}}else{const y=k==="N"?y0+Math.floor(ey/2):y1-Math.floor(ey/2);for(let x=xA;x<=xB;x++){n++;if(al(x,y)>10)c++}}return n?c/n:0};
     const semi=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){const v=al(x,y);if(v>10){s+=v;n++}}return n?s/n:255},SM=semi(mx0,mx1,my0,my1),SB={W:semi(x0,x0+ex-1,my0,my1),L:semi(x1-ex+1,x1,my0,my1),N:semi(mx0,mx1,y0,y0+ey-1),S:semi(mx0,mx1,y1-ey+1,y1)};
-    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.72&&o>.78&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)&&cob(k)>=.85).sort((p,q)=>p[1]-q[1]);funde=C.length?C[0][0]:"";
+    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.86&&o>.9&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)&&cob(k)>=.85).sort((p,q)=>p[1]-q[1]);funde=C.length?C[0][0]:"";
     const i0=Math.round(bh*.06),i1=Math.round(bw*.06),FW=faixa(x0,x0+ex-1,y0+i0,y1-i0),FE=faixa(x1-ex+1,x1,y0+i0,y1-i0),FN=faixa(x0+i1,x1-i1,y0,y0+ey-1),FS=faixa(x0+i1,x1-i1,y1-ey+1,y1);
     if(bh>=bw*1.4&&Math.abs(FW-FE)>12)costas=FW>FE?"W":"L";else if(bw>=bh*1.4&&Math.abs(FN-FS)>12)costas=FN>FS?"N":"S"}
   return {funde,costas,x0:Math.round(x0/w*255),y0:Math.round(y0/h*255),x1:Math.round((x1+1)/w*255),y1:Math.round((y1+1)/h*255),fill:Math.round(n/(bw*bh)*255),mask:m.toString(16).padStart(16,"0"),
@@ -50,9 +50,9 @@ async function fichaArte(P,f,a,orig){const c="res://packs/"+P.id+"/"+a[0];if(ori
   if(!bm)return px?[px[0],px[1]]:[0,0];if(!px)px=[bm.width,bm.height];const M=mede(bm);bm.close&&bm.close();
   if(M.vazio)return [px[0],px[1],0,0,0,0,0,"0","000000",0,0,src?1:2];return [px[0],px[1],M.x0,M.y0,M.x1,M.y1,M.fill,M.mask,M.cor,M.sh,M.sv,src?1:2,src||Math.max(px[0],px[1])<384?"":M.funde,src?"":M.costas]}
 // confere de novo so as artes marcadas como peca de conjunto (quando a regra muda), sem refazer tudo
-export async function refazConjuntos(){const L=BIB.pacotesCompletos();let n=0,tirou=0;for(const P of L){const fx=await fichasDe(P),f=BIB.arquivoDe(P);if(!fx||!f)continue;let mud=false;
-    for(let i=0;i<P.artes.length;i++){const x=fx.fichas[i];if(!x||x[11]!==2||!x[12])continue;n++;const y=await fichaArte(P,f,P.artes[i],true);if(y&&y[12]!==x[12]){fx.fichas[i]=y;mud=true;if(!y[12])tirou++}}
-    if(mud){await poe(chave(P),fx);CACHE.set(chave(P),fx)}}BORDA.clear();UMA.clear();return {conferidas:n,tirou}}
+export async function refazConjuntos(){const L=BIB.pacotesCompletos();let n=0,tirou=0,pos=0;for(const P of L){const fx=await fichasDe(P),f=BIB.arquivoDe(P);if(!fx||!f)continue;let mud=false;
+    for(let i=0;i<P.artes.length;i++){const x=fx.fichas[i];if(!x||x[11]!==2)continue;const bw=(x[4]-x[2])/255*x[0],bh=(x[5]-x[3])/255*x[1];if(!x[12]&&!(Math.max(x[0],x[1])>=384&&Math.max(bw,bh)>=Math.min(bw,bh)*1.8))continue;n++;const y=await fichaArte(P,f,P.artes[i],true);if(y&&y[12]!==x[12]){fx.fichas[i]=y;mud=true;if(!y[12])tirou++;else if(!x[12])pos++}}
+    if(mud){await poe(chave(P),fx);CACHE.set(chave(P),fx)}}BORDA.clear();UMA.clear();return {conferidas:n,tirou,pos}}
 // analisa todos os pacotes (retoma de onde parou: cada pacote pronto fica guardado)
 export async function analisar(o){o=o||{};const L=BIB.pacotesCompletos();let total=0,feito=0;for(const P of L)total+=P.artes.length;const t0=performance.now();
   for(const P of L){if(o.parar&&o.parar())break;const ja=await fichasDe(P);if(ja){feito+=P.artes.length;if(o.progresso)o.progresso(feito,total,P.nome,0);continue}
@@ -276,7 +276,7 @@ export async function perfilArte(c){if(BORDA.has(c))return BORDA.get(c);{const f
     const cob=k=>{const yA=y0+Math.round(bh*.08),yB=y1-Math.round(bh*.08),xA=x0+Math.round(bw*.08),xB=x1-Math.round(bw*.08);let c=0,n=0;
       if(k==="W"||k==="L"){const x=k==="W"?x0+Math.floor(ex/2):x1-Math.floor(ex/2);for(let y=yA;y<=yB;y++){n++;if(al(x,y)>10)c++}}else{const y=k==="N"?y0+Math.floor(ey/2):y1-Math.floor(ey/2);for(let x=xA;x<=xB;x++){n++;if(al(x,y)>10)c++}}return n?c/n:0};
     const semi=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){const v=al(x,y);if(v>10){s+=v;n++}}return n?s/n:255},SM=semi(mx0,mx1,my0,my1),SB={W:semi(x0,x0+ex-1,my0,my1),L:semi(x1-ex+1,x1,my0,my1),N:semi(mx0,mx1,y0,y0+ey-1),S:semi(mx0,mx1,y1-ey+1,y1)};
-    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.72&&o>.78&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)&&cob(k)>=.85).sort((p,q)=>p[1]-q[1]);res.funde=C.length&&(!px||Math.max(px[0],px[1])>=384)?C[0][0]:"";
+    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.86&&o>.9&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)&&cob(k)>=.85).sort((p,q)=>p[1]-q[1]);res.funde=C.length&&(!px||Math.max(px[0],px[1])>=384)?C[0][0]:"";
     // costas: o lado cheio no comprimento todo (a boca da lareira e o arco, que so ocupa o meio; no balcao, a barra de apoio e fina)
     const i0=Math.round(bh*.06),i1=Math.round(bw*.06),FW=faixa(x0,x0+ex-1,y0+i0,y1-i0),FE=faixa(x1-ex+1,x1,y0+i0,y1-i0),FN=faixa(x0+i1,x1-i1,y0,y0+ey-1),FS=faixa(x0+i1,x1-i1,y1-ey+1,y1);
     if(bh>=bw*1.4&&Math.abs(FW-FE)>12)res.costas=FW>FE?"W":"L";else if(bw>=bh*1.4&&Math.abs(FN-FS)>12)res.costas=FN>FS?"N":"S"}catch(e){}
