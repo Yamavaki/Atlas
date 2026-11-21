@@ -55,6 +55,17 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   const B=[];let nv=0,SOMB=null;const v=(x,y,u,w,l,c)=>{if(SOMB)B.push(x+(SOMB[3]||0),y+(SOMB[4]||0),u,w,l,0,0,0,SOMB[0],-2,SOMB[2],1);else B.push(x,y,u,w,l,c[0],c[1],c[2],c[3],0,1,1);nv++};
   const quad=(p0,p1,p2,p3,uv,l,c)=>{v(p0[0],p0[1],uv[0][0],uv[0][1],l,c);v(p1[0],p1[1],uv[1][0],uv[1][1],l,c);v(p2[0],p2[1],uv[2][0],uv[2][1],l,c);v(p0[0],p0[1],uv[0][0],uv[0][1],l,c);v(p2[0],p2[1],uv[2][0],uv[2][1],l,c);v(p3[0],p3[1],uv[3][0],uv[3][1],l,c)};
   const kuv=t=>{const tx=TEX[t],w=IND["w:"+tx];return w&&IND["r:"+tx]!=null?256/w:.5};const mundo=(p,k)=>[p[0]*(k||.5),p[1]*(k||.5)],quadM=(a,b,c_,d,l,c,k)=>quad(a,b,c_,d,[mundo(a,k),mundo(b,k),mundo(c_,k),mundo(d,k)],l,c);
+  // forma com borda suave: miolo encolhido opaco + faixa que esmaece para fora, com a beirada irregular (ruido ao longo do contorno)
+  const formaSuave=p=>{const B0=p.raio?arredonda(curva(p.p,p.cv,true),p.raio,true):curva(p.p,p.cv,true),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0),w=p.suave,rz=p.ruido==null?.6:p.ruido;
+    let ar=0;for(let i=0;i<B0.length;i++){const a=B0[i],b=B0[(i+1)%B0.length];ar+=a[0]*b[1]-b[0]*a[1]}const S=ar<0?-1:1;
+    const D=[];for(let i=0;i<B0.length;i++){const a=B0[i],b=B0[(i+1)%B0.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/.2));for(let k=0;k<n;k++)D.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}
+    const N=D.length,sd=(p.id||7)*.37,F=[[.9,1],[2.3,.5],[5.1,.25]].map(([f,a2],j)=>[f,a2,sd*(j+1.7)]);let per=0;const ss=[0];for(let i=1;i<N;i++){per+=Math.hypot(D[i][0]-D[i-1][0],D[i][1]-D[i-1][1]);ss.push(per)}
+    const ru=s=>{let r=0;for(const [f,a2,ph] of F)r+=a2*Math.sin(s*f+ph);return r/1.75};
+    const nor=i=>{const a=D[(i+N-1)%N],b=D[(i+1)%N],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1;return [dy/L*S,-dx/L*S]};
+    const IN=[],OUT=[];for(let i=0;i<N;i++){const q=D[i],n=nor(i),r=ru(ss[i]),di=w*.5*(1-rz*.5*r),dout=w*.5*(1+rz*r);IN.push([q[0]-n[0]*di,q[1]-n[1]*di]);OUT.push([q[0]+n[0]*dout,q[1]+n[1]*dout])}
+    const uv=q=>[(q[0]*cr+q[1]*sr)*es+(p.ox||0),(-q[0]*sr+q[1]*cr)*es+(p.oy||0)],vc=(q,a2)=>{const t=uv(q);v(q[0],q[1],t[0],t[1],l,[c[0],c[1],c[2],c[3]*a2])};
+    const T=triangula(IN);for(const k of T)vc(IN[k],1);
+    for(let i=0;i<N;i++){const k=(i+1)%N;vc(IN[i],1);vc(IN[k],1);vc(OUT[k],0);vc(IN[i],1);vc(OUT[k],0);vc(OUT[i],0)}};
   // fita continua: uma peca so, com a juncao calculada em cada ponto; pontas soltas fecham em meia-lua
   const faixa=(P,larg,l,c,laco,pontas)=>{const n=P.length;if(n<2)return;const {E,D}=fita(P,larg,laco);for(let i=0;i<n-(laco?0:1);i++){const k=(i+1)%n;quadM(E[i],E[k],D[k],D[i],l,c)}
     const PT=Array.isArray(pontas)?pontas:[pontas,pontas];if(!laco)for(const [p,q,ok] of[[P[0],P[1],PT[0]],[P[n-1],P[n-2],PT[1]]]){if(!ok)continue;const T=tampa(p,q,larg);for(let i=0;i<T.length-1;i++)for(const z of[p,T[i],T[i+1]])v(z[0],z[1],z[0]*.5,z[1]*.5,l,c)}};
@@ -73,7 +84,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   for(const z of A.pisos||[])add(-50,()=>{const [i,j,t,c]=z;quadM([i,j],[i+1,j],[i+1,j+1],[i,j+1],mat(t),c||BR,kuv(t))});
   const PAR=new Map();for(const w of A.paredes||[])if(w.id!=null)PAR.set(w.id,w);
   // pisos de comodo seguem a parede (com os mesmos cantos arredondados); textura com escala, giro e deslocamento
-  for(const p of A.padroes||[])add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?trajeto(w):(p.raio?arredonda(curva(p.p,p.cv,true),p.raio,true):curva(p.p,p.cv,true)),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
+  for(const p of A.padroes||[])if(p.suave>0&&p.parede==null&&!(p.furos&&p.furos.length))add(p.l,()=>formaSuave(p));else add(p.l,()=>{const w=p.parede!=null&&PAR.get(p.parede),B0=w?trajeto(w):(p.raio?arredonda(curva(p.p,p.cv,true),p.raio,true):curva(p.p,p.cv,true)),P=comFuros(B0,p.furos&&p.furos.map(h=>p.raio?arredonda(h,p.raio,true):h)),T=triangula(P),l=mat(p.t),c=p.c||BR,es=kuv(p.t)/(p.esc||1),cr=Math.cos(p.gt||0),sr=Math.sin(p.gt||0);
     for(const k of T){const q=P[k],u=(q[0]*cr+q[1]*sr)*es+(p.ox||0),w2=(-q[0]*sr+q[1]*cr)*es+(p.oy||0);v(q[0],q[1],u,w2,l,c)}
     if(p.borda>0){const cb=p.cb||[.55,.45,.3,1];faixa(B0,p.borda,-1,cb,true);for(const h of p.furos||[])faixa(p.raio?arredonda(h,p.raio,true):h,p.borda,-1,cb,true)}});
   for(const p of A.caminhos||[])add(p.l,()=>{const n=nome(p.t),rl=real(p.t),P0=limpa(p.cv&&p.cv.some(Boolean)?curva(p.p,p.cv,p.laco):suaviza(p.p,p.suave),p.laco),P=rl!=null&&!p.suave&&IND["dd:origem"]?arredonda(P0,p.larg,p.laco):P0;const psd=sdDe(p,"caminhos");if(rl!=null){if(psd){SH(psd);fitaArte(P,p.larg,rl,BR,p.laco,TEX[p.t]);SH(null)}fitaArte(P,p.larg,rl,p.c||BR,p.laco,TEX[p.t]);return}
@@ -104,7 +115,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
     const folhas=tp==="dupla"?[[-L,L],[L,L]]:[[-L,2*L]];rect(q.x,q.y,dx,dy,L,.16,-1,[.16,.12,.09,.9]);
     for(const [o,c] of folhas){const hx=q.x+dx*o,hy=q.y+dy*o,s=o<0?1:-1;if(ab){const ux=-dy,uy=dx;rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2,.07,-1,TINTA);rect(hx+ux*c/2,hy+uy*c/2,ux,uy,c/2-.03,.045,-1,MAD)}
       else{rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2,.11,-1,TINTA);rect(hx+dx*s*c/2,hy+dy*s*c/2,dx,dy,c/2-.04,.075,-1,MAD)}}},(sdDe(q,"portais")||[0,0])[1]);
-  itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const G=[];for(const it of itens){const v0=nv;SOMB=null;it[2]();SOMB=null;if(!it[3]||nv===v0)continue;const g=G[G.length-1];if(g&&g.l===it[0]){g.v1=nv;g.b+=it[3];g.k++}else G.push({l:it[0],v0,v1:nv,b:it[3],k:1})}
+  itens.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const G=[];let nChao=null;for(const it of itens){if(nChao==null&&it[0]>=0)nChao=nv;const v0=nv;SOMB=null;it[2]();SOMB=null;if(!it[3]||nv===v0)continue;const g=G[G.length-1];if(g&&g.l===it[0]){g.v1=nv;g.b+=it[3];g.k++}else G.push({l:it[0],v0,v1:nv,b:it[3],k:1})}
   // grupos de sombra: um por camada que faz sombra (a sombra fica embaixo da camada inteira); no maximo 8, juntando os vizinhos menores
   while(G.length>8){let m=0,mk=1e9;for(let i=0;i<G.length-1;i++)if(G[i].k+G[i+1].k<mk){mk=G[i].k+G[i+1].k;m=i}const a=G[m],b=G[m+1];G.splice(m,2,{l:a.l,v0:a.v0,v1:b.v1,b:a.b+b.b,k:a.k+b.k})}
   const grupos=G.map(g=>({v0:g.v0,v1:g.v1,bl:g.b/g.k}));
@@ -114,7 +125,7 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   const Z=[];let nz=0;const zv=(q,c)=>{Z.push(q[0],q[1],0,0,-1,c[0],c[1],c[2],1,0,1,1);nz++};
   for(const w of A.paredes||[])if(w.amb&&w.laco){const P=trajeto(w),T=triangula(P);for(const k of T)zv(P[k],w.amb)}
   for(const p of A.padroes||[])if(p.amb&&p.parede==null){const P=p.raio?arredonda(p.p,p.raio,true):p.p,T=triangula(P);for(const k of T)zv(P[k],p.amb)}
-  return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz,telhados:tl.verts,nt:tl.n,grupos}}
+  return {verts:new Float32Array(B),n:nv,luzes:lz.verts,nl:lz.n,cache:lz.cache,onde,ondeLuz:null,zonas:new Float32Array(Z),nz,telhados:tl.verts,nt:tl.n,grupos,nChao:nChao==null?nv:nChao}}
 // ---------- luz com sombra das paredes ----------
 // trechos que barram a luz: paredes (caminho arredondado), menos as janelas e as portas abertas
 export function barreiras(A,TEX){const S=[];for(const w of A.paredes||[]){if(w.sombra===false)continue;const P=trajeto(w),n=P.length;if(n<2)continue;
@@ -161,7 +172,13 @@ function visiveis(q,ALAS,PANOS){let L=[q.P];
         let den=clip(mid,0,1,-R.y0);if(den)den=clip(den,0,-1,R.y1);if(den)for(const o of PANOS[j]){let z=den;for(const o2 of PANOS[j]){if(o2===o||!z)continue;z=clip(z,o2.a-o.a,o2.b-o.b,o2.c-o.c)}if(z)z=clip(z,q.a-o.a,q.b-o.b,q.c-o.c+(j<q.ala?-1e-4:1e-4));if(z)N.push(z)}}}
     L=N;if(!L.length)break}
   return L.filter(P=>{let a=0;for(let i=0;i<P.length;i++){const u=P[i],v=P[(i+1)%P.length];a+=u[0]*v[1]-v[0]*u[1]}return Math.abs(a)>1e-5})}
-export function panosTelhado(ALAS){const PANOS=ALAS.map(panosAla),out=[];for(const pn of PANOS)for(const q of pn)for(const P of visiveis(q,ALAS,PANOS))out.push({P,q});
+// furos: poligonos CONVEXOS onde o telhado nao entra (torre que sobe, patio); horarios ou anti-horarios
+const orientaCW=H=>{let a=0;for(let i=0;i<H.length;i++){const u=H[i],v=H[(i+1)%H.length];a+=u[0]*v[1]-v[0]*u[1]}return a<0?H.slice().reverse():H};
+function tiraConvexo(P,H){H=orientaCW(H);const out=[];let rem=P;for(let i=0;i<H.length&&rem;i++){const a=H[i],b=H[(i+1)%H.length],nx=-(b[1]-a[1]),ny=b[0]-a[0];// dentro: nx*x+ny*y >= nx*a
+    const fora=clip(rem,-nx,-ny,nx*a[0]+ny*a[1]);if(fora)out.push(fora);rem=clip(rem,nx,ny,-(nx*a[0]+ny*a[1]))}return out}
+const dentroConv=(H,x,y)=>{H=orientaCW(H);for(let i=0;i<H.length;i++){const a=H[i],b=H[(i+1)%H.length];if(-(b[1]-a[1])*(x-a[0])+(b[0]-a[0])*(y-a[1])<-1e-6)return false}return true};
+export function panosTelhado(ALAS,FUROS){const PANOS=ALAS.map(panosAla);let out=[];for(const pn of PANOS)for(const q of pn)for(const P of visiveis(q,ALAS,PANOS))out.push({P,q});
+  for(const H of FUROS||[]){const N=[];for(const o of out)for(const P of tiraConvexo(o.P,H))N.push({P,q:o.q});out=N}
   // linhas de encontro (cumeeira, espigao, rincao): bordas de pedaco onde, do outro lado, o pano de cima e outro
   const topo=(x,y)=>{let m=-1e9,w=null;for(let j=0;j<ALAS.length;j++){if(!dentroAla(ALAS[j],x,y))continue;for(const o of PANOS[j]){}const h=alturaAla(PANOS[j],x,y);if(h>m+1e-4){m=h;let best=null,bh=1e9;for(const o of PANOS[j]){const v=hDe(o,x,y);if(v<bh){bh=v;best=o}}w=best}}return w};
   const igual=(a,b)=>a&&b&&Math.abs(a.a-b.a)<1e-6&&Math.abs(a.b-b.b)<1e-6&&Math.abs(a.c-b.c)<1e-4;
@@ -169,6 +186,7 @@ export function panosTelhado(ALAS){const PANOS=ALAS.map(panosAla),out=[];for(con
     let cx=0,cy=0;for(const z of P){cx+=z[0];cy+=z[1]}cx/=P.length;cy/=P.length;const mx=(u[0]+v[0])/2,my=(u[1]+v[1])/2;let nx=-(v[1]-u[1])/L,ny=(v[0]-u[0])/L;if(nx*(mx-cx)+ny*(my-cy)<0){nx=-nx;ny=-ny}
     const den=(x,y)=>ALAS.some(R=>x>R.x0+1e-3&&x<R.x1-1e-3&&y>R.y0+1e-3&&y<R.y1-1e-3);if(!den(mx+nx*.05,my+ny*.05)||!den(mx-nx*.05,my-ny*.05))continue; // beiral: nao e encontro
     const fora=topo(mx+nx*.03,my+ny*.03);if(!fora||igual(fora,q))continue;if(Math.abs(hDe(fora,mx,my)-hDe(q,mx,my))>.02)continue;
+    if((FUROS||[]).some(H=>dentroConv(H,mx+nx*.03,my+ny*.03)))continue;
     if(!linhas.some(l=>Math.hypot(l[0][0]-v[0],l[0][1]-v[1])<.01&&Math.hypot(l[1][0]-u[0],l[1][1]-u[1])<.01))linhas.push([u,v])}
   return {panos:out,linhas}}
 export function malhaTelhados(A,TEX,IND,PAR){const B=[];let n=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
@@ -195,7 +213,7 @@ export function malhaTelhados(A,TEX,IND,PAR){const B=[];let n=0;const lay=k=>IND
   return {verts:new Float32Array(B),n}}
 // telhado de alas: panos com a textura (fileiras paralelas ao beiral, caindo para fora), sombra pelo lado, cumeeiras/espigoes/rincoes e beiral
 function telhadoAlas(t,TEX,IND,PAR,v,lay,real){const rl=real(t.t),l=rl!=null?rl:lay("m:"+materialDe(TEX[t.t]||"atlas:m/telha")),c=t.c||[1,1,1,1],tx=TEX[t.t],es=(rl!=null&&IND["w:"+tx]?256/IND["w:"+tx]:.5)/(t.esc||1),LX=-.6,LY=-.8;
-  const {panos,linhas}=panosTelhado(t.alas);
+  const {panos,linhas}=panosTelhado(t.alas,t.furos);
   for(const {P,q} of panos){const g=Math.hypot(q.a,q.b);let sn=0,cs=1,br=.95;if(g>1e-9){sn=q.a/g;cs=-q.b/g;br=.8+.32*((-q.a/g)*LX+(-q.b/g)*LY)}
     const T=triangula(P);for(const k of T){const z=P[k];v(z[0],z[1],0,0,-1,[.11,.1,.1,1],1)}for(const k of T){const z=P[k];v(z[0],z[1],(z[0]*cs+z[1]*sn)*es,(-z[0]*sn+z[1]*cs)*es,l,c,br)}}
   // linhas de encontro: com a arte de cumeeira (caminho do pacote) ou uma linha escura
@@ -206,5 +224,5 @@ function telhadoAlas(t,TEX,IND,PAR,v,lay,real){const rl=real(t.t),l=rl!=null?rl:
   // beiral: em volta de cada ala, so nos trechos que nao ficam dentro de outra
   for(let i=0;i<t.alas.length;i++){const R=t.alas[i],E=[[[R.x0,R.y0],[R.x1,R.y0]],[[R.x1,R.y0],[R.x1,R.y1]],[[R.x1,R.y1],[R.x0,R.y1]],[[R.x0,R.y1],[R.x0,R.y0]]];
     for(const [a,b] of E){const L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/.25));for(let s2=0;s2<n;s2++){const p=[a[0]+(b[0]-a[0])*s2/n,a[1]+(b[1]-a[1])*s2/n],q=[a[0]+(b[0]-a[0])*(s2+1)/n,a[1]+(b[1]-a[1])*(s2+1)/n],mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2;
-      if(t.alas.some((o,j)=>j!==i&&mx>o.x0+.01&&mx<o.x1-.01&&my>o.y0+.01&&my<o.y1-.01))continue;const nx=-(q[1]-p[1])/(L/n)*.05,ny=(q[0]-p[0])/(L/n)*.05;
+      if(t.alas.some((o,j)=>j!==i&&mx>o.x0+.01&&mx<o.x1-.01&&my>o.y0+.01&&my<o.y1-.01))continue;if((t.furos||[]).some(H=>dentroConv(H,mx,my)))continue;const nx=-(q[1]-p[1])/(L/n)*.05,ny=(q[0]-p[0])/(L/n)*.05;
       for(const z of[[p[0]+nx,p[1]+ny],[q[0]+nx,q[1]+ny],[q[0]-nx,q[1]-ny],[p[0]+nx,p[1]+ny],[q[0]-nx,q[1]-ny],[p[0]-nx,p[1]-ny]])v(z[0],z[1],0,0,-1,[.08,.06,.05,.9],1)}}}}
