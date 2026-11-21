@@ -7,7 +7,7 @@ const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const now=()=>new Date().toISOString(),clamp=(v,a,b)=>v<a?a:v>b?b:v;
 function h(tag,attrs,...kids){const e=document.createElement(tag);for(const k in attrs||{}){const v=attrs[k];if(v==null||v===false)continue;if(k==="class")e.className=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else if(k==="html")e.innerHTML=v;else if(k==="value")e.value=v;else if(v===true)e.setAttribute(k,"");else e.setAttribute(k,v)}
   for(const c of kids.flat()){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(c))}return e}
-let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3800)}
+let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;t.onclick=null;t.style.cursor="";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3800)}
 
 // ---------- estado ----------
 const S={notes:new Map(),maps:new Map(),sec:"home",note:null,map:null,mode:"read",q:"",place:null};
@@ -1413,6 +1413,9 @@ function abrePaleta(){let P=$("#paleta");if(P){P.querySelector("input").focus();
   const monta=()=>{const q=norm(inp.value.trim());lista=[];const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};
     for(const n of S.notes.values())if(!q||norm(n.title).includes(q)){const ty=fm(n.content).props.tipo||"livre",qd=n.kind==="canvas";lista.push({ic:qd?"quadro":TICO[ty]||"livre",cor:qd?"#a88bd6":TCOL[ty],t:n.title,d:qd?"Quadro":TYPES[ty]||"Nota",fn:()=>openNote(n.id),r:q&&norm(n.title).startsWith(q)?0:1})}
     for(const m of S.maps.values())if(m.type!=="assets"&&(!q||norm(m.name).includes(q))){const mi=MIC[m.type]||["regiao","#8db06a"];lista.push({ic:mi[0],cor:mi[1],t:m.name,d:"Mapa",fn:()=>openMap(m.id),r:q&&norm(m.name).startsWith(q)?0:1})}
+    // dentro do texto das notas (mostra o trecho) e lugares dos mapas
+    if(q.length>=3){let n2=0;for(const n of S.notes.values()){if(n.kind==="canvas"||norm(n.title).includes(q))continue;const b=fm(n.content).body,i=norm(b).indexOf(q);if(i<0)continue;const ty=fm(n.content).props.tipo||"livre",tr=b.slice(Math.max(0,i-30),i+q.length+40).replace(/\s+/g," ").trim();lista.push({ic:TICO[ty]||"livre",cor:TCOL[ty],t:n.title,d:"…"+tr+"…",fn:()=>openNote(n.id),r:1.5});if(++n2>=15)break}
+      for(const m of S.maps.values()){if(m.type==="assets")continue;const ls=[...(m.lock||[]).map(t=>t.name),...(m.pins||[]).map(p=>p.label),...(m.places||[]).map(p=>p.name)].filter(Boolean);for(const nm of ls)if(norm(nm).includes(q))lista.push({ic:"lugar",cor:"#8db06a",t:nm,d:"Lugar em "+m.name,fn:()=>openTitle(nm),r:1.2})}}
     for(const [ic,cor,t,fn] of acoes)if(!q||norm(t).includes(q))lista.push({ic,cor,t,d:"Ação",fn,r:2});
     if(!q)lista=lista.filter(x=>x.d==="Ação").concat(lista.filter(x=>x.d!=="Ação").slice(0,8));else lista.sort((a,b)=>a.r-b.r);lista=lista.slice(0,40);sel=Math.min(sel,Math.max(0,lista.length-1));
     res.replaceChildren(...(lista.length?lista.map((x,i)=>h("button",{type:"button",role:"option","aria-selected":String(i===sel),class:"prow"+(i===sel?" on":""),onclick:()=>{fecha();x.fn()}},h("i",{class:"tic",style:x.cor?"color:"+x.cor:null},icone(x.ic,18)),h("span",{class:"pt"},x.t),h("small",{},x.d))):[h("p",{class:"empty"},"Nada encontrado.")]))};
@@ -1422,5 +1425,8 @@ $("#imp").addEventListener("change",e=>{importFiles([...e.target.files]);e.targe
 $("#main").addEventListener("pointerdown",()=>$("#side").classList.remove("open"));
 drawSide();$("#main").append(h("div",{class:"welcome"},h("h1",{},"Abrindo o vault…")));
 Store.init();
+// app instalado: avisa quando houver versao nova nos Releases do GitHub
+(async()=>{const T=window.__TAURI__;if(!T||!T.app)return;try{const v=await T.app.getVersion(),r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return;const L=await r.json(),u=L&&L[0];if(!u)return;const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
+  if(cmp(nova,v)>0)setTimeout(()=>{const t=$("#toast");toast("Versão nova do Atlas: "+nova+". Clique aqui para baixar.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,15000);t.onclick=()=>{try{T.opener.openUrl(u.html_url)}catch(e){window.open(u.html_url)}}},4000)}catch(e){}})();
 window.AtlasApp={S,Store,openNote};
 })();
