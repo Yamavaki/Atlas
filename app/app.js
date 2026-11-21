@@ -210,6 +210,7 @@ function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChil
   else if(props.mapa){const mp=[...S.maps.values()].find(m=>norm(m.name)===norm(props.mapa));if(mp)placeCard=h("button",{type:"button",class:"placecard",onclick:()=>openMap(mp.id,props.pino||o.title)},h("span",{},h("b",{},props.pino||o.title),h("small",{},mp.name),h("em",{},"Abrir no mapa →")))}
   const head=h("div",{class:"row"},typeSel,folder,h("span",{class:"grow"}),tog,del);
   const emptyF=type==="livre"&&!o.img&&!props.data&&S.mode!=="edit";const wrap=h("div",{class:"note t-"+type},title,head,type==="missao"?barraObj(o):null,emptyF&&!placeCard?null:h("div",{class:"ntop"},emptyF?h("span"):ficha,placeCard),dl,dlf);
+  if(S.mode==="edit"&&!(window.AtlasEditor&&AtlasEditor.pronto())){carregaEditor().then(ok=>{if(ok&&S.mode==="edit"&&S.note===o.id)drawNote()})}
   if(S.mode==="edit"&&window.AtlasEditor&&AtlasEditor.pronto()){
     // editor ao vivo (1.2): o Markdown aparece formatado enquanto escreve
     let tSave=0;const corpo0=fm(o.content).body;
@@ -260,6 +261,12 @@ function newCityFrom(reg,town){const AC=window.AtlasCity,W=S.cur&&S.cur.W,t=W&&W
   const size=town.kind==="city"?clamp(Math.round(18+(town.size-26)*.6),16,40):town.kind==="town"?clamp(Math.round(10+(town.size-12)*.5),9,18):6;
   const id=uid("m"),o={id,name:"Cidade de "+town.name,type:"city",src:{map:reg.id,town:town.name},params:Object.assign({},AC.DEF,{seed:town.name.toLowerCase()+"-"+(A.hashStr(reg.params.seed||"x")%900+100),site,river,relief,size,culture:town.race||"humano",wall:town.wall?"reta":"nenhuma",citadel:town.kind==="city",plan:town.planned?"planejado":"misto",wealth:town.kind==="city"?.6:town.kind==="town"?.45:.3,foreign:town.kind==="city"?"auto":"nao",roadDirs:dirs}),updated:now()};
   S.maps.set(id,o);Store.save("maps",o);return o}
+// o gerador de cidades (city.js, ~300 KB) so carrega quando precisa: abre mais rapido; depois do inicio ele vem em segundo plano
+// o editor de notas (CodeMirror, ~560 KB) tambem carrega sozinho em segundo plano ou na primeira edicao
+let promEditor=null;function carregaEditor(){if(window.CM)return Promise.resolve(true);if(!promEditor)promEditor=new Promise(ok=>{const sc=document.createElement("script");sc.src="vendor/codemirror.js";sc.onload=()=>ok(true);sc.onerror=()=>{promEditor=null;ok(false)};document.head.append(sc)});return promEditor}
+let promCidade=null;function carregaCidade(){if(window.AtlasCity)return Promise.resolve(true);if(!promCidade)promCidade=new Promise(ok=>{const sc=document.createElement("script");sc.src="city.js";sc.onload=()=>ok(true);sc.onerror=()=>{promCidade=null;ok(false)};document.head.append(sc)});return promCidade}
+async function novaCidade(){if(!(await carregaCidade()))return toast("O gerador de cidades não carregou.");openMap(newCity().id)}
+async function cidadeDe(o,town){if(!(await carregaCidade()))return toast("O gerador de cidades não carregou.");openMap(newCityFrom(o,town).id)}
 function newCity(){const AC=window.AtlasCity,id=uid("m"),nm=A.NAMES[(Math.random()*A.NAMES.length)|0];let name="Cidade de "+nm,k=2;while([...S.maps.values()].some(m=>m.name===name))name="Cidade de "+nm+" "+(k++);
   const o={id,name,type:"city",params:Object.assign({},AC.DEF,{seed:nm.toLowerCase()+"-"+(1200+((Math.random()*300)|0)),site:AC.SITES[(Math.random()*AC.SITES.length)|0][0]}),updated:now()};S.maps.set(id,o);Store.save("maps",o);return o}
 // mapa de cidade: gerador proprio (city.js), com zoom, arrasto e parametros
@@ -661,7 +668,7 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;if(o.params&&o.para
 function openMap(id,flash){S.sec="maps";S.map=id;undo=[];tool="move";closePlace();drawAll(flash);$("#side").classList.remove("open")}
 // miniatura do mapa (para o cartao de mapa no quadro e a tela inicial): 360 px, WebP
 function miniMapa(o,cv){try{const k=360/Math.max(cv.width,cv.height),c=document.createElement("canvas");c.width=Math.round(cv.width*k);c.height=Math.round(cv.height*k);c.getContext("2d").drawImage(cv,0,0,c.width,c.height);const u=c.toDataURL("image/webp",.72);if(u.length>2000)o.mini=u}catch(e){}}
-function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();if(o.type==="battle")return drawBattle(o,main);if(o.type==="city"&&window.AtlasCity)return drawCityMap(o,main,flash);
+function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceChildren();if(!o)return drawWelcome();if(o.type==="battle")return drawBattle(o,main);if(o.type==="city"&&!window.AtlasCity){main.append(h("div",{class:"welcome"},h("h1",{},"Abrindo a cidade…")));carregaCidade().then(ok=>{if(S.map===o.id)ok?drawMap(flash):toast("O gerador de cidades não carregou.")});return}if(o.type==="city"&&window.AtlasCity)return drawCityMap(o,main,flash);
   o.params=Object.assign({},DEF,o.params);o.edits=o.edits||[];o.pins=o.pins||[];o.objs=o.objs||[];
   const mc=h("canvas",{id:"mc",width:A.CW,height:A.CH,"aria-label":"Mapa"}),mgR=h("canvas",{id:"mg",width:A.CW*2,height:A.CH*2,style:"display:none"}),mo=h("canvas",{id:"mo",width:A.CW,height:A.CH}),pins=h("div",{id:"mpins"}),stage=h("div",{class:"stage"},mc,mgR,mo,pins),busy=h("div",{class:"busy"},"Gerando…"),status=h("div",{class:"status"});
   const view=h("div",{class:"view"},stage),octx=mo.getContext("2d");let sel=null,draft=[];
@@ -733,7 +740,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     ctx.append(h("strong",{class:"cname"},"Nome do povoado"),h("input",{type:"text",value:ov.name||L.name||"","aria-label":"Nome",onchange:e=>rsetLab(rtsel,{name:e.target.value.trim()||null})}),
       h("label",{class:"cf"},"Tamanho",h("select",{"aria-label":"Tamanho do nome",onchange:e=>rsetLab(rtsel,{fs:+e.target.value===1?null:+e.target.value})},[["0.75","Menor"],["1","Normal"],["1.3","Maior"],["1.7","Bem maior"]].map(([v,n])=>h("option",{value:v,selected:String(ov.fs||1)===v},n)))),h("span",{class:"cf"},"Arraste o nome para mudar de lugar"),
       B2(ov.hide?"Mostrar":"Esconder",()=>rsetLab(rtsel,{hide:ov.hide?null:1}),"ghost"),B2("Voltar ao automático",()=>{snap();delete (o.params.tlab||{})[rtsel.i];recompose();drawCtx()},"ghost"));
-    {const town=cur&&cur.W.towns[rtsel.i];if(town&&town.kind!=="camp"&&window.AtlasCity){const ex=[...S.maps.values()].find(m=>m.type==="city"&&m.src&&m.src.map===o.id&&m.src.town===town.name);ctx.append(B2(ex?"Abrir mapa da cidade":"Criar mapa da cidade",()=>openMap(ex?ex.id:newCityFrom(o,town).id),"primary"))}}}
+    {const town=cur&&cur.W.towns[rtsel.i];if(town&&town.kind!=="camp"){const ex=[...S.maps.values()].find(m=>m.type==="city"&&m.src&&m.src.map===o.id&&m.src.town===town.name);ctx.append(B2(ex?"Abrir mapa da cidade":"Criar mapa da cidade",()=>ex?openMap(ex.id):cidadeDe(o,town),"primary"))}}}
   // ---- campos e estradas da regiao (vetores)
   let rv=null,rvdrag=null,rvSelV=null;const FCOL=["#c9b86a","#b9b060","#d4c57e","#a8b05a","#bfa85c","#9fae58","#cdb372","#a9b05c","#a3ad58"];
   const rpj=v=>cur.info.project(v[0],v[1]),inPolyR=(P_,x,y)=>{let ins=false;for(let i=0,j=P_.length-1;i<P_.length;j=i++){const a=P_[i],b=P_[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])ins=!ins}return ins},sdR=(px,py,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,t=Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/l));return Math.hypot(a[0]+dx*t-px,a[1]+dy*t-py)};
@@ -1031,7 +1038,7 @@ function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||
   const acts=h("div",{class:"row"});
   if(note){acts.append(h("button",{type:"button",class:"primary",onclick:()=>{S.placeEdit=!S.placeEdit;drawPlace()}},S.placeEdit?"Ler":"Editar aqui"),h("button",{type:"button",onclick:()=>openNote(note.id)},"Abrir nota"))}
   else acts.append(h("button",{type:"button",class:"primary",onclick:()=>{newNote("local",name,{content:"---\ntipo: local\nmapa: "+o.name+"\npino: "+name+"\n---\n\n## Descrição\n\n\n## Quem vive aqui\n\n\n## Ganchos\n\n- [ ] \n"});S.placeEdit=true;drawSide();drawPlace()}},"Criar nota deste lugar"));
-  if(town&&town.kind!=="camp"&&window.AtlasCity){const ex=[...S.maps.values()].find(m=>m.type==="city"&&m.src&&m.src.map===o.id&&m.src.town===town.name);acts.append(h("button",{type:"button",onclick:()=>{openMap(ex?ex.id:newCityFrom(o,town).id)}},ex?"Abrir mapa da cidade":"Criar mapa da cidade"))}
+  if(town&&town.kind!=="camp"){const ex=[...S.maps.values()].find(m=>m.type==="city"&&m.src&&m.src.map===o.id&&m.src.town===town.name);acts.append(h("button",{type:"button",onclick:()=>{ex?openMap(ex.id):cidadeDe(o,town)}},ex?"Abrir mapa da cidade":"Criar mapa da cidade"))}
   acts.append(h("button",{type:"button",onclick:()=>{const n=newNote("missao","Missão em "+name);setProps(n,{status:"aberta",local:name});openNote(n.id,"edit")}},"+ Missão aqui"));
   if(pin)acts.append(h("button",{type:"button",class:"danger",onclick:()=>{o.pins=o.pins.filter(p=>p!==pin);Store.save("maps",o);S.redrawPins&&S.redrawPins();closePlace()}},"Remover pino"));
   box.append(h("div",{class:"row"},h("h2",{},kindTxt),h("span",{class:"grow"}),h("button",{type:"button",onclick:closePlace},"Fechar")),nm,acts);
@@ -1118,7 +1125,7 @@ function abreQuadroEm(o,area){const AQ=window.AtlasQuadro;if(!AQ){area.append(h(
     mapas:()=>[...S.maps.values()].filter(m=>m.type!=="assets").map(m=>{const mi=MIC[m.type]||["regiao","Mapa de região"];return {id:m.id,nome:m.name,ic:mi[0],det:mi[1],mini:m.mini||null}}),
     abrirNota:t=>openTitle(t),criarNota:t=>openTitle(t),abrirMapa:id=>{if(S.maps.has(id))openMap(id);else toast("Esse mapa foi apagado.")}})}
 // menu "Novo mapa": regiao, cidade, batalha, importar e exemplos de batalha
-function itensNovoMapa(){const BT=window.AtlasBatalha,L=[{ic:"regiao",cor:"#8db06a",txt:"Mapa de região",fn:()=>openMap(newMap().id)},{ic:"cidade",cor:"#d4a64a",txt:"Mapa de cidade",fn:()=>openMap(newCity().id)}];
+function itensNovoMapa(){const BT=window.AtlasBatalha,L=[{ic:"regiao",cor:"#8db06a",txt:"Mapa de região",fn:()=>openMap(newMap().id)},{ic:"cidade",cor:"#d4a64a",txt:"Mapa de cidade",fn:()=>novaCidade()}];
   if(BT){L.push({ic:"batalha",cor:"#e0776b",txt:"Mapa de batalha",fn:async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}},{sep:true},{ic:"importar",txt:"Importar mapa de batalha",det:".dungeondraft_map ou .atlasmap",fn:()=>{const i=document.querySelector("input[accept='.dungeondraft_map,.json,.atlasmap']");if(i)i.click()}});
     for(const [k,n] of BT.EXEMPLOS)L.push({ic:"batalha",cor:"#95886e",txt:"Exemplo: "+n,fn:async()=>{try{novoBatalha(await BT.importarExemplo(k))}catch(er){toast(er.message||"Exemplo indisponível.")}}})}return L}
 // menu pequeno preso a um botao: itens {ic, cor, txt, det, fn} ou {sep}
@@ -1142,7 +1149,7 @@ function drawWelcome(){return drawHome()}
 // tela de Inicio: comecar e recentes
 function drawHome(){const main=$("#main");main.replaceChildren();const notas=[...S.notes.values()],mapas=[...S.maps.values()].filter(m=>m.type!=="assets"),vazio=!notas.length&&!mapas.length;
   const card=(ic,cor,t,d,fn)=>h("button",{type:"button",class:"hcard",onclick:fn},h("span",{class:"hci",style:"color:"+cor},icone(ic,24)),h("b",{},t),h("span",{},d));
-  const BT=window.AtlasBatalha,cards=[card("regiao","#8db06a","Mapa de região","Vales, rios, estradas e povoados gerados e editáveis.",()=>openMap(newMap().id)),card("cidade","#d4a64a","Mapa de cidade","Ruas, quarteirões, castelo e templos de uma cidade.",()=>openMap(newCity().id)),
+  const BT=window.AtlasBatalha,cards=[card("regiao","#8db06a","Mapa de região","Vales, rios, estradas e povoados gerados e editáveis.",()=>openMap(newMap().id)),card("cidade","#d4a64a","Mapa de cidade","Ruas, quarteirões, castelo e templos de uma cidade.",()=>novaCidade()),
     card("batalha","#e0776b","Mapa de batalha","Do zero ou importado do Dungeondraft, pronto para o Foundry.",async()=>{if(!BT)return toast("O Modo Batalha não carregou neste navegador.");try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}),
     card("notas","#7fa9cc","Nota","Personagem, missão, sessão, lugar ou nota livre, ligadas entre si.",e=>menuPop(e.currentTarget,Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>openNote(newNote(k,k==="livre"?"":TYPES[k]).id,"edit")}))))];
   const tm=v=>typeof v==="number"?v:(Date.parse(v)||0),rec=[...notas.map(n=>({k:"n",o:n,t:tm(n.updated)})),...mapas.map(m=>({k:"m",o:m,t:tm(m.updated)}))].sort((a,b)=>b.t-a.t).slice(0,9);
@@ -1427,7 +1434,7 @@ function folhaAtalhos(){let F=$("#atalhos");if(F){F.remove();return}const fecha=
 function abrePaleta(){let P=$("#paleta");if(P){P.querySelector("input").focus();return}const inp=h("input",{type:"search",placeholder:"Buscar notas, mapas e ações…","aria-label":"Buscar notas, mapas e ações"}),res=h("div",{class:"pres",role:"listbox"});let sel=0,lista=[];
   P=h("div",{id:"paleta",class:"paleta",onpointerdown:e=>{if(e.target===P)fecha()}},h("div",{class:"pcaixa",role:"dialog","aria-label":"Busca rápida"},h("div",{class:"p-in"},icone("buscar",20),inp,h("kbd",{},"Esc")),res));
   const fecha=()=>{P.remove()};const BT=window.AtlasBatalha;
-  const acoes=[["regiao","#8db06a","Novo mapa de região",()=>openMap(newMap().id)],["cidade","#d4a64a","Novo mapa de cidade",()=>openMap(newCity().id)],BT?["batalha","#e0776b","Novo mapa de batalha",async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}]:null,
+  const acoes=[["regiao","#8db06a","Novo mapa de região",()=>openMap(newMap().id)],["cidade","#d4a64a","Novo mapa de cidade",()=>novaCidade()],BT?["batalha","#e0776b","Novo mapa de batalha",async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}]:null,
     ...Object.entries(TYPES).map(([k,v])=>[TICO[k],TCOL[k],"Nova nota: "+v,()=>openNote(newNote(k,k==="livre"?"":TYPES[k]).id,"edit")]),["importar","","Importar notas",()=>$("#imp").click()],["exportar","","Exportar…",()=>exportMenu($("#bExp"))],["olho","","Alternar visão do mestre e dos jogadores",()=>$("#bPlay").click()],
     ["inicio","","Ir para o Início",()=>{S.sec="home";drawAll()}],["ajuda","","Atalhos do teclado",()=>folhaAtalhos()],["quadro","#a88bd6","Novo quadro",()=>{S.sec="notes";novoQuadro()}],["grafo","","Ver o grafo das notas",()=>{S.sec="notes";S.view="graph";drawAll()}],["missao","","Ver as missões",()=>{S.sec="notes";S.view="quests";drawAll()}]].filter(Boolean);
   const monta=()=>{const q=norm(inp.value.trim());lista=[];const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};
@@ -1445,6 +1452,7 @@ $("#imp").addEventListener("change",e=>{importFiles([...e.target.files]);e.targe
 $("#main").addEventListener("pointerdown",()=>$("#side").classList.remove("open"));
 drawSide();$("#main").append(h("div",{class:"welcome"},h("h1",{},"Abrindo o vault…")));
 Store.init();
+setTimeout(()=>{(window.requestIdleCallback||setTimeout)(()=>{carregaEditor();carregaCidade()})},2500);
 // app instalado: avisa quando houver versao nova nos Releases do GitHub
 (async()=>{const T=window.__TAURI__;if(!T||!T.app)return;try{const v=await T.app.getVersion(),r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return;const L=await r.json(),u=L&&L[0];if(!u)return;const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
   if(cmp(nova,v)>0)setTimeout(()=>{const t=$("#toast");toast("Versão nova do Atlas: "+nova+". Clique aqui para atualizar.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,15000);t.onclick=()=>{const ex=(u.assets||[]).find(x=>/setup\.exe$/i.test(x.name)),url=ex?ex.browser_download_url:u.html_url;try{T.opener.openUrl(url)}catch(e){window.open(url)}toast(ex?"Baixando o instalador: abra o arquivo quando terminar e o Atlas é atualizado.":"Abrindo a página da versão nova.")}},4000)}catch(e){}})();

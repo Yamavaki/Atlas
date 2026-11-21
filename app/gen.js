@@ -69,8 +69,7 @@ function simp(p,tol){if(p.length<3)return p.map(q=>[q[0],q[1]]);const keep=new U
 function inPoly(p,x,y){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){const a=p[i],b=p[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
 function dsegPoly(p,x,y){let m=1e9;for(let i=0;i<p.length;i++)m=Math.min(m,dseg(x,y,p[i],p[(i+1)%p.length]));return m}
 function dseg(x,y,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy||1,t=clamp(((x-a[0])*dx+(y-a[1])*dy)/l,0,1);return Math.hypot(x-a[0]-dx*t,y-a[1]-dy*t)}
-function hull(p){p=p.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lo=[],up=[];
-  for(const q of p){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q)}for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>1&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q)}lo.pop();up.pop();return lo.concat(up)}
+
 function chaikin(p,n){for(let k=0;k<n;k++){const q=[p[0]];for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1];q.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75])}q.push(p[p.length-1]);p=q}return p}
 
 // ---------- carimbos por codigo ----------
@@ -308,15 +307,7 @@ function drawPalisade(c,p,q,h){const n=Math.max(2,Math.round(Math.hypot(q[0]-p[0
   for(let i=0;i<=n;i++){const x=lerp(p[0],q[0],i/n),y=lerp(p[1],q[1],i/n),hh=h*(.9+((i*7)%3)*.08);poly(c,[[x-1.1,y],[x+1.1,y],[x+1.1,y-hh],[x,y-hh-1.6],[x-1.1,y-hh]],i%2?"#8d6a44":"#7a5a38",INK)}}
 function drawHedge(c,p,q,h){const lit=(q[1]-p[1])*(q[0]-p[0])>0;c.lineWidth=.7;poly(c,[p,q,[q[0],q[1]-h],[p[0],p[1]-h]],lit?"#6f8d40":"#56713a",INK);
   c.fillStyle="#88a652";const n=Math.max(1,Math.round(Math.hypot(q[0]-p[0],q[1]-p[1])/3));for(let i=0;i<=n;i++){const x=lerp(p[0],q[0],i/n),y=lerp(p[1],q[1],i/n)-h;c.beginPath();c.arc(x,y,1.6,0,7);c.fill()}}
-function drawMesa(c,x,y,w,h,col,rng){const n=11,top=[];for(let i=0;i<n;i++){const a=i/n*6.2832,r=.75+rng()*.35;top.push([x+Math.cos(a)*w*r,y-h+Math.sin(a)*w*.4*r])}
-  c.lineJoin="round";const front=top.filter(q=>q[1]>=y-h-1).sort((a,b)=>a[0]-b[0]),L=front[0],R=front[front.length-1];
-  const base=[];for(let i=0;i<=8;i++){const t=i/8;base.push([lerp(L[0]-3,R[0]+3,t)+(rng()-.5)*2,y+1+Math.sin(t*3.14)*w*.18+(rng()-.5)*1.5])}
-  c.beginPath();c.moveTo(L[0],L[1]);for(const q of front)c.lineTo(q[0],q[1]);for(let i=base.length-1;i>=0;i--)c.lineTo(base[i][0],base[i][1]);c.closePath();
-  const g=c.createLinearGradient(x-w,0,x+w,0);g.addColorStop(0,col[2]);g.addColorStop(.45,col[0]);g.addColorStop(1,col[1]);c.fillStyle=g;c.fill();c.strokeStyle=INK;c.lineWidth=.9;c.stroke();
-  c.save();c.clip();c.strokeStyle="rgba(80,45,20,.5)";c.lineWidth=.6;for(let k=1;k<5;k++){const yy=y-h+h*k/5;c.beginPath();c.moveTo(L[0]-4,yy+(rng()-.5));for(let xx=L[0];xx<=R[0]+4;xx+=4)c.lineTo(xx,yy+(rng()-.5)*1.4);c.stroke()}
-  c.strokeStyle="rgba(60,35,15,.55)";c.lineWidth=.6;for(let xx=L[0];xx<R[0];xx+=2.2+rng()*1.6){const sh=(xx-x)/w;if(sh<-.1)continue;c.beginPath();c.moveTo(xx,y-h+2);c.lineTo(xx+(rng()-.5)*1.5,y+w*.2);c.stroke()}c.restore();
-  poly(c,top,col[2],INK);c.fillStyle="rgba(120,90,50,.25)";for(let k=0;k<4;k++){c.beginPath();c.ellipse(x+(rng()-.5)*w,y-h+(rng()-.5)*w*.25,2+rng()*2,.8,0,0,7);c.fill()}
-  c.fillStyle="#a89a80";for(let k=0;k<5;k++){const bx=lerp(L[0],R[0],rng()),by=y+1+rng()*3;c.beginPath();c.ellipse(bx,by,1.2+rng(),.7,0,0,7);c.fill()}}
+
 function drawCrater(c,x,y,w,rng){c.lineWidth=.8;c.fillStyle="#2a201c";c.beginPath();c.ellipse(x,y,w*.2,w*.08,0,0,7);c.fill();c.fillStyle="#e2632a";c.beginPath();c.ellipse(x,y+.4,w*.15,w*.05,0,0,7);c.fill();c.fillStyle="#f6b04a";c.beginPath();c.ellipse(x,y+.6,w*.07,w*.025,0,0,7);c.fill();
   const pf=[];for(let i=0;i<9;i++){const t=i/8;pf.push([x+t*t*34+(rng()-.5)*4,y-6-t*58,3+t*11+rng()*2.5])}
   for(let i=pf.length-1;i>=0;i--){const [px,py,r]=pf[i],t=i/8;c.globalAlpha=.92-t*.25;
@@ -337,10 +328,7 @@ function drawArch(c,x,y,col,rng){c.lineJoin="round";const w=30+rng()*10,h=24+rng
   path();c.strokeStyle=INK;c.lineWidth=.9;c.stroke();
   for(let k=0;k<7;k++){const rx=x+(rng()<.5?-1:1)*(w/2+t*.3+rng()*8),ry=y+rng()*3,rr=1.4+rng()*2.2;c.fillStyle=col[1];c.beginPath();c.ellipse(rx,ry,rr,rr*.7,0,0,7);c.fill();c.strokeStyle=INK;c.lineWidth=.5;c.stroke()}}
 function drawBoulders(c,x,y,st){c.drawImage(st,x-26,y-26,52,36)}
-function drawVolcano(c,x,y,w,h,rng){c.lineWidth=.9;const g=c.createLinearGradient(x-w,0,x+w,0);g.addColorStop(0,"#6b5a52");g.addColorStop(1,"#3a2e2a");c.fillStyle=g;c.strokeStyle=INK;
-  c.beginPath();c.moveTo(x-w,y);c.quadraticCurveTo(x-w*.35,y-h*.55,x-w*.18,y-h);c.lineTo(x+w*.18,y-h);c.quadraticCurveTo(x+w*.35,y-h*.55,x+w,y);c.closePath();c.fill();c.stroke();
-  c.fillStyle="#d8542a";c.beginPath();c.ellipse(x,y-h,w*.18,w*.06,0,0,7);c.fill();c.strokeStyle="#f0a040";c.lineWidth=1.4;for(let k=0;k<3;k++){const sx=x+(rng()-.5)*w*.2;c.beginPath();c.moveTo(sx,y-h+1);c.quadraticCurveTo(sx+(rng()-.5)*w*.5,y-h*.5,sx+(rng()-.5)*w*.8,y-h*.12);c.stroke()}
-  for(let i=0;i<5;i++){const px=x+i*3+(rng()-.5)*3,py=y-h-4-i*6,r=3+i*1.5;c.fillStyle="#2e2a2c";c.beginPath();c.arc(px,py,r+.8,0,7);c.fill();c.fillStyle="#6e6468";c.beginPath();c.arc(px,py,r,0,7);c.fill()}}
+
 // ajudantes de perspectiva (usam as de assets.js quando carregadas)
 const PF=(x,y,ang)=>{const ca=Math.cos(ang),sa=Math.sin(ang);return (a,b,h)=>[x+ca*a-sa*b,y+(sa*a+ca*b)*TILT-(h||0)]};
 const PRZ=(c,x,y,L,D,H,ang,wall,top)=>window.AtlasAssets?AtlasAssets.prism(c,x,y,L,D,H,ang,wall,top):poly(c,[[x-L/2,y],[x+L/2,y],[x+L/2,y-H],[x-L/2,y-H]],wall[0],INK);
@@ -408,11 +396,7 @@ function drawRockMass(c,x,y,o){const s=o.s||1,ca=Math.cos(o.ang||0),sa=Math.sin(
   else{c.fillStyle="rgba(120,110,95,.9)";for(const u of[-2,0,1.8]){const a=P(u-.5,vf+.02,7),b=P(u+.5,vf+.02,7),t=P(u,vf+.02,5.6);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.lineTo(t[0],t[1]);c.fill()}}
   return P}
 function drawCave(c,x,y,snow,rng){rng=rng||Math.random;drawRockMass(c,x,y-2,{s:.72,ang:rng()*6.283,snow});}
-function drawCave0(c,x,y,snow){c.lineWidth=.8;const g=c.createLinearGradient(x-12,0,x+12,0);g.addColorStop(0,snow?"#e6eaee":"#b3ab98");g.addColorStop(1,snow?"#a9b2ba":"#7d7565");c.fillStyle=g;c.strokeStyle=INK;
-  c.beginPath();c.moveTo(x-13,y+1);c.quadraticCurveTo(x-11,y-9,x-4,y-12);c.quadraticCurveTo(x+3,y-15,x+8,y-9);c.quadraticCurveTo(x+13,y-5,x+13,y+1);c.closePath();c.fill();c.stroke();
-  c.fillStyle="#1e1914";c.beginPath();c.moveTo(x-4.5,y+1);c.quadraticCurveTo(x-4.5,y-7,x,y-7.5);c.quadraticCurveTo(x+4.5,y-7,x+4.5,y+1);c.closePath();c.fill();
-  c.strokeStyle="rgba(60,50,35,.6)";c.lineWidth=.6;c.beginPath();c.moveTo(x-9,y-6);c.lineTo(x-7,y-2);c.moveTo(x+7,y-8);c.lineTo(x+9,y-4);c.moveTo(x-2,y-11);c.lineTo(x+1,y-9);c.stroke();
-  c.fillStyle="#9a9282";c.beginPath();c.ellipse(x+7,y+1.4,2,1.1,0,0,7);c.ellipse(x-8,y+1.6,1.6,.9,0,0,7);c.fill()}
+
 function drawCamp(c,x,y,race,rng){const col=race==="orc"?["#7a5d40","#5a4430"]:race==="mongol"?["#efe6d2","#c2b79f"]:["#d8c9a0","#a8976c"];c.lineWidth=.7;
   for(const [dx,dy,s] of [[-7,-2,1],[6,-3,.9],[0,3,1.1]]){const tx=x+dx,ty=y+dy;if(race==="mongol"){drawRound(c,tx,ty,3.4*s,2.6*s,2.2*s,{wall:"felt",roof:"felt",yurt:1});continue}poly(c,[[tx-4*s,ty],[tx,ty-6*s],[tx+1.5*s,ty-.5]],col[0],INK);poly(c,[[tx+1.5*s,ty-.5],[tx,ty-6*s],[tx+4.5*s,ty-1.2]],col[1],INK);c.fillStyle="#3a2c1b";c.beginPath();c.moveTo(tx-.6,ty-.2);c.lineTo(tx+.8,ty-3.6);c.lineTo(tx+1,ty-.3);c.fill()}
   c.fillStyle="#3a2c1b";c.fillRect(x-.8,y-1,1.6,1);c.fillStyle="#e07a2a";c.beginPath();c.moveTo(x-1.4,y-.8);c.lineTo(x,y-3.6);c.lineTo(x+1.4,y-.8);c.fill();c.fillStyle="#f0c050";c.beginPath();c.moveTo(x-.6,y-.8);c.lineTo(x,y-2.4);c.lineTo(x+.6,y-.8);c.fill()}
