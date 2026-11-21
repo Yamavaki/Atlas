@@ -1628,7 +1628,24 @@ async function menuMundo(btn){const AP=window.AtlasPasta,r=btn.getBoundingClient
   if(!pode){it.push({ic:"ajuda",txt:"Vários mundos",det:"No Claude o mundo fica salvo neste chat. Use o app do Atlas para ter um mundo por pasta.",fn:()=>{}},{ic:"exportar",txt:"Baixar este mundo",det:"arquivo .atlasmundo",fn:exportMundo},{ic:"importar",txt:"Importar um mundo",det:".atlasmundo",fn:()=>$("#imp").click()});return menuEmPonto(r.left,r.bottom+6,it)}
   it.push({ic:"mais",cor:"#d4a64a",txt:"Novo mundo…",det:"numa pasta vazia, começa do zero",fn:novoMundo},{ic:"pasta",txt:"Abrir mundo…",det:"uma pasta com um mundo do Atlas ou do Obsidian",fn:()=>abrirMundo()});
   const at=AP.atual(),L=(await AP.recentes()).filter(x=>!(at&&Store.pasta&&(x.caminho?x.caminho===at.chave:x.nome===at.nome))).slice(0,6);if(L.length){it.push({tit:"Recentes"});for(const x of L)it.push({ic:"mundo",txt:x.nome,det:x.caminho||null,fn:()=>abrirMundo(x)})}
-  if(Store.pasta)it.push({sep:true},{ic:"fechar",txt:"Fechar este mundo",det:"volta para o mundo guardado no app",fn:()=>Store.fecharPasta()});menuEmPonto(r.left,r.bottom+6,it)}
+  if(Store.pasta)it.push({sep:true},{ic:"refazer",txt:"Recarregar a pasta",det:"pega o que mudou por fora (Drive, Obsidian, Claude)",fn:()=>vigiaPasta(true)},{ic:"fechar",txt:"Fechar este mundo",det:"volta para o mundo guardado no app",fn:()=>Store.fecharPasta()});menuEmPonto(r.left,r.bottom+6,it)}
 {const b=$("#bMundo");if(b)b.addEventListener("click",e=>menuMundo(e.currentTarget))}
+
+// ---------- 1.23 a pasta mudou por fora (Google Drive para computador, Obsidian, o Claude pelo Drive) ----------
+let vigiando=false;
+async function vigiaPasta(avisaSempre){const AP=window.AtlasPasta;if(!Store.pasta||!AP||!AP.verifica||vigiando)return;if(!avisaSempre&&(document.hidden||!document.hasFocus()))return;vigiando=true;
+  try{await AP.espera();const r=await AP.verifica();if(!r)return;let n=0,pul=0;const mexeu=new Set();
+    for(const o of r.notas){const k="notes/"+o.id,old=S.notes.get(o.id);if(Store.dirty.has(k)){pul++;continue}
+      if(old&&(old.kind==="canvas"?JSON.stringify(old.canvas||{})===JSON.stringify(o.canvas||{}):(old.content||"")===(o.content||""))&&old.title===o.title)continue;
+      S.notes.set(o.id,Object.assign({},old||{},o));mexeu.add(o.id);n++}
+    for(const id of r.apagadas){if(Store.dirty.has("notes/"+id)||!S.notes.has(id))continue;S.notes.delete(id);mexeu.add(id);n++}
+    for(const {m,texto} of r.mapas){const k="maps/"+m.id,old=S.maps.get(m.id);if(Store.dirty.has(k)){pul++;continue}if(old&&JSON.stringify(old)===texto)continue;S.maps.set(m.id,m);mexeu.add(m.id);n++}
+    for(const id of r.mapasApagados){if(Store.dirty.has("maps/"+id)||!S.maps.has(id))continue;S.maps.delete(id);mexeu.add(id);n++}
+    if(n){const editando=S.sec==="notes"&&S.mode==="edit"&&S.note&&!mexeu.has(S.note)&&!S.view;if(S.quadro&&$("#main .qd"))S.camPend=S.quadro.cam();drawSide();if(!editando&&S.sec!=="maps")drawMain();else if(S.sec==="maps"&&mexeu.has(S.map))drawMain();S.camPend=null;
+      toast(n===1?"1 arquivo mudou na pasta do mundo e foi atualizado.":n+" arquivos mudaram na pasta do mundo e foram atualizados.")}
+    else if(avisaSempre)toast("Nada mudou na pasta do mundo.");
+    if(pul)toast(pul+" arquivo(s) mudaram na pasta enquanto você editava; o Atlas manteve a sua versão.")}
+  catch(e){console.warn("vigia",e);if(avisaSempre)toast("Não foi possível ler a pasta agora.")}finally{vigiando=false}}
+setInterval(()=>vigiaPasta(false),4000);addEventListener("focus",()=>setTimeout(()=>vigiaPasta(false),300));
 window.AtlasApp={S,Store,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t)};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
 })();

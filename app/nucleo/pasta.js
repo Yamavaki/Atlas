@@ -37,7 +37,8 @@
       async permissao(){return true}}}
 
   // ---------- o mundo ----------
-  let D=null,IND={notas:{},mapas:{},versao:1},fila=Promise.resolve(),gravandoIdx=null;
+  let D=null,IND={notas:{},mapas:{},versao:1},fila=Promise.resolve(),gravandoIdx=null,VISTO=new Map();
+  const relev=rel=>/\.(md|canvas)$/i.test(rel)||/\.atlasmapa\.json$/i.test(rel);
   const salvaIndice=()=>{clearTimeout(gravandoIdx);gravandoIdx=setTimeout(()=>{fila=fila.then(()=>D&&D.gravar(IDX,JSON.stringify(IND,null,1))).catch(e=>console.warn("indice",e))},400)};
   const caminhoNota=o=>juntaP((o.folder||"").split("/").map(safe).join("/"),safe(o.title)+(o.kind==="canvas"?".canvas":".md"));
   const caminhoMapa=m=>juntaP(MAPAS,safe(m.name||m.id)+".atlasmapa.json");
@@ -74,7 +75,18 @@
         const o=Object.assign({},ex,{id,title:ex.title||titulo,folder:ex.folder!=null?ex.folder:pasta});
         if(/\.canvas$/i.test(a.rel)){o.kind="canvas";try{const C=JSON.parse(t.texto||"{}");o.canvas={nodes:C.nodes||[],edges:C.edges||[]}}catch(e){o.canvas={nodes:[],edges:[]}}o.content=o.content||""}else o.content=t.texto.replace(/\r/g,"");
         if(a.quando&&(!o.updated||a.quando>o.updated+2000))o.updated=a.quando;IND.notas[id]={caminho:a.rel,extra:extraNota(o)};vistos.add(id);notas.push(o)}
-      for(const id of Object.keys(IND.notas))if(!vistos.has(id))delete IND.notas[id];salvaIndice();return {notas,mapas,nome:D.nome}},
+      for(const id of Object.keys(IND.notas))if(!vistos.has(id))delete IND.notas[id];salvaIndice();VISTO=new Map(arqs.filter(a=>relev(a.rel)).map(a=>[a.rel,a.quando]));return {notas,mapas,nome:D.nome}},
+    // o que mudou na pasta desde a ultima olhada (outro programa: Google Drive para computador, Obsidian, o Claude pelo Drive)
+    async verifica(){if(!D)return null;const arqs=(await D.listar()).filter(a=>relev(a.rel)),agora=new Map(arqs.map(a=>[a.rel,a.quando])),R={notas:[],mapas:[],apagadas:[],mapasApagados:[]};
+      const porCaminho=new Map();for(const [id,x] of Object.entries(IND.notas))porCaminho.set(x.caminho,id);const mapaPorCaminho=new Map();for(const [id,x] of Object.entries(IND.mapas))mapaPorCaminho.set(x.caminho,id);
+      for(const [rel,q] of agora){const v=VISTO.get(rel);if(v!=null&&(!q||v===q))continue;const t=await D.ler(rel);if(!t)continue;
+        if(/\.atlasmapa\.json$/i.test(rel)){try{const m=JSON.parse(t.texto);if(m&&m.id){IND.mapas[m.id]={caminho:rel};R.mapas.push({m,texto:t.texto})}}catch(e){}continue}
+        let id=porCaminho.get(rel),ex=id?IND.notas[id].extra||{}:null;const partes=rel.split("/"),arq=partes.pop(),titulo=arq.replace(/\.(md|canvas)$/i,""),pasta=partes.join("/");
+        if(!id){id=uidN();ex={id,title:titulo,folder:pasta}}const o=Object.assign({},ex,{id,title:ex.title||titulo,folder:ex.folder!=null?ex.folder:pasta,updated:t.quando||Date.now()});
+        if(/\.canvas$/i.test(rel)){o.kind="canvas";try{const C=JSON.parse(t.texto||"{}");o.canvas={nodes:C.nodes||[],edges:C.edges||[]}}catch(e){continue}o.content=o.content||""}else o.content=t.texto.replace(/\r/g,"");
+        IND.notas[id]={caminho:rel,extra:extraNota(o)};R.notas.push(o)}
+      for(const rel of VISTO.keys()){if(agora.has(rel))continue;const id=porCaminho.get(rel);if(id){R.apagadas.push(id);delete IND.notas[id]}const mi=mapaPorCaminho.get(rel);if(mi){R.mapasApagados.push(mi);delete IND.mapas[mi]}}
+      VISTO=agora;if(R.notas.length||R.mapas.length||R.apagadas.length||R.mapasApagados.length)salvaIndice();return R},
 
     gravaNota(o){if(!D)return Promise.resolve();const novo=caminhoNota(o),velho=IND.notas[o.id]&&IND.notas[o.id].caminho;IND.notas[o.id]={caminho:novo,extra:extraNota(o)};salvaIndice();
       const txt=o.kind==="canvas"?JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1):(o.content||"");
