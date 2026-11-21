@@ -54,19 +54,19 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   const ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
   const dSeg=(x,y,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((x-a[0])*dx+(y-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(x-a[0]-dx*t,y-a[1]-dy*t)};
   const dLin=(x,y,L)=>{let m=1e9;for(let i=0;i<L.length-1;i++)m=Math.min(m,dSeg(x,y,L[i],L[i+1]));return m};
-  const camada=(nome,tex,fn,op)=>{if(!tex)return;const c=MD.novaCamada(M,{nome});c.t=MD.texDe(M,tex);if(op&&op.sobre)c.sobre=true;const m=c.m;
+  const camada=(nome,tex,fn,op)=>{if(!tex)return;const c=MD.novaCamada(M,{nome});c.t=MD.texDe(M,tex);if(op&&op.sobre)c.sobre=true;if(op&&op.mz){c.mz=op.mz;c.sat=op.sat||1}const m=c.m;
     for(let y=0;y<HM;y++)for(let x=0;x<WM;x++){const v=fn((x+.5)/r,(y+.5)/r);if(v>0)m[y*WM+x]=Math.min(255,Math.round(v*255))}ops().push({op:"cria",a:0,k:"camadas",item:c})};
-  const A0=M.andares[0];
+  const A0=M.andares[0],VERDE={mz:18,sat:.85};
   const GR=[tx(/terrain\/Grass_Terrain\/Grass_A_01\./),tx(/terrain\/Grass_Terrain\/Grass_B_02\./),tx(/terrain\/Grass_Terrain\/Grass_Short_A_01\./),tx(/terrain\/Grass_Terrain\/Grass_A_05\./)];
-  if(A0.camadas&&A0.camadas[0]&&GR[0]){const c0=A0.camadas[0],de=MD.foto(c0);ops().push({op:"muda",a:0,k:"camadas",id:c0.id,de,para:Object.assign({},de,{t:MD.texDe(M,GR[0]),nome:"Grama"})})}
+  if(A0.camadas&&A0.camadas[0]&&GR[0]){const c0=A0.camadas[0],de=MD.foto(c0);ops().push({op:"muda",a:0,k:"camadas",id:c0.id,de,para:Object.assign({},de,{t:MD.texDe(M,GR[0]),nome:"Grama",mz:18,sat:.85})})}
   // caminhos (linha do centro) e lago
   const CAM=[[[27,0],[27.5,6],[26.5,11],[27,15]],[[56,46.5],[66,47],[76,46],[85,50]],[[67,37.5],[74,35],[80,30],[86,27]],[[85,50],[90,55],[94,60.5]],[[56,47.5],[60,52],[67,62],[69,68]],[[27,6],[18,8],[11,12]]];
-  const margem=x=>69+2.5*Math.sin(x*.11+1)+3.6*(fbm(x*.15,3)-.5)+(x<30?2:0);
+  const margem=x=>69+2.5*Math.sin(x*.11+1)+3.6*(fbm(x*.15,3)-.5);
   const FLO=y=>99-4*fbm(3,y*.12);
-  camada("Grama curta",GR[2],(x,y)=>ss(.45,.65,fbm(x*.09,y*.09)));
-  camada("Grama alta",GR[3],(x,y)=>ss(.55,.75,fbm(x*.13+20,y*.13))*(1-ss(-1,1,y-margem(x))));
-  camada("Trevos",tx(/terrain\/Forest_Terrain\/Clover_A_02\./),(x,y)=>ss(.68,.8,fbm(x*.21+40,y*.21+9))*(1-ss(-2,0,y-margem(x))));
-  camada("Chão da mata",tx(/terrain\/Forest_Terrain\/Forest_Floor_Leaves_A_0[12]\./)||GR[1],(x,y)=>ss(-2,2,x-FLO(y))*(.65+.35*fbm(x*.3,y*.3)));
+  camada("Grama curta",GR[2],(x,y)=>ss(.45,.65,fbm(x*.09,y*.09)),VERDE);
+  camada("Grama alta",GR[3],(x,y)=>ss(.55,.75,fbm(x*.13+20,y*.13))*(1-ss(-1,1,y-margem(x))),VERDE);
+  camada("Trevos",tx(/terrain\/Forest_Terrain\/Clover_A_02\./),(x,y)=>ss(.68,.8,fbm(x*.21+40,y*.21+9))*(1-ss(-2,0,y-margem(x))),VERDE);
+  camada("Chão da mata",tx(/terrain\/Forest_Terrain\/Forest_Floor_Needles_A_0[12]\./)||GR[1],(x,y)=>ss(-2,2,x-FLO(y))*(.65+.35*fbm(x*.3,y*.3)));
   const TERRA=tx(/terrain\/Dirt_Terrain\/Dirt_(A|B)_0\d\./)||tx(/terrain\/Dirt_Terrain\/Cave_Floor_01_Earthy_A\./);
   camada("Lama da margem",TERRA,(x,y)=>{const d=y-margem(x);return ss(-3.2,-1,d+1.2*(fbm(x*.5,y*.5)-.5))});
   camada("Caminhos de terra",TERRA,(x,y)=>{let v=0;for(const L of CAM){const w=L===CAM[0]?1.5:1.05,d=dLin(x,y,L)+.7*(fbm(x*.7,y*.7)-.5);v=Math.max(v,1-ss(w-.55,w+.45,d))}return v});
