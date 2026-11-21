@@ -11,7 +11,7 @@ const RES=.25;
 // sub = tipos do classificador; q = o nome precisa ter uma destas palavras; nao = nao pode ter nenhuma; t = [menor lado min, maior lado max] em quadrados
 // lugar: p encosta na parede, k canto, m meio, s solto; passa = nao bloqueia (tapete); luz = luz pronta acesa junto
 export const PAPEIS={
-  cama:{sub:["Camas"],nao:["frame","blanket","pillow","cage","pan","hay","pod","pet","dog","cat","mattress","stretcher","ladder","bunk","bedroll","baby","crib","sheet","cover","canopy","headboard","warming","cot","basinet","stroller","torment","restraint","bloody","operating","hammock"],pref:["bed"],t:[.7,3.6],lugar:"p",prof:"longo",varia:4,mesmoTam:true,grande:true},
+  cama:{sub:["Camas"],nao:["frame","blanket","pillow","cage","pan","hay","pod","pet","dog","cat","mattress","stretcher","ladder","bunk","bedroll","baby","crib","sheet","cover","canopy","headboard","warming","cot","basinet","stroller","torment","restraint","bloody","operating","hammock"],pref:["bed"],t:[.7,3.6],lugar:"p",prof:"longo",varia:4,mesmoTam:true,grande:true,arruma:true,cand:28},
   camaSimples:{sub:["Camas"],q:["bedroll"],nao:["fur","leather","colorable"],t:[.5,2.4],lugar:"p",prof:"longo",varia:3,mesmoTam:true},
   balde:{sub:["Potes, vasos e urnas"],q:["bucket","pail"],nao:["water","fire","blood","milk","paint","ice","fish","full"],t:[.3,1.2],lugar:"k",varia:2},
   penico:{sub:["Potes, vasos e urnas"],q:["chamber"],nao:["lid"],t:[.25,1],lugar:"s",varia:1},
@@ -77,7 +77,7 @@ export const COMODOS={
   // quarto: cama encostada, criado-mudo ao lado com vela, bau ao pe, tapete ao lado da cama; o resto conforme a riqueza
   quarto:{nome:"Quarto",amb:"Quarto",itens:[{p:"cama",n:[1,2],por:34,chave:true},{p:"criado",n:[1,2],por:16,perto:"cama",em:[["velaMesa",1],["livros",.4],["louca",.3]]},{p:"bau",n:[0,1],prob:.8,perto:"cama"},{p:"tapete",n:[0,1],prob:.7,sob:"cama"},{p:"guardaRoupa",n:[1,2],por:22},{p:"escrivaninha",n:[0,1],min:24,com:{p:"cadeira",n:1},em:[["livros",1],["velaMesa",.5]]},{p:"cadeira",n:[0,1],prob:.5,lugar:"p"},{p:"penico",n:[0,1],prob:.5,perto:"cama"},{p:"cesto",n:[0,1],prob:.4},{p:"estante",n:[0,1],min:28},{p:"planta",n:[0,1],prob:.3},{p:"velaChao",n:[0,1],prob:.4}],
     pobre:[{p:"camaSimples",n:[0,1],prob:.4,lugar:"p"},{p:"balde",n:[1,1]},{p:"saco",n:[1,2]},{p:"cesto",n:[0,1],prob:.6},{p:"caixote",n:[0,1],prob:.6,em:[["velaMesa",1]]}],
-    rico:[{p:"tapete",n:[1,1]},{p:"poltrona",n:[1,2],por:20},{p:"velaChao",n:[1,2],por:16},{p:"planta",n:[1,2],por:22},{p:"estatua",n:[0,1],min:30}]},
+    rico:[{p:"poltrona",n:[1,1]},{p:"mesinha",n:[0,0],prob:.6,em:[["livros",.6],["velaMesa",.5],["louca",.4]]},{p:"velaChao",n:[1,1],por:16},{p:"planta",n:[0,1],por:22},{p:"estatua",n:[0,0],prob:.4,min:36}]},
   dormitorio:{nome:"Dormitório",amb:"Quarto",itens:[{p:"cama",n:[2,12],por:8,chave:true,arranjo:"fileira"},{p:"bau",n:[1,8],por:12,perto:"cama"},{p:"penico",n:[0,3],por:20},{p:"balde",n:[0,1],prob:.5},{p:"guardaRoupa",n:[0,2],por:30},{p:"mesa",n:[0,1],min:30,com:{p:"cadeira",lados:1},em:[["louca",.6]]},{p:"tocha",n:[1,4],por:18}],rico:[{p:"tapete",n:[1,2],por:30},{p:"velaChao",n:[1,3],por:20}]},
   sala:{nome:"Sala de estar",amb:"Quarto",itens:[{p:"lareira",n:[0,1],chave:true,min:14},{p:"sofa",n:[1,1],chave:true,diante:{de:"lareira",d:2.6}},{p:"poltrona",n:[0,2],por:18,diante:{de:"lareira",d:1.5,lado:1.9}},{p:"mesinha",n:[0,1],diante:{de:"lareira",d:1.3},em:[["livros",.6],["velaMesa",.5]]},{p:"tapete",n:[1,1],sob:"mesinha"},{p:"sofa",n:[0,1],min:30},{p:"estante",n:[1,2],por:24},{p:"armario",n:[0,1],min:22},{p:"planta",n:[0,2],por:22},{p:"velaChao",n:[0,2],por:22}],
     rico:[{p:"estatua",n:[1,2],por:30},{p:"velaChao",n:[2,4],por:14},{p:"planta",n:[1,3],por:18},{p:"poltrona",n:[1,3],por:16}]},
@@ -103,9 +103,7 @@ const DECOR=new Set(["tapete","planta","velaChao","estatua","estatuaSanta","polt
 // ---------- escolha das artes nos pacotes ----------
 // palavras de riqueza: o lugar rico prefere pecas finas, o pobre as simples
 const RICO_P=["fancy","ornate","noble","royal","gold","golden","silver","velvet","marble","luxury","gilded","decorated","carved","elegant","polished","fine","rich","silk","crystal"],POBRE_P=["plain","simple","rough","crude","straw","hay","cot","rustic","cheap","wicker","stool","bedroll","shabby","worn","old","commoner","sack"];
-// (FA) Arranged_Bed: as variantes arrumadas (lencol esticado, sem tralha) contam como ricas, as baguncadas como pobres
-const CAMA_ARRUMADA=new Set([4,6,9,12,16,17,18,34,35,36]);
-export const valorRiqueza=nome=>{const mb=/^Arranged_Bed_.*_A(\d+)_/.exec(nome||"");if(mb)return CAMA_ARRUMADA.has(+mb[1])?2:-2;const t=pal(nome);let v=0;for(const w of t){if(RICO_P.includes(w))v++;if(POBRE_P.includes(w))v--}return v};
+export const valorRiqueza=nome=>{const t=pal(nome);let v=0;for(const w of t){if(RICO_P.includes(w))v++;if(POBRE_P.includes(w))v--}return v};
 const pal=s=>(s||"").replace(/([a-z])([A-Z])/g,"$1 $2").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 // item da fonte: {k, nome, pacote, estilo, sub}. Devolve os que servem para o papel
 export function serve(papel,it,estado){const R=PAPEIS[papel];if(!R||!R.sub.includes(it.sub))return false;const t=pal(it.nome),S=new Set(t),tem=w=>S.has(w)||S.has(w+"s")||t.some(x=>x.startsWith(w)&&x.length<=w.length+2);
@@ -129,7 +127,7 @@ export function escolheArtes(tipo,fonte,par,semente){par=Object.assign({},PADRAO
     // ordem de preferencia: mesmo pacote e estilo, mesmo pacote com as palavras do estilo, mesmo pacote, outros pacotes
     const pw=estilo&&MOVEIS.has(p)?estilo.split(" "):[],g=[[],[],[],[]];for(const it of L){const i=it.pacote!==pac?3:!MOVEIS.has(p)||it.estilo===estilo?0:pw.length&&pw.some(w=>(" "+it.estilo+" ").includes(" "+w+" "))?1:2;g[i].push(it)}
     // nomes mais curtos primeiro dentro do grupo (a peca em si, nao a variante rebuscada), com sorteio entre os parecidos
-    const pega=[];for(const G of g){const pf=PAPEIS[p].pref,tp=it=>{if(!pf)return 0;const t=pal(it.nome);return pf.some(w=>t.includes(w))?0:1},rq=(par.riqueza==null?1:par.riqueza)-1.5,vr=it=>-Math.sign(rq)*Math.max(-2,Math.min(2,valorRiqueza(it.nome)))*Math.min(1,Math.abs(rq)),o=emb(G).sort((a,b)=>tp(a)-tp(b)||vr(a)-vr(b)||Math.round(a.nome.length/9)-Math.round(b.nome.length/9));const lim=Math.max(8,(PAPEIS[p].varia||1)+6);for(const it of o){if(pega.length>=lim)break;pega.push(it.k)}if(pega.length>=lim)break}
+    const pega=[];for(const G of g){const pf=PAPEIS[p].pref,tp=it=>{if(!pf)return 0;const t=pal(it.nome);return pf.some(w=>t.includes(w))?0:1},rq=(par.riqueza==null?1:par.riqueza)-1.5,vr=it=>-Math.sign(rq)*Math.max(-2,Math.min(2,valorRiqueza(it.nome)))*Math.min(1,Math.abs(rq)),o=emb(G).sort((a,b)=>tp(a)-tp(b)||vr(a)-vr(b)||Math.round(a.nome.length/9)-Math.round(b.nome.length/9));const lim=PAPEIS[p].cand||Math.max(8,(PAPEIS[p].varia||1)+6);for(const it of o){if(pega.length>=lim)break;pega.push(it.k)}if(pega.length>=lim)break}
     out[p]=pega}
   return {pacote:pac,estilo,papeis:out,faltam}}
 
@@ -241,11 +239,16 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   // escolhe a arte de um papel que cabe nos limites de tamanho (a mesma para todas as pecas, ou varias quando o papel varia)
   const escolhidas=new Map();
   // tamanho pelo comodo: num quarto pequeno, nada de escrivaninha de 3 quadrados (as pecas "grandes" de proposito ficam livres)
-  const capA=Math.sqrt(A)*.42;
+  const capA=Math.sqrt(A)*.36,usos=new Map();
   const arteDe=papel=>{const Rp=PAPEIS[papel],L0=(cat[papel]||[]).filter(a=>{const V=visDe(a);return Math.min(V[2],V[3])>=(Rp.tmin||Rp.t[0]*.6)&&(!Rp.tlong||Math.max(V[2],V[3])>=Rp.tlong)&&Math.max(V[2],V[3])<=Rp.t[1]&&Math.min(a.w,a.h)>=Rp.t[0]*.5});if(!L0.length)return null;
     const L1=Rp.grande||Rp.em?L0:L0.filter(a=>{const V=visDe(a);return Math.max(V[2],V[3])<=Math.max(Rp.t[0]*1.3,capA)}),L=L1.length?L1:L0;
     if(Rp.prof)for(const a of L)a.prof=Rp.prof;
-    if(!escolhidas.has(papel)){let E=L;if(Rp.mesmoTam){const tq=a=>Math.round(a.w*2)+"x"+Math.round(a.h*2),t0=tq(L[0]);E=L.filter(a=>tq(a)===t0)}escolhidas.set(papel,E.slice(0,Rp.varia||1))}const E=escolhidas.get(papel);return E[Math.floor(R()*E.length)]};
+    // arrumada x baguncada (camas): a parte desenhada que passa da armacao e tralha em volta; rico pega a mais justa e maior, pobre a mais solta e menor
+    if(Rp.arruma&&!escolhidas.has(papel)){const fr=a=>{const v=a.vis||[0,0,1,1];return (v[2]-v[0])*(v[3]-v[1])},ar=a=>Math.round(a.w*a.h),j=()=>R()*.06;
+      const ord=L.map(a=>[a,riq>=2?-ar(a)*10+fr(a)+j():riq<=0?ar(a)*10-fr(a)+j():fr(a)+R()*.15]);ord.sort((p,q)=>p[1]-q[1]);L.splice(0,L.length,...ord.map(x=>x[0]))}
+    if(!escolhidas.has(papel)){let E=L;if(Rp.mesmoTam){const tq=a=>Math.round(a.w*2)+"x"+Math.round(a.h*2),t0=tq(L[0]);E=L.filter(a=>tq(a)===t0)}escolhidas.set(papel,E.slice(0,Rp.varia||1))}const E=escolhidas.get(papel);
+    // variedade: entre as escolhidas, a menos usada ate agora (empate: sorteio)
+    let m=1e9,B=[];for(const a of E){const n=usos.get(a.k)||0;if(n<m){m=n;B=[a]}else if(n===m)B.push(a)}const a=B[Math.floor(R()*B.length)];usos.set(a.k,(usos.get(a.k)||0)+1);return a};
   const riq=Math.max(0,Math.min(3,par.riqueza==null?1:par.riqueza)),fRiq=[.15,1,1.6,2.2][riq];
   const quantos=it=>{if(it.min&&A<it.min)return 0;const dec=DECOR.has(it.p),f=dec?fRiq:1;if(it.prob!=null&&R()>Math.min(1,it.prob*fRiq))return it.n[0];let n=it.por?A/it.por*(.45+par.dens*.8)*f:it.n[0]+(it.n[1]-it.n[0])*Math.min(1,par.dens*R()*1.2*f);return Math.max(it.n[0],Math.min(it.n[1],Math.round(n)))};
   // balanco: o chao ocupado por moveis tem um teto (nao lotar) e um piso (nao ficar vazio sem querer)
