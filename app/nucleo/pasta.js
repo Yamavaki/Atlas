@@ -44,7 +44,7 @@
   const uidN=()=>"n"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
   const API={
-    suporta:()=>!!tauri()||typeof window.showDirectoryPicker==="function",
+    suporta:()=>{if(tauri())return true;let solto=true;try{solto=window.self===window.top}catch(e){solto=false}return solto&&typeof window.showDirectoryPicker==="function"},
     noApp:()=>!!tauri(),
     atual:()=>D?{nome:D.nome,tipo:D.tipo}:null,
     // escolher a pasta (precisa de um clique do usuario no navegador)
