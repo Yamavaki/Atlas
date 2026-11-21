@@ -11,11 +11,11 @@ const RES=.25;
 // sub = tipos do classificador; q = o nome precisa ter uma destas palavras; nao = nao pode ter nenhuma; t = [menor lado min, maior lado max] em quadrados
 // lugar: p encosta na parede, k canto, m meio, s solto; passa = nao bloqueia (tapete); luz = luz pronta acesa junto
 export const PAPEIS={
-  cama:{sub:["Camas"],nao:["frame","blanket","pillow","cage","pan","hay","pod","pet","dog","cat","mattress","stretcher","ladder","bunk","bedroll","baby","crib","sheet","cover","canopy","headboard","warming","cot","basinet","stroller","torment","restraint","bloody","operating","hammock"],pref:["bed"],t:[.7,3.6],lugar:"p",prof:"longo",varia:4,mesmoTam:true,grande:true,arruma:true,cand:28},
+  cama:{sub:["Camas"],nao:["frame","blanket","pillow","cage","pan","hay","pod","pet","dog","cat","mattress","stretcher","ladder","bunk","bedroll","baby","crib","sheet","cover","canopy","headboard","warming","cot","basinet","stroller","torment","restraint","bloody","operating","hammock","colorable","blanket"],naoRe:/^(Double|Single)_Bed_(Ashen|Dark|Light|Red|Walnut)_[A-Z]\d*_/,pref:["bed"],t:[.7,3.6],lugar:"p",prof:"longo",varia:4,mesmoTam:true,grande:true,arruma:true,cand:28},
   camaSimples:{sub:["Camas"],q:["bedroll"],nao:["fur","leather","colorable"],t:[.5,2.4],lugar:"p",prof:"longo",varia:3,mesmoTam:true},
   balde:{sub:["Potes, vasos e urnas"],q:["bucket","pail"],nao:["water","fire","blood","milk","paint","ice","fish","full"],t:[.3,1.2],lugar:"k",varia:2},
   penico:{sub:["Potes, vasos e urnas"],q:["chamber"],nao:["lid"],t:[.25,1],lugar:"s",varia:1},
-  cesto:{sub:["Sacos e cestos"],q:["basket"],nao:["gift","picnic","fish","bread","fruit","flower","egg","food","apple","full"],t:[.3,1.4],lugar:"k",varia:2},
+  cesto:{sub:["Sacos e cestos"],q:["basket"],nao:["baby","gift","picnic","fish","bread","fruit","flower","egg","food","apple","full"],t:[.3,1.4],lugar:"k",varia:2},
   criado:{sub:["Mesas","Armários e estantes"],q:["nightstand","bedside"],t:[.4,1.6],lugar:"p",varia:2},
   guardaRoupa:{sub:["Armários e estantes"],q:["wardrobe","cupboard","dresser","closet","armoire","locker","cabinet"],nao:["door","drawer","shelf","arrangement","open"],t:[.5,3.6],lugar:"p",varia:2},
   estante:{sub:["Armários e estantes"],q:["bookshelf","bookcase","shelf","shelves","shelving"],nao:["path","end","corner","arrangement","empty","ladder","newspaper"],t:[.4,4.2],lugar:"p",varia:3,grande:true},
@@ -113,7 +113,10 @@ export function papeisDe(tipo){const C=COMODOS[tipo],S=new Set();if(!C)return []
 // escolhe pacote, estilo e ate 8 artes por papel. fonte.lista(sub) -> itens. Devolve {pacote, estilo, papeis:{papel:[k...]}, faltam:[papel]}
 export function escolheArtes(tipo,fonte,par,semente){par=Object.assign({},PADRAO,par);const R=rng((semente||1)*7919+13),ps=papeisDe(tipo),cand={},subs=new Map();
   const lista=s=>{if(!subs.has(s))subs.set(s,fonte.lista(s)||[]);return subs.get(s)};
-  for(const p of ps){const L=[];for(const s of PAPEIS[p].sub)for(const it of lista(s))if(serve(p,it,par.estado))L.push(it);cand[p]=L}
+  // riqueza manda mais que o estilo: comodo pobre nao leva peca "fancy/ornate", rico nao leva "plain/worn" (se houver outra); o estilo e escolhido depois disso
+  const rqv=par.riqueza==null?1:par.riqueza;
+  for(const p of ps){let L=[];for(const s of PAPEIS[p].sub)for(const it of lista(s))if(serve(p,it,par.estado))L.push(it);
+    if(rqv<=1){const F=L.filter(it=>valorRiqueza(it.nome)<=(rqv<=0?0:1));if(F.length)L=F}else{const F=L.filter(it=>valorRiqueza(it.nome)>=0);if(F.length)L=F}cand[p]=L}
   // pacote: o que cobre mais papeis (as pecas principais pesam mais); entre os 3 melhores, sorteia
   const C=COMODOS[tipo],peso=new Map();for(const it of C.itens)peso.set(it.p,Math.max(peso.get(it.p)||0,it.chave?3:PAPEIS[it.p].em?.5:1));
   const cob=new Map();for(const p of ps){const vistos=new Set();for(const it of cand[p]){if(vistos.has(it.pacote))continue;vistos.add(it.pacote);cob.set(it.pacote,(cob.get(it.pacote)||0)+(peso.get(p)||.5)*Math.min(1,.4+cand[p].filter(x=>x.pacote===it.pacote).length/40))}}
@@ -123,10 +126,7 @@ export function escolheArtes(tipo,fonte,par,semente){par=Object.assign({},PADRAO
   const est=new Map();for(const p of ps){if(!MOVEIS.has(p))continue;for(const it of cand[p])if(it.pacote===pac&&it.estilo)est.set(it.estilo,(est.get(it.estilo)||0)+1)}
   const eo=[...est].sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1));let estilo=par.estilo&&est.has(par.estilo)?par.estilo:null;if(!estilo&&eo.length){const top=eo.filter(x=>x[1]>=eo[0][1]*.6).slice(0,4);estilo=top[Math.floor(R()*top.length)][0]}
   const emb=L=>{const A=L.slice();for(let i=A.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[A[i],A[j]]=[A[j],A[i]]}return A};
-  const rqv=par.riqueza==null?1:par.riqueza;
   const out={},faltam=[];for(const p of ps){let L=cand[p];if(!L.length){faltam.push(p);out[p]=[];continue}
-    // riqueza manda mais que o estilo: comodo pobre nao leva peca "fancy/ornate"; rico nao leva "plain/worn" (se houver outra)
-    if(rqv<=0){const F=L.filter(it=>valorRiqueza(it.nome)<=0);if(F.length)L=F}else if(rqv>=2){const F=L.filter(it=>valorRiqueza(it.nome)>=0);if(F.length)L=F}
     // ordem de preferencia: mesmo pacote e estilo, mesmo pacote com as palavras do estilo, mesmo pacote, outros pacotes
     const pw=estilo&&MOVEIS.has(p)?estilo.split(" "):[],g=[[],[],[],[]];for(const it of L){const i=it.pacote!==pac?3:!MOVEIS.has(p)||it.estilo===estilo?0:pw.length&&pw.some(w=>(" "+it.estilo+" ").includes(" "+w+" "))?1:2;g[i].push(it)}
     // nomes mais curtos primeiro dentro do grupo (a peca em si, nao a variante rebuscada), com sorteio entre os parecidos

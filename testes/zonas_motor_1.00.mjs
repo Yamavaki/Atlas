@@ -28,7 +28,7 @@ chk("forma invalida",Z.geraComodo({p:[[0,0],[1,1]],tipo:"quarto",semente:1},CAT,
 chk("sem catalogo nao quebra",Z.geraComodo({p:FORMAS.ret,tipo:"quarto",semente:1},{},{}).objs.length===0);
 // escolha de artes: papel certo pelo nome, sem pecas quebradas nem tematicas
 const it=(nome,sub,pac)=>({k:nome,nome,pacote:pac||"p",estilo:"",sub});
-chk("serve cama",Z.serve("cama",it("Single_Bed_Dark_A_1x2","Camas"))&&!Z.serve("cama",it("Bed_Frame_Wood_A","Camas"))&&!Z.serve("cama",it("Single_Bed_Broken_A","Camas"))&&Z.serve("cama",it("Single_Bed_Broken_A","Camas"),2)&&!Z.serve("cama",it("Ceremorph_Bed_A","Camas")));
+chk("serve cama",Z.serve("cama",it("Single_Bed_Wood_Dark_A_1x2","Camas"))&&!Z.serve("cama",it("Single_Bed_Dark_A_1x2","Camas"))&&!Z.serve("cama",it("Bed_Frame_Wood_A","Camas"))&&!Z.serve("cama",it("Single_Bed_Broken_A","Camas"))&&Z.serve("cama",it("Single_Bed_Broken_A","Camas"),2)&&!Z.serve("cama",it("Ceremorph_Bed_A","Camas")));
 chk("serve mesa e cadeira",Z.serve("mesa",it("Table_Round_Wood_A","Mesas"))&&!Z.serve("mesa",it("Desk_Wood_A","Mesas"))&&Z.serve("cadeira",it("PP_Int01_Furniture_Chair_01a","Cadeiras, bancos e sofás"))&&!Z.serve("cadeira",it("Armchair_A","Cadeiras, bancos e sofás")));
 const F={lista:s=>({"Camas":[it("Single_Bed_Dark_A","Camas","A"),it("Bed_B","Camas","B")],"Armários e estantes":[it("Wardrobe_Wood_Dark_A","Armários e estantes","A")],"Baús":[it("Chest_A","Baús","A")]})[s]||[]},e=Z.escolheArtes("quarto",F,{},5);
 chk("escolhe o pacote que cobre mais",e.pacote==="A"&&e.papeis.cama[0]==="Single_Bed_Dark_A"&&e.faltam.includes("tapete"));
