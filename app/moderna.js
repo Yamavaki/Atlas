@@ -41,18 +41,18 @@ function generate(P0){const P=Object.assign({},DEF,P0),seed=hashStr(String(P.see
   const ruas=[],CS=10,CGW=Math.ceil(W/CS),CGH=Math.ceil(H/CS),cel=Array.from({length:CGW*CGH},()=>[]),segs=[];
   const reg=(a,b,r)=>{const id=segs.length;segs.push([a,b,r]);const x0=Math.max(0,Math.floor((Math.min(a[0],b[0])-14)/CS)),x1=Math.min(CGW-1,Math.floor((Math.max(a[0],b[0])+14)/CS)),y0=Math.max(0,Math.floor((Math.min(a[1],b[1])-14)/CS)),y1=Math.min(CGH-1,Math.floor((Math.max(a[1],b[1])+14)/CS));for(let j=y0;j<=y1;j++)for(let i=x0;i<=x1;i++)cel[j*CGW+i].push(id)};
   const perto=(x,y,r,rua,ignoraUlt)=>{const i=Math.floor(x/CS),j=Math.floor(y/CS);if(i<0||j<0||i>=CGW||j>=CGH)return null;let best=null,bd=r;for(const id of cel[j*CGW+i]){const [a,b,rr]=segs[id];if(rr===rua&&ignoraUlt)continue;const d=segD(x,y,a,b);if(d<bd){bd=d;const ex=b[0]-a[0],ey=b[1]-a[1],l=ex*ex+ey*ey||1,u=clamp(((x-a[0])*ex+(y-a[1])*ey)/l,0,1);best={p:[a[0]+ex*u,a[1]+ey*u],d,r:rr,ang:Math.atan2(ey,ex)}}}return best};
-  const TIPO={art:{w:10,step:16,curv:.10,max:1400,ram:46,pr:.85,filho:"col"},col:{w:6.4,step:13,curv:.14,max:320,ram:44,pr:.72,filho:"loc"},loc:{w:4.4,step:11,curv:.16,max:190,ram:52,pr:.42,filho:"loc"}};
+  const TIPO={art:{w:10,step:16,curv:.05,max:1400,ram:46,pr:.85,filho:"col"},col:{w:6.4,step:13,curv:.14,max:320,ram:44,pr:.72,filho:"loc"},loc:{w:4.4,step:11,curv:.16,max:190,ram:52,pr:.42,filho:"loc"}};
   const fila=[],rotat=[],becos=[],pontes=[];let nRuas=0;
   const cresce=(ini,ang,k,prof)=>{const T=TIPO[k],rua=ruas.length,pts=[ini],dd=Math.hypot(ini[0]-cx,ini[1]-cy)/R0,sub=sstep(.9,1.6,dd),curv=T.curv*(k==="art"?1:(.4+organico*1.4))*(1+sub*1.1)*(dd<.55&&P.traco!=="radial"?.25:1);
-    let a=ang,len=0,ultRam=0,fim=null,ponte=false;const R={pts,k,w:T.w*(E==="cyber"&&k==="art"?1.3:1)};ruas.push(R);
-    while(len<T.max*(k==="loc"?(.6+rng()*.8):1)){a+=(fbm(pts[pts.length-1][0]/120+rua,pts[pts.length-1][1]/120,2)-.5)*curv*2;if(k==="art"&&P.traco==="radial")a=lerp(a,Math.atan2(pts[pts.length-1][1]-cy,pts[pts.length-1][0]-cx),.04);
+    let a=ang,len=0,ultRam=0,fim=null,ponte=false;const arco=k!=="art"&&sub>.35&&P.traco!=="grade"?(rng()<.5?-1:1)*(.022+rng()*.03)*sub:0,reta=k!=="art"&&dd<.75;const R={pts,k,w:T.w*(E==="cyber"&&k==="art"?1.3:1)};ruas.push(R);
+    while(len<T.max*(k==="loc"?(.6+rng()*.8):1)){a+=reta?0:arco?arco:(fbm(pts[pts.length-1][0]/120+rua,pts[pts.length-1][1]/120,2)-.5)*curv*2;if(k==="art"&&P.traco==="radial")a=lerp(a,Math.atan2(pts[pts.length-1][1]-cy,pts[pts.length-1][0]-cx),.04);
       const p=pts[pts.length-1],n=[p[0]+Math.cos(a)*T.step,p[1]+Math.sin(a)*T.step];
       if(n[0]<-20||n[1]<-20||n[0]>W+20||n[1]>H+20){pts.push(n);break}
       if(!seco(n[0],n[1])){if(k!=="art"){fim="agua";break}let ok=false;for(let d=T.step;d<170;d+=T.step){const q=[p[0]+Math.cos(a)*d,p[1]+Math.sin(a)*d];if(seco(q[0],q[1])&&seco(q[0]+Math.cos(a)*10,q[1]+Math.sin(a)*10)){pontes.push([p,q,T.w]);pts.push(q);len+=d;ok=true;break}}if(!ok)break;continue}
       const hit=len>14?perto(n[0],n[1],k==="loc"?9:12,rua,true):null;
       if(hit){pts.push(hit.p);reg(p,hit.p,rua);fim="cruza";if(k==="art"&&ruas[hit.r].k==="art"&&!rotat.some(r=>Math.hypot(r[0]-hit.p[0],r[1]-hit.p[1])<60))rotat.push([hit.p[0],hit.p[1]]);break}
       pts.push(n);reg(p,n,rua);len+=T.step;
-      if(T.filho&&len-ultRam>T.ram*(.7+rng()*.6)&&dd<2.6){ultRam=len;for(const sd of[-1,1])if(rng()<T.pr*(k==="loc"?(dd<.6?1.2:.8):1))fila.push([n,a+sd*(1.5708+(rng()-.5)*.25*(1+sub*2)),T.filho,prof+1])}}
+      if(T.filho&&len-ultRam>T.ram*(.7+rng()*.6)&&dd<2.6){ultRam=len;for(const sd of[-1,1])if(rng()<T.pr*(k==="loc"?(dd<.6?1.3:.8-sub*.35):1))fila.push([n,a+sd*(1.5708+(dd<.75?0:(rng()-.5)*.25*(1+sub*2))),T.filho,prof+1])}}
     if(!fim&&k==="loc"&&sub>.4)becos.push(pts[pts.length-1]);nRuas++};
   // avenidas: radiais saindo do centro e um anel
   const nA=P.traco==="grade"?4:5+((rng()*3)|0),a0=rng()*6.28;for(let i=0;i<nA;i++)cresce([cx,cy],a0+i/nA*6.2832+(rng()-.5)*.3,"art",0);
@@ -99,6 +99,14 @@ function generate(P0){const P=Object.assign({},DEF,P0),seed=hashStr(String(P.see
       for(let y=b[1]*G+sp/3;y<b[3]*G;y+=sp*.55)for(let x=b[0]*G+sp/3;x<b[2]*G;x+=sp*.55){const jx=x+(rng()-.5)*sp*.4,jy=y+(rng()-.5)*sp*.4;if(zonaEm(jx,jy)!==q)continue;const h=perto(jx,jy,60,-1,false);const ang=h?h.ang:0;
         if(q.z==="porto"&&rng()<.5){for(let m=0;m<5;m++)conteineres.push([jx+(rng()-.5)*14,jy+(rng()-.5)*10,ang,pick(["#c0392b","#2c6fb0","#e0a020","#3a8a4a","#7a4ab0"])]);continue}
         let L=sp*(.75+rng()*.35),D=sp*(.65+rng()*.3),fp=cabe(jx,jy,ang,L,D,q);if(!fp){L*=.6;D*=.6;fp=cabe(jx,jy,ang,L,D,q)}if(!fp)continue;ocupa(fp,1.5);const [h0,h1]=ALT[q.z];let fl=Math.round(lerp(h0,h1,Math.pow(rng(),1.6)*(q.z==="centro"?clamp(1.35-q.d/R0,.1,1):1)));novo(fp,[jx,jy],q.z,ang,fl)}}}
+  // marcos: estadio, cupula, roda-gigante, tanques, marina
+  const marcos=[];{const grandes=quadras.filter(q=>q.n>700&&!q.borda&&q.d<R0*1.6&&["misto","comercio","residencial","parque"].includes(q.z)).sort((a,b)=>b.n-a.n);
+    if(grandes[0]){const q=grandes[0];q.z="estadio";marcos.push({id:"estadio",x:q.c[0],y:q.c[1],r:Math.min(46,Math.sqrt(q.n)*G*.32)})}
+    const cen2=quadras.filter(q=>q.z==="centro"&&q.n>120).sort((a,b)=>a.d-b.d);if(cen2[1])marcos.push({id:E==="1900"?"cupula":rng()<.5?"cupula":"torreTV",x:cen2[1].c[0],y:cen2[1].c[1],r:14});
+    const pq=quadras.filter(q=>q.z==="parque"&&q.n>200);if(pq[0]&&E!=="1900")marcos.push({id:"roda",x:pq[0].c[0],y:pq[0].c[1],r:16});
+    for(const q of quadras.filter(q=>q.z==="industria").slice(0,3))for(let k=0;k<4;k++)marcos.push({id:"tanque",x:q.c[0]+(k%2)*16-8,y:q.c[1]+((k/2)|0)*12-6,r:6});
+    if(P.site!=="interior"&&P.site!=="rio"){const pt=quadras.filter(q=>q.z==="porto"||q.z==="comercio").sort((a,b)=>terra(a.c[0],a.c[1])-terra(b.c[0],b.c[1]))[0];if(pt)marcos.push({id:"marina",x:pt.c[0],y:pt.c[1],r:20})}
+    for(const m of marcos){for(let y=m.y-m.r;y<=m.y+m.r;y+=G)for(let x=m.x-m.r;x<=m.x+m.r;x+=G){const i=x/G|0,j=y/G|0;if(i>=0&&j>=0&&i<GW&&j<GH)OC[j*GW+i]=1}}}
   // parques e mato
   for(let s=0;s<GW*GH;s+=2){const v=Q[s];if(v<0||OC[s])continue;const q=quadras[v],i=s%GW,j=(s/GW)|0;const pr=q.z==="parque"?.09:q.z==="mato"?.05:q.z==="praca"?.012:q.z==="residencial"?.006:0;if(rng()<pr*(.4+P.green))arvores.push([i*G+rng()*G,j*G+rng()*G,.7+rng()*.5])}
   // carros
@@ -110,8 +118,9 @@ function generate(P0){const P=Object.assign({},DEF,P0),seed=hashStr(String(P.see
   const linhas=[];if(P.metro){const cores=E==="cyber"?["#ff3fbf","#3ff0ff","#ffe14a"]:E==="1900"?["#7a5a3a"]:["#d62d2d","#2d6fd6","#2da84a"];const arts=ruas.filter(r=>r.k==="art"&&r.pts.length>12&&r.pts[0]&&Math.hypot(r.pts[0][0]-cx,r.pts[0][1]-cy)<5);
     for(let k=0;k<Math.min(arts.length,E==="1900"?2:3);k++){const pts=arts[k].pts.filter(Boolean);linhas.push({pts,cor:cores[k%cores.length],est:pts.filter((_,i)=>i%7===3)})}}
   // nomes
-  const nomes=[],usados=new Set();for(const z of ["centro","comercio","misto","residencial","industria","porto","parque"]){const qs=quadras.filter(q=>q.z===z&&q.n>60&&q.c[0]>80&&q.c[0]<W-80&&q.c[1]>40&&q.c[1]<H-40);if(!qs.length)continue;const n=Math.min(z==="residencial"?3:z==="misto"?2:1,qs.length);for(let i=0;i<n;i++){const q=qs[(rng()*qs.length)|0];let nm=pick(NOMES[E]),g=0;while(usados.has(nm)&&g++<20)nm=pick(NOMES[E]);usados.add(nm);nomes.push([q.c[0],q.c[1],nm])}}
-  return {P,seed,land:terra,seco,rioPts,ruas,rotat,becos,pontes,quadras,Q,GW,GH,G,predios,arvores,carros,piscinas,conteineres,letreiros,rodovia,rampas,trevo,ferrovia,linhas,nomes,cx,cy,R0}}
+  const nomes=[],usados=new Set();for(const z of ["centro","comercio","misto","residencial","industria","porto","parque"]){const qs=quadras.filter(q=>q.z===z&&q.n>60&&q.c[0]>80&&q.c[0]<W-80&&q.c[1]>40&&q.c[1]<H-40);if(!qs.length)continue;const n=Math.min(z==="residencial"?3:z==="misto"?2:1,qs.length);for(let i=0;i<n;i++){const q=qs[(rng()*qs.length)|0];const NZ={"1900":{centro:["Centro Velho","Largo do Bonde"],comercio:["Bairro Alto","Largo do Bonde"],misto:["Bairro dos Imigrantes","Alto da Colina"],residencial:["Vila Operária","Alto da Colina","Bairro dos Imigrantes"],industria:["Bairro das Fábricas","Bairro da Estação"],porto:["Cais do Carvão"],parque:["Jardim Botânico"]},atual:{centro:["Centro","Distrito Financeiro"],comercio:["Bela Vista","Moinhos"],misto:["Bairro Universitário","Vila Nova"],residencial:["Jardim América","Alto da Boa Vista","Vila Nova"],industria:["Zona Industrial"],porto:["Porto Maravilha"],parque:["Parque das Nações"]},cyber:{centro:["Torres Arasaka","Setor 7"],comercio:["Distrito Neon","Mercado Negro"],misto:["Kowloon Baixo","Colmeia"],residencial:["Colmeia","Chiba","Cidade Alta"],industria:["Zona Morta"],porto:["Docas de Sucata"],parque:["Anel Orbital"]}}[E][z]||NOMES[E];let nm=pick(NZ),g=0;while(usados.has(nm)&&g++<20)nm=pick(NZ.concat(NOMES[E]));usados.add(nm);nomes.push([q.c[0],q.c[1],nm])}}
+  for(let i=predios.length-1;i>=0;i--){const b=predios[i];if(marcos.some(m=>Math.hypot(b.c[0]-m.x,b.c[1]-m.y)<m.r+6))predios.splice(i,1)}
+  return {P,seed,marcos,land:terra,seco,rioPts,ruas,rotat,becos,pontes,quadras,Q,GW,GH,G,predios,arvores,carros,piscinas,conteineres,letreiros,rodovia,rampas,trevo,ferrovia,linhas,nomes,cx,cy,R0}}
 
 function render(cv,C,DECO){DECO=DECO||{};const P=C.P,E=P.era,pal=PAL[E];cv.width=CW;cv.height=CH;const c=cv.getContext("2d"),rng=mulberry(C.seed^0x77);
   c.fillStyle="#cdbb93";c.fillRect(0,0,CW,CH);c.save();c.beginPath();c.rect(MX,MY,MW,MH);c.clip();c.translate(MX,MY);
@@ -140,6 +149,14 @@ function render(cv,C,DECO){DECO=DECO||{};const P=C.P,E=P.era,pal=PAL[E];cv.width
   for(const [x,y,a,cor] of C.carros){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=cor;c.fillRect(-2.6,-1.3,5.2,2.6);if(E==="cyber"){c.fillStyle="rgba(255,255,255,.8)";c.fillRect(2,-1.2,.8,2.4)}c.restore()}
   for(const [x,y,a] of C.piscinas){c.save();c.translate(x,y);c.rotate(a);c.fillStyle="#4fb8d8";c.strokeStyle="#e8f4f8";c.lineWidth=1;c.fillRect(-4,-2.4,8,4.8);c.strokeRect(-4,-2.4,8,4.8);c.restore()}
   for(const [x,y,a,cor] of C.conteineres){c.save();c.translate(x,y);c.rotate(a);c.fillStyle=cor;c.fillRect(-5,-2,10,4);c.strokeStyle="rgba(0,0,0,.35)";c.lineWidth=.5;c.strokeRect(-5,-2,10,4);c.restore()}
+  for(const m of C.marcos||[]){const {x,y,r}=m;c.save();
+    if(m.id==="estadio"){c.fillStyle="rgba(0,0,0,.25)";c.beginPath();c.ellipse(x+5,y+4,r*1.1,r*.8,0,0,7);c.fill();c.fillStyle=E==="cyber"?"#2a2d3c":"#e8e6e0";c.strokeStyle=INK(E);c.lineWidth=1;c.beginPath();c.ellipse(x,y-6,r,r*.72,0,0,7);c.fill();c.stroke();c.fillStyle=E==="cyber"?"#ff3fbf":"#c0392b";c.beginPath();c.ellipse(x,y-6,r*.82,r*.58,0,0,7);c.fill();c.fillStyle="#5fa84a";c.beginPath();c.ellipse(x,y-6,r*.55,r*.36,0,0,7);c.fill();c.strokeStyle="rgba(255,255,255,.8)";c.lineWidth=.7;c.strokeRect(x-r*.4,y-6-r*.25,r*.8,r*.5);c.beginPath();c.moveTo(x,y-6-r*.25);c.lineTo(x,y-6+r*.25);c.stroke()}
+    else if(m.id==="cupula"){c.fillStyle=E==="1900"?"#c8b896":"#d8d4c8";c.fillRect(x-r,y-6,r*2,6);c.strokeStyle=INK(E);c.strokeRect(x-r,y-6,r*2,6);c.fillStyle=E==="cyber"?"#3a3060":"#6f9a8a";c.beginPath();c.ellipse(x,y-6,r*.8,r*.9,0,Math.PI,0);c.fill();c.stroke();c.fillStyle="#d8c070";c.fillRect(x-1,y-6-r*.9-5,2,5)}
+    else if(m.id==="torreTV"){c.strokeStyle=INK(E);c.fillStyle=E==="cyber"?"#3ff0ff":"#e8e6e0";c.lineWidth=3;c.beginPath();c.moveTo(x,y);c.lineTo(x,y-60);c.stroke();c.strokeStyle=c.fillStyle;c.lineWidth=1.6;c.stroke();c.beginPath();c.ellipse(x,y-46,6,3,0,0,7);c.fill();c.strokeStyle=INK(E);c.lineWidth=.6;c.stroke()}
+    else if(m.id==="roda"){c.strokeStyle=E==="cyber"?"#ff3fbf":"#c0392b";c.lineWidth=1.4;c.beginPath();c.ellipse(x,y-r,r*.9,r,0,0,7);c.stroke();for(let k=0;k<12;k++){const a=k/12*6.28;c.beginPath();c.moveTo(x,y-r);c.lineTo(x+Math.cos(a)*r*.9,y-r+Math.sin(a)*r);c.stroke();c.fillStyle=["#e0b020","#2c6fb0","#3a8a4a"][k%3];c.fillRect(x+Math.cos(a)*r*.9-1.5,y-r+Math.sin(a)*r-1.5,3,3)}c.strokeStyle=INK(E);c.beginPath();c.moveTo(x-5,y);c.lineTo(x,y-r);c.lineTo(x+5,y);c.stroke()}
+    else if(m.id==="tanque"){c.fillStyle="rgba(0,0,0,.2)";c.beginPath();c.ellipse(x+2,y+1,r,r*.6,0,0,7);c.fill();c.fillStyle=E==="cyber"?"#3a3d50":"#e4e2dc";c.strokeStyle=INK(E);c.lineWidth=.6;c.beginPath();c.ellipse(x,y-3,r,r*.6,0,0,7);c.fill();c.stroke()}
+    else if(m.id==="marina"){for(let k=0;k<4;k++){c.strokeStyle=E==="cyber"?"#4a4e66":"#e8e4da";c.lineWidth=1.4;c.beginPath();c.moveTo(x-r+k*12,y);c.lineTo(x-r+k*12,y+r);c.stroke();for(let j=0;j<3;j++){c.fillStyle="#fff";c.fillRect(x-r+k*12+2,y+4+j*6,5,2.2)}}}
+    c.restore()}
   // predios e arvores por profundidade. Cada predio e montado com partes (caixas empilhadas, torres gemeas, cilindros,
   // cupula, patio interno, galpao com telhado em dente de serra, silos, chamine) e telhados de varios tipos
   const K=.55,cen=p=>p.reduce((s,q)=>[s[0]+q[0]/p.length,s[1]+q[1]/p.length],[0,0]),esc=(fp,k,c0)=>{const c=c0||cen(fp);return fp.map(p=>[lerp(c[0],p[0],k),lerp(c[1],p[1],k)])};
