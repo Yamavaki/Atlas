@@ -51,7 +51,14 @@ const pegaCfg=k=>tx("cfg","readonly",s=>s.get(k)),poeCfg=(k,v)=>tx("cfg","readwr
 const ESTADO={pasta:null,nome:"",arquivos:new Map(),pacotes:new Map(),caminho:new Map(),precisa:false,problemas:[],lendo:false};
 const ouvintes=new Set();const avisa=()=>{for(const f of ouvintes)try{f(estado())}catch(e){}};
 export const ouvir=f=>{ouvintes.add(f);return ()=>ouvintes.delete(f)};
-export const suportaPasta=()=>typeof window!=="undefined"&&"showDirectoryPicker" in window;
+export const suportaPasta=()=>typeof window!=="undefined"&&(!!window.AtlasArquivoTauri||"showDirectoryPicker" in window);
+const AT=()=>typeof window!=="undefined"?window.AtlasArquivoTauri:null,base=c=>String(c).split(/[\\/]/).filter(Boolean).pop()||String(c);
+// app instalado: a pasta e um caminho do disco (lido aos pedacos pelo AtlasArquivoTauri)
+async function abreCaminho(c,progresso,guarda){const L=await AT().pacotes(c);ESTADO.pasta={name:base(c),caminho:c};ESTADO.nome=base(c);ESTADO.precisa=false;if(guarda)try{await poeCfg("pastaApp",c)}catch(e){}return montar(L,progresso)}
+// pastas que o Atlas olha sozinho: "Assets" dentro da pasta do mundo e Documentos/Atlas/Assets (no app); "Assets" da pasta do mundo (no Chrome)
+export async function pastasPadrao(){if(AT())return AT().pastasPadrao();return []}
+async function automatico(progresso){const A=AT();if(A){for(const c of await A.pastasPadrao()){const L=await A.pacotes(c);if(L.length){ESTADO.auto=c;return abreCaminho(c,progresso,false)}}return null}
+  const AP=window.AtlasPasta;if(AP&&AP.subpasta){const h=await AP.subpasta("Assets");if(h){const L=[];for await (const [rel,x] of varre(h,""))L.push([rel,()=>x.getFile()]);if(L.length){ESTADO.pasta=h;ESTADO.nome="Assets do mundo";ESTADO.precisa=false;L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}}}return null}
 export function estado(){let artes=0,bloq=0;for(const P of ESTADO.pacotes.values()){if(P.permitido)artes+=P.artes.length;else bloq++}
   return {conectada:ESTADO.pacotes.size>0,nome:ESTADO.nome,pacotes:ESTADO.pacotes.size,artes,bloqueados:bloq,precisaPermissao:ESTADO.precisa,lendo:ESTADO.lendo,problemas:ESTADO.problemas.slice(),soNestaSessao:!ESTADO.pasta&&ESTADO.pacotes.size>0}}
 async function* varre(dir,pre){for await (const [n,h] of dir.entries()){if(h.kind==="directory"){if(!/^\./.test(n))yield* varre(h,pre+n+"/")}else if(/\.dungeondraft_pack$/i.test(n))yield [pre+n,h]}}
@@ -63,7 +70,7 @@ async function montar(lista,progresso,acrescenta){ESTADO.lendo=true;if(!acrescen
     if(ESTADO.pacotes.has(P.id)){ESTADO.problemas.push([rel,"é cópia de “"+ESTADO.pacotes.get(P.id).arquivo+"”"]);continue}
     ESTADO.pacotes.set(P.id,P);if(P.permitido)for(const a of P.artes)ESTADO.caminho.set("res://packs/"+P.id+"/"+a[0],[P,a]);if(progresso)progresso(i,lista.length,P.nome)}
   ESTADO.lendo=false;preparando=null;idxSub=null;avisa();return estado()}
-export async function conectarPasta(progresso){const dir=await window.showDirectoryPicker({id:"atlas-artes",mode:"read"});ESTADO.pasta=dir;ESTADO.nome=dir.name;ESTADO.precisa=false;try{await poeCfg("pasta",dir)}catch(e){}
+export async function conectarPasta(progresso){if(AT()){const p=await window.__TAURI__.dialog.open({directory:true,title:"Escolha a pasta dos pacotes do Dungeondraft"});if(!p)return estado();return abreCaminho(String(p),progresso,true)}const dir=await window.showDirectoryPicker({id:"atlas-artes",mode:"read"});ESTADO.pasta=dir;ESTADO.nome=dir.name;ESTADO.precisa=false;try{await poeCfg("pasta",dir)}catch(e){}
   const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
 // sem escolher pasta (Firefox, Safari, celular): os arquivos escolhidos valem so enquanto a pagina estiver aberta
 export async function conectarArquivos(files,progresso){ESTADO.pasta=null;const L=[...files].filter(f=>/\.dungeondraft_pack$/i.test(f.name)).map(f=>[f.webkitRelativePath||f.name,async()=>f]);ESTADO.nome=L.length?(L[0][0].includes("/")?L[0][0].split("/")[0]:L.length+" pacotes"):"";return montar(L,progresso)}
@@ -72,11 +79,13 @@ export async function acrescentarArquivos(files,progresso){const L=[...files].fi
 // tira um pacote da lista (so nesta sessao; o arquivo nao e mexido)
 export function removerPacote(id){const P=ESTADO.pacotes.get(id);if(!P)return;for(const a of P.artes)ESTADO.caminho.delete("res://packs/"+id+"/"+a[0]);ESTADO.pacotes.delete(id);ESTADO.arquivos.delete(P.arquivo);avisa()}
 // ao abrir o app: a pasta guardada so volta com permissao; se o navegador pedir, precisa de um clique (reautorizar)
-export async function restaurar(){let dir=null;try{dir=await pegaCfg("pasta")}catch(e){}if(!dir||!dir.queryPermission)return estado();ESTADO.nome=dir.name;
+export async function restaurar(){if(AT()){let c=null;try{c=await pegaCfg("pastaApp")}catch(e){}if(c&&await AT().existe(c))return abreCaminho(c,null,false);const r=await automatico();return r||estado()}
+  {let dir0=null;try{dir0=await pegaCfg("pasta")}catch(e){}if(!dir0){const r=await automatico();if(r)return r}}
+  let dir=null;try{dir=await pegaCfg("pasta")}catch(e){}if(!dir||!dir.queryPermission)return estado();ESTADO.nome=dir.name;
   const p=await dir.queryPermission({mode:"read"});if(p==="granted"){ESTADO.pasta=dir;const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L)}
   ESTADO.precisa=true;ESTADO._dir=dir;avisa();return estado()}
 export async function reautorizar(progresso){const dir=ESTADO._dir;if(!dir)return estado();if((await dir.requestPermission({mode:"read"}))!=="granted")return estado();ESTADO.pasta=dir;ESTADO.precisa=false;const L=[];for await (const [rel,h] of varre(dir,""))L.push([rel,()=>h.getFile()]);L.sort((a,b)=>a[0].localeCompare(b[0]));return montar(L,progresso)}
-export async function desconectar(){ESTADO.pasta=null;ESTADO._dir=null;ESTADO.precisa=false;ESTADO.nome="";ESTADO.arquivos.clear();ESTADO.pacotes.clear();ESTADO.caminho.clear();try{await poeCfg("pasta",null);await tx("pacotes","readwrite",s=>{s.clear()})}catch(e){}avisa()}
+export async function desconectar(){try{await poeCfg("pastaApp",null)}catch(e){}ESTADO.pasta=null;ESTADO._dir=null;ESTADO.precisa=false;ESTADO.nome="";ESTADO.arquivos.clear();ESTADO.pacotes.clear();ESTADO.caminho.clear();try{await poeCfg("pasta",null);await tx("pacotes","readwrite",s=>{s.clear()})}catch(e){}avisa()}
 export const tem=c=>ESTADO.caminho.has(c);
 // classificacao (categoria, ambientes, material, encosta, passavel) de uma arte
 const classeDe=(P,a)=>classifica(a[0],(a[4]||[]).map(i=>P.tags[i]));
@@ -115,10 +124,10 @@ export function imagem(c){if(BMP.has(c)){const v=BMP.get(c);BMP.delete(c);BMP.se
 // imagem so de quem pediu (fora da memoria limitada, que fecha as antigas): o editor guarda as do mapa e fecha quando sai
 export function imagemNova(c){const b=blobDe(c);if(!b)return Promise.resolve(null);return createImageBitmap(b).catch(()=>null)}
 export const blobMini=c=>{const z=ESTADO.caminho.get(c);if(!z||!z[0].mini)return null;const m=z[0].mini[md5(c)];if(!m)return null;const f=ESTADO.arquivos.get(z[0].arquivo);return f?f.slice(m[0],m[0]+m[1],"image/png"):null};
-export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))return MINI.get(k);if(tam<=64){const bm=blobMini(c);if(bm){const p=Promise.resolve(URL.createObjectURL(bm));guarda(MINI,k,p,LIM_MINI);return p}}const b=blobDe(c);if(!b)return Promise.resolve(null);
+export function miniatura(c,tam){tam=tam||96;const k=c+"|"+tam;if(MINI.has(k))return MINI.get(k);if(tam<=64){const bm=blobMini(c);if(bm){const p=(bm.__lazy?bm.blob():Promise.resolve(bm)).then(b=>URL.createObjectURL(b));guarda(MINI,k,p,LIM_MINI);return p}}const b=blobDe(c);if(!b)return Promise.resolve(null);
   const p=createImageBitmap(b).then(async bm=>{const s=Math.min(1,tam/Math.max(bm.width,bm.height)),cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(bm.width*s));cv.height=Math.max(1,Math.round(bm.height*s));cv.getContext("2d").drawImage(bm,0,0,cv.width,cv.height);bm.close();
     const bl=await new Promise(ok=>cv.toBlob(ok,"image/webp",.85));return bl?URL.createObjectURL(bl):null}).catch(()=>null);guarda(MINI,k,p,LIM_MINI);return p}
 // so artes que funcionam como objeto ou como textura de chao (paredes e caminhos ficam com a arte do Atlas)
 export const usavel=c=>/\/textures\/(objects|terrain|patterns|textures|materials?|walls|paths|portals|tilesets|lights)\//.test(c);
 export const ehMaterial=c=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(c);
-if(typeof window!=="undefined")window.AtlasArtes={estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial,acrescentarArquivos,removerPacote,classe,pacoteDe};
+if(typeof window!=="undefined")window.AtlasArtes={pastasPadrao,estado,ouvir,suportaPasta,conectarPasta,conectarArquivos,restaurar,reautorizar,desconectar,buscar,info,dims,imagem,imagemCrua,miniatura,tem,pacotes,usavel,ehMaterial,acrescentarArquivos,removerPacote,classe,pacoteDe};

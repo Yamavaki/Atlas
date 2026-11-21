@@ -874,3 +874,8 @@ li.task input:not([disabled]){cursor:pointer;accent-color:var(--moss)}
 .qd-mapmini{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:6px;margin-top:6px;opacity:.95}
 .bt-gcard{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:rgba(255,255,255,.02)}
 .bt-gcard b{display:block;margin-bottom:2px}
+
+/* ===================== 1.6 campanha: aba Teia ===================== */
+.qwrap.qteia{display:flex;flex-direction:column;height:100%;max-width:none}
+.qd-area.qd-teia{position:relative;flex:none;height:72vh;min-height:520px;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:8px}
+.qteia-nota{margin:6px 0 0;font-size:13px}

@@ -1103,7 +1103,10 @@ function drawQuadro(o,main){const AQ=window.AtlasQuadro,area=h("div",{class:"qd-
   const exp=h("button",{type:"button",class:"sm ico-m","aria-label":"Baixar como .canvas",title:"Baixar como .canvas (abre no Obsidian)",onclick:()=>saveFile(safe(o.title)+".canvas",new Blob([JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1)],{type:"application/json"}))},icone("exportar",16),".canvas");
   const atu=o.campanha?h("button",{type:"button",class:"sm ico-m","aria-label":"Atualizar com a campanha",title:"Traz missões, personagens, lugares e itens novos da campanha, sem mexer no que você arrumou",onclick:()=>{const r=sincronizaCampanha(o,false);if(!r)return;toast(r.novos||r.linhas||r.tirou?(r.novos+" cartões novos, "+r.linhas+" linhas novas"+(r.tirou?", "+r.tirou+" linhas que não valem mais":"")+"."):"O quadro já está em dia com a campanha.");drawMain()}},icone("refazer",16),"Atualizar"):null;
   main.append(h("div",{class:"qd-top"},h("i",{class:"tic",style:"color:#a88bd6"},icone("quadro",22)),nome,o.campanha?h("button",{type:"button",class:"qd-campl",onclick:()=>openTitle(o.campanha)},icone("campanha",15),o.campanha):null,h("span",{class:"grow"}),atu,exp,del),area);
-  if(!AQ){area.append(h("p",{class:"empty",style:"padding:24px"},"O quadro não carregou neste navegador."));return}
+  abreQuadroEm(o,area)}
+// abre o quadro numa area (tela do quadro ou aba "Teia" das missoes); quadro de campanha se atualiza sozinho pelas ligacoes das notas
+function abreQuadroEm(o,area){const AQ=window.AtlasQuadro;if(!AQ){area.append(h("p",{class:"empty",style:"padding:24px"},"O quadro não carregou neste navegador."));return}
+  if(o.campanha&&findNote(o.campanha))sincronizaCampanha(o,!(o.canvas&&o.canvas.nodes&&o.canvas.nodes.length));
   const MIC={battle:["batalha","Mapa de batalha"],city:["cidade","Mapa de cidade"]};
   S.quadro=AQ.abrirQuadro(area,{oculto:ocultoNoQuadro,legenda:o.campanha?LEGENDA_CAMP:null,dados:o.canvas||(o.canvas={nodes:[],edges:[]}),salvar:D=>{o.canvas=D;o.updated=now();Store.save("notes",o)},resumoNota,ligarNotas,aviso:toast,tiposLigacao,ligarTipo,desligarTipo,marcarObjetivo,
     tiposNota:()=>Object.entries(TYPES).filter(([k])=>k!=="campanha"||!o.campanha).map(([k,v])=>({k,nome:v,ic:TICO[k],cor:TCOL[k]})),
@@ -1212,12 +1215,13 @@ function questsDaCamp(){const c=campAtual();return quests().filter(n=>!(S.player
 function novaMissao(extra){const c=campAtual(),o=newNote("missao","Nova missão");const p=Object.assign({},extra||{});if(c&&c!=="-"&&!p.campanha)p.campanha="[["+c+"]]";setProps(o,p);openNote(o.id,"edit")}
 const qChip=(txt,cor,cls)=>h("span",{class:"qchip"+(cls?" "+cls:""),style:cor?"--c:"+cor:null},txt);
 function barraObj(n,mini){const o=objetivos(n);if(!o.t)return null;const pc=Math.round(o.f/o.t*100);return h("div",{class:"qobj"+(mini?" mini":""),title:o.f+" de "+o.t+" objetivos"},h("span",{class:"qobar"},h("i",{style:"width:"+pc+"%"})),h("small",{},o.f+"/"+o.t))}
-function drawQuests(){const main=$("#main");main.replaceChildren();const cs=campanhas(),c=campAtual(),qs=questsDaCamp(),V=S.qv||"situacao";
+function drawQuests(){const main=$("#main");main.replaceChildren();const cs=campanhas(),c=campAtual(),qs=questsDaCamp(),temTeia=!!(c&&c!=="-"&&findNote(c)),V=S.qv==="teia"&&!temTeia?"situacao":(S.qv||(temTeia?"teia":"situacao"));
   const sel=h("select",{class:"qcamp","aria-label":"Campanha",onchange:e=>{S.camp=e.target.value;S.campEsc=true;drawQuests()}},h("option",{value:""},"Todas as campanhas"),cs.map(x=>h("option",{value:x.title,selected:x.title===c},(fm(x.content).props.principal==="sim"?"★ ":"")+x.title)),h("option",{value:"-",selected:c==="-"},"Sem campanha"));
-  const tabs=h("div",{class:"seg qtabs",role:"tablist","aria-label":"Ver missões como"},[["situacao","Situação","colunas"],["lista","Lista","lista"],["arvore","Árvore","arvore"]].map(([k,t,i])=>h("button",{type:"button",role:"tab","aria-selected":String(V===k),class:V===k?"on":"",onclick:()=>{S.qv=k;drawQuests()}},icone(i,16),t)));
+  const tabs=h("div",{class:"seg qtabs",role:"tablist","aria-label":"Ver missões como"},[...(temTeia?[["teia","Teia","quadro"]]:[]),["situacao","Situação","colunas"],["lista","Lista","lista"],["arvore","Árvore","arvore"]].map(([k,t,i])=>h("button",{type:"button",role:"tab","aria-selected":String(V===k),class:V===k?"on":"",onclick:()=>{S.qv=k;drawQuests()}},icone(i,16),t)));
   const acoes=h("div",{class:"qacoes"},sel,tabs,h("span",{class:"grow"}),h("button",{type:"button",class:"sm",onclick:()=>{const o=newNote("campanha","Nova campanha");if(!cs.length)setProps(o,{principal:"sim"});S.camp=o.title;openNote(o.id,"edit")}},icone("campanha",16),"Campanha"),h("button",{type:"button",class:"primary sm",onclick:()=>novaMissao()},icone("mais",16),"Missão"));
   const wrap=h("div",{class:"vwrap qwrap"},h("div",{class:"vhead"},h("h1",{},"Missões")),acoes);main.append(wrap);
   if(c&&c!=="-"){const co=findNote(c);if(co)wrap.append(resumoCamp(co,qs))}
+  if(V==="teia"){const co=findNote(c),q=quadroCamp(co),area=h("div",{class:"qd-area qd-teia"});wrap.classList.add("qteia");wrap.append(h("p",{class:"dim qteia-nota"},"Clique duas vezes no vazio para criar missão, personagem, lugar ou item. Puxe a bolinha da borda de um cartão até outro para ligar: a ligação vai para a nota. O que você preenche nas notas aparece aqui sozinho."),area);abreQuadroEm(q,area);return}
   if(!qs.length){wrap.append(h("div",{class:"qvazio"},icone("missao",34),h("b",{},c?"Nenhuma missão nesta campanha ainda.":"Nenhuma missão ainda."),h("p",{class:"dim"},"Crie uma missão aqui, ou toque num lugar do mapa e use “+ Missão aqui”. Missões guardam situação, objetivos, quem dá, onde acontece e o que liberam."),h("button",{type:"button",class:"primary",onclick:()=>novaMissao()},icone("mais",16),"Nova missão")));return}
   if(V==="lista")wrap.append(listaMissoes(qs,!c));else if(V==="arvore")wrap.append(arvoreMissoes(qs));else wrap.append(quadroSituacao(qs,!c))}
 function resumoCamp(co,qs){const p=fm(co.content).props,pr=qs.filter(n=>qPeso(n)==="principal"&&qState(n)!=="oculta"),fe=pr.filter(n=>qState(n)==="concluida").length,pc=pr.length?Math.round(fe/pr.length*100):0;
@@ -1267,8 +1271,9 @@ function listaMissoes(qs,mostraCamp){const F=S.qf||(S.qf={st:"",peso:"",arco:"",
 // ---------- 0.87 quadro da campanha ----------
 const LEGENDA_CAMP=[{cor:"3",txt:"Campanha e sequência principal",grossa:true},{cor:"2",txt:"Missão secundária"},{cor:"1",estilo:"tracejada",txt:"Precisa de"},{cor:"5",txt:"Acontece em"},{cor:"1",estilo:"pontilhada",txt:"Personagem envolvido"},{cor:"4",txt:"Item ou recompensa"},{cor:"6",estilo:"pontilhada",txt:"Facção"}];
 const tipoDe=n=>fm(n.content).props.tipo||"livre";
-function quadroDaCampanha(co){let q=[...S.notes.values()].find(n=>n.kind==="canvas"&&n.campanha&&norm(n.campanha)===norm(co.title));
-  if(!q){q=newNote("livre","Quadro · "+co.title,{content:""});q.kind="canvas";q.campanha=co.title;q.canvas={nodes:[],edges:[]};q.folder="Quadros";sincronizaCampanha(q,true)}else sincronizaCampanha(q,false);openNote(q.id)}
+function quadroCamp(co){let q=[...S.notes.values()].find(n=>n.kind==="canvas"&&n.campanha&&norm(n.campanha)===norm(co.title));
+  if(!q){q=newNote("livre","Quadro · "+co.title,{content:""});q.kind="canvas";q.campanha=co.title;q.canvas={nodes:[],edges:[]};q.folder="Quadros";Store.save("notes",q);drawSide()}return q}
+function quadroDaCampanha(co){S.camp=co.title;S.campEsc=true;S.sec="notes";S.view="quests";S.qv="teia";drawAll()}
 // monta (ou completa) o quadro a partir das ligacoes; nunca move o que ja existe, nunca apaga cartao
 function sincronizaCampanha(q,novo){const co=findNote(q.campanha);if(!co){toast("A campanha “"+q.campanha+"” não existe mais.");return 0}
   const C=q.canvas||(q.canvas={nodes:[],edges:[]}),ms=quests().filter(n=>norm(qCamp(n))===norm(co.title)),porTit=new Map(ms.map(n=>[norm(n.title),n]));

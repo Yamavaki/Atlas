@@ -3,6 +3,7 @@
 // O que o arquivo .md nao guarda (id, pasta das imagens, tipo) fica em .atlas/indice.json.
 (function(){
   "use strict";
+  const LEIA_ASSETS="Coloque nesta pasta os pacotes de arte do Dungeondraft (.dungeondraft_pack).\nO Modo Batalha do Atlas encontra os pacotes daqui sozinho ao abrir.\nPacotes que não permitem leitura por outros programas ficam de fora.\n";
   const IDX=".atlas/indice.json",MAPAS="Mapas",LIXO=".atlas/lixeira";
   const tauri=()=>window.__TAURI__&&window.__TAURI__.fs?window.__TAURI__:null;
   const safe=s=>String(s||"Sem título").replace(/[\\/:*?"<>|#^[\]]+/g,"-").replace(/\s+/g," ").trim().slice(0,120)||"Sem título";
@@ -16,7 +17,7 @@
   function discoFSA(raiz){
     const dir=async(partes,criar)=>{let d=raiz;for(const p of partes)d=await d.getDirectoryHandle(p,{create:!!criar});return d};
     const separa=rel=>{const L=rel.split("/").filter(Boolean);return [L.slice(0,-1),L[L.length-1]]};
-    return {nome:raiz.name,tipo:"navegador",
+    return {nome:raiz.name,tipo:"navegador",async sub(n){try{return await raiz.getDirectoryHandle(n)}catch(e){return null}},
       async ler(rel){try{const [ps,n]=separa(rel),d=await dir(ps,false),f=await (await d.getFileHandle(n)).getFile();return {texto:await f.text(),quando:f.lastModified}}catch(e){return null}},
       async lerBin(rel){try{const [ps,n]=separa(rel),d=await dir(ps,false);return await (await d.getFileHandle(n)).getFile()}catch(e){return null}},
       async gravar(rel,dados){const [ps,n]=separa(rel),d=await dir(ps,true),h=await d.getFileHandle(n,{create:true}),w=await h.createWritable();await w.write(dados);await w.close()},
@@ -27,7 +28,7 @@
   // ---------- disco: app instalado (Tauri 2, plugin fs) ----------
   function discoTauri(base){
     const T=tauri(),fs=T.fs,abs=rel=>base.replace(/[\\/]+$/,"")+"/"+rel;
-    return {nome:base.split(/[\\/]/).filter(Boolean).pop()||base,tipo:"app",caminho:base,
+    return {nome:base.split(/[\\/]/).filter(Boolean).pop()||base,tipo:"app",caminho:base,async sub(){return null},
       async ler(rel){try{const p=abs(rel);if(!(await fs.exists(p)))return null;const st=await fs.stat(p);return {texto:await fs.readTextFile(p),quando:st.mtime?+new Date(st.mtime):0}}catch(e){return null}},
       async lerBin(rel){try{const u=await fs.readFile(abs(rel));return new Blob([u])}catch(e){return null}},
       async gravar(rel,dados){const p=abs(rel),d=p.slice(0,p.lastIndexOf("/"));await fs.mkdir(d,{recursive:true}).catch(()=>{});if(typeof dados==="string")await fs.writeTextFile(p,dados);else await fs.writeFile(p,new Uint8Array(await new Blob([dados]).arrayBuffer()))},
@@ -61,7 +62,9 @@
     async abrirRecente(r){if(tauri()&&r.caminho){D=discoTauri(r.caminho);localStorage.setItem("atlas:pasta",r.caminho);return true}if(r.h){const d=discoFSA(r.h);if(!(await d.permissao(true)))return false;D=d;await kv("atual",r.h);return true}return false},
 
     // le tudo: notas (.md e .canvas, inclusive as criadas fora do Atlas) e mapas
-    async carregar(){if(!D)throw new Error("Nenhuma pasta aberta.");const r=await D.ler(IDX);IND=r?Object.assign({notas:{},mapas:{},versao:1},JSON.parse(r.texto||"{}")):{notas:{},mapas:{},versao:1};
+    // subpasta do mundo (no Chrome): o Modo Batalha olha a "Assets" para achar os pacotes de arte
+    subpasta:async n=>D&&D.sub?D.sub(n):null,
+    async carregar(){if(!D)throw new Error("Nenhuma pasta aberta.");if(!(await D.ler("Assets/LEIA.txt")))D.gravar("Assets/LEIA.txt",LEIA_ASSETS).catch(()=>{});const r=await D.ler(IDX);IND=r?Object.assign({notas:{},mapas:{},versao:1},JSON.parse(r.texto||"{}")):{notas:{},mapas:{},versao:1};
       const arqs=await D.listar(),porCaminho=new Map();for(const [id,x] of Object.entries(IND.notas))porCaminho.set(x.caminho,id);
       const notas=[],mapas=[],vistos=new Set();
       for(const a of arqs){if(/\.atlasmapa\.json$/i.test(a.rel)){const t=await D.ler(a.rel);try{const m=JSON.parse(t.texto);if(m&&m.id){mapas.push(m);IND.mapas[m.id]={caminho:a.rel}}}catch(e){}continue}
