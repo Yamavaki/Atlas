@@ -17,7 +17,7 @@ export const PAPEIS={
   penico:{sub:["Potes, vasos e urnas"],q:["chamber"],nao:["lid"],t:[.25,1],lugar:"s",varia:1},
   cesto:{sub:["Sacos e cestos"],q:["basket"],nao:["gift","picnic","fish","bread","fruit","flower","egg","food","apple","full"],t:[.3,1.4],lugar:"k",varia:2},
   criado:{sub:["Mesas","Armários e estantes"],q:["nightstand","bedside"],t:[.4,1.6],lugar:"p",varia:2},
-  guardaRoupa:{sub:["Armários e estantes"],q:["wardrobe","cupboard","dresser","closet","armoire","locker","cabinet"],nao:["door","drawer","shelf","arrangement","open"],t:[.5,3.6],lugar:"p"},
+  guardaRoupa:{sub:["Armários e estantes"],q:["wardrobe","cupboard","dresser","closet","armoire","locker","cabinet"],nao:["door","drawer","shelf","arrangement","open"],t:[.5,3.6],lugar:"p",varia:2},
   estante:{sub:["Armários e estantes"],q:["bookshelf","bookcase","shelf","shelves","shelving"],nao:["path","end","corner","arrangement","empty","ladder","newspaper"],t:[.4,4.2],lugar:"p",varia:3,grande:true},
   armario:{sub:["Armários e estantes"],q:["cabinet","cupboard","shelf","shelves","locker","dresser","sideboard"],nao:["path","end","door","drawer","arrangement","wall","rack","ladder"],pref:["cupboard","cabinet"],t:[.4,4.2],lugar:"p",varia:2},
   bau:{sub:["Baús"],nao:["open","lid","armor","arm","guard"],t:[.5,2.2],lugar:"p",varia:2},
@@ -123,7 +123,10 @@ export function escolheArtes(tipo,fonte,par,semente){par=Object.assign({},PADRAO
   const est=new Map();for(const p of ps){if(!MOVEIS.has(p))continue;for(const it of cand[p])if(it.pacote===pac&&it.estilo)est.set(it.estilo,(est.get(it.estilo)||0)+1)}
   const eo=[...est].sort((a,b)=>b[1]-a[1]||(a[0]<b[0]?-1:1));let estilo=par.estilo&&est.has(par.estilo)?par.estilo:null;if(!estilo&&eo.length){const top=eo.filter(x=>x[1]>=eo[0][1]*.6).slice(0,4);estilo=top[Math.floor(R()*top.length)][0]}
   const emb=L=>{const A=L.slice();for(let i=A.length-1;i>0;i--){const j=Math.floor(R()*(i+1));[A[i],A[j]]=[A[j],A[i]]}return A};
-  const out={},faltam=[];for(const p of ps){const L=cand[p];if(!L.length){faltam.push(p);out[p]=[];continue}
+  const rqv=par.riqueza==null?1:par.riqueza;
+  const out={},faltam=[];for(const p of ps){let L=cand[p];if(!L.length){faltam.push(p);out[p]=[];continue}
+    // riqueza manda mais que o estilo: comodo pobre nao leva peca "fancy/ornate"; rico nao leva "plain/worn" (se houver outra)
+    if(rqv<=0){const F=L.filter(it=>valorRiqueza(it.nome)<=0);if(F.length)L=F}else if(rqv>=2){const F=L.filter(it=>valorRiqueza(it.nome)>=0);if(F.length)L=F}
     // ordem de preferencia: mesmo pacote e estilo, mesmo pacote com as palavras do estilo, mesmo pacote, outros pacotes
     const pw=estilo&&MOVEIS.has(p)?estilo.split(" "):[],g=[[],[],[],[]];for(const it of L){const i=it.pacote!==pac?3:!MOVEIS.has(p)||it.estilo===estilo?0:pw.length&&pw.some(w=>(" "+it.estilo+" ").includes(" "+w+" "))?1:2;g[i].push(it)}
     // nomes mais curtos primeiro dentro do grupo (a peca em si, nao a variante rebuscada), com sorteio entre os parecidos
@@ -239,13 +242,13 @@ export function geraComodo(z,cat,amb){amb=amb||{};const par=Object.assign({},PAD
   // escolhe a arte de um papel que cabe nos limites de tamanho (a mesma para todas as pecas, ou varias quando o papel varia)
   const escolhidas=new Map();
   // tamanho pelo comodo: num quarto pequeno, nada de escrivaninha de 3 quadrados (as pecas "grandes" de proposito ficam livres)
-  const capA=Math.sqrt(A)*.36,usos=new Map();
+  const capA=Math.sqrt(A)*.33,usos=new Map();
   const arteDe=papel=>{const Rp=PAPEIS[papel],L0=(cat[papel]||[]).filter(a=>{const V=visDe(a);return Math.min(V[2],V[3])>=(Rp.tmin||Rp.t[0]*.6)&&(!Rp.tlong||Math.max(V[2],V[3])>=Rp.tlong)&&Math.max(V[2],V[3])<=Rp.t[1]&&Math.min(a.w,a.h)>=Rp.t[0]*.5});if(!L0.length)return null;
     const L1=Rp.grande||Rp.em?L0:L0.filter(a=>{const V=visDe(a);return Math.max(V[2],V[3])<=Math.max(Rp.t[0]*1.3,capA)}),L=L1.length?L1:L0;
     if(Rp.prof)for(const a of L)a.prof=Rp.prof;
     // arrumada x baguncada (camas): a parte desenhada que passa da armacao e tralha em volta; rico pega a mais justa e maior, pobre a mais solta e menor
-    if(Rp.arruma&&!escolhidas.has(papel)){const fr=a=>{const v=a.vis||[0,0,1,1];return (v[2]-v[0])*(v[3]-v[1])},ar=a=>Math.round(a.w*a.h),j=()=>R()*.06;
-      const ord=L.map(a=>[a,riq>=2?-ar(a)*10+fr(a)+j():riq<=0?ar(a)*10-fr(a)+j():fr(a)+R()*.15]);ord.sort((p,q)=>p[1]-q[1]);L.splice(0,L.length,...ord.map(x=>x[0]))}
+    if(Rp.arruma&&!escolhidas.has(papel)){const pc0=(L[0].k.split("/")[3]||""),fora=a=>(a.k.split("/")[3]||"")===pc0?0:100,fr=a=>{const v=a.vis||[0,0,1,1];return (v[2]-v[0])*(v[3]-v[1])},ar=a=>Math.round(a.w*a.h),j=()=>R()*.06;
+      const ord=L.map(a=>[a,fora(a)+(riq>=2?-ar(a)*10+fr(a)+j():riq<=0?ar(a)*10-fr(a)+j():fr(a)+R()*.15)]);ord.sort((p,q)=>p[1]-q[1]);L.splice(0,L.length,...ord.map(x=>x[0]))}
     if(!escolhidas.has(papel)){let E=L;if(Rp.mesmoTam){const tq=a=>Math.round(a.w*2)+"x"+Math.round(a.h*2),t0=tq(L[0]);E=L.filter(a=>tq(a)===t0)}escolhidas.set(papel,E.slice(0,Rp.varia||1))}const E=escolhidas.get(papel);
     // variedade: entre as escolhidas, a menos usada ate agora (empate: sorteio)
     let m=1e9,B=[];for(const a of E){const n=usos.get(a.k)||0;if(n<m){m=n;B=[a]}else if(n===m)B.push(a)}const a=B[Math.floor(R()*B.length)];usos.set(a.k,(usos.get(a.k)||0)+1);return a};
