@@ -167,6 +167,7 @@ export function panosTelhado(ALAS){const PANOS=ALAS.map(panosAla),out=[];for(con
   const igual=(a,b)=>a&&b&&Math.abs(a.a-b.a)<1e-6&&Math.abs(a.b-b.b)<1e-6&&Math.abs(a.c-b.c)<1e-4;
   const linhas=[];for(const {P,q} of out)for(let i=0;i<P.length;i++){const u=P[i],v=P[(i+1)%P.length],L=Math.hypot(v[0]-u[0],v[1]-u[1]);if(L<.05)continue;
     let cx=0,cy=0;for(const z of P){cx+=z[0];cy+=z[1]}cx/=P.length;cy/=P.length;const mx=(u[0]+v[0])/2,my=(u[1]+v[1])/2;let nx=-(v[1]-u[1])/L,ny=(v[0]-u[0])/L;if(nx*(mx-cx)+ny*(my-cy)<0){nx=-nx;ny=-ny}
+    const den=(x,y)=>ALAS.some(R=>x>R.x0+1e-3&&x<R.x1-1e-3&&y>R.y0+1e-3&&y<R.y1-1e-3);if(!den(mx+nx*.05,my+ny*.05)||!den(mx-nx*.05,my-ny*.05))continue; // beiral: nao e encontro
     const fora=topo(mx+nx*.03,my+ny*.03);if(!fora||igual(fora,q))continue;if(Math.abs(hDe(fora,mx,my)-hDe(q,mx,my))>.02)continue;
     if(!linhas.some(l=>Math.hypot(l[0][0]-v[0],l[0][1]-v[1])<.01&&Math.hypot(l[1][0]-u[0],l[1][1]-u[1])<.01))linhas.push([u,v])}
   return {panos:out,linhas}}
