@@ -1,3 +1,6 @@
 app/batalha/exemplos/
 *.dungeondraft_pack
 app/batalha/pinceis-extra/
+tools/vendor/node_modules/
+tools/vendor/package*.json
+tools/vendor/fontes-orig.css
