@@ -66,7 +66,7 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
   camada("Grama curta",GR[2],(x,y)=>ss(.45,.65,fbm(x*.09,y*.09)),VERDE);
   camada("Grama alta",GR[3],(x,y)=>ss(.55,.75,fbm(x*.13+20,y*.13))*(1-ss(-1,1,y-margem(x))),VERDE);
   camada("Trevos",tx(/terrain\/Forest_Terrain\/Clover_A_02\./),(x,y)=>ss(.68,.8,fbm(x*.21+40,y*.21+9))*(1-ss(-2,0,y-margem(x))),VERDE);
-  camada("Chão da mata",tx(/terrain\/Forest_Terrain\/Forest_Floor_Needles_A_0[12]\./)||GR[1],(x,y)=>ss(-2,2,x-FLO(y))*(.65+.35*fbm(x*.3,y*.3)));
+  camada("Chão da mata",tx(/terrain\/Forest_Terrain\/Leaves_A_01\./)||GR[1],(x,y)=>ss(-2,2,x-FLO(y))*(.65+.35*fbm(x*.3,y*.3)));
   const TERRA=tx(/terrain\/Dirt_Terrain\/Dirt_(A|B)_0\d\./)||tx(/terrain\/Dirt_Terrain\/Cave_Floor_01_Earthy_A\./);
   camada("Lama da margem",TERRA,(x,y)=>{const d=y-margem(x);return ss(-3.2,-1,d+1.2*(fbm(x*.5,y*.5)-.5))});
   camada("Caminhos de terra",TERRA,(x,y)=>{let v=0;for(const L of CAM){const w=L===CAM[0]?1.5:1.05,d=dLin(x,y,L)+.7*(fbm(x*.7,y*.7)-.5);v=Math.max(v,1-ss(w-.55,w+.45,d))}return v});
@@ -124,12 +124,14 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
     for(const x of [25.4,28.4])for(let y=54.4;y+e0.vw<=58.4;y+=e0.vw+.05){await put(esc(es),x,y+e0.vw/2,[-1,0]);await put(esc(es),x+e0.vh+.02,y+e0.vw/2,[1,0])}
     for(const [x,y] of [[34,55.4],[34,58.3]])if(mesa.length){const b=await put(esc(mesa),x,y,[0,1]);for(const dx of [-1,0,1])if(cad.length){await put(esc(cad),x+dx,y-1.35,[0,1]);await put(esc(cad),x+dx,y+1.35,[0,-1])}for(let k=0;k<4;k++)if(liv.length)await sobre(b,esc(liv),-.4+R()*.8,-.3+R()*.6);if(vela.length)await sobre(b,esc(vela),0,0);luz(x,y,"vela",{raio:4})}
     const glb=um(/Globes\/Globe_Large_Brace_Brass_Gray_A1_1x1\./);if(glb)await put(glb,30,60.3,null)}
-  // ---------------- sala de trofeus: vitrines nas paredes e no meio, com tacas e escudos ----------------
-  {const base=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-O]_1x2\./),top=acha(/Display_Cases\/Display_Case_Top_Metal_Gray_Clear_[AG]\d_1x2\./),base2=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[BCEJ]_2x2\./),top2=acha(/Display_Cases\/Display_Case_Top_Metal_Gray_Clear_[BCE]\d_2x2\./);
-    const tc=acha(/Treasure\/Misc\/Chalice_Metal_Gold_A_.*_1x1\./),sh=acha(/Weapons\/Shields\/Shield_Metal_0[1-4]_A\d_1x1\./),it=tc.concat(sh);
-    for(const x of [39.6,41.6,44.4,46.4]){for(const [y,n] of [[53,[0,1]],[60,[0,-1]]]){if(!base.length)break;const b=await naParede(esc(base),x,y,n);if(!b)continue;for(const u of [-.25,.25])if(it.length)await sobre(b,esc(it),u*.3,u,{l:305});}}
-    for(const [x,n] of [[38,[1,0]],[48,[-1,0]]]){if(!base.length)break;const b=await naParede(esc(base),x,56.5,n);if(b){for(const u of [-.25,.25])if(tc.length)await sobre(b,esc(tc),u,0,{l:305});}}
-    if(base2.length){const b2=await put(esc(base2),43,56.5,[0,1]);if(b2){for(const [u,v] of [[-.22,-.22],[.22,-.22],[0,.2]])if(tc.length)await sobre(b2,esc(tc),u,v,{l:305,s:1.3});}}
+  // ---------------- sala de trofeus: vitrines compridas nas paredes, duas grandes no meio, cheias de tacas, escudos e coroas ----------------
+  {const b3=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-O]_1x3\./),b2=acha(/Display_Cases\/Display_Case_Base_Wood_Dark_[A-O]_2x2\./);
+    const tc=acha(/Treasure\/Misc\/Chalice_Metal_(Gold|Silver)_A_.*_1x1\./),sh=acha(/Weapons\/Shields\/Shield_Metal_0[1-4]_A\d_1x1\./),cr=acha(/Treasure\/.*Crown_.*_1x1\./),it=tc.concat(tc,sh,cr);
+    const enche=async(b,n)=>{if(!b)return;for(let i=0;i<n;i++)if(it.length)await sobre(b,esc(it),(i+.5)/n-.5,(R()-.5)*.15,{l:305,s:1.25})};
+    const vit=async(x,y,deitada)=>{if(!b3.length)return;const b=await put(esc(b3),x,y,deitada?[1,0]:[0,1]);await enche(b,3)};
+    for(const x of [39.9,45.6])await vit(x,53.72,true);for(const x of [39.8,43,46.2])await vit(x,59.28,true);
+    for(const x of [38.72,47.28])await vit(x,56.5,false);
+    for(const x of [41.6,44.4]){if(!b2.length)break;const b=await put(esc(b2),x,56.5,[0,1]);if(b)for(const [u,v] of [[-.22,-.22],[.22,-.22],[-.22,.22],[.22,.22]])if(it.length)await sobre(b,esc(it),u,v,{l:305,s:1.25})}
     luz(43,56.5,"lampiao",{raio:6,claro:3,c:[1,.92,.7]})}
   // ---------------- pocoes ----------------
   {const mesa=acha(/Table_Rectangle_Wood_Dark_[EFG]_2x1\./),cal=acha(/Cauldrons\/Cauldron_Metal_(Gray|Rusty)_Filled_[AB]\d_1x1\./),fr=acha(/Alchemy\/Glassware\/Filled\/.*_1x1\./),es=acha(/Shelf_Wood_Dark_Filled_[A-Z]\d_2x1\./),bq=acha(/Stools\/Stool_Wood_Dark_[A-C]_1x1\./);
@@ -144,8 +146,8 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,log=[];const P=plan
     const arv=acha(/Tree_Tops\/Tree_Colorable_[AB]\d_[56]x[56]\./),verdes=[[.28,.42,.22],[.22,.36,.2],[.34,.44,.24],[.25,.38,.27]];
     for(const [x,y] of [[29,36.2],[49,36.2],[29,46],[49,46.4]])if(arv.length)await put(esc(arv),x,y,null,{r:R()*6.28,l:900,c:esc(verdes)});
     const banco=um(/Bench_Wood_Dark_A1_2x1\./);for(const [x,y,f] of [[39.1,36.5,[0,1]],[39.1,45.7,[0,-1]],[34.5,41.1,[1,0]],[43.7,41.1,[-1,0]]])if(banco)await put(banco,x,y,f);
-    const fl=acha(/Flora\/Flowers\/Flower_(Purple|Yellow|White|Blue)_A\d_1x1\./),tp=acha(/Topiary\/Topiary_Green_[AB]\d_2x2\./);
-    for(const [x0,y0,x1,y1] of [[24,34,34,38],[44,34,54,38],[24,44,34,48],[44,44,54,48]]){piso(chanf(x0,y0,x1,y1,1),PISO.terra,{l:-46,extra:{suave:.9,ruido:.6}});const cor=esc(["Purple","Yellow","White","Blue"]),F=fl.filter(k=>k.includes("Flower_"+cor));for(let x=x0+.8;x<x1-.5;x+=.85)for(let y=y0+.8;y<y1-.5;y+=.85)if(R()<.55&&F.length)await put(esc(F),x+R()*.3,y+R()*.3,null,{r:R()*6.28,l:120})}
+    const fl=acha(/Flowers_Large\/Flower_Large_(Purple|Yellow|White|Blue)\d?_/),tp=acha(/Topiary\/Topiary_Green_[AB]\d_2x2\./);
+    for(const [x0,y0,x1,y1] of [[24,34,34,38],[44,34,54,38],[24,44,34,48],[44,44,54,48]]){piso(chanf(x0,y0,x1,y1,1),PISO.terra,{l:-46,extra:{suave:.9,ruido:.6}});const cor=esc(["Purple","Yellow","White","Blue"]),F=fl.filter(k=>k.includes("Flower_Large_"+cor));for(let x=x0+.9;x<x1-.6;x+=1.1)for(let y=y0+.9;y<y1-.6;y+=1.1)if(R()<.8&&F.length)await put(esc(F),x+R()*.3,y+R()*.3,null,{r:R()*6.28,l:120})}
     for(const [x,y] of [[23.4,33.4],[54.6,33.4],[23.4,48.6],[33,48.9],[46,48.9]])if(tp.length)await put(esc(tp),x,y,null,{r:R()*6.28});
     const col=um(/Pillars\/Pillar_Stone_Earthy_A2_White_1x1\./)||um(/Pillars\/Pillar_Stone_/);for(const y of [45,46.8,48.6])if(col)await put(col,56.5,y,null);
     const lp=um(/Street_Lamps\/Lamp_Metal_Brass_A_1x1\./);for(const [x,y] of [[36.6,38.6],[41.6,43.6]])if(lp)await put(lp,x,y,null)}
