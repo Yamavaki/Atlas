@@ -147,7 +147,8 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   // ---------- CORUJAL ----------
   {const feno=acha(/Hay_(Pile|Bale).*_1x1\.|Straw_/),pena=acha(/Feather/),cx=88,cy=64;for(let i=0;i<8;i++){const t=i/8*6.28;if(feno.length)await put(esc(feno),cx+Math.cos(t)*2.4,cy+Math.sin(t)*2.4,null,{r:R()*6.28})}for(let i=0;i<10;i++)if(pena.length)await put(esc(pena),cx-2+R()*4,cy-2+R()*4,null,{r:R()*6.28,l:120})}
   // ---------- EXTERIOR: caminhos, horta de aboboras, floresta, lago ----------
-  {const cam=um(/paths\/.*Dirt_Path_A1|paths\/.*Path_Dirt/)||null;const pp=(P,larg)=>{if(!cam)return;ops.push({op:"cria",a,k:"caminhos",item:{id:MD.novoId(M),t:MD.texDe(M,cam),p:P,larg:larg||1.6,laco:false,suave:true}})};
+  {// estradas de terra: forma com a textura de terra em volta da linha
+    const pp=(P,larg)=>{if(!P_TERRA)return;const {E,D}=V.fita(P,larg||1.6,false);ops.push({op:"cria",a,k:"padroes",item:{id:MD.novoId(M),t:MD.texDe(M,P_TERRA),p:E.concat(D.slice().reverse()).map(q=>[+q[0].toFixed(3),+q[1].toFixed(3)]),l:-50,raio:.6}})};
     pp([[26,2],[26,8],[26,15.6]],2.2);pp([[26,10],[50,9],[76,12],[87,17.8]]);pp([[72,34],[80,38],[87.5,39.8]]);pp([[62.5,58],[76,60],[84.7,62.2]]);
     const ab=acha(/Pumpkin.*_1x1\./);for(let i=0;i<14;i++)if(ab.length)await put(esc(ab),93+R()*5,41+R()*5,null,{r:R()*6.28});
     const arv=acha(/Flora\/Trees\/Tree_Tops\/Tree_(Oak|Deciduous|Ash|Maple|Elm|Pine|Spruce|Fir)[^/]*_[5-7]x[5-7]\./);const arv2=arv.length?arv:acha(/Flora\/Trees\/Tree_Tops\/.*_[5-7]x[5-7]\./);
@@ -158,9 +159,10 @@ export async function gerar(o){const {B,C,MD,V,e}=o,M=e.mapa,a=0,ops=[],log=[],z
   // ---------- TELHADOS ----------
   const telh=(p,op)=>ops.push({op:"cria",a,k:"telhados",item:Object.assign({id:MD.novoId(M),p},op)});
   telh(ret(8,16,72,62),{t:MD.texDe(M,TELHA),tq:CUME?MD.texDe(M,CUME):undefined,alas:[
-    {x0:8,y0:16,x1:20,y1:56},{x0:20,y0:16,x1:32,y1:30},{x0:32,y0:16,x1:62,y1:30,tipo:"duas",eixo:"x",k:1.25},{x0:62,y0:16,x1:72,y1:30},{x0:62,y0:30,x1:72,y1:40},
-    {x0:44,y0:30,x1:62,y1:52},{x0:20,y0:52,x1:62,y1:62}]});
-  const torreArte=cor=>um(new RegExp("Towers/Roof_A/Roof_A_"+cor+"_Tower_Round_C_6x6\\."))||um(/Towers\/Roof_A\/Roof_A_.*_Tower_Round_C_6x6\./);
+    // alas que se sobrepoem (a juncao vira rincao, como num telhado de verdade); o salao e uma duas-aguas mais alta
+    {x0:8,y0:16,x1:20,y1:56},{x0:8,y0:16,x1:72,y1:30},{x0:32,y0:16,x1:62,y1:30,tipo:"duas",eixo:"x",k:1.3},{x0:62,y0:16,x1:72,y1:40},
+    {x0:44,y0:28,x1:62,y1:62},{x0:20,y0:52,x1:62,y1:62},{x0:8,y0:52,x1:24,y1:56}],cq:[.7,.7,.75,1]});
+  const torreArte=cor=>um(new RegExp("Towers/Roof_A/Roof_A_"+cor+"_Tower_Round_C\\."))||um(/Towers\/Roof_A\/Roof_A_[A-Za-z]+_Tower_Round_C\./);
   for(const [cm,cor] of [[C_.dormitorio,"Red"],[C_.diretor,"Gray"],[C_.astronomia,"Blue"],[C_.corujal,"Gray"]]){const k=torreArte(cor);telh(cm.P,k?{arte:MD.texDe(M,k),t:MD.texDe(M,TELHA2),escArte:1.15}:{t:MD.texDe(M,TELHA2),estilo:"quatro"})}
   telh(ret(78,18,96,28),{t:MD.texDe(M,TELHA_V),tq:CUME_V?MD.texDe(M,CUME_V):undefined,alas:[{x0:78,y0:18,x1:96,y1:28,tipo:"duas",eixo:"x"}]});
   telh(ret(84,40,91,46),{t:MD.texDe(M,TELHA_M),tq:CUME_M?MD.texDe(M,CUME_M):undefined,alas:[{x0:84,y0:40,x1:91,y1:46,tipo:"duas",eixo:"x"}]});

@@ -198,9 +198,9 @@ function telhadoAlas(t,TEX,IND,PAR,v,lay,real){const rl=real(t.t),l=rl!=null?(rl
   for(const {P,q} of panos){const g=Math.hypot(q.a,q.b);let sn=0,cs=1,br=.95;if(g>1e-9){sn=q.a/g;cs=-q.b/g;br=.8+.32*((-q.a/g)*LX+(-q.b/g)*LY)}
     const T=triangula(P);for(const k of T){const z=P[k];v(z[0],z[1],(z[0]*cs+z[1]*sn)*es,(-z[0]*sn+z[1]*cs)*es,l,c,br)}}
   // linhas de encontro: com a arte de cumeeira (caminho do pacote) ou uma linha escura
-  const rq=real(t.tq),tq=TEX[t.tq],asp=IND["a:"+tq]||4,lw=t.cumeLarg||.5;
+  const rq=real(t.tq),tq=TEX[t.tq],asp=IND["a:"+tq]||4,lw=t.cumeLarg||.5,cq=t.cq||c;
   for(const [a,b] of linhas){const L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-4)continue;const nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
-    if(rq!=null){const h=lw/2,u1=L/(asp*lw),P=[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]],U=[[0,0],[u1,0],[u1,1],[0,1]];for(const k of [0,1,2,0,2,3])v(P[k][0],P[k][1],U[k][0],U[k][1],rq,c,1)}
+    if(rq!=null){const h=lw/2,u1=L/(asp*lw),P=[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]],U=[[0,0],[u1,0],[u1,1],[0,1]];for(const k of [0,1,2,0,2,3])v(P[k][0],P[k][1],U[k][0],U[k][1],rq,cq,1)}
     else{const h=.035;for(const z of[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]+nx*h,a[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]])v(z[0],z[1],0,0,-1,[.12,.09,.07,.75],1)}}
   // beiral: em volta de cada ala, so nos trechos que nao ficam dentro de outra
   for(let i=0;i<t.alas.length;i++){const R=t.alas[i],E=[[[R.x0,R.y0],[R.x1,R.y0]],[[R.x1,R.y0],[R.x1,R.y1]],[[R.x1,R.y1],[R.x0,R.y1]],[[R.x0,R.y1],[R.x0,R.y0]]];
