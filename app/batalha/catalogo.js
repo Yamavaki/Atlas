@@ -32,8 +32,10 @@ function mede(bm){const W=bm.width,H=bm.height;if(!tela){tela=typeof OffscreenCa
     const ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
     const meio=faixa(mx0,mx1,my0,my1)||1,Lw=faixa(x0,x0+ex-1,my0,my1)/meio,Le=faixa(x1-ex+1,x1,my0,my1)/meio,Ln=faixa(mx0,mx1,y0,y0+ey-1)/meio,Ls=faixa(mx0,mx1,y1-ey+1,y1)/meio;
     // apagada = semitransparente (degrade), nao so vazia: perninhas de placa nao contam
+    const cob=k=>{const yA=y0+Math.round(bh*.08),yB=y1-Math.round(bh*.08),xA=x0+Math.round(bw*.08),xB=x1-Math.round(bw*.08);let c=0,n=0;
+      if(k==="W"||k==="L"){const x=k==="W"?x0+Math.floor(ex/2):x1-Math.floor(ex/2);for(let y=yA;y<=yB;y++){n++;if(al(x,y)>10)c++}}else{const y=k==="N"?y0+Math.floor(ey/2):y1-Math.floor(ey/2);for(let x=xA;x<=xB;x++){n++;if(al(x,y)>10)c++}}return n?c/n:0};
     const semi=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){const v=al(x,y);if(v>10){s+=v;n++}}return n?s/n:255},SM=semi(mx0,mx1,my0,my1),SB={W:semi(x0,x0+ex-1,my0,my1),L:semi(x1-ex+1,x1,my0,my1),N:semi(mx0,mx1,y0,y0+ey-1),S:semi(mx0,mx1,y1-ey+1,y1)};
-    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.72&&o>.78&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)).sort((p,q)=>p[1]-q[1]);funde=C.length?C[0][0]:"";
+    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.72&&o>.78&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)&&cob(k)>=.85).sort((p,q)=>p[1]-q[1]);funde=C.length?C[0][0]:"";
     const i0=Math.round(bh*.06),i1=Math.round(bw*.06),FW=faixa(x0,x0+ex-1,y0+i0,y1-i0),FE=faixa(x1-ex+1,x1,y0+i0,y1-i0),FN=faixa(x0+i1,x1-i1,y0,y0+ey-1),FS=faixa(x0+i1,x1-i1,y1-ey+1,y1);
     if(bh>=bw*1.4&&Math.abs(FW-FE)>12)costas=FW>FE?"W":"L";else if(bw>=bh*1.4&&Math.abs(FN-FS)>12)costas=FN>FS?"N":"S"}
   return {funde,costas,x0:Math.round(x0/w*255),y0:Math.round(y0/h*255),x1:Math.round((x1+1)/w*255),y1:Math.round((y1+1)/h*255),fill:Math.round(n/(bw*bh)*255),mask:m.toString(16).padStart(16,"0"),
@@ -47,6 +49,10 @@ async function fichaArte(P,f,a,orig){const c="res://packs/"+P.id+"/"+a[0];if(ori
       const k=px?Math.min(1,64/Math.max(px[0],px[1])):1;bm=px&&k<1?await createImageBitmap(bl,{resizeWidth:Math.max(1,Math.round(px[0]*k)),resizeHeight:Math.max(1,Math.round(px[1]*k)),resizeQuality:"low"}):await createImageBitmap(bl)}}catch(e){}
   if(!bm)return px?[px[0],px[1]]:[0,0];if(!px)px=[bm.width,bm.height];const M=mede(bm);bm.close&&bm.close();
   if(M.vazio)return [px[0],px[1],0,0,0,0,0,"0","000000",0,0,src?1:2];return [px[0],px[1],M.x0,M.y0,M.x1,M.y1,M.fill,M.mask,M.cor,M.sh,M.sv,src?1:2,src||Math.max(px[0],px[1])<384?"":M.funde,src?"":M.costas]}
+// confere de novo so as artes marcadas como peca de conjunto (quando a regra muda), sem refazer tudo
+export async function refazConjuntos(){const L=BIB.pacotesCompletos();let n=0,tirou=0;for(const P of L){const fx=await fichasDe(P),f=BIB.arquivoDe(P);if(!fx||!f)continue;let mud=false;
+    for(let i=0;i<P.artes.length;i++){const x=fx.fichas[i];if(!x||x[11]!==2||!x[12])continue;n++;const y=await fichaArte(P,f,P.artes[i],true);if(y&&y[12]!==x[12]){fx.fichas[i]=y;mud=true;if(!y[12])tirou++}}
+    if(mud){await poe(chave(P),fx);CACHE.set(chave(P),fx)}}BORDA.clear();UMA.clear();return {conferidas:n,tirou}}
 // analisa todos os pacotes (retoma de onde parou: cada pacote pronto fica guardado)
 export async function analisar(o){o=o||{};const L=BIB.pacotesCompletos();let total=0,feito=0;for(const P of L)total+=P.artes.length;const t0=performance.now();
   for(const P of L){if(o.parar&&o.parar())break;const ja=await fichasDe(P);if(ja){feito+=P.artes.length;if(o.progresso)o.progresso(feito,total,P.nome,0);continue}
@@ -178,13 +184,13 @@ const LEGENDA2=`## Como ler (vale para todos os arquivos)
 - c = camada: 100 chão, 200 móveis, 300 em cima de móveis, 400 alto (copa, lustre).
 - vis x,y,l,a = parte desenhada dentro da imagem em % (para encostar, desconte a margem). f = forma (r retângulo, o redondo, i irregular). cor = cor média (hex de 3). C = muda de cor. L = tem luz. #etiquetas do autor.
 - largura (caminhos) e repete (terrenos e texturas) em quadrados.`;
-function linhaV2(F,P,cat,ambP,esc){const f0=F.itens[0].f,b0=F.itens[0].base,cl=F.itens[0].cl,partes=[F.modelo];esc=esc||1;
-  if(cat==="objects"){partes.push(tamFamReal(F.itens,esc));const fr=frente(b0,P.autor,f0);if(fr!=="?")partes.push("fr "+fr);
+function linhaV2(F,P,cat,ambP,esc){const f0=F.itens[0].f,b0=F.itens[0].base,nm0=(F.itens[0].rel||b0).split("/").pop().replace(/\.\w+$/,""),cl=F.itens[0].cl,partes=[F.modelo];esc=esc||1;
+  if(cat==="objects"){partes.push(tamFamReal(F.itens,esc));const fr=frente(nm0,P.autor,f0);if(fr!=="?")partes.push("fr "+fr);
     if(cl){partes.push("e "+ENC1[cl.enc]+(cl.pas?" passa":""));const ex=cl.amb.filter(a=>!ambP.has(a));if(ex.length)partes.push("amb "+ex.slice(0,3).join(","))}
     if(f0&&f0.length>=11&&f0[0]){const oc=CL.ocupa(f0[7],f0[0]/QUAD*esc,f0[1]/QUAD*esc);if(oc){const W=Math.round(f0[0]/QUAD*esc),r=[];for(let k=0;k<oc.length;k+=W)r.push(oc.slice(k,k+W));partes.push("oc "+r.join("/"))}}
     const c=camada(b0,"objects",(f0&&f0[0]||0)/QUAD*esc,(f0&&f0[1]||0)/QUAD*esc);if(c)partes.push("c"+c);
     // peca de conjunto: a ponta apagada emenda com outra (espelhada) por cima
-    const fus=F.itens.map(x=>x.f&&x.f[11]===2?x.f[12]:"").filter(Boolean),fu=fus.length*2>=F.itens.length?fus[0]:"";if(fu)partes.push("conj "+fu);
+    const cj=F.itens.filter(x=>x.f&&x.f[11]===2&&x.f[12]);if(cj.length)partes.push("conj "+cj[0].f[12]+(cj.length<F.itens.length?" ("+cj.slice(0,4).map(x=>x.base).join(", ")+(cj.length>4?" +"+(cj.length-4):"")+")":""));
     if(f0&&f0.length>=11){partes.push("vis "+[pct(f0[2]),pct(f0[3]),pct(f0[4]-f0[2]),pct(f0[5]-f0[3])].join(","));const fo=forma(f0);if(fo)partes.push("f "+fo);partes.push("cor "+cor3(f0[8]))}
     const fl=(F.itens.some(x=>/colorable/i.test(x.base)||(x.tags||[]).some(t=>/colorable/i.test(t)))?"C":"")+(F.itens.some(x=>/(^|_)lit(_|$)|lamp|lantern|torch|candle|neon/i.test(x.base))?"L":"");if(fl)partes.push(fl);
     const tg=[...new Set(F.itens.flatMap(x=>x.tags||[]))].filter(t=>!/colorable/i.test(t)).slice(0,3);if(tg.length)partes.push(tg.map(t=>"#"+t.replace(/\s+/g,"_")).join(" "))}
@@ -244,7 +250,7 @@ export function montaV2(D,o){o=o||{};const limPart=o.parte||45000,arqs=[],hoje=(
       const est=new Map();for(const S of K.subs.values())for(const it of S.itens)if(it.cl.amb.includes(a)){const e=CL.estilo(it.rel);if(e)est.set(e,(est.get(e)||0)+1)}const eTop=([...est].sort((x,y)=>y[1]-x[1])[0]||[])[0];
       const subs=[...tip.filter(t=>K.subs.has(t)),...[...K.subs].filter(([t,S])=>!tip.includes(t)&&S.itens.some(x=>x.cl.amb.includes(a))).sort((x,y)=>y[1].itens.filter(i=>i.cl.amb.includes(a)).length-x[1].itens.filter(i=>i.cl.amb.includes(a)).length).map(x=>x[0])].slice(0,o.kitsTipos||12);
       if(!subs.length)continue;Kt.push("### "+K.C+" "+K.P.nome.replace(/_/g," ")+" · "+K.amb.get(a)+" artes de "+a.toLowerCase()+(eTop?" · estilo mais comum: "+eTop:""));
-      for(const t of subs){const S=K.subs.get(t),it=exemplo(S.itens,a,eTop),f=it.f,fr=frente(it.base,K.P.autor,f);
+      for(const t of subs){const S=K.subs.get(t),it=exemplo(S.itens,a,eTop),f=it.f,fr=frente((it.rel||it.base).split("/").pop().replace(/\.\w+$/,""),K.P.autor,f);
         Kt.push("- "+t+" ("+S.itens.length+") · "+K.C+(nPartes.get(K.C)>1?"."+S.parte:"")+" textures/"+it.pa+"/"+it.base+" · "+tamReal(it,escP.get(K.C)||1)+(fr!=="?"?" · fr "+fr:"")+" · e "+ENC1[it.cl.enc]+(it.cl.pas?" passa":""))}}}
   const LEIA=["# Catálogo de artes do Atlas · v3","","v3: tamanho, parte desenhada e frente medidos na arte original (a miniatura do Dungeondraft vem recortada), peças de conjunto (conj) e paredes de dois lados.","","Este catálogo descreve as artes dos seus pacotes para uma IA (por exemplo o Claude) montar mapas com elas.","",
     "## Numa conversa","1. Anexe 00-indice.md e 01-kits.md e peça o mapa.","2. A IA diz quais arquivos de pacote precisa (ex.: P07). Anexe esses da pasta pacotes/.","3. Pronto: ela usa os nomes exatos e os detalhes de lá.","",
@@ -267,8 +273,10 @@ export async function perfilArte(c){if(BORDA.has(c))return BORDA.get(c);{const f
     const faixa=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){s+=al(x,y);n++}return n?s/n:0};
     const bw=x1-x0+1,bh=y1-y0+1,ex=Math.max(1,Math.round(bw*.08)),ey=Math.max(1,Math.round(bh*.08)),my0=y0+Math.round(bh*.25),my1=y1-Math.round(bh*.25),mx0=x0+Math.round(bw*.25),mx1=x1-Math.round(bw*.25);
     const meio=faixa(mx0,mx1,my0,my1)||1,Lw=faixa(x0,x0+ex-1,my0,my1)/meio,Le=faixa(x1-ex+1,x1,my0,my1)/meio,Ln=faixa(mx0,mx1,y0,y0+ey-1)/meio,Ls=faixa(mx0,mx1,y1-ey+1,y1)/meio;
+    const cob=k=>{const yA=y0+Math.round(bh*.08),yB=y1-Math.round(bh*.08),xA=x0+Math.round(bw*.08),xB=x1-Math.round(bw*.08);let c=0,n=0;
+      if(k==="W"||k==="L"){const x=k==="W"?x0+Math.floor(ex/2):x1-Math.floor(ex/2);for(let y=yA;y<=yB;y++){n++;if(al(x,y)>10)c++}}else{const y=k==="N"?y0+Math.floor(ey/2):y1-Math.floor(ey/2);for(let x=xA;x<=xB;x++){n++;if(al(x,y)>10)c++}}return n?c/n:0};
     const semi=(xa,xb,ya,yb)=>{let s=0,n=0;for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){const v=al(x,y);if(v>10){s+=v;n++}}return n?s/n:255},SM=semi(mx0,mx1,my0,my1),SB={W:semi(x0,x0+ex-1,my0,my1),L:semi(x1-ex+1,x1,my0,my1),N:semi(mx0,mx1,y0,y0+ey-1),S:semi(mx0,mx1,y1-ey+1,y1)};
-    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.72&&o>.78&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)).sort((p,q)=>p[1]-q[1]);res.funde=C.length&&(!px||Math.max(px[0],px[1])>=384)?C[0][0]:"";
+    const C=[["W",Lw,Le],["L",Le,Lw],["N",Ln,Ls],["S",Ls,Ln]].filter(([k,v,o])=>v<.72&&o>.78&&SM>200&&SB[k]<SM-35&&((k==="W"||k==="L")?bw>=bh*1.8:bh>=bw*1.8)&&cob(k)>=.85).sort((p,q)=>p[1]-q[1]);res.funde=C.length&&(!px||Math.max(px[0],px[1])>=384)?C[0][0]:"";
     // costas: o lado cheio no comprimento todo (a boca da lareira e o arco, que so ocupa o meio; no balcao, a barra de apoio e fina)
     const i0=Math.round(bh*.06),i1=Math.round(bw*.06),FW=faixa(x0,x0+ex-1,y0+i0,y1-i0),FE=faixa(x1-ex+1,x1,y0+i0,y1-i0),FN=faixa(x0+i1,x1-i1,y0,y0+ey-1),FS=faixa(x0+i1,x1-i1,y1-ey+1,y1);
     if(bh>=bw*1.4&&Math.abs(FW-FE)>12)res.costas=FW>FE?"W":"L";else if(bw>=bh*1.4&&Math.abs(FN-FS)>12)res.costas=FN>FS?"N":"S"}catch(e){}
@@ -280,4 +288,4 @@ export async function fichaUma(c){const ja=await fichaDe(c);if(ja&&ja[11]===2)re
 // para a busca e o gerador: ficha de um caminho (se ja analisado)
 export async function fichaDe(c){const m=/^res:\/\/packs\/([^/]+)\/(.+)$/.exec(c);if(!m)return null;const P=BIB.pacotesCompletos().find(p=>p.id===m[1]);if(!P)return null;const fx=await fichasDe(P);if(!fx)return null;const i=P.artes.findIndex(a=>a[0]===m[2]);return i<0?null:fx.fichas[i]}
 export {familias,camada,frente,forma};
-if(typeof window!=="undefined")window.AtlasCatalogo={analisar,situacao,arquivoIA,arquivoIA2,arquivoCompleto,fichaDe,tokens};
+if(typeof window!=="undefined")window.AtlasCatalogo={analisar,refazConjuntos,situacao,arquivoIA,arquivoIA2,arquivoCompleto,fichaDe,tokens};
