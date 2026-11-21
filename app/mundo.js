@@ -39,7 +39,7 @@ function Grade(W,H){const w=Math.ceil(W/CS)+1,h=Math.ceil(H/CS)+1,n=w*h;
   return G}
 
 // monta a grade de uma cidade gerada e desenhada (o desenho ainda cria cais e fosso; a partir da 0.56 eles nascem no gerador)
-function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)||1.55,TILT=(window.AtlasCity&&AtlasCity.TILT)||.7,WX=1500,WY=Math.ceil((1020+64)/TILT)+2,G=Grade(WX,WY),w=G.w,h=G.h;
+function deCidade(C,AS,opt){opt=opt||{};const Z=(window.AtlasCity&&AtlasCity.Z)||1.55,TILT=(window.AtlasCity&&AtlasCity.TILT)||.7,WX=(window.AtlasCity&&AtlasCity.WX)||1500,WY=(window.AtlasCity&&AtlasCity.WY)||Math.ceil((1020+64)/TILT)+2,G=Grade(WX,WY),w=G.w,h=G.h;
   // 1. chao: altura, andar, bairro, agua
   // 0.64: o chao (altura, andar, bairro, agua) so muda quando a cidade e gerada de novo; fica guardado na propria cidade
   const G0=C._G0;if(G0&&G0.w===w&&G0.h===h){G.alt.set(G0.alt);G.andar.set(G0.andar);G.bairro.set(G0.bairro);G.agua.set(G0.agua)}else{
