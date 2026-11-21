@@ -43,12 +43,12 @@ function mede(bm,NN){NN=NN||64;const W=bm.width,H=bm.height;if(!tela||tela.width
 // a miniatura do Dungeondraft vem recortada no desenho: serve para cor e forma, mas a caixa (x0..y1) dela nao vale.
 // fichas com [11]=2 foram medidas na arte original (caixa certa); sem isso, a caixa e a da miniatura.
 // ficha v3: [11]=2 medida na original (objetos, portas, paredes, caminhos; chaos usam a miniatura), [12]=ponta apagada, [13]=costas
-async function fichaArte(P,f,a,orig){const c="res://packs/"+P.id+"/"+a[0];if(orig==null)orig=!BIB.ehMaterial(c);let px=null;try{px=await BIB.medidas(f,a[1])}catch(e){}
+async function fichaArte(P,f,a,orig){const c="res://packs/"+P.id+"/"+a[0];if(orig==null)orig=!BIB.ehMaterial(c);let px=null,NN=64;try{px=await BIB.medidas(f,a[1])}catch(e){}
   let src=null,mini=!orig&&P.mini&&P.mini[BIB.md5(c)];if(mini)src=f.slice(mini[0],mini[0]+mini[1],"image/png");
   let bm=null;try{if(src)bm=await createImageBitmap(src);else{const tipo=/\.png$/i.test(a[0])?"image/png":/\.jpe?g$/i.test(a[0])?"image/jpeg":"image/webp",bl=f.slice(a[1],a[1]+a[2],tipo);
       // peca comprida e grande (candidata a peca de conjunto): mede com 128 px, senao a ponta apagada some
-      const NN=px&&Math.max(px[0],px[1])>=384&&Math.max(px[0],px[1])>=Math.min(px[0],px[1])*1.8?128:64;fichaArte.NN=NN;const k=px?Math.min(1,NN/Math.max(px[0],px[1])):1;bm=px&&k<1?await createImageBitmap(bl,{resizeWidth:Math.max(1,Math.round(px[0]*k)),resizeHeight:Math.max(1,Math.round(px[1]*k)),resizeQuality:"low"}):await createImageBitmap(bl)}}catch(e){}
-  if(!bm)return px?[px[0],px[1]]:[0,0];if(!px)px=[bm.width,bm.height];const M=mede(bm,src?64:fichaArte.NN||64);fichaArte.NN=64;bm.close&&bm.close();
+      NN=px&&Math.max(px[0],px[1])>=384&&Math.max(px[0],px[1])>=Math.min(px[0],px[1])*1.8?128:64;const k=px?Math.min(1,NN/Math.max(px[0],px[1])):1;bm=px&&k<1?await createImageBitmap(bl,{resizeWidth:Math.max(1,Math.round(px[0]*k)),resizeHeight:Math.max(1,Math.round(px[1]*k)),resizeQuality:"low"}):await createImageBitmap(bl)}}catch(e){}
+  if(!bm)return px?[px[0],px[1]]:[0,0];if(!px)px=[bm.width,bm.height];const M=mede(bm,src?64:NN);bm.close&&bm.close();
   if(M.vazio)return [px[0],px[1],0,0,0,0,0,"0","000000",0,0,src?1:2];return [px[0],px[1],M.x0,M.y0,M.x1,M.y1,M.fill,M.mask,M.cor,M.sh,M.sv,src?1:2,src||Math.max(px[0],px[1])<384?"":M.funde,src?"":M.costas]}
 // confere de novo so as artes marcadas como peca de conjunto (quando a regra muda), sem refazer tudo
 export async function refazConjuntos(){const L=BIB.pacotesCompletos();let n=0,tirou=0,pos=0;for(const P of L){const fx=await fichasDe(P),f=BIB.arquivoDe(P);if(!fx||!f)continue;let mud=false;
