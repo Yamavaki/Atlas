@@ -7,7 +7,7 @@ const naPasta=()=>window.AtlasPasta&&window.AtlasApp&&window.AtlasApp.Store&&win
 const b64=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)};
 const deB64=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
 const paraPasta=(id,nome,mapa)=>{clearTimeout(tempos.get(id));tempos.set(id,setTimeout(()=>{tempos.delete(id);window.AtlasPasta.gravaArquivo(arq(id),JSON.stringify({id,nome,salvo:Date.now(),mapa},(k,v)=>v instanceof Uint8Array?{$b64:b64(v)}:v)).catch(e=>console.warn("batalha na pasta",e))},2000))};
-export const salvar=(id,nome,mapa)=>{if(naPasta())paraPasta(id,nome,mapa);return tx("readwrite",s=>s.put({id,nome,mapa,salvo:Date.now()}))};
+export const salvar=(id,nome,mapa)=>{if(window.AtlasDrive)window.AtlasDrive.marca();if(naPasta())paraPasta(id,nome,mapa);return tx("readwrite",s=>s.put({id,nome,mapa,salvo:Date.now()}))};
 export const ler=async id=>{const r=await tx("readonly",s=>s.get(id));if(!naPasta())return r;try{const f=await window.AtlasPasta.leArquivo(arq(id));if(!f)return r;const o=JSON.parse(await f.text(),(k,v)=>v&&typeof v==="object"&&typeof v.$b64==="string"?deB64(v.$b64):v);if(!r||o.salvo>r.salvo+1000){await tx("readwrite",s=>s.put(o));return o}}catch(e){console.warn("batalha da pasta",e)}return r};
 export const apagar=id=>{if(naPasta())window.AtlasPasta.apagaArquivo(arq(id));return tx("readwrite",s=>s.delete(id))};
 export const listar=()=>tx("readonly",s=>s.getAll()).then(L=>(L||[]).map(r=>({id:r.id,nome:r.nome,salvo:r.salvo})));
