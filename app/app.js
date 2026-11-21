@@ -1403,6 +1403,7 @@ function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}if(!btn||!btn.
     window.AtlasPasta&&window.AtlasPasta.suporta()?h("button",{type:"button",class:"mi",onclick:()=>{m.remove();Store.abrirPasta()}},h("b",{},Store.pasta?"Abrir outra pasta":"Abrir pasta do mundo"),h("small",{},Store.pasta?"Agora: "+((window.AtlasPasta.atual()||{}).nome||""):"Guarda tudo numa pasta do PC, como o Obsidian")):null,
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportMundo()}},h("b",{},"Mundo completo (.atlasmundo)"),h("small",{},"Tudo num arquivo: notas, mapas, batalhas e imagens. Leva do artefato para o app")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();$("#imp").click()}},h("b",{},"Importar"),h("small",{},".atlasmundo, notas .md ou quadros .canvas")),
+    window.__TAURI__?h("button",{type:"button",class:"mi",onclick:()=>{m.remove();ATU.url?atualizarAgora():procuraAtualizacao(true)}},h("b",{},ATU.nova?"Atualizar agora para a "+ATU.nova:"Procurar atualização"),h("small",{},ATU.nova?"Baixa, instala e abre o Atlas de novo":"Confere se saiu versão nova")):null,
     h("b",{},"Exportar"),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault()}},h("b",{},"Vault completo (.zip)"),h("small",{},"Markdown para o Obsidian, com segredos e mapas")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault(true)}},h("b",{},"Para os jogadores (.zip)"),h("small",{},"Sem segredos do mestre")),
@@ -1455,8 +1456,16 @@ $("#main").addEventListener("pointerdown",()=>$("#side").classList.remove("open"
 drawSide();$("#main").append(h("div",{class:"welcome"},h("h1",{},"Abrindo o vault…")));
 Store.init();
 setTimeout(()=>{(window.requestIdleCallback||setTimeout)(()=>{carregaEditor();carregaCidade()})},2500);
-// app instalado: avisa quando houver versao nova nos Releases do GitHub
-(async()=>{const T=window.__TAURI__;if(!T||!T.app)return;try{const v=await T.app.getVersion(),r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return;const L=await r.json(),u=L&&L[0];if(!u)return;const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
-  if(cmp(nova,v)>0)setTimeout(()=>{const t=$("#toast");toast("Versão nova do Atlas: "+nova+". Clique aqui para atualizar.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,15000);t.onclick=()=>{const ex=(u.assets||[]).find(x=>/setup\.exe$/i.test(x.name)),url=ex?ex.browser_download_url:u.html_url;try{T.opener.openUrl(url)}catch(e){window.open(url)}toast(ex?"Baixando o instalador: abra o arquivo quando terminar e o Atlas é atualizado.":"Abrindo a página da versão nova.")}},4000)}catch(e){}})();
+// app instalado: confere nos Releases do GitHub se ha versao nova; "Atualizar agora" baixa, instala e reabre o Atlas (um clique)
+const ATU={nova:null,url:null,pagina:null};
+async function atualizarAgora(){const T=window.__TAURI__;if(!T||!ATU.url)return;if(!T.core||!T.core.invoke){try{T.opener.openUrl(ATU.url)}catch(e){}return}
+  pill("Baixando a versão "+ATU.nova+"…");toast("Baixando a atualização. O Atlas fecha, instala e abre de novo sozinho.");if(window.AtlasPasta)try{await AtlasPasta.espera()}catch(e){}
+  try{await T.core.invoke("atualizar",{url:ATU.url})}catch(e){pill("Atualização falhou","warn");toast((e&&e.message)||String(e)||"Não deu para atualizar.");try{T.opener.openUrl(ATU.pagina)}catch(e2){}}}
+async function procuraAtualizacao(avisa){const T=window.__TAURI__;if(!T||!T.app)return false;try{const v=await T.app.getVersion(),r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return false;const L=await r.json(),u=L&&L[0];if(!u)return false;
+    const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
+    if(cmp(nova,v)<=0){if(avisa)toast("O Atlas está na versão mais nova ("+v+").");return false}
+    const ex=(u.assets||[]).find(x=>/setup\.exe$/i.test(x.name));ATU.nova=nova;ATU.url=ex?ex.browser_download_url:null;ATU.pagina=u.html_url;if(!ATU.url){ATU.url=u.html_url}
+    const t=$("#toast");toast("Versão nova do Atlas: "+nova+". Clique aqui para atualizar agora.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,20000);t.onclick=()=>{t.hidden=true;atualizarAgora()};return true}catch(e){if(avisa)toast("Não deu para procurar atualização agora.");return false}}
+setTimeout(()=>procuraAtualizacao(false),4000);
 window.AtlasApp={S,Store,openNote,exportMundo,importMundo};
 })();
