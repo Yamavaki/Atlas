@@ -26,18 +26,13 @@ async fn atualizar(app: tauri::AppHandle, url: String) -> Result<(), String> {
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     // espera o app fechar (ping de 3 s), instala em modo passivo (/P: so a barra de progresso) e reabre
-    let script = format!(
-        "ping -n 3 127.0.0.1 >nul & start \"\" /wait \"{}\" /P & start \"\" \"{}\"",
-        setup.display(),
-        exe.display()
-    );
+    // um .bat evita o problema de aspas do cmd (os argumentos do Rust escapam as aspas com \", que o cmd nao entende)
+    let bat = dir.join("atualizar-atlas.bat");
+    let texto = format!("@echo off\r\nping -n 3 127.0.0.1 >nul\r\nstart \"\" /wait \"{}\" /P\r\nstart \"\" \"{}\"\r\n", setup.display(), exe.display());
+    std::fs::write(&bat, texto).map_err(|e| e.to_string())?;
     let mut cmd = std::process::Command::new("cmd");
-    cmd.args(["/C", &script]);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x0800_0000); // sem janela preta do cmd
-    }
+    #[cfg(windows)] { use std::os::windows::process::CommandExt; cmd.raw_arg(format!("/C \"{}\"", bat.display())); cmd.creation_flags(0x0800_0000); }
+    #[cfg(not(windows))] { cmd.arg("/C").arg(&bat); }
     cmd.spawn().map_err(|e| format!("Não foi possível abrir o instalador: {e}"))?;
     app.exit(0);
     Ok(())
