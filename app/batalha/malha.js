@@ -1,7 +1,7 @@
 // Atlas - Modo Batalha: transforma um andar do .atlasmap em malhas prontas para a placa de video.
 // Vertice: x, y, u, v, camada da textura (-1 = cor lisa), r, g, b, a, matiz, saturacao, brilho  (12 numeros). Sem DOM: pode rodar em Worker.
 import {materialDe,objetoDe} from "./arte.js";
-import {arredonda,fita,tampa,limpa,RAIO_PADRAO,curva} from "./vetor.js";
+import {arredonda,fita,tampa,limpa,RAIO_PADRAO,curva,suaviza,trajetoCaminho} from "./vetor.js";
 import {trajeto,tipoPortal} from "./modelo.js";
 export const VERT=12;
 const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255,1];
@@ -78,7 +78,6 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
         // u segue a projecao no eixo do trecho (nos cantos a fita e um trapezio: assim a arte nao entorta na diagonal do quadrilatero)
         const dx=Q[k][0]-Q[i][0],dy=Q[k][1]-Q[i][1],Ls=Math.hypot(dx,dy)||1,ux=dx/Ls,uy=dy/Ls,du=(u1-u0)/(s1-s0),pj=(p,q)=>((p[0]-q[0])*ux+(p[1]-q[1])*uy)*du;
         quad(E[i],E[k],D[k],D[i],[[u0+pj(E[i],Q[i]),0],[u1+pj(E[k],Q[k]),0],[u1+pj(D[k],Q[k]),1],[u0+pj(D[i],Q[i]),1]],l,c)}}};
-  const suaviza=(P,s)=>{if(!s||P.length<3)return P;const O=[];for(let i=0;i<P.length-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)];for(let k=0;k<6;k++){const t=k/6,t2=t*t,t3=t2*t;O.push([.5*(2*p1[0]+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),.5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)])}}O.push(P[P.length-1]);return O};
   // l = camada, fn desenha, sb = desfoque da sombra (0 = nao faz sombra)
   const add=(l,fn,sb)=>itens.push([l,ordem++,fn,sb||0]);const SH=sd=>{SOMB=sd};
   const SM=IND["sombra:mapa"],sdDe=(e,alvo)=>e.sd===0?null:e.sd||(SM&&SM.todos&&SM.alvos&&SM.alvos[alvo]&&SM.sd)||null;
@@ -138,6 +137,8 @@ export function barreiras(A,TEX){const S=[];for(const w of A.paredes||[]){if(w.s
     for(let i=0;i<n-(w.laco?0:1);i++){const a=P[i],b=P[(i+1)%n],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-9)continue;let cortes=[[0,L]];
       for(const [d0,d1] of fur){const u0=d0-acc,u1=d1-acc;if(u1<=0||u0>=L)continue;const N=[];for(const [s0,s1] of cortes){if(u1<=s0||u0>=s1){N.push([s0,s1]);continue}if(u0>s0)N.push([s0,u0]);if(u1<s1)N.push([u1,s1])}cortes=N}
       for(const [s0,s1] of cortes){const ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;S.push([a[0]+ux*s0,a[1]+uy*s0,a[0]+ux*s1,a[1]+uy*s1])}acc+=L}}
+  // caminhos que bloqueiam a luz (penhasco, palicada, barranco): a linha do meio do caminho
+  for(const c of A.caminhos||[]){if(!c.bloqueia)continue;const P=trajetoCaminho(c),n=P.length;for(let i=0;i<n-(c.laco?0:1);i++){const a=P[i],b=P[(i+1)%n];if(Math.hypot(b[0]-a[0],b[1]-a[1])>1e-6)S.push([a[0],a[1],b[0],b[1]])}}
   return S}
 // poligono do que a luz alcanca (raios ate cada ponta de parede e um circulo de 48 direcoes)
 export function visibilidade(cx,cy,R,S){const segs=S.filter(s=>{const dx=s[2]-s[0],dy=s[3]-s[1],l=dx*dx+dy*dy;let t=l?((cx-s[0])*dx+(cy-s[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(cx-s[0]-dx*t,cy-s[1]-dy*t)<R});if(!segs.length)return null;

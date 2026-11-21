@@ -71,3 +71,6 @@ export function curva(P,cv,laco){if(!cv||!cv.some(Boolean)||P.length<2)return P;
   for(let i=0;i<n-(laco?0:1);i++){const a=P[i],b=P[(i+1)%n],h1=cv[i],h2=cv[(i+1)%n];O.push(a);if(!h1&&!h2)continue;
     const c1=h1?[a[0]+h1[0],a[1]+h1[1]]:a,c2=h2?[b[0]-h2[0],b[1]-h2[1]]:b;for(let k=1;k<N;k++){const t=k/N,u=1-t,A=u*u*u,B=3*u*u*t,C=3*u*t*t,D=t*t*t;O.push([A*a[0]+B*c1[0]+C*c2[0]+D*b[0],A*a[1]+B*c1[1]+C*c2[1]+D*b[1]])}}
   if(!laco)O.push(P[n-1]);return O}
+// caminho do Dungeondraft: suavizado (smoothness) ou com curvas do editor
+export const suaviza=(P,s)=>{if(!s||P.length<3)return P;const O=[];for(let i=0;i<P.length-1;i++){const p0=P[Math.max(0,i-1)],p1=P[i],p2=P[i+1],p3=P[Math.min(P.length-1,i+2)];for(let k=0;k<6;k++){const t=k/6,t2=t*t,t3=t2*t;O.push([.5*(2*p1[0]+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),.5*(2*p1[1]+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)])}}O.push(P[P.length-1]);return O};
+export const trajetoCaminho=p=>limpa(p.cv&&p.cv.some(Boolean)?curva(p.p,p.cv,p.laco):suaviza(p.p,p.suave),p.laco);

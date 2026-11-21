@@ -1,6 +1,7 @@
 // Atlas - Modo Batalha: exportar. Imagem por andar (em pedacos, para mapas grandes), cena do Foundry, arquivo .atlasmap e um .zip simples.
 import {criaRender} from "./render.js";
 import {trajeto,FONTES,tipoPortal} from "./modelo.js";
+import {trajetoCaminho} from "./vetor.js";
 
 // ---------- texto (o editor desenha do mesmo jeito) ----------
 const hex=c=>"#"+[0,1,2].map(i=>Math.round(Math.max(0,Math.min(1,c[i]))*255).toString(16).padStart(2,"0")).join("");
@@ -35,6 +36,8 @@ function pecasFoundry(M,i,o){const A=M.andares[i],px=o.px||100,dist=o.distancia|
   for(const q of A.portais||[]){const a=[q.x-q.dx*q.raio,q.y-q.dy*q.raio],b=[q.x+q.dx*q.raio,q.y+q.dy*q.raio],tp=tipoPortal(q,M.texturas),c=[P(a[0]),P(a[1]),P(b[0]),P(b[1])];
     if(tp==="janela")walls.push({c,move:SENSE.NORMAL,sight:SENSE.NONE,light:SENSE.NONE,sound:SENSE.NORMAL,door:0,ds:0,dir:0});
     else walls.push({c,move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NORMAL,door:1,ds:q.fechado===false?1:0,dir:0})}
+  // caminhos com "bloqueia luz" (penhasco de caverna, palicada, barranco, encosta) viram parede: bloqueiam passagem, visao e luz; o som passa
+  for(const c of A.caminhos||[]){if(!c.bloqueia)continue;const Q=trajetoCaminho(c),n=Q.length;if(n<2)continue;for(let k=0;k<n-(c.laco?0:1);k++){const a=Q[k],b=Q[(k+1)%n];if(Math.hypot(b[0]-a[0],b[1]-a[1])<1e-6)continue;walls.push({c:[P(a[0]),P(a[1]),P(b[0]),P(b[1])],move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NONE,door:0,ds:0,dir:0,flags:{atlas:{caminho:true}}})}}
   for(const l of A.luzes||[]){const cl=l.claro==null?l.raio*.45:l.claro;lights.push({x:P(l.x),y:P(l.y),rotation:0,walls:l.sombras!==false,vision:false,hidden:false,config:{bright:Math.round(cl*dist*100)/100,dim:Math.round(l.raio*dist*100)/100,color:hex(l.c),alpha:.4,luminosity:.5,angle:360,attenuation:.5,coloration:1,animation:{type:null,speed:5,intensity:5}}})}
   return {walls,lights}}
 export function cenaFoundry(M,i,o){o=o||{};const A=M.andares[i],px=o.px||100,dist=o.distancia||1.5,un=o.unidade||"m",{walls,lights}=pecasFoundry(M,i,o);
