@@ -44,7 +44,8 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   async function carregaReais(extra){const quer=new Set();for(const t of usadosReais())if(BIB.tem(t)&&BIB.usavel(t)){quer.add(t);if(/\/textures\/walls\//.test(t)){const pe=t.replace(/(\.\w+)$/,"_end$1");if(BIB.tem(pe))quer.add(pe)}}for(const t of extra||[])if(real(t)&&BIB.tem(t))quer.add(t);
     for(const A of M.andares)for(const l of A.luzes||[])if(real(l.tex)&&BIB.tem(l.tex))quer.add(l.tex);if(real(luzP.tex)&&BIB.tem(luzP.tex))quer.add(luzP.tex);
     const novos=[...quer].filter(t=>!REAIS.has(t));if(!novos.length&&[...REAIS.keys()].every(t=>quer.has(t)))return 0;let feito=0;
-    const chao=t=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(t);
+    // telhas: imagem inteira (a reducao do "cru" deixa a borda meio transparente e vira emenda a cada repeticao)
+    const chao=t=>/\/textures\/(terrain|patterns|textures|materials?|tilesets)\//.test(t)&&!/\/Roof_(Pattern|Terrain)\//.test(t);
     for(const t of novos){const d=await BIB.dims(t);if(d)DIMR.set(t,d);let bm;if(chao(t)&&d){const cr=await BIB.imagemCrua(t,1024,1024);bm=cr?{bm:cr,w:d[0],h:d[1],cru:1}:await BIB.imagemNova(t)}else bm=await BIB.imagemNova(t);REAIS.set(t,bm||null);feito++;if(feito%25===0){dica.textContent="Carregando suas artes… "+feito+"/"+novos.length}}
     for(const t of [...REAIS.keys()])if(!quer.has(t)){fechaBm(REAIS.get(t));REAIS.delete(t)}if(!vivo)return 0;
     let ajust=0;for(const A of M.andares)for(const o of A.objetos||[]){if(!o.ds||o.dz)continue;const t=M.texturas[o.t],d=DIMR.get(t);if(!d)continue;o.w=+(d[0]/256*o.ds[0]).toFixed(4);o.h=+(d[1]/256*o.ds[1]).toFixed(4);o.dz=1;ajust++}
