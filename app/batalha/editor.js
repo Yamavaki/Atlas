@@ -146,6 +146,9 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const RUIM_MAT=/Cyberpunk|Sci_?Fi|Modern|Neon|Broken|Ruin|Destroyed|Cracked|Substrate|Snowy|Frosty|Mossy|Dirt\d|Damage|_Z_|Overlay|Ceremorph|Drow|Dwarven|Alien|Colorable|Blood/;
   const sorteia=(L,sem)=>L.length?L[Math.abs(Math.imul(sem|0,2654435761)>>>0)%L.length]:null;
   // autor: o dos objetos escolhidos (o chao e a parede saem do mesmo autor quando ele tem)
+  // artes usadas nos ultimos mapas (para variar de leve entre mapas): lista das ultimas 600, no navegador
+  const usosRecentes=()=>{const M2=new Map();try{for(const k of JSON.parse(localStorage.getItem("atlas-usos-artes")||"[]"))M2.set(k,(M2.get(k)||0)+1)}catch(e){}return M2};
+  const anotaUsos=ks=>{try{const L=JSON.parse(localStorage.getItem("atlas-usos-artes")||"[]").concat([...new Set(ks)]);localStorage.setItem("atlas-usos-artes",JSON.stringify(L.slice(-600)))}catch(e){}};
   const matZona=(tipo,riq,estilo,sem,autor)=>{if(!BIB.estado().conectada)return null;const ests=(estilo||"").split(" ").filter(w=>/ashen|walnut|dark|light|red|slate|earthy|redrock|sandstone|volcanic/.test(w)),cor=k=>ests.length&&ests.some(w=>new RegExp("_"+w+"_","i").test(k))?1:0;
     const lista=(cats,re)=>{const r=BIB.buscar({cats,todos:true,filtro:c=>re.test(c)&&!RUIM_MAT.test(c)});return r.itens.map(x=>r.item(x).caminho)};
     const pega=(cats,re)=>{let L=lista(cats,re);if(!L.length)return null;if(autor){const A=L.filter(k=>{const p=BIB.pacoteDe(k);return p&&p.autor===autor});if(A.length)L=A}const C=L.filter(cor);return sorteia(C.length?C:L,sem)};
@@ -174,7 +177,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       const portas=[],janelas=[];for(const q of A.portais||[]){if((q.z===z.id&&!pTrav)||distPoli(z.p,q.x,q.y,true)>.6)continue;(MD.tipoPortal(q,M.texturas)==="janela"?janelas:portas).push([q.x,q.y])}
       let cat={},info={};
       if(par.fonte==="atlas"||!BIB.estado().conectada){cat=catAtlas();info={pacote:"Artes do Atlas",estilo:""}}
-      else{zMsg="Escolhendo as artes…";painel(true);await new Promise(r=>setTimeout(r,20));const idx=BIB.porSub(),e=ZN.escolheArtes(z.tipo,{lista:s=>idx.get(s)||[]},par,semente),pk=BIB.pacotes().find(p=>p.id===e.pacote);info={pacote:pk?pk.nome.replace(/_/g," "):"",pid:e.pacote||"",estilo:e.estilo||"",autor:pk&&pk.autor||""};
+      else{zMsg="Escolhendo as artes…";painel(true);await new Promise(r=>setTimeout(r,20));const idx=BIB.porSub(),U=usosRecentes(),e=ZN.escolheArtes(z.tipo,{lista:s=>idx.get(s)||[],usos:k=>U.get(k)||0},par,semente),pk=BIB.pacotes().find(p=>p.id===e.pacote);info={pacote:pk?pk.nome.replace(/_/g," "):"",pid:e.pacote||"",estilo:e.estilo||"",autor:pk&&pk.autor||""};
         for(const [p,ks] of Object.entries(e.papeis)){cat[p]=(await Promise.all(ks.map(arteReal))).filter(Boolean);if(!(ZN.PAPEIS[p]&&ZN.PAPEIS[p].borda))for(const a of cat[p])a.funde=""}}
       // paredes, piso e porta feitos pela propria zona (quando ela nao esta num comodo que ja tem paredes)
       const fazParede=par.paredes&&z.parede==null&&!pTrav,extra=[];
@@ -189,7 +192,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
       const ks=[...new Set(r.objs.map(x=>x.k).filter(real))];if(ks.length){zMsg="Carregando as artes…";painel(true);await atualizaReais(ks)}
       if(a0!==andar||!zonasDe().includes(z))return null;
       const ops=apagaOps(soltos),sd=M.sombra&&M.sombra.sd?{sd:M.sombra.sd.slice()}:{};for(const x of extra){x.e.zg=assinatura(x.e);ops.push({op:"cria",a:andar,k:x.k,item:x.e})}
-      for(const x of r.objs){const e={id:MD.novoId(M),t:MD.texDe(M,texO(x.k)),x:x.x,y:x.y,r:x.r,w:x.w,h:x.h,l:x.l,...(x.m?{m:1}:{}),...(real(x.k)||M.sombra&&M.sombra.todos?{s:1}:{}),...sd,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"objetos",item:e})}
+      anotaUsos(r.objs.map(x=>x.k).filter(real));for(const x of r.objs){const e={id:MD.novoId(M),t:MD.texDe(M,texO(x.k)),x:x.x,y:x.y,r:x.r,w:x.w,h:x.h,l:x.l,...(x.m?{m:1}:{}),...(real(x.k)||M.sombra&&M.sombra.todos?{s:1}:{}),...sd,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"objetos",item:e})}
       for(const l of r.luzes){const P=MD.LUZES.find(q=>q[0]===l.pre)||MD.LUZES[0],e={id:MD.novoId(M),x:l.x,y:l.y,raio:P[2],claro:P[3],forca:P[4],c:P[5].concat(1),sombras:true,z:z.id};e.zg=assinatura(e);ops.push({op:"cria",a:andar,k:"luzes",item:e})}
       info.n=r.objs.length;info.travados=travados.filter(s=>s.k==="objetos"||s.k==="luzes").length;info.avisos=r.avisos;ops.push({op:"muda",a:andar,k:"zonas",id:z.id,de:MD.foto(z),para:Object.assign(MD.foto(z),{semente,info})});
       exec(ops,o.variar?"Variar zona":"Gerar zona");pendente=true;return r}
@@ -582,9 +585,9 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     bIA.onclick=()=>{if(!opc.hidden){opc.hidden=true;return}const pacs=BIB.pacotes().filter(p=>p.permitido);const sel=el("select",{"aria-label":"Tamanho máximo"},[["30000","Pequeno · ~30 mil tokens"],["120000","Para conversa · ~120 mil tokens"],["400000","Grande · ~400 mil tokens"],["","Sem limite"]].map(([v,t])=>el("option",{value:v,selected:v==="120000"?"":null},t)));
       const marcas=pacs.map(p=>{const c=el("input",{type:"checkbox",checked:true,"data-id":p.id});return el("label",{class:"bt-chk"},c,p.nome.replace(/_/g," "))});
       const idsMarcados=()=>marcas.map(m=>m.firstChild).filter(c=>c.checked).map(c=>c.dataset.id);
-      const bV2=el("button",{type:"button",class:"bt-a",onclick:async()=>{const ids=idsMarcados();if(!ids.length){dica.textContent="Escolha pelo menos um pacote.";return}dica.textContent="Montando o catálogo v2…";
-          try{const r=await CAT.arquivoIA2({pacotes:ids});salvaArq("catalogo-artes-ia-v2.zip",r.blob);dica.textContent="Catálogo v2: índice ~"+Math.round(r.tokens.indice/1000)+" mil + kits ~"+Math.round(r.tokens.kits/1000)+" mil tokens (anexe estes dois na conversa) e "+r.partes+" arquivos de pacote para abrir quando precisar."}catch(e){console.error(e);dica.textContent="Erro ao montar: "+(e.message||e)}}},"Baixar catálogo v2 (.zip)");
-      opc.replaceChildren(el("p",{class:"bt-nota"},"O v2 vem em partes: um índice e kits por ambiente (pequenos, para anexar sempre) e um arquivo por pacote, que a IA pede quando precisa."),el("details",{},el("summary",{},"Pacotes ("+pacs.length+")"),el("div",{class:"bt-chks"},marcas)),bV2,
+      const bV2=el("button",{type:"button",class:"bt-a",onclick:async()=>{const ids=idsMarcados();if(!ids.length){dica.textContent="Escolha pelo menos um pacote.";return}dica.textContent="Montando o catálogo v3…";
+          try{const r=await CAT.arquivoIA2({pacotes:ids});salvaArq("catalogo-artes-ia-v3.zip",r.blob);dica.textContent="Catálogo v3: índice ~"+Math.round(r.tokens.indice/1000)+" mil + kits ~"+Math.round(r.tokens.kits/1000)+" mil tokens (anexe estes dois na conversa) e "+r.partes+" arquivos de pacote para abrir quando precisar."}catch(e){console.error(e);dica.textContent="Erro ao montar: "+(e.message||e)}}},"Baixar catálogo v3 (.zip)");
+      opc.replaceChildren(el("p",{class:"bt-nota"},"O v3 vem em partes: um índice e kits por ambiente (pequenos, para anexar sempre) e um arquivo por pacote, que a IA pede quando precisa."),el("details",{},el("summary",{},"Pacotes ("+pacs.length+")"),el("div",{class:"bt-chks"},marcas)),bV2,
         el("details",{class:"bt-mais"},el("summary",{},"Arquivo único (formato antigo)"),el("label",{class:"bt-c"},el("span",{},"Tamanho máximo"),sel),
         el("button",{type:"button",class:"bt-a",onclick:async()=>{const ids=marcas.map(m=>m.firstChild).filter(c=>c.checked).map(c=>c.dataset.id);if(!ids.length){dica.textContent="Escolha pelo menos um pacote.";return}dica.textContent="Montando o catálogo…";
           const r=await CAT.arquivoIA({orcamento:sel.value?+sel.value:null,pacotes:ids});salvaArq("catalogo-artes-ia.md",new Blob([r.texto],{type:"text/markdown"}));

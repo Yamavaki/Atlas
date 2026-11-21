@@ -133,7 +133,9 @@ export function escolheArtes(tipo,fonte,par,semente){par=Object.assign({},PADRAO
     // ordem de preferencia: mesmo pacote e estilo, mesmo pacote com as palavras do estilo, mesmo pacote, outros pacotes
     const pw=estilo&&MOVEIS.has(p)?estilo.split(" "):[],g=[[],[],[],[]];for(const it of L){const i=it.pacote!==pac?3:!MOVEIS.has(p)||it.estilo===estilo?0:pw.length&&pw.some(w=>(" "+it.estilo+" ").includes(" "+w+" "))?1:2;g[i].push(it)}
     // nomes mais curtos primeiro dentro do grupo (a peca em si, nao a variante rebuscada), com sorteio entre os parecidos
-    const pega=[];for(const G of g){const pf=PAPEIS[p].pref,tp=it=>{if(!pf)return 0;const t=pal(it.nome);return pf.some(w=>t.includes(w))?0:1},rq=(par.riqueza==null?1:par.riqueza)-1.5,vr=it=>-Math.sign(rq)*Math.max(-2,Math.min(2,valorRiqueza(it.nome)))*Math.min(1,Math.abs(rq)),o=emb(G).sort((a,b)=>tp(a)-tp(b)||vr(a)-vr(b)||Math.round(a.nome.length/9)-Math.round(b.nome.length/9));const lim=PAPEIS[p].cand||Math.max(8,(PAPEIS[p].varia||1)+6);for(const it of o){if(pega.length>=lim)break;pega.push(it.k)}if(pega.length>=lim)break}
+    const pega=[];for(const G of g){const pf=PAPEIS[p].pref,tp=it=>{if(!pf)return 0;const t=pal(it.nome);return pf.some(w=>t.includes(w))?0:1},rq=(par.riqueza==null?1:par.riqueza)-1.5,vr=it=>-Math.sign(rq)*Math.max(-2,Math.min(2,valorRiqueza(it.nome)))*Math.min(1,Math.abs(rq)),us=it=>fonte.usos?.3*Math.min(2,fonte.usos(it.k)||0):0,
+      // encaixe primeiro (palavras do papel, riqueza); o uso recente nos ultimos mapas so empurra de leve (nunca passa uma diferenca de riqueza)
+      o=emb(G).sort((a,b)=>tp(a)-tp(b)||(Math.abs(vr(a)-vr(b))>=1?vr(a)-vr(b):0)||(Math.abs(vr(a)+us(a)-vr(b)-us(b))>=.25?vr(a)+us(a)-vr(b)-us(b):0)||Math.round(a.nome.length/9)-Math.round(b.nome.length/9));const lim=PAPEIS[p].cand||Math.max(8,(PAPEIS[p].varia||1)+6);for(const it of o){if(pega.length>=lim)break;pega.push(it.k)}if(pega.length>=lim)break}
     out[p]=pega}
   return {pacote:pac,estilo,papeis:out,faltam}}
 
