@@ -1492,6 +1492,9 @@ const BIOC={5:[[186,170,96],[166,150,80]],6:[[110,150,70],[92,132,58]],9:[[132,1
     else if(q.k===13){c.save();c.translate(q.x,q.y);c.scale(1.5,1.5);const cu=P.culture,h_=((q.x*7+q.y*13)|0)%100/100,ty=q.ty||(cu==="pirata"?(h_<.65?"pirata":"galeao"):cu==="norte"?"drakkar":cu==="japones"||cu==="chines"?"junco":cu==="moderno"||cu==="cyber"?(q.big||h_<.45?"cargueiro":"lancha"):cu==="vapor"?(h_<.6?"vapor":"cog"):cu==="deserto"||cu==="indiano"?"dhow":q.big?(h_<.5?"galeao":"caravela"):(h_<.5?"cog":"caravela"));AS.shipV(c,0,0,q.ang,ty,q.big?1.05:q.sm?.62:.8);c.restore()}
     else if(q.k===14){c.save();c.translate(q.x,q.y);const z=q.sm?1.05:1.5;c.scale(z,z);const h_=((q.x*5+q.y*11)|0)%100/100;AS.boatV(c,0,0,q.ang,["tribal","meso","pantano"].includes(P.culture)?"canoa":h_<.3?"vela":h_<.4?"canoa":"remo");c.restore()}
     else if(q.id){const z=(q.s||1)*Z*(q.street?.85:1)*ESCF(q.id);c.save();c.translate(q.x,q.py!=null?q.py:q.y);c.scale(z,z);AS.draw(c,0,0,q.id,q.race,q.v,q.ang||0,q.aov);c.restore()}};
+  // 1.33: cor, giro e espelho de qualquer objeto (gerado ou colocado), guardados no proprio objeto de origem
+  const desenhaV=(c,q)=>{const V=q.src||q.m;if(!V||!(V.hue||V.sat!=null||V.bri!=null||V.fl||V.rt)){drawQ(c,q);return}c.save();const F=[];if(V.hue)F.push("hue-rotate("+V.hue+"deg)");if(V.sat!=null)F.push("saturate("+V.sat+"%)");if(V.bri!=null)F.push("brightness("+V.bri+"%)");if(F.length)c.filter=F.join(" ");
+    const bx=q.x,by=q.k===1&&q.cy!=null?q.cy:q.y;if(V.fl||V.rt){c.translate(bx,by);if(V.rt)c.rotate(V.rt);if(V.fl)c.scale(-1,1);c.translate(-bx,-by)}drawQ(c,q);c.restore()};
   const foraDRT=q=>{const k=q.k;if(!(k===0||k===1||k===15||k===40||k===13||k===14||(typeof k!=="string"&&q.id&&k!==2&&k!==3)))return false;const big=(k===1?70:k===0?45:k===15?30:k===13?80:70)*1.3*(q.s>1?q.s:1),yb=k===1&&q.cy!=null?Math.max(q.y,q.cy):q.y;
     return q.x+big<DRT[0]||q.x-big>DRT[2]||yb+40<DRT[1]||yb-big*1.8>DRT[3]};
   let GSN=null;if(TER&&LIPS.length){GSN=document.createElement("canvas");GSN.width=canvas.width;GSN.height=canvas.height;GSN.getContext("2d").drawImage(canvas,0,0)}
@@ -1501,7 +1504,7 @@ const BIOC={5:[[186,170,96],[166,150,80]],6:[[110,150,70],[92,132,58]],9:[[132,1
       // depois da ultima cena o desenho da mae continua (emblema, bandeira): grava e repete depois da ultima peca
       const px=new Proxy(c,{get(t,k){const v=t[k];if(typeof v==="function")return(...a)=>{if(gr&&k!=="save"&&k!=="restore"){q._pos.push([k,a]);return k==="measureText"?v.apply(t,a):undefined}return v.apply(t,a)};return v},set(t,k,v){if(gr)q._pos.push(["=",k,v]);else t[k]=v;return true}});
       AS.cena.gancho=dt=>{gr=false;for(const f of dt.G)f();const o_={};for(const k_ of ESTC)o_[k_]=c[k_];q._st.push(o_);q._cap.push(dt);gr=true};try{c.save();c.translate(q.x,q.py);c.scale(q._z,q._z);K.drawBig(px,Object.assign({},q,{x:0,y:0,sz:1}));gr=false;c.restore()}finally{AS.cena.gancho=null;gr=false}continue}
-    if(q.k==="BR"){if(!HID.has(q.ly))q.draw(c);continue}if(q.k==="L"){if(!GSN)continue;c.save();c.beginPath();q.pts.forEach((z,i)=>i?c.lineTo(z[0],z[1]):c.moveTo(z[0],z[1]));c.closePath();c.clip();c.setTransform(1,0,0,1,0,0);c.drawImage(GSN,0,0);c.restore();continue}if(HID.has(q.ly))continue;seedQ(q);if(gone(q))continue;if(DRT&&foraDRT(q)){if(q.k===1&&q.smoke)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3]);continue}drawQ(c,q)}
+    if(q.k==="BR"){if(!HID.has(q.ly))q.draw(c);continue}if(q.k==="L"){if(!GSN)continue;c.save();c.beginPath();q.pts.forEach((z,i)=>i?c.lineTo(z[0],z[1]):c.moveTo(z[0],z[1]));c.closePath();c.clip();c.setTransform(1,0,0,1,0,0);c.drawImage(GSN,0,0);c.restore();continue}if(HID.has(q.ly))continue;seedQ(q);if(gone(q))continue;if(DRT&&foraDRT(q)){if(q.k===1&&q.smoke)smoke.push([q.x,q.cy-(q.o.H+q.o.R)*Z-3]);continue}desenhaV(c,q)}
   // contorno exato do objeto (silhueta do proprio desenho)
   const BIGQ=q=>q.k==="M"?90*(q.m.s||1):q.k===3?240:q.k===2?120:q.k===1?70:q.k===0?45:q.k===15?30:q.k===13?80:70,SILC=new Map();C._sil=src=>{if(SILC.has(src))return SILC.get(src);const q=obj.find(z=>z.src===src);if(!q){SILC.set(src,null);return null}const big=BIGQ(q),keep=rs;
     let r;try{r=mkSil(c2=>{seedQ(q);drawQ(c2,q,true)},q.x,q.y,big)}finally{rs=keep}SILC.set(src,r);return r};
@@ -1618,6 +1621,7 @@ function patchAt(C,x,y){setMapa(C.P.mapa);for(const p of C.patches){if(p.sea)con
 const ARR=["B","SPB","props","trees","NAT","ships","boats","bunting","fields","squares","yards","STR","bridgesR"];
 function applyOv(C,q,o){const isA=Array.isArray(q),own=ARR.find(n=>C[n]&&C[n].includes(q));if(!own)return;
   if(o.del){C[own].splice(C[own].indexOf(q),1);return}
+  for(const kk of ["hue","sat","bri","fl","rt"])if(kk in o){if(o[kk]==null)delete q[kk];else q[kk]=o[kk]}
   if(own==="squares"||own==="yards"){if(o.poly&&o.poly.length>=3)q.poly=o.poly.map(v=>[v[0],v[1]]);if(o.col)q.col=o.col;if(o.pave)q.pave=o.pave;return}
   if(own==="fields"){if(o.poly&&o.poly.length>=3){q.poly=o.poly.map(v=>[v[0],v[1]]);let sx=0,sy=0;for(const v of q.poly){sx+=v[0];sy+=v[1]}q.c=[sx/q.poly.length,sy/q.poly.length]}if(o.col)q.col=o.col;if(o.fence!=null)q.fence=o.fence;return}
   if(own==="bunting"){if(o.pa){q.a=[o.pa[0],o.pa[1]];q.b=[o.pb[0],o.pb[1]]}return}

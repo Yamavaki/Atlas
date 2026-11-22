@@ -1259,19 +1259,19 @@ function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslav
 
 // ---------- desenho ----------
 // ---------- 1.32: tracados a mao na regiao (estrada, pavimentada, areia, trilha, rio, riacho) com pontes onde a estrada cruza um rio ----------
-const TR_RW=[[3.5,2],[6,3.8],[8.5,5.6],[11,7.4],[14,9.6]],TR_COR={estrada:"#e4d3a0",pavimentada:"#d6d0be",areia:"#ecd9a8"};
-const trRio=t=>t.tipo==="rio"||t.tipo==="riacho";
+const TR_RW=[[3.5,2],[6,3.8],[8.5,5.6],[11,7.4],[14,9.6]],TR_COR={estrada:"#e4d3a0",pavimentada:"#d6d0be",areia:"#ecd9a8",rua:"#e0cf9c"};
+const trRio=t=>t.tipo==="rio"||t.tipo==="riacho",trMuro=t=>t.tipo==="muralha"||t.tipo==="palicada"||t.tipo==="sebe";
 // arvores, pedras e mato em cima de um tracado a mao saem do caminho (q.trac)
-function marcaTrac(objs,L){const T=(L||[]).filter(t=>t.pts&&t.pts.length>1).map(t=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.pts){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}const r=trRio(t)?(t.larg||12)*.75+12:(TR_RW[clamp(t.larg==null?1:t.larg,0,4)][0]/2+13);return {P:t.pts,r,b:[x0-r,y0-r,x1+r,y1+r]}});
+function marcaTrac(objs,L){const T=(L||[]).filter(t=>t.pts&&t.pts.length>1).map(t=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.pts){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}const r=trRio(t)?(t.larg||12)*.75+12:trMuro(t)?12:(TR_RW[clamp(t.larg==null?1:t.larg,0,4)][0]/2+13);return {P:t.pts,r,b:[x0-r,y0-r,x1+r,y1+r]}});
   for(const q of objs){if(q.man||q.wx==null||!(q.k===0||q.k===11||q.k===12||q.k===30||q.k===31)){continue}let on=0;for(const t of T){if(q.wx<t.b[0]||q.wx>t.b[2]||q.wy<t.b[1]||q.wy>t.b[3])continue;const P=t.P;for(let i=0;i<P.length-1&&!on;i++){const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1,u=clamp(((q.wx-a[0])*dx+(q.wy-a[1])*dy)/L2,0,1);if(Math.hypot(q.wx-a[0]-dx*u,(q.wy-a[1]-dy*u)*(q.wy>a[1]+dy*u?.6:1.4))<t.r)on=1}if(on)break}q.trac=on}}
 function desenhaTracos(f,L,W){if(!L||!L.length)return;f.save();f.lineJoin="round";f.lineCap="round";
-  const rios=L.filter(t=>trRio(t)&&t.pts&&t.pts.length>1),estr=L.filter(t=>!trRio(t)&&t.pts&&t.pts.length>1);
+  const rios=L.filter(t=>trRio(t)&&t.pts&&t.pts.length>1),estr=L.filter(t=>!trRio(t)&&!trMuro(t)&&t.pts&&t.pts.length>1);
   const kR=t=>(t.larg||(t.tipo==="riacho"?6:12))/16;
   for(const t of rios){smoothPath(f,t.pts);f.strokeStyle="#33403c";f.lineWidth=20*kR(t);f.stroke()}
   for(const t of rios){const k=kR(t);smoothPath(f,t.pts);f.strokeStyle="#7f9197";f.lineWidth=16*k;f.stroke();smoothPath(f,t.pts);f.strokeStyle="#98a9ab";f.lineWidth=8*k;f.stroke();
     f.strokeStyle="rgba(40,58,66,.55)";f.lineWidth=.9;f.beginPath();const P=t.pts;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l,n=Math.max(1,Math.floor(l/14));
       for(let s=0;s<n;s++){const u=(s+.3)/n,cx=a[0]+dx*u,cy=a[1]+dy*u;for(const o0 of [-4,2.5]){const o=o0*k,sg=(i+s)&1?1:-1;f.moveTo(cx+nx*o,cy+ny*o);f.quadraticCurveTo(cx+dx/l*4+nx*(o+1.6*sg),cy+dy/l*4+ny*(o+1.6*sg),cx+dx/l*8+nx*o,cy+dy/l*8+ny*o)}}}f.stroke()}
-  const RW=t=>TR_RW[clamp(t.larg==null?1:t.larg,0,4)];
+  const RW=t=>t.tipo==="rua"?[4.6*(1+.3*((t.larg==null?1:t.larg)-1)),2.8*(1+.3*((t.larg==null?1:t.larg)-1))]:TR_RW[clamp(t.larg==null?1:t.larg,0,4)];
   for(const t of estr){smoothPath(f,t.pts);f.strokeStyle=t.tipo==="pavimentada"?"rgba(60,54,44,.75)":"rgba(74,52,22,.7)";f.lineWidth=RW(t)[0];if(t.tipo==="trilha")f.setLineDash([5,4]);f.stroke();f.setLineDash([])}
   for(const t of estr){if(t.tipo==="trilha")continue;smoothPath(f,t.pts);f.strokeStyle=TR_COR[t.tipo]||TR_COR.estrada;f.lineWidth=RW(t)[1];f.stroke();
     if(t.tipo==="pavimentada"&&RW(t)[1]>3){smoothPath(f,t.pts);f.strokeStyle="rgba(90,84,70,.45)";f.lineWidth=.8;f.setLineDash([1.6,2.4]);f.stroke();f.setLineDash([])}}
@@ -1382,8 +1382,10 @@ function render(W,canvas,stamps){
   upsample(W.elev,E);upsample(W.forest,F);upsample(W.vari,V);const LF=new Float32Array(WX*WY);upsample(W.land,LF);
   let thrC=1;{const a=[];for(let y=8;y<WY-8;y+=6)for(let x=4;x<WX;x+=6){const v=E[(y-6)*WX+x]-E[(y+6)*WX+x];if(v>.004)a.push(v)}a.sort((p,q)=>p-q);thrC=Math.max(.055,a[Math.floor(a.length*.988)]||1)}
   const img=new ImageData(MW,MH),o=img.data,YB=new Uint16Array(MW*MH);
-  const NL=36;const coluna=x=>{let ymin=MH,hidden=false,cprev=false;const xl=Math.max(0,x-6),xr=Math.min(WX-1,x+6);
-    for(let y=WY-1;y>=0;y--){const i=y*WX+x,h=E[i],sy=(y*TILT-h*K)|0;
+  // 1.34: coluna(x, yA, yB) refaz so as linhas do mundo entre yA e yB; as de baixo so contam para a oclusao
+  const NL=36;const coluna=(x,yA,yB)=>{let ymin=MH,hidden=false,cprev=false;const xl=Math.max(0,x-6),xr=Math.min(WX-1,x+6),ya=yA==null?WY-1:yA,yb=yB==null?0:yB;
+    for(let y=WY-1;y>ya;y--){const sy=(y*TILT-E[y*WX+x]*K)|0;if(sy<ymin)ymin=sy}
+    for(let y=ya;y>=yb;y--){const i=y*WX+x,h=E[i],sy=(y*TILT-h*K)|0;
       if(sy>=ymin){hidden=true;continue}
       const yu=Math.max(0,y-6),yd=Math.min(WY-1,y+6);
       const gx=E[y*WX+xr]-E[y*WX+xl],gy=E[yd*WX+x]-E[yu*WX+x];
@@ -1476,13 +1478,15 @@ function render(W,canvas,stamps){
     if(TREEK.has(m.v))obj.push({k:30,x:p[0],y:p[1],v:m.v,s:s*(m.v==="bush"?1:.9),man:1});else if(m.v==="rock")obj.push({k:31,x:p[0],y:p[1],s,man:1});
     else{const b=W.bAt(m.x,m.y),col=b===8?["#86705e","#54443a","#a08a74"]:b===4||b===5?["#c9a06c","#8c6a44","#e0c494"]:["#b9b3a2","#77705f","#d6d0c0"];obj.push({k:MKEY[m.v],x:p[0],y:p[1],man:1,s,col,st:((m.x*7+m.y*3)|0)%12,race:(towns.find(t=>t.rel(m.x,m.y)<2.5)||{race:"humano"}).race,snow:sampleGrid(W.snow,m.x,m.y)>.5})}}finally{for(let i=n0;i<obj.length;i++)obj[i].mref=m}}
   let objD=obj;if(ER&&ER.length){const ep=ER.map(e=>{const p=pj(e.x,e.y);return [p[0],p[1],e.r*e.r]});objD=obj.filter(q=>{if(q.man||q.x==null||q.k===4||q.k===5||q.k===9||q.k===13||q.k===15)return true;for(const [x,y,r2] of ep){const dx=q.x-x,dy=(q.y-y)/TILT;if(dx*dx+dy*dy<r2)return false}return true})}
+  // 1.34: no desenho de uma faixa (pincel), so os objetos perto dela passam pelas edicoes e pela ordenacao
+  if(FX)objD=objD.filter(q=>{let a=q.x,b=q.x;if(a==null){if(!q.a||!q.b)return true;a=Math.min(q.a[0],q.b[0]);b=Math.max(q.a[0],q.b[0])}return b>=FX[0]-140&&a<=FX[1]+140});
   {const OV=(X&&X.ovr)||{},LYS=X&&X.layers&&X.layers.length?X.layers:DEFLY,out=[];LI=new Map(LYS.map((l,i)=>[l.id,i]));HID=new Set(LYS.filter(l=>l.hide).map(l=>l.id));
     for(const q0 of objD){let q=q0;const o=q0.key&&OV[q0.key];if(o){if(o.del)continue;q=Object.assign({},q0);
       if(o.px!=null){const dx=o.px-q0.x,dy=o.py-(q0.cy!=null?q0.cy:q0.y);q.x+=dx;q.y+=dy;if(q.cy!=null)q.cy+=dy}
       if(o.a!=null)q.ang=o.a;if(o.s!=null)q.os=o.s;if(o.v!=null)q.v=o.v;if(o.id)q.id=o.id;
       if(o.vs){if(q.st){const fam=Object.values(stamps).find(a=>Array.isArray(a)&&a.includes(q.st));if(fam)q.st=fam[(fam.indexOf(q.st)+o.vs)%fam.length]}else if(q.k===1&&q.roof){const RK=Object.keys(ROOF);q.roof=RK[(RK.indexOf(q.roof)+o.vs)%RK.length]}}}
       {const vz=o||q0.mref;if(vz&&(vz.rt||vz.fl||vz.hue||vz.sat!=null||vz.bri!=null)){if(q===q0)q=Object.assign({},q0);q.rt=vz.rt;q.fl=vz.fl;q.hue=vz.hue;q.sat=vz.sat;q.bri=vz.bri}}const ly=(o&&o.ly)||(q.mref&&q.mref.ly);q.ly=LI.has(ly)?ly:LI.has("base")?"base":LYS[0].id;out.push(q)}
-    {const seen=new Set();for(const q of objD)if(q.key)seen.add(q.key);API.orph=Object.keys(OV).filter(k=>!seen.has(k))}
+    if(!FX){const seen=new Set();for(const q of objD)if(q.key)seen.add(q.key);API.orph=Object.keys(OV).filter(k=>!seen.has(k))}
     objD=out}
   // 1.12: marcos dos biomas espalhados pela terra livre
   if(W.P.bio2&&(W.P.marcos??.5)>0){const rm=mulberry((W.seed^0x5a11)>>>0),MK={0:["menir","circulo","ruina","caverna"],1:["menir","caverna"],2:["termal","cristal"],3:["menir","ossada"],4:["ossada","ruina"],5:["ossada","menir"],6:["ruina"],7:["ruina","circulo"],8:["ossada","fenda"],9:["ruina","circulo"],11:["ossada","cristal"],12:["ossada","monolito"],13:["vulcao","termal","vulcao"],14:["cristal","termal"],15:["cristal","circulo","arvore","ilha"],16:["fenda","monolito","ossada"],17:["ossada","vulcao","ossada"],18:["monolito","cristal","ilha"],19:["arvore","ilha","ilha"],20:["cogumelo","cogumelo","circulo"]},
@@ -1496,6 +1500,11 @@ function render(W,canvas,stamps){
   if(!FX){const D=[];const yW=(x,sy)=>{let y=sy/TILT;for(let k=0;k<4;k++)y=(sy+eAt(x,y)*K)/TILT;return y};for(const q of objD){if(q.x==null||q.y==null)continue;let t=null,r=0;const sc=q.s||1;
       if(q.k===0){t="arvore";r=(q.st&&q.st.lw?q.st.lw:34)*sc*.36}else if(q.k===12){t=q.st&&stamps.reed&&stamps.reed.includes(q.st)?"junco":"mato";r=(q.st&&q.st.lw?q.st.lw:20)*sc*.38}else if(q.k===11){t="pedra";r=(q.st&&q.st.lw?q.st.lw:18)*sc*(q.wide?.5:.4)}else if(q.k===30){t=q.v==="bush"?"mato":"arvore";r=(q.v==="bush"?8:12)*sc}else if(q.k===31){t="pedra";r=7*sc}
       if(!t)continue;D.push([t,q.x,yW(q.x,q.y),Math.max(1,r)])}W._DECO=D}
+  // 1.33: muralha, palicada e cerca viva tracadas a mao: pedacos curtos (para a ordem de desenho) e torres, sempre na altura atual do relevo
+  {const TL=(W.P.tracos||[]).filter(t=>trMuro(t)&&t.pts&&t.pts.length>1),ly=LI.has("base")?"base":[...LI.keys()][0];
+    for(const t of TL){const fz={muralha:"stone",palicada:"palisade",sebe:"hedge"}[t.tipo],Q=[];for(let i=0;i<t.pts.length-1;i++){const a=t.pts[i],b=t.pts[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/22));for(let s2=0;s2<n;s2++)Q.push([lerp(a[0],b[0],s2/n),lerp(a[1],b[1],s2/n)])}Q.push(t.pts[t.pts.length-1]);
+      for(let i=0;i<Q.length-1;i++){const a=pj(Q[i][0],Q[i][1]),b=pj(Q[i+1][0],Q[i+1][1]);objD.push({k:4,a,b,y:Math.max(a[1],b[1]),fz,ly,man:1,trm:1});if(fz!=="hedge"&&(i%3===0||(t.torres===false?false:i%9===0)))objD.push({k:5,x:a[0],y:a[1]+.5,g:i%9===0&&fz==="stone"&&i?1:0,fz,ly,man:1,trm:1})}
+      if(fz!=="hedge"){const e=pj(Q[Q.length-1][0],Q[Q.length-1][1]);objD.push({k:5,x:e[0],y:e[1]+.5,g:0,fz,ly,man:1,trm:1})}}}
   objD.sort((a,b)=>(LI.get(a.ly)-LI.get(b.ly))||(a.y-b.y));const smoke=[];
   const seedQ=q=>{rngS=mulberry((Math.imul((q.x||0)*4|0,73856093)^Math.imul((q.y||0)*4|0,19349663)^q.k*83492791)>>>0)};
   const drawQ=(c,q,pk)=>{const _sc=q.man&&(q.k>=16&&q.k<=28||q.k<=8||q.k>=32)&&q.s&&q.s!==1,_os=q.os&&q.os!==1,_vz=q.rt||q.fl||q.hue||(q.sat!=null&&q.sat!==100)||(q.bri!=null&&q.bri!==100);if(_vz){c.save();if(q.hue||q.sat!=null||q.bri!=null)c.filter="hue-rotate("+(q.hue||0)+"deg) saturate("+(q.sat==null?100:q.sat)+"%) brightness("+(q.bri==null?100:q.bri)+"%)";const by=q.cy!=null?q.cy:q.y;c.translate(q.x,by);if(q.rt)c.rotate(q.rt);if(q.fl)c.scale(-1,1);c.translate(-q.x,-by)}if(_os){c.save();c.translate(q.x,q.y);c.scale(q.os,q.os);c.translate(-q.x,-q.y)}if(_sc){c.save();c.translate(q.x,q.y);c.scale(q.s,q.s);c.translate(-q.x,-q.y)}try{
@@ -1581,7 +1590,9 @@ function render(W,canvas,stamps){
         return bx0>bx1?null:[bx0,by0,bx1,by1]},
       // redesenha a faixa de colunas tocada, o fundo guardado e a altura dos objetos
       redesenha(rc,soCor){if(!rc)return;if(!soCor){ret(rc[0],rc[1],rc[2],rc[3]);if(W.dL)refazTex(rc[0]-8,rc[1]-8,rc[2]+8,rc[3]+8)}const x0=Math.max(0,(rc[0]|0)-8),x1=Math.min(MW-1,(rc[2]|0)+8),w=x1-x0+1;
-        for(let x=x0;x<=x1;x++){for(let s=0;s<MH;s++){o[(s*MW+x)*4+3]=0;YB[s*MW+x]=0}coluna(x)}tctx.putImageData(img,0,0,x0,0,w,MH);
+        // so as linhas tocadas e as de cima que a montanha pode cobrir (no maximo K/TILT acima); as de baixo nao mudam
+        const yA=Math.min(WY-1,(rc[3]|0)+14),yB=Math.max(0,Math.floor(rc[1]-(K+6)/TILT)),s0=Math.max(0,Math.floor(yB*TILT-K-4)),s1=Math.min(MH,Math.ceil(yA*TILT+4));
+        for(let x=x0;x<=x1;x++)coluna(x,yA,yB);tctx.putImageData(img,0,0,x0,s0,w,s1-s0);
         if(CACHE&&CACHE.base&&PAPER){const g=CACHE.base.getContext("2d");g.save();g.beginPath();g.rect(MX+x0,MY,w,MH);g.clip();g.drawImage(PAPER,MX+x0,MY,w,MH,MX+x0,MY,w,MH);g.drawImage(tmp,x0,0,w,MH,MX+x0,MY,w,MH);g.translate(MX,MY);hach(g,x0-12,x1+12);g.restore()}
         if(CACHE&&!soCor)for(const q of CACHE.obj){if(q.wa&&q.wb&&q.a&&q.b){const mx=Math.min(q.wa[0],q.wb[0]),Mx=Math.max(q.wa[0],q.wb[0]),my=Math.min(q.wa[1],q.wb[1]),My=Math.max(q.wa[1],q.wb[1]);if(Mx<rc[0]-4||mx>rc[2]+4||My<rc[1]-4||my>rc[3]+4)continue;
             q.a=[q.a[0],q.wa[1]*TILT-eA(q.wa[0],q.wa[1])*K];q.b=[q.b[0],q.wb[1]*TILT-eA(q.wb[0],q.wb[1])*K];q.y=Math.max(q.a[1],q.b[1]);continue}if(q.wx==null||q.wx<rc[0]-4||q.wx>rc[2]+4||q.wy<rc[1]-4||q.wy>rc[3]+4)continue;const e=eA(q.wx,q.wy),dy=(e-(q.we||0))*K;if(dy){q.y-=dy;if(q.cy!=null)q.cy-=dy;if(q.ty!=null)q.ty-=dy}q.we=e;
