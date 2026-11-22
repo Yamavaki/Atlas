@@ -50,6 +50,7 @@ envolvidos: "[[Abade Tomas]], [[Irmã Ludmila]]"
 - **Links:** `[[Título]]`. Vários links ficam na mesma linha, separados por vírgula. Também vale o nome sem colchetes: `local: Olshany`.
 - **Valores de escolha:** sempre minúsculos e sem acento (`concluida`, `secundaria`, `medio`).
 - **Propriedades vazias:** pode omitir a linha.
+- **Como o Atlas grava:** quando você muda uma propriedade no Atlas, só a linha dela é reescrita; as outras linhas do cabeçalho ficam exatamente como estavam (ordem, aspas, listas YAML). Valores com `[[`, `:`, `#`, vírgula ou que começam com `[ { > | * & ! % @ \`` são gravados entre aspas duplas, como o Obsidian espera.
 
 ## 3. Tipos e propriedades
 
@@ -63,7 +64,7 @@ envolvidos: "[[Abade Tomas]], [[Irmã Ludmila]]"
 | `faccao` | `lider` (link) — `sede` (link) — `aliados` (links) — `inimigos` (links) — `data` |
 | `item` | `dono` (link) — `onde` (link) — `data` |
 | `sessao` | `data` — `jogadores` — `lugares` (links) |
-| `relogio` | `segmentos` (4, 6, 8…) — `cheios` (quantos já encheram) — `dono` (link: de quem é o relógio) — `estado`: ativo · cheio · parado — `campanha` (link). A pizza é clicável e aparece pequena na nota do dono e no quadro |
+| `relogio` | `segmentos` (4, 6, 8…) — `cheios` (quantos já encheram) — `dono` (link: de quem é o relógio) — `estado`: andamento · cheio · parado (o Atlas também aceita `ativo` como andamento) — `campanha` (link). A pizza é clicável e aparece pequena na nota do dono e no quadro |
 | `pista` | `revela` (link: o segredo) — `nivel` (1, 2, 3: ordem da escada) — `status`: oculta · entregue · perdida — `onde` (link: lugar ou pessoa) — `sessao` (link) — `quem` (quem achou) |
 | `escrito` | `formato`: nota · carta · livro · pergaminho · diario · cartaz… — `era`: classico · moderno — `papel` — `letra` — `entregue` (link: a quem foi entregue). Páginas separadas por `---` no corpo; `%%texto%%` vira segredo no JSON exportado para o Nauren |
 | `livre` | `data` |
