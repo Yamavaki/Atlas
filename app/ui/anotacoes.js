@@ -114,6 +114,8 @@ function ferramenta(cfg){const st={modo:"sel",cor:CORES[0],larg:3,estilo:"solido
     rascunho(){if(!st.rasc)return null;if(st.cursor&&(st.modo==="linha"||st.modo==="area"))return Object.assign({},st.rasc,{pts:st.rasc.pts.concat([st.cursor])});return st.rasc},
     // nota largada no mapa: vira ponto com o icone do tipo da nota
     largaNota(sx,sy,titulo,tipo,cor){const w=cfg.inv(sx,sy);if(!w)return null;const it={id:novoId(),tipo:"ponto",pts:[[R(w[0]),R(w[1])]],cor:cor||st.cor,icone:TIPO_ICON[tipo]||"nota",titulo,nota:"[["+titulo+"]]"};salvaItem(it,"Nota no mapa");return it},
+    adiciona(lista,nome){const L=cfg.itens().slice();for(const it of lista){it.id=novoId();it.pts=it.pts.map(q=>[R(q[0]),R(q[1])]);completa(it);L.push(it)}cfg.muda(L,nome);cfg.painel();cfg.desenha()},
+    tiraSorteados(){cfg.muda(cfg.itens().filter(x=>!x.sorteado),"Tirar pontos sorteados");st.sel=null;cfg.painel();cfg.desenha()},
     muda(fn,nome){const it=atual();if(!it)return;const n=JSON.parse(JSON.stringify(it));fn(n);salvaItem(n,nome||"Editar anotação")},
     modo(m){if(st.rasc)C.fim();st.modo=m;if(m!=="sel")st.sel=null;salvaPref();cfg.painel();cfg.desenha()},salvaPref};
   return C}
@@ -154,10 +156,42 @@ function painel(C,opts){opts=opts||{};const st=C.st,it=C.atual(),wrap=h("div",{c
         ondragstart:e=>{e.dataTransfer.setData("text/x-atlas-nota",nm);e.dataTransfer.effectAllowed="copy"},
         onclick:()=>{st.pend=st.pend&&st.pend.titulo===nm?null:{titulo:nm,tipo:opts.tipoNota?opts.tipoNota(nm):"livre"};lista();if(opts.aviso&&st.pend)opts.aviso("Clique no mapa onde vai “"+nm+"”.")}},iconeSvg(TIPO_ICON[opts.tipoNota?opts.tipoNota(nm):"livre"]||"nota",14),h("span",{},nm))))};
     q.addEventListener("input",lista);lista();box.append(h("b",{class:"anp-sub"},"Pôr uma nota no mapa"),q,res,h("p",{class:"anp-dica"},st.pend?"Agora clique no mapa onde vai “"+st.pend.titulo+"” (Esc cancela).":"Clique numa nota e depois no mapa, ou arraste a nota para o mapa. Vira um ponto ligado à nota."));wrap.append(box)}
+  if(opts.sortear)wrap.append(h("div",{class:"anp-bts"},h("button",{type:"button",class:"ghost sm",title:"Põe pontos com ganchos curtos de aventura em lugares do mapa",onclick:()=>opts.sortear(6)},"Sortear 6 pontos de interesse"),
+    (opts.itens?opts.itens():[]).some(x=>x.sorteado)?h("button",{type:"button",class:"ghost sm",onclick:()=>opts.sortear(0)},"Tirar os sorteados"):null));
   wrap.append(h("label",{class:"anp-k"},h("input",{type:"checkbox",checked:!!st.mostraGrade,onchange:e=>{st.mostraGrade=e.target.checked;C.salvaPref();if(opts.redesenha)opts.redesenha()}})," Grade de referência (A1, B2…)"));
   // lista de todas
   const L=opts.itens?opts.itens():[];if(L.length)wrap.append(h("details",{class:"anp-lista",open:L.length<=8},h("summary",{},L.length+(L.length>1?" anotações":" anotação")),L.map(x=>h("button",{type:"button",class:"anp-it"+(x.id===st.sel?" on":""),onclick:()=>{st.sel=x.id;st.modo="sel";if(opts.foca)opts.foca(x);if(opts.redesenha)opts.redesenha();if(opts.redesenhaPainel)opts.redesenhaPainel()}},x.tipo==="ponto"?iconeSvg(x.icone||"alfinete",14):h("i",{class:"anp-tr",style:"background:"+(x.cor||"#e0776b")}),h("span",{},x.titulo||{ponto:"Ponto",texto:"Texto",traco:"Traço",linha:"Linha",area:"Área"}[x.tipo]),x.celula?h("small",{},x.celula):null))));
   return wrap}
 
-window.AtlasAnot={ICONES:NS_ICON,NOME_ICON,CORES,TIPO_ICON,celula,letras,desenha,acerta,ferramenta,painel,iconeSvg,centro};
+// ---------- 1.40: pontos de interesse sorteados (ganchos curtos para o mestre) ----------
+// lugares: [{x,y,tipo,nome}] vindos do mapa (tipo: casa, especial, praca, porto, fora, povoado, mato, agua, ruina...)
+const POI={
+  nomeA:["Poço","Torre","Portão","Ponte","Beco","Casa","Jardim","Cripta","Fonte","Arco","Escada","Pátio","Galeria","Porão","Moinho","Estátua","Mirante","Cais","Capela","Muralha"],
+  nomeB:["dos Sussurros","da Lua Fria","do Enforcado","das Cinzas","do Último Pedido","sem Nome","das Sete Chaves","do Corvo","da Promessa Quebrada","do Sino Mudo","das Velas","do Afogado","da Névoa","do Relógio Parado","dos Ossos","da Viúva","do Contrabando","das Máscaras","do Eco","da Serpente"],
+  ganchos:{
+    segredo:["Embaixo do piso há uma passagem que leva a {onde}.","Uma parede soa oca: atrás dela, {coisa}.","Quem bate três vezes na porta dos fundos é atendido por {quem}.","À meia-noite, {fenomeno}."],
+    tesouro:["{quem} escondeu {coisa} aqui e não voltou para buscar.","Um mapa antigo marca este lugar com um X; o que está enterrado é {coisa}.","No fundo do poço brilha {coisa}."],
+    perigo:["{ameaca} aparece quando {quando}.","O chão cede em um ponto: abaixo, {onde}.","Quem passa por aqui {quando} volta diferente: {fenomeno}."],
+    encontro:["{quem} espera alguém que nunca chega e pede ajuda: {pedido}.","{quem} vende {coisa} barato demais — e é falso ou roubado.","Toda tarde {quem} discute aqui com {quem2}; os dois escondem {coisa}."],
+    misterio:["{fenomeno}; ninguém sabe explicar.","Os moradores evitam este lugar desde que {acontecimento}.","Há marcas recentes de {marca}, mas ninguém admite ter estado aqui."],
+    missao:["{quem} oferece pagamento para {pedido}.","Um cartaz pregado aqui pede {pedido}. A recompensa é {coisa}."]},
+  onde:["um túnel do antigo esgoto","uma adega esquecida","um santuário de um deus proibido","a casa do outro lado da rua","um cofre de uma guilda","uma caverna sob a cidade"],
+  coisa:["um anel com o brasão de uma família extinta","um diário cifrado","um mapa de túneis","uma lâmina que não enferruja","moedas de um reino que não existe mais","um ídolo que ainda está morno","um contrato assinado com sangue","um ovo de pedra"],
+  quem:["Uma velha cega","Um guarda corrupto","Um menino de recados","Uma sacerdotisa expulsa do templo","Um mercador estrangeiro","Um bardo endividado","Uma alquimista sem licença","Um cão que entende ordens demais"],
+  quem2:["o coletor de impostos","um mercenário caolho","a dona da estalagem","um noviço nervoso"],
+  ameaca:["Um bando de ladrões de rua","Um enxame de ratos grandes demais","Uma sombra sem dono","Um cão de guarda que não morre","Uma patrulha que prende qualquer um"],
+  quando:["chove","a lua está cheia","o sino toca","alguém fala o nome do antigo dono","a feira fecha"],
+  fenomeno:["ouve-se música de um lugar vazio","a água do poço fica vermelha","as velas acendem sozinhas","um cheiro de fumaça vem do nada","os relógios param"],
+  acontecimento:["um incêndio matou uma família inteira","um mago desapareceu ali dentro","encontraram um corpo sem sombra","o padre se recusou a abençoar o terreno"],
+  marca:["garras","cinzas em círculo","sangue seco","pegadas descalças que vão até a parede"],
+  pedido:["achar uma criança desaparecida","entregar uma carta sem ser seguido","descobrir quem envenena os cavalos","recuperar uma relíquia roubada","vigiar um armazém por uma noite"]};
+const ICONE_DE={segredo:"segredo",tesouro:"tesouro",perigo:"perigo",encontro:"pessoa",misterio:"misterio",missao:"bandeira"};
+function sorteiaPOI(lugares,n,semente){let a=(semente>>>0)||1;const r=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},pk=L=>L[(r()*L.length)|0];
+  const L=lugares.slice(),out=[],usados=[];const tipos=Object.keys(POI.ganchos);
+  for(let k=0;k<n&&L.length;k++){let lg=null;for(let t=0;t<30&&!lg;t++){const c=L[(r()*L.length)|0];if(!usados.some(u=>Math.hypot(u.x-c.x,u.y-c.y)<(c.dist||60)))lg=c}if(!lg)break;usados.push(lg);
+    const tp=lg.tipo==="porto"?pk(["tesouro","encontro","perigo"]):lg.tipo==="fora"||lg.tipo==="mato"?pk(["perigo","misterio","tesouro"]):lg.tipo==="praca"?pk(["encontro","missao","misterio"]):pk(tipos);
+    const txt=pk(POI.ganchos[tp]).replace(/\{(\w+)\}/g,(m,w)=>pk(POI[w]||[m])),nome=lg.nome&&r()<.4?lg.nome:pk(POI.nomeA)+" "+pk(POI.nomeB);
+    out.push({tipo:"ponto",pts:[[lg.x,lg.y]],cor:{segredo:"#a88bd6",tesouro:"#d4a64a",perigo:"#e0776b",encontro:"#6f9fd8",misterio:"#5fb3a1",missao:"#e39a4f"}[tp],icone:ICONE_DE[tp],titulo:nome,texto:txt.charAt(0).toUpperCase()+txt.slice(1),sorteado:1})}
+  return out}
+window.AtlasAnot={sorteiaPOI,ICONES:NS_ICON,NOME_ICON,CORES,TIPO_ICON,celula,letras,desenha,acerta,ferramenta,painel,iconeSvg,centro};
 })();
