@@ -2,7 +2,7 @@
 // Vertice: x, y, u, v, camada da textura (-1 = cor lisa), r, g, b, a, matiz, saturacao, brilho  (12 numeros). Sem DOM: pode rodar em Worker.
 import {materialDe,objetoDe} from "./arte.js";
 import {arredonda,fita,tampa,limpa,RAIO_PADRAO,curva,suaviza,trajetoCaminho} from "./vetor.js";
-import {trajeto,tipoPortal,alasBeiral} from "./modelo.js";
+import {trajeto,tipoPortal,alasBeiral,retangulos} from "./modelo.js";
 export const VERT=12;
 const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255,1];
 const BR=[1,1,1,1],TINTA=hex("#2a2018");
@@ -200,6 +200,9 @@ export function panosTelhado(ALAS,FUROS){const PANOS=ALAS.map(panosAla);let out=
 export function malhaTelhados(A,TEX,IND,PAR,todos){const B=[];let n=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
   const v=(x,y,u,w,l,c,br)=>{B.push(x,y,u,w,l,c[0]*br,c[1]*br,c[2]*br,c[3],0,1,1);n++};
   for(const t of A.telhados||[]){if(t.l!=null&&!todos)continue;if(t.alas&&t.alas.length){telhadoAlas(t,TEX,IND,PAR,v,lay,real);continue}
+    // telhado antigo de quatro aguas num comodo em L (concavo): vira alas na hora de desenhar, para nao sair torto
+    if((!t.estilo||t.estilo==="quatro")&&t.arte==null){const w0=t.parede!=null&&PAR&&PAR.get(t.parede),P0=w0?w0.p:t.p;let cv=true,sg=0;for(let i=0;i<P0.length;i++){const a=P0[i],b=P0[(i+1)%P0.length],c=P0[(i+2)%P0.length],z=(b[0]-a[0])*(c[1]-b[1])-(b[1]-a[1])*(c[0]-b[0]);if(Math.abs(z)<1e-9)continue;if(sg&&Math.sign(z)!==sg){cv=false;break}sg=Math.sign(z)}
+      if(!cv){const Rs=retangulos(P0);if(Rs&&Rs.length&&Rs.length<=8){const b=(+t.beiral||0)+(w0?(w0.larg||.18)/2:0);telhadoAlas(Object.assign({},t,{beiral:b,alas:Rs.map(r=>({x0:r[0],y0:r[1],x1:r[2],y1:r[3],tipo:"quatro"}))}),TEX,IND,PAR,v,lay,real);continue}}}
     // telhado pronto (arte de objeto, ex. telhado conico de torre da FA): cobre a caixa da forma
     if(t.arte!=null&&real(t.arte)!=null){const tx=TEX[t.arte],rc=IND["rc:"+tx]||[0,0,1,1],l=real(t.arte);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.p){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
       const k=t.escArte||1.12,cx=(x0+x1)/2,cy=(y0+y1)/2,hw=(x1-x0)/2*k,hh=(y1-y0)/2*k,cs=Math.cos(t.r||0),sn=Math.sin(t.r||0),P=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([a,b])=>[cx+a*cs-b*sn,cy+a*sn+b*cs]),e=.0003,U=[[rc[0]+e,rc[1]+e],[rc[2]-e,rc[1]+e],[rc[2]-e,rc[3]-e],[rc[0]+e,rc[3]-e]],c=t.c||[1,1,1,1];

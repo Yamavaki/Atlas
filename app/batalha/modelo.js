@@ -99,3 +99,12 @@ export function copiaAndar(M,A){const B=structuredClone(A);B.id=null;B.nome=A.no
   for(const k of TIPOS.concat(["camadas"])){if(k==="paredes")continue;for(const e of B[k]||[]){e.id=novoId(M);if(e.parede!=null&&mapa.has(e.parede))e.parede=mapa.get(e.parede)}}return B}
 // tipo da porta: o proprio, ou pelo nome da arte importada (janela, porta)
 export const tipoPortal=(q,TEX)=>q.tipo||(/window|sill|glass|janela/.test(((TEX&&TEX[q.t])||"").toLowerCase())?"janela":"porta");
+// 1.30: poligono so com angulos retos -> retangulos (alas) sobrepostos
+const R4=v=>+(+v).toFixed(4);
+export const retangulos=P=>{const xs=[...new Set(P.map(q=>R4(q[0])))].sort((a,b)=>a-b),ys=[...new Set(P.map(q=>R4(q[1])))].sort((a,b)=>a-b),nx=xs.length-1,ny=ys.length-1;if(nx<1||ny<1||nx*ny>900)return null;
+    for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];if(Math.abs(a[0]-b[0])>1e-3&&Math.abs(a[1]-b[1])>1e-3)return null}
+    const D=[...Array(nx)].map((_,i)=>[...Array(ny)].map((_,j)=>dentro(P,(xs[i]+xs[i+1])/2,(ys[j]+ys[j+1])/2))),C=[],k=(a,b,c,d)=>a+","+b+","+c+","+d,vis=new Set();
+    const cheio=(i0,j0,i1,j1)=>{for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++)if(!D[i][j])return false;return true};
+    for(let i=0;i<nx;i++)for(let j=0;j<ny;j++){if(!D[i][j])continue;for(const ord of [0,1]){let i0=i,i1=i,j0=j,j1=j;const H=()=>{while(i0>0&&cheio(i0-1,j0,i0-1,j1))i0--;while(i1<nx-1&&cheio(i1+1,j0,i1+1,j1))i1++},V=()=>{while(j0>0&&cheio(i0,j0-1,i1,j0-1))j0--;while(j1<ny-1&&cheio(i0,j1+1,i1,j1+1))j1++};if(ord){H();V()}else{V();H()}const q=k(i0,j0,i1,j1);if(!vis.has(q)){vis.add(q);C.push([i0,j0,i1,j1])}}}
+    C.sort((a,b)=>(xs[b[2]+1]-xs[b[0]])*(ys[b[3]+1]-ys[b[1]])-(xs[a[2]+1]-xs[a[0]])*(ys[a[3]+1]-ys[a[1]]));const cob=new Set(),out=[];
+    for(const [i0,j0,i1,j1] of C){let novo=false;for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++)if(!cob.has(i+","+j))novo=true;if(!novo)continue;for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++)cob.add(i+","+j);out.push([xs[i0],ys[j0],xs[i1+1],ys[j1+1]])}return out};
