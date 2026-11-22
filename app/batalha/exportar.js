@@ -129,20 +129,41 @@ export function sonsAndar(M,i,op){op=op||{};const A=M.andares[i],W=M.larg,H=M.al
 // escadas: objetos com arte de escada; ligam o andar delas ao andar marcado em "Leva ao andar" (ou ao de cima)
 // andar a que uma escada leva: o marcado (leva), senao o de cima, senao o de baixo; -1 se nao ha outro andar
 export const ehEscadaCaminho=(M,c)=>/stair|escada|ladder|degrau/i.test(M.texturas[c.t]||"");
-export function destinoEscada(M,i,e){let j=e.leva!=null?M.andares.findIndex(B=>B.id===e.leva):-1;if(j<0)j=i+1<M.andares.length?i+1:i-1;return j<0||j===i?-1:j}
-export function escadasDe(M){const L=[],poe=(i,j,cells)=>{const a=Math.min(i,j),b=Math.max(i,j),K=new Set(cells.map(c=>c+""));
-    // a mesma escada desenhada nos dois andares vira uma regiao so
-    const d=L.find(s=>s.from===a&&s.to===b&&s.cells.filter(c=>K.has(c+"")).length>=Math.min(s.cells.length,cells.length)*.5);if(d){for(const c of cells)if(!d.cells.some(q=>q[0]===c[0]&&q[1]===c[1]))d.cells.push(c);return}L.push({kind:"stairs",from:a,to:b,cells})};
-  M.andares.forEach((A,i)=>{for(const o of A.objetos||[]){if(objetoDe(M.texturas[o.t])!=="escada")continue;const j=destinoEscada(M,i,o);if(j<0)continue;
-    const c=Math.cos(o.r||0),s=Math.sin(o.r||0),hw=(o.w||1)/2,hh=(o.h||1)/2,R_=Math.hypot(hw,hh),cells=[];
+// andar de telhado (nome "Telhado…"/"Roof", ou so telhados sem paredes, portas e objetos): escada nao leva para la sozinha
+export const ehAndarTelhado=(M,j)=>{const A=M.andares[j];if(!A)return true;if(/telhad|roof|cobertura/i.test(A.nome||""))return true;return !!(A.telhados||[]).length&&!(A.paredes||[]).length&&!(A.portais||[]).length&&!(A.objetos||[]).length};
+// quadrados ocupados por uma peca de escada (objeto girado ou caminho com textura de degraus)
+function celulasEscada(e,k){const cells=[];if(k==="objetos"){const o=e,c=Math.cos(o.r||0),s=Math.sin(o.r||0),hw=(o.w||1)/2,hh=(o.h||1)/2,R_=Math.hypot(hw,hh);
     for(let y=Math.floor(o.y-R_);y<=Math.ceil(o.y+R_);y++)for(let x=Math.floor(o.x-R_);x<=Math.ceil(o.x+R_);x++){const dx=x+.5-o.x,dy=y+.5-o.y,u=dx*c+dy*s,v=-dx*s+dy*c;if(Math.abs(u)<=hw+.25&&Math.abs(v)<=hh+.25)cells.push([x,y])}
-    if(!cells.length)cells.push([Math.floor(o.x),Math.floor(o.y)]);poe(i,j,cells)}
-    // escada pintada como caminho (textura de degraus): a faixa do caminho vira a area da escada, ligando ao andar de cima (ou ao marcado)
-    for(const c of A.caminhos||[]){if(!ehEscadaCaminho(M,c))continue;const j=destinoEscada(M,i,c);if(j<0)continue;
-      const Q=trajetoCaminho(c),n=Q.length;if(n<2)continue;const hw=(c.larg||1)/2+.15;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of Q){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
-      const dS=(px,py,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2?Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/l2)):0;return Math.hypot(px-a[0]-t*dx,py-a[1]-t*dy)},cells=[];
-      for(let y=Math.floor(y0-hw);y<=Math.ceil(y1+hw);y++)for(let x=Math.floor(x0-hw);x<=Math.ceil(x1+hw);x++){let d=1e9;for(let k=0;k<n-(c.laco?0:1);k++)d=Math.min(d,dS(x+.5,y+.5,Q[k],Q[(k+1)%n]));if(d<=hw)cells.push([x,y])}
-      if(cells.length)poe(i,j,cells)}});return L}
+    if(!cells.length)cells.push([Math.floor(o.x),Math.floor(o.y)]);return cells}
+  const Q=trajetoCaminho(e),n=Q.length;if(n<2)return cells;const hw=(e.larg||1)/2+.15;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of Q){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
+  const dS=(px,py,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2?Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/l2)):0;return Math.hypot(px-a[0]-t*dx,py-a[1]-t*dy)};
+  for(let y=Math.floor(y0-hw);y<=Math.ceil(y1+hw);y++)for(let x=Math.floor(x0-hw);x<=Math.ceil(x1+hw);x++){let d=1e9;for(let k2=0;k2<n-(e.laco?0:1);k2++)d=Math.min(d,dS(x+.5,y+.5,Q[k2],Q[(k2+1)%n]));if(d<=hw)cells.push([x,y])}return cells}
+// 1.49.1: liga as escadas. A mesma escada desenhada em andares seguidos (no mesmo lugar) e uma escada so: cada andar
+// liga so ao de cima e ao de baixo (nunca pula andar), e andar de telhado fica de fora (a nao ser com "Leva ao andar").
+// Escada desenhada num andar so: sobe (se o de cima nao e telhado), senao desce. Em poco de escada (3+ andares) cada
+// lance usa uma metade da escada, alternando, para as regioes do Foundry nao ficarem uma em cima da outra.
+// Devolve [{pecas:[{i,k,e}], andares:[a..b], pares:[{a,b,cells}]}]
+export function ligaEscadas(M){const P=[];M.andares.forEach((A,i)=>{const tel=ehAndarTelhado(M,i);for(const o of A.objetos||[])if(objetoDe(M.texturas[o.t])==="escada"&&(!tel||o.leva!=null))P.push({i,k:"objetos",e:o});for(const c of A.caminhos||[])if(ehEscadaCaminho(M,c)&&(!tel||c.leva!=null))P.push({i,k:"caminhos",e:c})});
+  for(const p of P){p.cells=celulasEscada(p.e,p.k);p.set=new Set(p.cells.map(c=>c+""))}
+  const pai=P.map((_,k)=>k),raiz=k=>pai[k]===k?k:(pai[k]=raiz(pai[k]));
+  for(let a=0;a<P.length;a++)for(let b=a+1;b<P.length;b++){const A=P[a],B=P[b];if(Math.abs(A.i-B.i)!==1||A.e.leva!=null||B.e.leva!=null)continue;let n=0;for(const c of B.set)if(A.set.has(c))n++;if(n&&n>=Math.min(A.set.size,B.set.size)*.25)pai[raiz(a)]=raiz(b)}
+  const G=new Map();P.forEach((p,k)=>{const r=raiz(k);if(!G.has(r))G.set(r,[]);G.get(r).push(p)});const N=M.andares.length,out=[];
+  for(const L of G.values()){let fl=[...new Set(L.map(p=>p.i))].sort((a,b)=>a-b);
+    if(L.length===1&&L[0].e.leva!=null){const j=M.andares.findIndex(B=>B.id===L[0].e.leva);if(j>=0&&j!==fl[0])fl=[Math.min(fl[0],j),Math.max(fl[0],j)]}
+    else if(fl.length===1){const i=fl[0];if(i+1<N&&!ehAndarTelhado(M,i+1))fl=[i,i+1];else if(i>0)fl=[i-1,i];else if(i+1<N)fl=[i,i+1];else continue}
+    const K=new Set(),cells=[];for(const p of L)for(const c of p.cells){const s=c+"";if(!K.has(s)){K.add(s);cells.push(c)}}
+    const a0=fl[0],a1=fl[fl.length-1],andares=[];for(let a=a0;a<=a1;a++)andares.push(a);
+    // lances: um par de andares vizinhos por vez; com 3+ andares, metades alternadas da escada
+    const pares=[];if(andares.length<=2||L.length===1&&L[0].e.leva!=null)pares.push({a:a0,b:a1,cells});
+    else{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const c of cells){x0=Math.min(x0,c[0]);y0=Math.min(y0,c[1]);x1=Math.max(x1,c[0]);y1=Math.max(y1,c[1])}const ax=x1-x0>=y1-y0?0:1,m=((ax?y0:x0)+(ax?y1:x1)+1)/2;
+      const H=[cells.filter(c=>c[ax]+.5<m),cells.filter(c=>c[ax]+.5>=m)];if(!H[0].length||!H[1].length){H[0]=cells;H[1]=cells}
+      for(let a=a0;a<a1;a++)pares.push({a,b:a+1,cells:H[(a-a0)%2]})}
+    out.push({pecas:L,andares,pares})}
+  return out}
+// andares a que a escada (peca e do andar i) leva: so o de cima e o de baixo dela
+export function destinosEscada(M,i,e,G){G=G||ligaEscadas(M);const g=G.find(x=>x.pecas.some(p=>p.e===e));if(!g)return [];const D=[];for(const q of g.pares){if(q.a===i)D.push(q.b);else if(q.b===i)D.push(q.a)}return [...new Set(D)].sort((a,b)=>b-a)}
+export function destinoEscada(M,i,e){const d=destinosEscada(M,i,e);return d.length?d[0]:-1}
+export function escadasDe(M){return ligaEscadas(M).flatMap(g=>g.pares.map(q=>({kind:"stairs",from:q.a,to:q.b,cells:q.cells})))}
 // 1.49: .atlasvtt compactado (zip): atlas.json + uma imagem por andar, sem base64
 export async function pacoteAtlasVTT(M,o){o=o||{};const floors=[],arqs=[],base=String(M.nome||"mapa").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase()||"mapa";
   for(let i=0;i<M.andares.length;i++){const F=andarUVTT(M,i,o),im=o.imagens&&o.imagens[i];if(im){const fmt=im.formato||"webp",nome="andar"+(i+1)+"."+(fmt==="jpeg"?"jpg":fmt);F.image_file=nome;F.image_format=fmt;arqs.push({nome,dados:new Uint8Array(await im.blob.arrayBuffer())})}floors.push(F)}
