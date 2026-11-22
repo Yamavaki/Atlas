@@ -109,6 +109,8 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
   for(const q of A.portais||[])add(510,()=>{const tp=q.tipo||(/window|sill|glass/.test(nome(q.t))?"janela":"porta"),L=q.raio,dx=q.dx,dy=q.dy,ab=q.fechado===false,rq=real(q.t),ea=q.ea||1,eh=q.eh||1;
     // batente (moldura) do pacote: fica parado na parede, por baixo da porta
     const rf=q.tq!=null?real(q.tq):null;if(rf!=null){const af=IND["a:"+TEX[q.tq]]||4,wf=2*L*ea,o={x:q.x,y:q.y,r:Math.atan2(dy,dx),w:wf,h:wf/af*eh,m:!!q.espelho},off=B.length;escreveObjeto(B,off,o,rf,IND["rc:"+TEX[q.tq]]);nv+=12}
+    // 1.47: so a moldura: a folha nao e desenhada (no Foundry a porta animada entra no lugar); sem batente do pacote, dois postes simples
+    if(q.sm&&tp!=="janela"){if(rf==null)for(const s of[-1,1])rect(q.x+dx*s*(L+.05),q.y+dy*s*(L+.05),dx,dy,.09,.2,-1,TINTA);return}
     if(rq!=null){// porta ou janela do pacote: a imagem deitada ao longo da parede; aberta, gira 90 graus na dobradica
       // porta dupla: a mesma arte duas vezes, cada folha com metade da largura, a segunda espelhada (como no Dungeondraft)
       const asp=IND["a:"+TEX[q.t]]||4,dup=tp==="dupla",fl=dup?L:2*L,w2=fl*ea,h2=fl/asp*eh,qsd=sdDe(q,"portais");
