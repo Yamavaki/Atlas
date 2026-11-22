@@ -2004,13 +2004,13 @@ Store.init();
 setTimeout(()=>{(window.requestIdleCallback||setTimeout)(()=>{carregaEditor();carregaCidade()})},2500);
 // app instalado: confere nos Releases do GitHub se ha versao nova; "Atualizar agora" baixa, instala e reabre o Atlas (um clique)
 const ATU={nova:null,url:null,pagina:null};
-async function atualizarAgora(){const T=window.__TAURI__;if(!T||!ATU.url)return;if(!T.core||!T.core.invoke){try{T.opener.openUrl(ATU.url)}catch(e){}return}
+async function atualizarAgora(){const T=window.__TAURI__;if(!T||!ATU.url)return;if(/Android/.test(navigator.userAgent)){toast("Baixando o .apk da versão "+ATU.nova+". Quando terminar, abra o arquivo e toque em Instalar.");try{T.opener.openUrl(ATU.url)}catch(e){}return}if(!T.core||!T.core.invoke){try{T.opener.openUrl(ATU.url)}catch(e){}return}
   pill("Baixando a versão "+ATU.nova+"…");toast("Baixando a atualização. O Atlas será fechado, atualizado e aberto novamente.");if(window.AtlasPasta)try{await AtlasPasta.espera()}catch(e){}
   try{await T.core.invoke("atualizar",{url:ATU.url})}catch(e){pill("Falha na atualização","warn");toast((e&&e.message)||String(e)||"Não foi possível atualizar.");try{T.opener.openUrl(ATU.pagina)}catch(e2){}}}
 async function procuraAtualizacao(avisa){const T=window.__TAURI__;if(!T||!T.app)return false;try{const v=await T.app.getVersion(),r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return false;const L=await r.json(),u=L&&L[0];if(!u)return false;
     const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
     if(cmp(nova,v)<=0){if(avisa)toast("O Atlas já está na versão mais recente ("+v+").");return false}
-    const ex=(u.assets||[]).find(x=>/setup\.exe$/i.test(x.name));ATU.nova=nova;ATU.url=ex?ex.browser_download_url:null;ATU.pagina=u.html_url;if(!ATU.url){ATU.url=u.html_url}
+    const ex=(u.assets||[]).find(x=>(/Android/.test(navigator.userAgent)?/\.apk$/i:/setup\.exe$/i).test(x.name));ATU.nova=nova;ATU.url=ex?ex.browser_download_url:null;ATU.pagina=u.html_url;if(!ATU.url){ATU.url=u.html_url}
     const t=$("#toast");toast("Nova versão do Atlas disponível: "+nova+". Clique para atualizar.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,20000);t.onclick=()=>{t.hidden=true;atualizarAgora()};return true}catch(e){if(avisa)toast("Não foi possível verificar atualizações agora.");return false}}
 setTimeout(()=>procuraAtualizacao(false),4000);
 // ---------- 1.22 abas, menus do botao direito e troca de mundo ----------
