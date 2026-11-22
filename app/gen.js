@@ -893,7 +893,7 @@ function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslav
   const dry=!anyWater&&!rivers.length;
   // clima e biomas
   const temp=P.temp==null?.5:P.temp,hum=P.humid==null?.5:P.humid,cv=P.climVar==null?.5:P.climVar,waste=P.waste==null?.1:P.waste,fbm3=makeNoise(seed^0x7a11);
-  const biome=new Uint8Array(N),snow=new Float32Array(N),bR=new Float32Array(N),bG=new Float32Array(N),bB=new Float32Array(N),fR=new Float32Array(N),fG=new Float32Array(N),fB=new Float32Array(N),bfor=new Float32Array(N);
+  const biome=new Uint8Array(N),snow=new Float32Array(N),snowT=new Float32Array(N),snowB=new Float32Array(N),bR=new Float32Array(N),bG=new Float32Array(N),bB=new Float32Array(N),fR=new Float32Array(N),fG=new Float32Array(N),fB=new Float32Array(N),bfor=new Float32Array(N);
   const bov=new Int8Array(N).fill(-1);for(const e of bEd){const i0=Math.max(0,((e.x-e.r)/G)|0),i1=Math.min(GW-1,((e.x+e.r)/G|0)+1),j0=Math.max(0,((e.y-e.r)/G)|0),j1=Math.min(GH-1,((e.y+e.r)/G|0)+1);for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){if(Math.hypot(i*G-e.x,j*G-e.y)<e.r*(.8+.35*fbm3(i/3,j/3,2)))bov[j*GW+i]=e.b}}
   for(let j=0;j<GH;j++)for(let i=0;i<GW;i++){const k=j*GW+i,x=i*G,y=j*G;
     const lat=(y/WY-.5)+(fbm3(x/(700*SC)+5,y/(700*SC)+9,3)-.5)*.35,T=(temp-.5)*.9+.56+lat*(.08+cv*.55)*Math.sqrt(SC)+(fbm3(x/(950*SC)+15,y/(950*SC)+3,2)-.5)*.1-elev[k]*.36;
@@ -906,7 +906,8 @@ function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslav
       if(P.dom!=null&&P.dom!=="auto"&&fbm3(x/(500*SC)+61,y/(500*SC)+17,3)>.3)b=+P.dom;
       const fa=P.fant||0;if(fa>0&&fbm3(x/(420*SC)+301,y/(420*SC)+77,3)>1.04-fa*.6){const K=P.fantK&&P.fantK!=="auto"?+P.fantK:[15,16,17,18,19,20][((fbm3(x/(1400*SC)+9,y/(1400*SC)+3,1)*6)|0)%6];b=K}}
     if(bov[k]>=0)b=bov[k];biome[k]=b;
-    const sl=b===2||b===14?1:sstep(.33,.2,T)*sstep(.45,.62,elev[k])*(b===4||b===6||b===5?0:1);snow[k]=Math.max(b===2?1:b===3?.35:0,sl,P.season==="inverno"&&b!==4&&b!==5&&b!==6&&b!==8?clamp(.45+fbm3(x/90+3,y/90+7,3)*.6-(b===7?.2:0),0,1):0);
+    const nv_=P.neve||"clima",nd_=+P.neveLinha||0;snowT[k]=b===2||b===14?-1:nv_==="nao"?0:(nv_==="sempre"?1:sstep(.33,.2,T))*(b===4||b===6||b===5?0:1);snowB[k]=Math.max(b===2?1:b===3?.35:0,P.season==="inverno"&&b!==4&&b!==5&&b!==6&&b!==8?clamp(.45+fbm3(x/90+3,y/90+7,3)*.6-(b===7?.2:0),0,1):0);
+    const sl=snowT[k]<0?1:snowT[k]*sstep(.45+nd_,.62+nd_,elev[k]);snow[k]=Math.max(snowB[k],sl);
     const c0=BG[b][0],c1=BG[b][1];bR[k]=(c0[0]+c1[0])/2;bG[k]=(c0[1]+c1[1])/2;bB[k]=(c0[2]+c1[2])/2;fR[k]=BF[b][0];fG[k]=BF[b][1];fB[k]=BF[b][2];bfor[k]=BFOR[b]}
   // mistura suave das cores entre biomas
   for(const arr of[bR,bG,bB,fR,fG,fB,bfor])for(let pass=0;pass<2;pass++){const tmp=arr.slice();for(let j=1;j<GH-1;j++)for(let i=1;i<GW-1;i++){const k=j*GW+i;arr[k]=(tmp[k]*4+tmp[k-1]+tmp[k+1]+tmp[k-GW]+tmp[k+GW])/8}}
@@ -1253,16 +1254,42 @@ function generate0(P){if(!["europa","leste","sul","meso","estepe","misto","eslav
     for(const [b] of order){const poly=fp(b),gx=(b.x/40)|0,gy=(b.y/40)|0,grp=b.k===40||b.k===6||b.k===7?"p"+b.ti:null;let bad=false;for(let a=-2;a<=2&&!bad;a++)for(let c2=-2;c2<=2&&!bad;c2++)for(const z of G.get((gx+a)+"_"+(gy+c2))||[]){if(grp&&z.grp===grp)continue;if(satN(poly,z.poly)){bad=true;break}}
       if(bad&&pri(b)<8){drop.add(b);continue}const k=gx+"_"+gy;(G.get(k)||G.set(k,[]).get(k)).push({poly,grp})}
     for(let i=B.length-1;i>=0;i--)if(drop.has(B[i]))B.splice(i,1)}
-  return {WX,WY,vmask,mmask,lava,erList,ponds,biome,snow,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP:(()=>{for(const fp of fieldsP){let x=0,y=0;for(const p of fp.poly){x+=p[0];y+=p[1]}fp.key="fp:"+Math.round(x/fp.poly.length)+":"+Math.round(y/fp.poly.length)}return fieldsP})(),piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
+  return {WX,WY,vmask,mmask,lava,erList,ponds,biome,snow,snowT,snowB,bR,bG,bB,fR,fG,fB,bAt,P,seed,rng,fbm,fbm2,rivers,land,rdist,anyWater,dist,elev,forest,vari,slope,towns,roads,bridges:brs,walls,B,fieldsP:(()=>{for(const fp of fieldsP){let x=0,y=0;for(const p of fp.poly){x+=p[0];y+=p[1]}fp.key="fp:"+Math.round(x/fp.poly.length)+":"+Math.round(y/fp.poly.length)}return fieldsP})(),piers,extra,gardens,occAt,vec:{rivers:rivers.map(r=>({c:r.ctrl,w:Math.round(r.w)})),roads:roadCtrl}};
 }
 
 // ---------- desenho ----------
+// ---------- 1.32: tracados a mao na regiao (estrada, pavimentada, areia, trilha, rio, riacho) com pontes onde a estrada cruza um rio ----------
+const TR_RW=[[3.5,2],[6,3.8],[8.5,5.6],[11,7.4],[14,9.6]],TR_COR={estrada:"#e4d3a0",pavimentada:"#d6d0be",areia:"#ecd9a8"};
+const trRio=t=>t.tipo==="rio"||t.tipo==="riacho";
+// arvores, pedras e mato em cima de um tracado a mao saem do caminho (q.trac)
+function marcaTrac(objs,L){const T=(L||[]).filter(t=>t.pts&&t.pts.length>1).map(t=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.pts){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}const r=trRio(t)?(t.larg||12)*.75+12:(TR_RW[clamp(t.larg==null?1:t.larg,0,4)][0]/2+13);return {P:t.pts,r,b:[x0-r,y0-r,x1+r,y1+r]}});
+  for(const q of objs){if(q.man||q.wx==null||!(q.k===0||q.k===11||q.k===12||q.k===30||q.k===31)){continue}let on=0;for(const t of T){if(q.wx<t.b[0]||q.wx>t.b[2]||q.wy<t.b[1]||q.wy>t.b[3])continue;const P=t.P;for(let i=0;i<P.length-1&&!on;i++){const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1,u=clamp(((q.wx-a[0])*dx+(q.wy-a[1])*dy)/L2,0,1);if(Math.hypot(q.wx-a[0]-dx*u,(q.wy-a[1]-dy*u)*(q.wy>a[1]+dy*u?.6:1.4))<t.r)on=1}if(on)break}q.trac=on}}
+function desenhaTracos(f,L,W){if(!L||!L.length)return;f.save();f.lineJoin="round";f.lineCap="round";
+  const rios=L.filter(t=>trRio(t)&&t.pts&&t.pts.length>1),estr=L.filter(t=>!trRio(t)&&t.pts&&t.pts.length>1);
+  const kR=t=>(t.larg||(t.tipo==="riacho"?6:12))/16;
+  for(const t of rios){smoothPath(f,t.pts);f.strokeStyle="#33403c";f.lineWidth=20*kR(t);f.stroke()}
+  for(const t of rios){const k=kR(t);smoothPath(f,t.pts);f.strokeStyle="#7f9197";f.lineWidth=16*k;f.stroke();smoothPath(f,t.pts);f.strokeStyle="#98a9ab";f.lineWidth=8*k;f.stroke();
+    f.strokeStyle="rgba(40,58,66,.55)";f.lineWidth=.9;f.beginPath();const P=t.pts;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,nx=-dy/l,ny=dx/l,n=Math.max(1,Math.floor(l/14));
+      for(let s=0;s<n;s++){const u=(s+.3)/n,cx=a[0]+dx*u,cy=a[1]+dy*u;for(const o0 of [-4,2.5]){const o=o0*k,sg=(i+s)&1?1:-1;f.moveTo(cx+nx*o,cy+ny*o);f.quadraticCurveTo(cx+dx/l*4+nx*(o+1.6*sg),cy+dy/l*4+ny*(o+1.6*sg),cx+dx/l*8+nx*o,cy+dy/l*8+ny*o)}}}f.stroke()}
+  const RW=t=>TR_RW[clamp(t.larg==null?1:t.larg,0,4)];
+  for(const t of estr){smoothPath(f,t.pts);f.strokeStyle=t.tipo==="pavimentada"?"rgba(60,54,44,.75)":"rgba(74,52,22,.7)";f.lineWidth=RW(t)[0];if(t.tipo==="trilha")f.setLineDash([5,4]);f.stroke();f.setLineDash([])}
+  for(const t of estr){if(t.tipo==="trilha")continue;smoothPath(f,t.pts);f.strokeStyle=TR_COR[t.tipo]||TR_COR.estrada;f.lineWidth=RW(t)[1];f.stroke();
+    if(t.tipo==="pavimentada"&&RW(t)[1]>3){smoothPath(f,t.pts);f.strokeStyle="rgba(90,84,70,.45)";f.lineWidth=.8;f.setLineDash([1.6,2.4]);f.stroke();f.setLineDash([])}}
+  // pontes: estrada a mao cruzando rio (a mao ou gerado)
+  const RV=rios.map(t=>({P:t.pts,w:20*kR(t)})).concat(((W&&W.rivers)||[]).map(r=>({P:r.pts,w:20*r.w/16,ger:1})));
+  const cruza=(a,b,c,d)=>{const r=[b[0]-a[0],b[1]-a[1]],s2=[d[0]-c[0],d[1]-c[1]],den=r[0]*s2[1]-r[1]*s2[0];if(Math.abs(den)<1e-9)return null;const t=((c[0]-a[0])*s2[1]-(c[1]-a[1])*s2[0])/den,u=((c[0]-a[0])*r[1]-(c[1]-a[1])*r[0])/den;return t>=0&&t<=1&&u>=0&&u<=1?[a[0]+r[0]*t,a[1]+r[1]*t]:null};
+  for(const t of estr){const P=t.pts,larg=RW(t)[1]+3;for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1];for(const rv of RV){const Q=rv.P;for(let j=0;j<Q.length-1;j++){const x=cruza(a,b,Q[j],Q[j+1]);if(!x)continue;if(rv.ger&&W&&sampleGrid(W.land,x[0],x[1])<.03)continue;
+      const dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy)||1,ux=dx/l,uy=dy/l,h=rv.w*.75+4,A=[x[0]-ux*h,x[1]-uy*h],B=[x[0]+ux*h,x[1]+uy*h];f.lineCap="butt";const ln=()=>{f.beginPath();f.moveTo(A[0],A[1]);f.lineTo(B[0],B[1])};
+      if(t.tipo==="pavimentada"){ln();f.strokeStyle="#4d4a41";f.lineWidth=larg+4;f.stroke();ln();f.strokeStyle="#cdc6b4";f.lineWidth=larg+1.5;f.stroke()}else{ln();f.strokeStyle="#3a2a18";f.lineWidth=larg+2.5;f.stroke();ln();f.strokeStyle="#9a7446";f.lineWidth=larg+.5;f.stroke();ln();f.strokeStyle="rgba(50,32,15,.7)";f.lineWidth=larg;f.setLineDash([.8,2.2]);f.stroke();f.setLineDash([])}f.lineCap="round"}}}}
+  f.restore()}
 function smoothPath(c,pts){c.beginPath();c.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length-1;i++){const mx=(pts[i][0]+pts[i+1][0])/2,my=(pts[i][1]+pts[i+1][1])/2;c.quadraticCurveTo(pts[i][0],pts[i][1],mx,my)}c.lineTo(pts[pts.length-1][0],pts[pts.length-1][1])}
 // relevo feito a mao (1.25): diferencas sobre o relevo gerado, guardadas no mapa
 function b64(i16){const u=new Uint8Array(i16.buffer);let s="";for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)}
 function deB64(t){const s=atob(t),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return new Int16Array(u.buffer)}
+// 1.32: neve dos picos acompanha o relevo feito a mao (pelo clima, sempre ou nunca: P.neve; altura: P.neveLinha)
+function neveCel(W,k){if(!W.snowT||!W.snowB)return;const t=W.snowT[k];if(t<0){W.snow[k]=W.land[k]<0?0:1;return}const d=+W.P.neveLinha||0;W.snow[k]=W.land[k]<0?0:Math.max(W.snowB[k],t*sstep(.45+d,.62+d,W.elev[k]))}
 function aplicaRelevo(W,R){if(!W||!R||!R.e)return false;setScale(W.P.size||1);if(R.gw!==GW||R.gh!==GH)return false;const e=deB64(R.e),l=deB64(R.l),N=GW*GH;if(e.length!==N||l.length!==N)return false;
-  const dE=W.dE=new Float32Array(N),dL=W.dL=new Float32Array(N);for(let k=0;k<N;k++){dE[k]=e[k]/6000;dL[k]=l[k]/6000;const L=clamp(W.land[k]+dL[k],-1,1);W.land[k]=L;W.elev[k]=L<0?0:clamp(W.elev[k]+dE[k],0,1)}return true}
+  const dE=W.dE=new Float32Array(N),dL=W.dL=new Float32Array(N);for(let k=0;k<N;k++){dE[k]=e[k]/6000;dL[k]=l[k]/6000;const L=clamp(W.land[k]+dL[k],-1,1);W.land[k]=L;W.elev[k]=L<0?0:clamp(W.elev[k]+dE[k],0,1);if(dE[k]||dL[k])neveCel(W,k)}return true}
 // ---------- 1.26 texturas para pintar o chao (estilo Inkarnate, no traco do Atlas) ----------
 const MATS=[["grama","Grama"],["grama_seca","Grama seca"],["flores","Campo florido"],["terra","Terra"],["lama","Lama"],["areia","Areia"],["cascalho","Cascalho"],["rocha","Rocha"],["calcamento","Calçamento"],["neve","Neve"],["pantano","Pântano"],["cinzas","Cinzas"]];
 const MATC={};
@@ -1339,7 +1366,17 @@ function render(W,canvas,stamps){
     if(br.stone){ln();f.strokeStyle="#4d4a41";f.lineWidth=10;f.setLineDash([2.4,5.5]);f.lineDashOffset=-2;f.stroke();f.setLineDash([]);ln();f.strokeStyle=INK;f.lineWidth=7.6;f.stroke();ln();f.strokeStyle="#cdc6b4";f.lineWidth=6.2;f.stroke();ln();f.strokeStyle="#e6d7a8";f.lineWidth=3.4;f.stroke()}
     else{ln();f.strokeStyle="#3a2a18";f.lineWidth=7;f.stroke();ln();f.strokeStyle="#9a7446";f.lineWidth=5.2;f.stroke();ln();f.strokeStyle="rgba(50,32,15,.7)";f.setLineDash([.8,2.2]);f.stroke();f.setLineDash([])}
     f.lineCap="round"}
+  // 1.32: tracados feitos a mao (estradas, trilhas e rios) e mar pintado: por cima de uma copia do chao gerado, para refazer so um pedaco ao vivo
+  const TEXB=f.getImageData(0,0,WX,WY);desenhaTracos(f,P.tracos,W);
   const tex=f.getImageData(0,0,WX,WY).data;
+  // refaz um pedaco do chao plano: copia do gerado, some o que ficou embaixo do mar pintado (com as ondinhas do mar), e os tracados a mao por cima
+  const refazTex=(x0,y0,x1,y1)=>{x0=clamp(Math.floor(x0),0,WX-1);y0=clamp(Math.floor(y0),0,WY-1);x1=clamp(Math.ceil(x1),0,WX-1);y1=clamp(Math.ceil(y1),0,WY-1);const w=x1-x0+1,hh=y1-y0+1;if(w<1||hh<1)return;
+    const cv=document.createElement("canvas");cv.width=w;cv.height=hh;const g=cv.getContext("2d",{willReadFrequently:true});g.putImageData(TEXB,-x0,-y0,x0,y0,w,hh);
+    if(W.dL){const id=g.getImageData(0,0,w,hh),d=id.data;let mexeu=false;for(let y=0;y<hh;y++)for(let x=0;x<w;x++){const X=x0+x,Y=y0+y,dl=sampleGrid(W.dL,X,Y);if(dl>-.02)continue;const lv=sampleGrid(W.land,X,Y);if(lv>=0)continue;const q=(y*w+x)*4+3;if(d[q]){d[q]=d[q]*clamp(1+lv*12,0,1);mexeu=true}}if(mexeu)g.putImageData(id,0,0);
+      g.save();g.translate(-x0,-y0);g.strokeStyle="rgba(40,58,66,.5)";g.lineWidth=.9;g.beginPath();const PS=11;for(let gy=Math.floor(y0/PS);gy<=Math.ceil(y1/PS);gy++)for(let gx=Math.floor(x0/PS);gx<=Math.ceil(x1/PS);gx++){const hsh=Math.imul(gx,73856093)^Math.imul(gy,19349663),r1=((hsh>>>0)%1000)/1000,r2=((Math.imul(hsh,2654435761)>>>0)%1000)/1000;if(r1>.55)continue;
+        const X=gx*PS+r1*PS,Y=gy*PS+r2*PS;if(sampleGrid(W.land,X,Y)>-.04||sampleGrid(W.dL,X,Y)>-.02)continue;const ww=3+r2*4;g.moveTo(X-ww,Y);g.quadraticCurveTo(X,Y-2.2,X+ww,Y)}g.stroke();g.restore()}
+    g.save();g.translate(-x0,-y0);desenhaTracos(g,P.tracos,W);g.restore();const d=g.getImageData(0,0,w,hh).data;for(let y=0;y<hh;y++)tex.set(d.subarray(y*w*4,(y+1)*w*4),((y0+y)*WX+x0)*4)};
+  if(W.dL)refazTex(0,0,WX-1,WY-1);
   // 2. relevo inclinado
   const E=new Float32Array(WX*WY),F=new Float32Array(WX*WY),V=new Float32Array(WX*WY);
   upsample(W.elev,E);upsample(W.forest,F);upsample(W.vari,V);const LF=new Float32Array(WX*WY);upsample(W.land,LF);
@@ -1392,10 +1429,11 @@ function render(W,canvas,stamps){
   for(const b of W.B){const p=pj(b.x,b.y);if(!vis(b.x,b.y,p))continue;const ey=b.k===1?(Math.abs(Math.sin(b.ang))*b.L+Math.abs(Math.cos(b.ang))*b.D)/2*TILT:0,ex=b.k===1?(Math.abs(Math.cos(b.ang))*b.L+Math.abs(Math.sin(b.ang))*b.D)/2:0;const q=Object.assign({},b,{x:p[0],y:p[1]+ey,cy:p[1],bref:b});obj.push(q);
     const rr=b.k===1?ex+1:b.k===3?30:b.k===2?24:b.k===8?11:b.k===14||b.k===15?b.w:b.k>=16?12:5,hh=b.k===15?60:b.k>=26&&b.k<=28?24:b.k===30?32*(b.s||1):b.k===21?24:b.k===25?14:b.k===1?b.H+b.R+ey*2+2:b.k===3?36:b.k===2?28:b.k===8?21:b.k===14?b.h+6:b.k===15?b.h+30:b.k>=16?18:6;mark(q.x-rr,q.y-hh,q.x+rr,q.y+3,q.y)}
   semTag=true;for(const wl of W.walls){const pp=wl.pts.map(p=>pj(p[0],p[1])),NP=pp.length,fz=wl.fence||"stone";
-    wl.segs.forEach((s,i)=>{const a=pp[i],b=pp[(i+1)%NP],yy=Math.max(a[1],b[1]);if(s.sea)return;
-      if(s.water){obj.push({k:9,a,b,y:yy,fz},{k:5,x:a[0],y:a[1]+.6,g:0,fz},{k:5,x:b[0],y:b[1]+.6,g:0,fz})}
-      else if(s.gate){const m1=[lerp(a[0],b[0],.32),lerp(a[1],b[1],.32)],m2=[lerp(a[0],b[0],.68),lerp(a[1],b[1],.68)];obj.push({k:4,a,b:m1,y:Math.max(a[1],m1[1]),fz},{k:4,a:m2,b,y:Math.max(b[1],m2[1]),fz},{k:5,x:m1[0],y:m1[1]+.6,g:1,fz},{k:5,x:m2[0],y:m2[1]+.6,g:1,fz})}
-      else{obj.push({k:4,a,b,y:yy,fz});if(i%3===0&&fz!=="hedge")obj.push({k:5,x:a[0],y:a[1]+.5,g:0,fz})}
+    // 1.32: cada pedaco de muralha guarda os pontos no mundo (wa, wb) para subir e descer com o relevo feito a mao
+    wl.segs.forEach((s,i)=>{const a=pp[i],b=pp[(i+1)%NP],yy=Math.max(a[1],b[1]);if(s.sea)return;const A_=wl.pts[i],B_=wl.pts[(i+1)%NP],WL=t=>[lerp(A_[0],B_[0],t),lerp(A_[1],B_[1],t)],PT=(q,w)=>Object.assign(q,{wx:w[0],wy:w[1],we:eAt(w[0],w[1])});
+      if(s.water){obj.push({k:9,a,b,y:yy,fz,wa:A_,wb:B_},PT({k:5,x:a[0],y:a[1]+.6,g:0,fz},A_),PT({k:5,x:b[0],y:b[1]+.6,g:0,fz},B_))}
+      else if(s.gate){const m1=[lerp(a[0],b[0],.32),lerp(a[1],b[1],.32)],m2=[lerp(a[0],b[0],.68),lerp(a[1],b[1],.68)];obj.push({k:4,a,b:m1,y:Math.max(a[1],m1[1]),fz,wa:A_,wb:WL(.32)},{k:4,a:m2,b,y:Math.max(b[1],m2[1]),fz,wa:WL(.68),wb:B_},PT({k:5,x:m1[0],y:m1[1]+.6,g:1,fz},WL(.32)),PT({k:5,x:m2[0],y:m2[1]+.6,g:1,fz},WL(.68)))}
+      else{obj.push({k:4,a,b,y:yy,fz,wa:A_,wb:B_});if(i%3===0&&fz!=="hedge")obj.push(PT({k:5,x:a[0],y:a[1]+.5,g:0,fz},A_))}
       mark(Math.min(a[0],b[0])-4,Math.min(a[1],b[1])-14,Math.max(a[0],b[0])+4,yy+2,Math.min(a[1],b[1]))})}
   semTag=false;
   // penhascos nas encostas voltadas para quem olha, rochas e arbustos
@@ -1477,10 +1515,11 @@ function render(W,canvas,stamps){
     else if(q.k===15)drawCrater(c,q.x,q.y,q.w,rng);else if(q.k===50)drawMarco(c,q.x,q.y,q,rng,stamps);else if(q.k===32)drawTent(c,q.x,q.y,q.race,q.s||1,false,q.flag);else if(q.k===33)drawTent(c,q.x,q.y,q.race,1,true);else if(q.k===34)drawFire(c,q.x,q.y);else if(q.k===35&&window.AtlasAssets)AtlasAssets.horse(c,q.x,q.y,["#6a4a2c","#b8a080","#3a2c22"][((q.x*3)|0)%3],((q.y|0)%2)?1:-1);else if(q.k===37){const cy=q.y+q.r*TILT*.9;c.strokeStyle="#5a4028";c.lineWidth=.8;c.beginPath();c.ellipse(q.x,cy,q.r,q.r*TILT,0,0,7);c.stroke();c.beginPath();c.ellipse(q.x,cy-2.2,q.r,q.r*TILT,0,0,7);c.stroke();c.beginPath();for(let k=0;k<18;k++){const a=k/18*6.2832,px=q.x+Math.cos(a)*q.r,py=cy+Math.sin(a)*q.r*TILT;c.moveTo(px,py);c.lineTo(px,py-3)}c.stroke()}else if(q.k===36){c.strokeStyle="#5a4028";c.lineWidth=.8;c.beginPath();c.moveTo(q.x,q.y);c.lineTo(q.x,q.y-5);c.moveTo(q.x-1.6,q.y-3.6);c.lineTo(q.x+1.6,q.y-3.6);c.stroke();c.fillStyle="#d8c9a0";c.beginPath();c.arc(q.x,q.y-5.6,1.1,0,7);c.fill()}else if(q.k===40&&window.AtlasAssets)AtlasAssets.draw(c,q.x,q.y,q.id,q.race,q.vv,q.ang);else if(q.k===26)drawArch(c,q.x,q.y,q.col,rng);else if(q.k===27)drawSpires(c,q.x,q.y,q.col,rng);else if(q.k===28)drawBoulders(c,q.x,q.y,stamps.rockc[q.st%stamps.rockc.length]);else if(q.k===31){const st=stamps.rocks[(q.y|0)%stamps.rocks.length],w=22*q.s,h=17*q.s;c.drawImage(st,q.x-w/2,q.y-h*.85,w,h)}else if(q.k===30){const M={oak:stamps.dec,pine:stamps.con,snowpine:stamps.snowpine,autumn:stamps.autumn,sakura:stamps.sakura,blossom:stamps.blossom,birch:stamps.birch,palm:stamps.palm,acacia:stamps.acacia,willow:stamps.willow,jungle:stamps.jungle,dead:stamps.dead,cactus:stamps.cactus,bush:stamps.bush,bare:stamps.bare},ar=M[q.v]||stamps.dec,st=ar[((q.x*7+q.y*13)|0)%ar.length],w=st.width*q.s,h=st.height*q.s;c.drawImage(st,q.x-w/2,q.y-h*.9,w,h)}else if(q.k===16)drawRuin(c,q.x,q.y,rng);else if(q.k===17)drawStones(c,q.x,q.y,rng);else if(q.k===18)drawTotem(c,q.x,q.y);else if(q.k===20)drawCave(c,q.x,q.y,q.snow,rng);else if(q.k===21)drawWatch(c,q.x,q.y);else if(q.k===22)drawCamp(c,q.x,q.y,q.race,rng);else if(q.k===23)drawGraves(c,q.x,q.y,q.race);else if(q.k===24)drawShrine(c,q.x,q.y,q.race);else if(q.k===25)drawMine(c,q.x,q.y);else if(q.k===19)drawTorii(c,q.x,q.y);
     else if(q.k===41){const U=(X&&X.uimg||{})[q.u];if(U&&U.img.complete&&U.img.naturalWidth){const kk=.16;c.save();c.translate(q.x,q.y);c.rotate(q.ang||0);c.drawImage(U.img,-U.w*kk/2,-U.h*kk*U.base,U.w*kk,U.h*kk);c.restore()}}
     else if(q.k===8){c.save();c.translate(q.x,q.y);c.scale(.82,.82);c.translate(-q.x,-q.y);drawMill(c,q.x,q.y,q.rot);c.restore()}}finally{if(_sc)c.restore();if(_os)c.restore();if(_vz)c.restore()}};
-  for(const q of objD){if(HID.has(q.ly)||q.agua)continue;if(FX&&q.x!=null&&(q.x<FX[0]-90||q.x>FX[1]+90))continue;seedQ(q);drawQ(c,q)}
+  {const TL=W.P.tracos||[],tv=(W._trV||0)+":"+TL.length;if(CACHE&&CACHE.trV!==tv){marcaTrac(CACHE.obj,TL);CACHE.trV=tv}if(objD!==obj&&TL.length)marcaTrac(objD,TL)}
+  for(const q of objD){if(HID.has(q.ly)||q.agua||q.trac)continue;if(FX&&q.x!=null&&(q.x<FX[0]-90||q.x>FX[1]+90))continue;seedQ(q);drawQ(c,q)}
   {const sel=q=>q.key||q.mref,BIG=q=>q.k===41?60:q.k===0?26:q.k===11||q.k===12?20:q.k===1?30:q.k===3?110:q.k===2?70:q.k===40?60:50;let PK=null;
     API.pick=(sx,sy)=>{sx-=MX;sy-=MY;if(!PK){PK=document.createElement("canvas");PK.width=PK.height=3}const pc=PK.getContext("2d",{willReadFrequently:true});
-      for(let i=objD.length-1;i>=0;i--){const q=objD[i];if(!sel(q)||HID.has(q.ly)||q.agua)continue;const b=BIG(q)*(q.os||1)*(q.man&&q.s||1);if(Math.abs(q.x-sx)>b||sy>q.y+14||sy<q.y-b*1.7)continue;pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);seedQ(q);drawQ(pc,q,true);if(pc.getImageData(1,1,1,1).data[3]>40)return q}return null};
+      for(let i=objD.length-1;i>=0;i--){const q=objD[i];if(!sel(q)||HID.has(q.ly)||q.agua||q.trac)continue;const b=BIG(q)*(q.os||1)*(q.man&&q.s||1);if(Math.abs(q.x-sx)>b||sy>q.y+14||sy<q.y-b*1.7)continue;pc.setTransform(1,0,0,1,0,0);pc.clearRect(0,0,3,3);pc.setTransform(1,0,0,1,1-sx,1-sy);seedQ(q);drawQ(pc,q,true);if(pc.getImageData(1,1,1,1).data[3]>40)return q}return null};
     const SC_=new Map();API.sil=q=>{if(SC_.has(q))return SC_.get(q);const b=BIG(q)*(q.os||1)*(q.man&&q.s||1),W_=Math.ceil(b*2)+8,H_=Math.ceil(b*1.7+20)+8,sc=document.createElement("canvas");sc.width=W_;sc.height=H_;const sx_=sc.getContext("2d");sx_.translate(b+4-q.x,b*1.7+4-q.y);seedQ(q);drawQ(sx_,q,true);
       let x0=W_,x1=0;{const d=sx_.getImageData(0,0,W_,H_).data;for(let y=0;y<H_;y+=2)for(let x=0;x<W_;x++)if(d[(y*W_+x)*4+3]>40){if(x<x0)x0=x;if(x>x1)x1=x}}
       const mk=(col,r)=>{const oc=document.createElement("canvas");oc.width=W_;oc.height=H_;const ox=oc.getContext("2d");for(let a2=0;a2<16;a2++)ox.drawImage(sc,Math.cos(a2*.3927)*r,Math.sin(a2*.3927)*r);ox.globalCompositeOperation="source-in";ox.fillStyle=col;ox.fillRect(0,0,W_,H_);ox.globalCompositeOperation="destination-out";ox.drawImage(sc,0,0);return oc};
@@ -1537,18 +1576,23 @@ function render(W,canvas,stamps){
             else if(b.m==="ruido"){const nz=fbm(i*G/34+11.3,j*G/34+7.1,3)-.5;if(l>=0)e=clamp(e+nz*w*.07,0,1)}
             else if(b.m==="terra"){if(l<.1)l=lerp(l,.12,w*.55)}
             else if(b.m==="mar"){l=lerp(l,-.22,w*.55);if(l<0)e=lerp(e,0,Math.min(1,w*1.5))}
-            if(l<0)e=0;EL[k]=e;LA[k]=l;dE[k]+=e-e0;dL[k]+=l-l0}
+            if(l<0)e=0;EL[k]=e;LA[k]=l;dE[k]+=e-e0;dL[k]+=l-l0;if(e!==e0||l!==l0)neveCel(W,k)}
           bx0=Math.min(bx0,(i0-1)*G);by0=Math.min(by0,(j0-1)*G);bx1=Math.max(bx1,(i1+1)*G);by1=Math.max(by1,(j1+1)*G)}
         return bx0>bx1?null:[bx0,by0,bx1,by1]},
       // redesenha a faixa de colunas tocada, o fundo guardado e a altura dos objetos
-      redesenha(rc,soCor){if(!rc)return;if(!soCor)ret(rc[0],rc[1],rc[2],rc[3]);const x0=Math.max(0,(rc[0]|0)-8),x1=Math.min(MW-1,(rc[2]|0)+8),w=x1-x0+1;
+      redesenha(rc,soCor){if(!rc)return;if(!soCor){ret(rc[0],rc[1],rc[2],rc[3]);if(W.dL)refazTex(rc[0]-8,rc[1]-8,rc[2]+8,rc[3]+8)}const x0=Math.max(0,(rc[0]|0)-8),x1=Math.min(MW-1,(rc[2]|0)+8),w=x1-x0+1;
         for(let x=x0;x<=x1;x++){for(let s=0;s<MH;s++){o[(s*MW+x)*4+3]=0;YB[s*MW+x]=0}coluna(x)}tctx.putImageData(img,0,0,x0,0,w,MH);
         if(CACHE&&CACHE.base&&PAPER){const g=CACHE.base.getContext("2d");g.save();g.beginPath();g.rect(MX+x0,MY,w,MH);g.clip();g.drawImage(PAPER,MX+x0,MY,w,MH,MX+x0,MY,w,MH);g.drawImage(tmp,x0,0,w,MH,MX+x0,MY,w,MH);g.translate(MX,MY);hach(g,x0-12,x1+12);g.restore()}
-        if(CACHE&&!soCor)for(const q of CACHE.obj){if(q.wx==null||q.wx<rc[0]-4||q.wx>rc[2]+4||q.wy<rc[1]-4||q.wy>rc[3]+4)continue;const e=eA(q.wx,q.wy),dy=(e-(q.we||0))*K;if(dy){q.y-=dy;if(q.cy!=null)q.cy-=dy;if(q.ty!=null)q.ty-=dy}q.we=e;
+        if(CACHE&&!soCor)for(const q of CACHE.obj){if(q.wa&&q.wb&&q.a&&q.b){const mx=Math.min(q.wa[0],q.wb[0]),Mx=Math.max(q.wa[0],q.wb[0]),my=Math.min(q.wa[1],q.wb[1]),My=Math.max(q.wa[1],q.wb[1]);if(Mx<rc[0]-4||mx>rc[2]+4||My<rc[1]-4||my>rc[3]+4)continue;
+            q.a=[q.a[0],q.wa[1]*TILT-eA(q.wa[0],q.wa[1])*K];q.b=[q.b[0],q.wb[1]*TILT-eA(q.wb[0],q.wb[1])*K];q.y=Math.max(q.a[1],q.b[1]);continue}if(q.wx==null||q.wx<rc[0]-4||q.wx>rc[2]+4||q.wy<rc[1]-4||q.wy>rc[3]+4)continue;const e=eA(q.wx,q.wy),dy=(e-(q.we||0))*K;if(dy){q.y-=dy;if(q.cy!=null)q.cy-=dy;if(q.ty!=null)q.ty-=dy}q.we=e;
           if(q.k===0||q.k===11||q.k===12)q.agua=LF[clamp(q.wy|0,0,WY-1)*WX+clamp(q.wx|0,0,WX-1)]<.02?1:0}},
       fim(){if(CACHE)CACHE.ov=null},
       altura:(x,y)=>sampleGrid(W.elev,x,y),
       exporta(){if(!W.dE)return null;let tem=false;const q=a=>{const o=new Int16Array(a.length);for(let i=0;i<a.length;i++){const v=Math.round(a[i]*6000);o[i]=v>32767?32767:v<-32767?-32767:v;if(o[i])tem=true}return b64(o)},e=q(W.dE),l=q(W.dL);return tem?{v:1,gw:GW,gh:GH,s:W.P.size||1,e,l}:null}}}
+  API.tracos={
+    // troca a lista e refaz so o pedaco tocado (caixa no mundo); o chao e o relevo sao redesenhados nas colunas de la
+    poe(L,caixa){P.tracos=L;W._trV=(W._trV||0)+1;if(!caixa)return;const b=[caixa[0]-30,caixa[1]-30,caixa[2]+30,caixa[3]+30];refazTex(b[0],b[1],b[2],b[3]);API.relevo.redesenha(b,true);return b},
+    caixa(t){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.pts||[]){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}return x0>x1?null:[x0,y0,x1,y1]}};
   API.pintura={
     // dabs: [{x,y,r,mat,f,d,apaga}] no mundo; desenha a textura com borda suave na camada e devolve a area tocada
     aplica(dabs){if(!PNT){PNT=document.createElement("canvas");PNT.width=WX;PNT.height=WY;PD=new Uint8ClampedArray(WX*WY*4)}const g=PNT.getContext("2d",{willReadFrequently:true});let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
