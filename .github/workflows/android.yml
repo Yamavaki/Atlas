@@ -41,21 +41,22 @@ jobs:
           ls "$ANDROID_NDK_LATEST_HOME" | head -3
 
       - name: Ferramenta do Tauri
-        run: npm install -g @tauri-apps/cli@^2
+        # instalada no projeto (nao global): o Gradle chama o tauri pelo caminho do node_modules
+        run: |
+          npm init -y >/dev/null
+          npm install -D @tauri-apps/cli@^2
 
       - name: Projeto Android
-        working-directory: src-tauri
         run: |
-          tauri android init --ci
-          tauri icon app-icon.png
+          npx tauri android init --ci
+          npx tauri icon src-tauri/app-icon.png
           # permissao para o proprio app abrir o instalador de uma versao nova
-          M=gen/android/app/src/main/AndroidManifest.xml
+          M=src-tauri/gen/android/app/src/main/AndroidManifest.xml
           grep -q REQUEST_INSTALL_PACKAGES $M || sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' $M
           cat $M
 
       - name: Montar o app
-        working-directory: src-tauri
-        run: tauri android build --apk --target aarch64 --target armv7 --ci
+        run: npx tauri android build --apk --target aarch64 --target armv7 --ci
 
       - name: Assinar
         env:

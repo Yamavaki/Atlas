@@ -1,6 +1,9 @@
 /* Atlas - app de notas e mapas (GPL-3.0). */
 (function(){
 "use strict";
+// aparelho de toque (celular, tablet) e app do Android: a interface troca atalhos de teclado por botoes e dicas de toque
+{const de=document.documentElement,mq=window.matchMedia&&matchMedia("(pointer:coarse)");const ap=()=>de.classList.toggle("toque",!!(mq&&mq.matches)||/Android|iPad|iPhone/.test(navigator.userAgent)&&!(window.matchMedia&&matchMedia("(pointer:fine)").matches));ap();if(mq&&mq.addEventListener)mq.addEventListener("change",ap);if(/Android/.test(navigator.userAgent))de.classList.add("android")}
+window.AtlasToque=()=>document.documentElement.classList.contains("toque");
 const A=window.AtlasGen,$=(s,r)=>(r||document).querySelector(s);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -108,7 +111,11 @@ function ovRes(mo,octx,bw,bh,k,view){const css=(view&&view.clientWidth?view.clie
 // mapa ocupa a altura que sobra na janela (janela estreita/alta): o quadro cresce para baixo e o mapa preenche
 // tela de mapa (regiao e cidade) no mesmo desenho do Modo Batalha: titulo, barra de cima, ferramentas a esquerda, painel a direita (ferramenta + parametros)
 function montaMapa(main,{head,barra,body,ctx,par,area}){barra.classList.add("mbarra");body.classList.add("par");const lado=h("aside",{class:"mlado","aria-label":"Ferramenta e parâmetros"},h("div",{class:"mlado-ctx"},ctx),h("p",{class:"mlado-vazio"},"Escolha uma ferramenta à esquerda para ver as opções dela. As opções do gerador ficam no botão Parâmetros, na barra superior."),par);
+  // no celular os parametros viram uma folha que sobe de baixo: comeca fechada (o mapa fica inteiro) e tem um botao de fechar
+  const bParH=()=>[...head.querySelectorAll("button")].find(x=>x.textContent.trim()==="Parâmetros");
+  lado.append(h("button",{type:"button",class:"fecha-par","aria-label":"Fechar os parâmetros",onclick:()=>{const b=bParH();if(b&&!par.hidden)b.click();else par.hidden=true}},icone("fechar")));
   body.append(area,lado);main.append(h("div",{class:"mapv mapv2"},head,barra,body));
+  if(window.matchMedia&&matchMedia("(max-width:760px)").matches&&par&&!par.hidden){const b=bParH();if(b)b.click();if(!par.hidden)par.hidden=true}
   // o mapa termina de gerar depois que a tela monta: reajusta quando ele chega (e se a janela ainda estava se arrumando)
   for(const t of [300,1200,3000])setTimeout(()=>{if(area.isConnected)window.dispatchEvent(new Event("resize"))},t)}
 function fitTall(view,stage,cv){if(!view._ro&&window.ResizeObserver){let lw=0;view._ro=new ResizeObserver(()=>{if(!view.isConnected){view._ro.disconnect();return}const w=view.clientWidth,bw0=view._bw;if(!w)return;if(Math.abs(w-lw)>2||!bw0||bw0+2<w){lw=w;fitTall(view,stage,cv);if(view._aoAjustar)view._aoAjustar()}});view._ro.observe(view)}const vw=view.clientWidth;if(!vw||!cv.width)return;const ar=cv.width/cv.height,nat=vw/ar,r=view.getBoundingClientRect(),wrap=view.parentNode,below=wrap?Math.max(0,wrap.getBoundingClientRect().bottom-r.bottom):0;
@@ -126,7 +133,7 @@ const Store={db:null,dl:null,dirty:new Set(),timers:new Map(),chain:new Map(),
     if(db){this.db=db;let first=0;const done=()=>{if(++first===2)ready()};const t=setTimeout(()=>{if(first<2){first=2;pill("Sem resposta do armazenamento","warn");ready()}},10000);
       for(const kind of["notes","maps"]){let got=false;db.collection(kind).onSnapshot(sn=>{applySnap(kind,sn);if(!got){got=true;done();if(first>=2)clearTimeout(t)}},e=>{pill("Armazenamento indisponível","warn");if(!got){got=true;done()}})}
       pill("Salvo na nuvem","ok")}
-    else{for(const kind of["notes","maps"]){try{const raw=JSON.parse(localStorage.getItem("atlas:"+kind)||"[]");for(const o of raw)S[kind].set(o.id,o)}catch(e){}}pill("Salvo só neste navegador","warn");ready()}},
+    else{for(const kind of["notes","maps"]){try{const raw=JSON.parse(localStorage.getItem("atlas:"+kind)||"[]");for(const o of raw)S[kind].set(o.id,o)}catch(e){}}pill(document.documentElement.classList.contains("android")?"Salvo neste aparelho":"Salvo só neste navegador","warn");ready()}},
   // le a pasta aberta e passa a gravar nela
   async dePasta(migrar){const AP=window.AtlasPasta,r=await AP.carregar();const antes={notes:[...S.notes.values()],maps:[...S.maps.values()]};
     this.pasta=true;this.db=null;this.pastaPend=null;S.notes.clear();S.maps.clear();for(const o of r.notas)S.notes.set(o.id,o);for(const m of r.mapas)S.maps.set(m.id,m);
@@ -140,7 +147,7 @@ const Store={db:null,dl:null,dirty:new Set(),timers:new Map(),chain:new Map(),
     this.timers.set(key,setTimeout(()=>this.flush(kind,o.id),700))},
   flush(kind,id){const key=kind+"/"+id,o=S[kind].get(id);if(!o){this.dirty.delete(key);return}
     if(this.pasta){const AP=window.AtlasPasta;(kind==="notes"?AP.gravaNota(o):AP.gravaMapa(o)).then(()=>{this.dirty.delete(key);if(!this.dirty.size)pill("Salvo na pasta","ok")},e=>{console.warn(e);pill("Erro ao salvar","warn");toast("Não foi possível gravar na pasta.")});return}
-    if(!this.db){this.local(kind);this.dirty.delete(key);pill("Salvo só neste navegador","warn");return}
+    if(!this.db){this.local(kind);this.dirty.delete(key);pill(document.documentElement.classList.contains("android")?"Salvo neste aparelho":"Salvo só neste navegador","warn");return}
     const body=JSON.parse(JSON.stringify(o));delete body.id;const stamp=o.updated;
     const p=(this.chain.get(key)||Promise.resolve()).then(()=>this.db.doc(key).set(body)).then(()=>{if(S[kind].get(id)&&S[kind].get(id).updated===stamp){this.dirty.delete(key)}if(!this.dirty.size)pill("Salvo","ok")},
       e=>{pill("Erro ao salvar","warn");toast(e&&e.code==="invalid_argument"?"Sem permissão para salvar neste mundo.":"Não foi possível salvar agora. Tente de novo em instantes.")});
@@ -1952,7 +1959,7 @@ const marcaPlay=()=>{const b=$("#bPlay");b.replaceChildren(icone(S.players?"olho
 for(const b of document.querySelectorAll(".rail button"))b.addEventListener("click",()=>{if(b.dataset.busca){abrePaleta();return}S.sec=b.dataset.sec;if(S.sec==="home"){closePlace();drawAll();return}closePlace();drawAll();if(matchMedia("(max-width:860px)").matches&&!(S.sec==="notes"?S.note:S.map))$("#side").classList.add("open")});
 $("#menu").addEventListener("click",()=>$("#side").classList.toggle("open"));
 document.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||(e.key!=="z"&&e.key!=="Z"))return;const ae=document.activeElement;if(ae&&(/INPUT|TEXTAREA|SELECT/.test(ae.tagName)&&ae.type!=="range"||ae.isContentEditable))return;if(S.sec!=="maps")return;const b=document.querySelector('#main button[aria-label="Desfazer"]');if(b){e.preventDefault();b.click()}});
-$("#bExp").addEventListener("click",e=>menuPop(e.currentTarget,[{ic:"importar",txt:"Importar notas",det:"Markdown (.md) e quadros .canvas",fn:()=>$("#imp").click()},{ic:"exportar",txt:"Exportar…",det:"Mundo completo, versão dos jogadores, Foundry VTT",fn:()=>exportMenu($("#bExp"))},{ic:"nuvem",txt:"Google Drive…",det:"Enviar, atualizar e configurar a cópia do mundo",fn:()=>window.AtlasDrive&&AtlasDrive.configuracoes()},{sep:true},{ic:"estrela",txt:"Criar mundo de exemplo",fn:sample},{ic:"ajuda",txt:"Atalhos do teclado",det:"Ctrl K busca · Ctrl Z desfaz",fn:()=>folhaAtalhos()}]));
+$("#bExp").addEventListener("click",e=>menuPop(e.currentTarget,[{ic:"importar",txt:"Importar notas",det:"Markdown (.md) e quadros .canvas",fn:()=>$("#imp").click()},{ic:"exportar",txt:"Exportar…",det:"Mundo completo, versão dos jogadores, Foundry VTT",fn:()=>exportMenu($("#bExp"))},{ic:"nuvem",txt:"Google Drive…",det:"Enviar, atualizar e configurar a cópia do mundo",fn:()=>window.AtlasDrive&&AtlasDrive.configuracoes()},{sep:true},{ic:"estrela",txt:"Criar mundo de exemplo",fn:sample},...(window.AtlasToque()?[]:[{ic:"ajuda",txt:"Atalhos do teclado",det:"Ctrl K busca · Ctrl Z desfaz",fn:()=>folhaAtalhos()}])]));
 $("#bBusca").addEventListener("click",()=>abrePaleta());
 document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&!e.altKey&&(e.key==="k"||e.key==="K")){e.preventDefault();abrePaleta();return}
   if(e.key==="?"&&!e.ctrlKey&&!e.metaKey&&!e.altKey){const t=e.target;if(t&&t.matches&&t.matches("input,textarea,select,[contenteditable],[contenteditable] *"))return;e.preventDefault();folhaAtalhos()}});

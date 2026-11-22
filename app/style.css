@@ -1247,3 +1247,20 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .anp-nota span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .anp-nota:hover{background:rgba(212,166,74,.12)}
 .anp-nota.on{border-color:var(--gold);background:rgba(212,166,74,.18)}
+
+/* ---------- toque: celular e tablet ---------- */
+.toque kbd{display:none}
+.toque .ib{min-width:40px;min-height:40px}
+.toque .tbar button{min-height:38px}
+@media (max-width:760px){.tbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -4px;padding:4px}.tbar::-webkit-scrollbar{display:none}.tbar button{flex:none}}
+@media (min-width:761px) and (max-width:1299px){.bt-bar{flex-wrap:wrap}.bt-bar>.bt-grp{flex-shrink:0}}
+@container (max-width:1100px){.qd-barra{left:16px;transform:none}.qd-b span{display:none}.qd-b{width:46px}}
+.fecha-par{display:none}
+@media (max-width:860px){
+  .mapv2 .mlado .params{height:55vh;max-height:55vh;padding-top:44px!important;bottom:68px!important}
+  .mapv2 .mlado .params:not([hidden])~.fecha-par{display:grid;place-items:center;position:fixed;right:10px;bottom:calc(68px + 55vh - 44px);width:38px;height:38px;min-height:0;padding:0;border-radius:10px;z-index:26;background:var(--panel-2);border:1px solid var(--line)}
+}
+/* editor de batalha: botoes para terminar o traco (paredes, cercas, rios) sem teclado */
+.bt-traco{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:6px;padding:6px;border-radius:12px;background:rgba(23,20,15,.94);border:1px solid var(--line);box-shadow:var(--sombra);z-index:6}
+.bt-traco[hidden]{display:none}
+.bt-traco button{min-height:38px;padding:0 12px;white-space:nowrap}
