@@ -1503,7 +1503,10 @@ function render(W,canvas,stamps){
   // 1.33: muralha, palicada e cerca viva tracadas a mao: pedacos curtos (para a ordem de desenho) e torres, sempre na altura atual do relevo
   {const TL=(W.P.tracos||[]).filter(t=>trMuro(t)&&t.pts&&t.pts.length>1),ly=LI.has("base")?"base":[...LI.keys()][0];
     for(const t of TL){const fz={muralha:"stone",palicada:"palisade",sebe:"hedge"}[t.tipo],Q=[];for(let i=0;i<t.pts.length-1;i++){const a=t.pts[i],b=t.pts[i+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/22));for(let s2=0;s2<n;s2++)Q.push([lerp(a[0],b[0],s2/n),lerp(a[1],b[1],s2/n)])}Q.push(t.pts[t.pts.length-1]);
-      for(let i=0;i<Q.length-1;i++){const a=pj(Q[i][0],Q[i][1]),b=pj(Q[i+1][0],Q[i+1][1]);objD.push({k:4,a,b,y:Math.max(a[1],b[1]),fz,ly,man:1,trm:1});if(fz!=="hedge"&&(i%3===0||(t.torres===false?false:i%9===0)))objD.push({k:5,x:a[0],y:a[1]+.5,g:i%9===0&&fz==="stone"&&i?1:0,fz,ly,man:1,trm:1})}
+      // portao: onde uma estrada ou rua (feita a mao ou gerada) cruza a muralha, o pedaco vira abertura com duas torres
+      const RD=(W.P.tracos||[]).filter(t=>!trRio(t)&&!trMuro(t)&&t.pts&&t.pts.length>1).map(t=>t.pts).concat(roads||[]),xx=(a,b,c,d)=>{const r=[b[0]-a[0],b[1]-a[1]],q=[d[0]-c[0],d[1]-c[1]],den=r[0]*q[1]-r[1]*q[0];if(Math.abs(den)<1e-9)return false;const t=((c[0]-a[0])*q[1]-(c[1]-a[1])*q[0])/den,u=((c[0]-a[0])*r[1]-(c[1]-a[1])*r[0])/den;return t>=0&&t<=1&&u>=0&&u<=1},
+        porta=(a,b)=>fz!=="hedge"&&RD.some(P_=>{for(let j=0;j<P_.length-1;j++)if(xx(a,b,P_[j],P_[j+1]))return true;return false});
+      for(let i=0;i<Q.length-1;i++){const a=pj(Q[i][0],Q[i][1]),b=pj(Q[i+1][0],Q[i+1][1]);if(porta(Q[i],Q[i+1])){objD.push({k:5,x:a[0],y:a[1]+.5,g:1,fz,ly,man:1,trm:1},{k:5,x:b[0],y:b[1]+.5,g:1,fz,ly,man:1,trm:1});continue}objD.push({k:4,a,b,y:Math.max(a[1],b[1]),fz,ly,man:1,trm:1});if(fz!=="hedge"&&(i%3===0||(t.torres===false?false:i%9===0)))objD.push({k:5,x:a[0],y:a[1]+.5,g:i%9===0&&fz==="stone"&&i?1:0,fz,ly,man:1,trm:1})}
       if(fz!=="hedge"){const e=pj(Q[Q.length-1][0],Q[Q.length-1][1]);objD.push({k:5,x:e[0],y:e[1]+.5,g:0,fz,ly,man:1,trm:1})}}}
   objD.sort((a,b)=>(LI.get(a.ly)-LI.get(b.ly))||(a.y-b.y));const smoke=[];
   const seedQ=q=>{rngS=mulberry((Math.imul((q.x||0)*4|0,73856093)^Math.imul((q.y||0)*4|0,19349663)^q.k*83492791)>>>0)};
@@ -1580,6 +1583,7 @@ function render(W,canvas,stamps){
           for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const dd=Math.hypot(i*G-b.x,j*G-b.y)/R;if(dd>=1)continue;const w=(dd<=hard?1:sstep(0,1,(1-dd)/(1-hard)))*(b.f==null?.5:b.f),k=j*GW+i,e0=EL[k],l0=LA[k];let e=e0,l=l0;
             if(b.m==="up"){if(l<.02)l=Math.min(.06,l+w*.08);else e=Math.min(1,e+w*.022)}
             else if(b.m==="down"){if(e>.0005)e=Math.max(0,e-w*.022);else l=Math.max(-1,l-w*.08)}
+            else if(b.m==="vale"){if(l>=0)e=Math.max(0,e-w*.02)}
             else if(b.m==="suave"){const av=(A,k)=>(A[k]*2+A[k-1]+A[k+1]+A[k-GW]+A[k+GW]+(A[k-GW-1]+A[k-GW+1]+A[k+GW-1]+A[k+GW+1])*.5)/8;const ae=av(EL,k),al=av(LA,k);e=lerp(e,ae,w*.6);l=lerp(l,al,w*.6)}
             else if(b.m==="nivel"){if(l>=0)e=lerp(e,clamp(b.alvo||0,0,1),w*.3)}
             else if(b.m==="ruido"){const nz=fbm(i*G/34+11.3,j*G/34+7.1,3)-.5;if(l>=0)e=clamp(e+nz*w*.07,0,1)}
