@@ -83,13 +83,14 @@
       C.history(),C.drawSelection(),C.dropCursor(),C.indentOnInput(),C.closeBrackets(),C.highlightSelectionMatches(),EditorView.lineWrapping,
       md,vivo,eventos,C.autocompletion({override:[sugestao],activateOnTyping:true,icons:false}),
       C.Prec.highest(teclas),keymap.of([...C.closeBracketsKeymap,...C.defaultKeymap,...C.historyKeymap,...C.completionKeymap,...C.searchKeymap,C.indentWithTab]),
-      C.placeholder(cfg.dica||"Escreva aqui…"),
+      C.placeholder(cfg.dica||"Escreva aqui…"),EditorState.phrases.of({"Find":"Achar","Replace":"Trocar por","next":"próximo","previous":"anterior","all":"todos","match case":"maiúsc./minúsc.","regexp":"expressão","by word":"palavra inteira","replace":"trocar","replace all":"trocar todos","close":"fechar","current match":"atual","on line":"na linha","Go to line":"Ir para a linha","go":"ir","replaced match on line $":"trocado na linha $","replaced $ matches":"$ trocados"}),
       EditorView.contentAttributes.of({spellcheck:"true","aria-label":"Conteúdo da nota"}),EditorView.editorAttributes.of({class:"cm-atlas"}),
       EditorView.updateListener.of(u=>{if(u.docChanged&&cfg.mudou)cfg.mudou(u.state.doc.toString())})]});
     const view=new EditorView({state});
     return {dom:view.dom,view,texto:()=>view.state.doc.toString(),focar:()=>view.focus(),
       envolver:(a,b,ph)=>envolver(view,a,b,ph),prefixo:pre=>prefixo(view,pre),
       inserir:s=>{const r=view.state.selection.main;view.dispatch({changes:{from:r.from,to:r.to,insert:s},selection:{anchor:r.from+s.length}});view.focus()},
+      irLinha:n=>{const l=view.state.doc.line(Math.max(1,Math.min(n,view.state.doc.lines)));view.dispatch({selection:{anchor:l.from},effects:EditorView.scrollIntoView(l.from,{y:"start",yMargin:60})});view.focus()},
       destruir:()=>view.destroy()}}
   window.AtlasEditor={criar,pronto:()=>!!(window.CM&&window.CM.EditorView)};
 })();

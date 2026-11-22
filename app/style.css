@@ -1131,3 +1131,73 @@ ul.pistas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
 .vtabs{flex-wrap:nowrap!important}.vtabs button{font-size:12.5px;padding-left:6px;padding-right:6px;white-space:nowrap}
 .escrito .epag h1,.escrito .epag h2,.escrito .epag h3,.escrito .epag h4,.escrito .epag p,.escrito .epag li,.escrito .epag strong,.escrito .epag em{color:inherit;border-color:rgba(0,0,0,.15)}
 .escrito .epag .secret{background:rgba(160,40,30,.12);color:#7a2a1a}
+
+/* ---------- 1.29: leitura de textos longos ---------- */
+.nota-lay{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+.nota-lay>.note{width:100%;min-width:0}
+.nota-lay.com-sum:not(.sum-off):not(.estreita){grid-template-columns:minmax(0,1fr) minmax(0,860px) minmax(240px,1fr)}
+.nota-lay.com-sum:not(.sum-off):not(.estreita)>.note{grid-column:2;margin:0}
+.sumario{position:sticky;top:0;align-self:start;display:flex;flex-direction:column;gap:6px;width:240px;max-height:calc(100vh - 120px);padding:40px 12px 16px 8px;box-sizing:border-box}
+.nota-lay.sum-off .sumario{display:none}
+.nota-lay.estreita .sumario{display:none;position:fixed;right:14px;top:120px;max-height:68vh;z-index:45;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);padding:10px}
+.nota-lay.estreita.sum-aberto .sumario{display:flex}
+.sum-top{display:flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sum-top b{font-weight:600}.sum-top .grow{flex:1}.sum-top .x{padding:0 6px;line-height:20px}
+.sum-lista{display:flex;flex-direction:column;overflow:auto;border-left:1px solid var(--line);min-height:0}
+.sum-i{all:unset;cursor:pointer;display:block;padding:5px 8px 5px calc(12px + var(--n,0) * 14px);margin-left:-1px;border-left:2px solid transparent;font-size:13.5px;line-height:1.3;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum-i:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.sum-i:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.sum-i.atual{color:var(--gold-2);border-left-color:var(--gold)}
+.sum-i.auto{font-style:italic;font-size:12.5px}
+.sum-i.fech::after{content:" ›";color:var(--muted-2)}
+.sum-ac{display:flex;gap:4px;flex-wrap:wrap}
+.sum-ac .sm{font-size:12px;padding:2px 8px}
+.bt-sum.on,.row .ghost.on{color:var(--gold-2)}
+/* recolher seções */
+.md>h1,.md>h2,.md>h3,.md>h4,.md>h5,.md>h6{position:relative}
+.md .dobra{all:unset;position:absolute;left:-26px;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:4px;cursor:pointer;opacity:0;transition:opacity .12s}
+.md .dobra::before{content:"";position:absolute;left:6px;top:7px;border:5px solid transparent;border-top:6px solid var(--muted);border-bottom:0}
+.md>:is(h1,h2,h3,h4,h5,h6):hover .dobra,.md .dobra:focus-visible,.md>.fechado .dobra{opacity:1}
+.md .dobra:hover{background:var(--panel-3)}
+.md>.fechado .dobra::before{transform:rotate(-90deg)}
+.md>.fechado::after{content:" …";color:var(--muted-2);font-weight:400}
+.md>.dob-oculto{display:none!important}
+@media (hover:none){.md .dobra{opacity:.6}}
+/* lado a lado */
+#main.dividido{display:grid;grid-template-columns:minmax(0,1fr) 7px minmax(280px,var(--lado-w,44%));overflow:hidden}
+#main.dividido>.pane-a,#main.dividido>.pane-b{overflow:auto;min-height:0;height:100%}
+.lado-res{cursor:col-resize;background:var(--line);border-left:3px solid var(--bg);border-right:3px solid var(--bg)}
+.lado-res:hover{background:var(--gold)}
+.pane-b{padding:18px 22px 48px;background:var(--panel);display:flex;flex-direction:column;gap:12px}
+.pane-b .md{font-size:16.5px;max-width:none}
+.lado-top{position:sticky;top:-18px;z-index:2;display:flex;align-items:center;gap:6px;padding:8px 0;margin-top:-8px;background:var(--panel);border-bottom:1px solid var(--line)}
+.lado-top .grow{flex:1}.lado-tit{font-family:var(--serif);font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lado-tipo{font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.lado-props{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:13.5px}
+.lado-props dt{color:var(--muted)}.lado-props dd{margin:0}
+.lado-lista{display:flex;flex-direction:column;max-height:none}
+.lado-lista .item{display:flex;align-items:center;gap:8px;text-align:left}
+.lado-lista .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.pane-b>input[type=search]{width:100%}
+/* Ctrl+F */
+#achar{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:4px;padding:6px 6px 6px 10px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+#achar input{width:220px;border:0;background:transparent;outline:0;color:var(--text);font-size:14px}
+#achar .ach-n{min-width:56px;font-size:12px;color:var(--muted);text-align:right}
+#achar.sem input{color:#e0776b}
+mark.achado{background:rgba(212,166,74,.28);color:inherit;border-radius:2px}
+mark.achado.atual{background:var(--gold);color:var(--on-gold)}
+@media (max-width:860px){#main.dividido{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 7px minmax(0,1fr)}.lado-res{cursor:row-resize}#achar{left:12px;right:12px}#achar input{flex:1;width:auto}}
+.flab{display:flex;align-items:center;gap:6px}
+.ftira{all:unset;cursor:pointer;color:var(--muted-2);font-size:14px;line-height:1;padding:0 4px;border-radius:4px}
+.ftira:hover{color:#e0776b;background:var(--panel-3)}
+/* grupos dentro das pastas */
+.grp.gbt.sub{padding-left:22px;font-size:11.5px;text-transform:none;letter-spacing:0;color:var(--muted);gap:6px}
+.grp.gbt.sub svg{opacity:.75}
+.item.emgrp{padding-left:30px}
+.grp.gbt.alvo{outline:1px dashed var(--gold);background:rgba(212,166,74,.08)}
+.ng{display:flex;flex-direction:column;gap:8px;min-width:min(420px,80vw)}
+.ng-dica{margin:0;font-size:13px;color:var(--muted)}
+.ng-lista{display:flex;flex-direction:column;max-height:46vh;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:4px}
+.ng-i{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer}
+.ng-i:hover{background:var(--panel-3)}.ng-i small{margin-left:auto;color:var(--muted-2)}
+.row .ico{padding:6px 8px}

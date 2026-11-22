@@ -70,7 +70,9 @@ envolvidos: "[[Abade Tomas]], [[Irmã Ludmila]]"
 
 **Campos do Nauren RPG** (opcionais, aparecem num bloco compacto): em `personagem` — `nivel`, `cores`, `classe`, `vida`, `sincronia`, `travado`; em `criatura` — `nivel`, `cores`, `categoria` (1–4), `funcao`, `chefe` (sim), `vida`, `xp`. Todo tipo aceita também `aliases` e `grupo`.
 
-O menu **+ Nova → Importar fichas do Nauren** lê o JSON exportado do Foundry (Export Data de um ator ou item, uma lista ou um lote do Importar em massa) e cria ou atualiza as notas.
+**Grupos dentro das pastas (1.29):** com a barra agrupada por pasta ou tipo, as notas com `grupo:` aparecem num subgrupo dentro da pasta (ex.: Personagens › Sala D). Para separar a turma, basta escrever `grupo: Sala D` em cada personagem.
+
+O menu **+ Nova → Importar fichas do Nauren** lê o JSON exportado do Foundry (Export Data de um ator ou item, uma lista ou um lote do Importar em massa) e cria ou atualiza as notas. Desde a 1.29 ele também traz as ações de cada habilidade, magia e arma: ataque, fórmulas de dano e cura com a média e a faixa (calculadas com os atributos da ficha), custo, alcance e usos, e uma tabela **Dano médio**. Ao importar de novo, só as seções geradas (Ficha do Nauren, Dano médio, Habilidades e magias, Equipamento, Peculiaridades, Notas) são trocadas; o resto da nota fica.
 
 ## 4. Corpo das notas (modelos do Atlas)
 
