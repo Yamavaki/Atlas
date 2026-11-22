@@ -219,8 +219,11 @@ export function malhaTelhados(A,TEX,IND,PAR,todos){const B=[];let n=0;const lay=
       const a=[cx+d[0]*t0,cy+d[1]*t0],b=[cx+d[0]*t1,cy+d[1]*t1],h=.05;for(const z of[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]+nx*h,a[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]])v(z[0],z[1],0,0,-1,[.12,.08,.06,.85],1)}
     else if(t.estilo==="cone"){// cone (1.30.2): luz suave que acompanha a curva (claro do lado da luz, escuro do outro) e telhas em aneis
       const bq=a=>{const dx=a[0]-cx,dy=a[1]-cy,L=Math.hypot(dx,dy)||1;return .62+.5*Math.max(-1,Math.min(1,(dx*LX+dy*LY)/L))};
-      for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-6)continue;const ang=Math.atan2(b[1]-a[1],b[0]-a[0])+Math.PI,cs=Math.cos(ang),sn=Math.sin(ang),Q=[a,b,[cx,cy]],B3=[bq(a),bq(b),(bq(a)+bq(b))/2*.5+.5];
-        if(rl!=null)for(const q of Q)v(q[0],q[1],0,0,-1,[.11,.1,.1,1],1);Q.forEach((q,k)=>v(q[0],q[1],(q[0]*cs+q[1]*sn)*es,(-q[0]*sn+q[1]*cs)*es,l,c,B3[k]))}}
+      // textura em coordenadas polares: as fileiras de telha viram aneis inteiros, sem emenda entre as fatias
+      let Rm=0;for(const q of P)Rm=Math.max(Rm,Math.hypot(q[0]-cx,q[1]-cy));const voltas=Math.max(1,Math.round(2*Math.PI*Rm*es)),th=q=>{let t=Math.atan2(q[1]-cy,q[0]-cx)/(2*Math.PI);return t<0?t+1:t};
+      for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-6)continue;let ta=th(a),tb=th(b);if(tb-ta>.5)ta+=1;else if(ta-tb>.5)tb+=1;
+        const Q=[a,b,[cx,cy]],U=[ta*voltas,tb*voltas,(ta+tb)/2*voltas],W=[-Math.hypot(a[0]-cx,a[1]-cy)*es,-Math.hypot(b[0]-cx,b[1]-cy)*es,0],B3=[bq(a),bq(b),(bq(a)+bq(b))/2*.5+.5];
+        if(rl!=null)for(const q of Q)v(q[0],q[1],0,0,-1,[.11,.1,.1,1],1);Q.forEach((q,k)=>v(q[0],q[1],U[k],W[k],l,c,B3[k]))}}
     else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-6)continue;const ang=Math.atan2(b[1]-a[1],b[0]-a[0])+Math.PI,nx=(b[1]-a[1])/L,ny=-(b[0]-a[0])/L;pano([a,b,[cx,cy]],ang,luzDe(nx,ny))}
     if(!t.estilo||t.estilo==="quatro")for(const q of RAW)linha(q,[cx,cy],.035,[.14,.09,.06,.7]);
     if(t.estilo==="cone"){let r=1e9;for(const q of P)r=Math.min(r,Math.hypot(q[0]-cx,q[1]-cy));const R0=Math.max(.08,Math.min(.24,r*.1)),disco=(x,y,rr,cor)=>{for(let i=0;i<16;i++){const a1=i/16*Math.PI*2,a2=(i+1)/16*Math.PI*2;for(const z of[[x,y],[x+Math.cos(a1)*rr,y+Math.sin(a1)*rr],[x+Math.cos(a2)*rr,y+Math.sin(a2)*rr]])v(z[0],z[1],0,0,-1,cor,1)}};
