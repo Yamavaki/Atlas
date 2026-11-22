@@ -118,7 +118,54 @@ function fitRect(lot,c,ang,L,D){const ca=Math.cos(ang),sa=Math.sin(ang);for(let 
 let C_ASSENTA=null,C_MOAT=[],C_ASSENTA_C=null;
 // etapa final (gerador 56): conferencia pela grade do mundo. Aderecos que cairam na agua, numa construcao ou na muralha
 // vao para o lugar livre mais perto, ou saem; arvores na rua ou dentro de construcao saem. Edicoes do usuario ficam como estao.
-function generate(P0){setMapa(P0&&P0.mapa);const C=generate0(P0);const gv=P0&&P0.gv!=null?P0.gv:GV;if(gv>=65&&C&&C.SPB)for(const q of C.SPB)if(q.k===2)q.tv=2;if(gv>=58&&C){try{C.QSEGS=quaySegs(C,Object.assign({},DEF,P0),(P0||{}).qov)}catch(e){C.QSEGS=[]}}if(gv>=56&&window.AtlasMundo&&C&&C.props){try{C.VERIF=verifica(C,P0||{})}catch(e){console.warn("verifica",e)}}return C}
+function generate(P0){setMapa(P0&&P0.mapa);const C=generate0(P0);const gv=P0&&P0.gv!=null?P0.gv:GV;if(gv>=65&&C&&C.SPB)for(const q of C.SPB)if(q.k===2)q.tv=2;if(gv>=58&&C){try{C.QSEGS=quaySegs(C,Object.assign({},DEF,P0),(P0||{}).qov)}catch(e){C.QSEGS=[]}}if(gv>=56&&window.AtlasMundo&&C&&C.props){try{C.VERIF=verifica(C,P0||{})}catch(e){console.warn("verifica",e)}}
+  if(window.AtlasMundo&&C&&C.props&&(CUL[(P0&&P0.culture)||DEF.culture]||{}).mod){try{C.ARRUMA=arrumaModerna(C,Object.assign({},DEF,P0))}catch(e){console.warn("arrumaModerna",e)}}return C}
+// 1.37: cidade moderna conferida pela grade do mundo (a mesma das cidades antigas), objeto por objeto, pela pegada real da arte:
+// nada fica na rua, nos trilhos, na agua ou em cima de outra coisa; quem nao cabe procura lugar perto (girando 90 graus) ou sai.
+// Restos da cidade antiga (casa em ruina, lenha, caixotes) saem; conteiner so no porto.
+function arrumaModerna(C,P){const AM=window.AtlasMundo,U=AM.USO,OVR=P.ovr||{},R={tirados:0,movidos:0,trocados:0};
+  const bairroDe=(x,y)=>{for(const p of C.patches)if(p.inner&&!p.sea&&p.poly&&inPoly(p.poly,x,y))return p;return null};
+  // 1. o que nao faz sentido numa cidade moderna
+  const VELHO=new Set(["ruinhouse","woodpile","haystack","scarecrow","cart","wagon","barrel","goods","stall","markettent","wayshrine","gallows","pillory","maypole","beehives","dovecote"]);
+  for(let i=C.props.length-1;i>=0;i--){const q=C.props[i];if(!q.id||OVR[q.key])continue;if(VELHO.has(q.id)){C.props.splice(i,1);R.trocados++;continue}
+    if(q.id==="crates"||q.id==="m_conteiner"){const b=bairroDe(q.x,q.y);if(!b||(b.type!=="porto"&&!(q.id==="crates"&&b.type==="producao"))){C.props.splice(i,1);R.trocados++}}}
+  for(let i=C.SPB.length-1;i>=0;i--){const q=C.SPB[i];if(q.id==="m_conteiner"&&!OVR[q.key]){const b=bairroDe(q.x,q.y);if(!b||b.type!=="porto"){C.SPB.splice(i,1);R.trocados++}}}
+  // 2. grade so com o chao e as casas; trilhos e rotatorias contam como via
+  const G=AM.deCidade(Object.assign({},C,{props:[],SPB:[],trees:[],NAT:[]}),AS);const V=C.VIAS||{};
+  for(const t of V.trem||[]){const pts=t.pts||t.ctl;if(pts)G.faixa(pts,9,k=>{if(G.uso[k]<U.construcao)G.uso[k]=U.estrada})}
+  for(const r of V.rot||[])G.circ(r.x,r.y,(r.r||8)+3,k=>{if(G.uso[k]<U.construcao)G.uso[k]=U.rua});
+  // embaixo da via elevada nao fica nada (de cima parece que esta em cima da pista)
+  for(const v of V.viad||[]){const pts=v.pts||v.ctl;if(pts)G.faixa(pts,15,k=>{if(G.uso[k]<U.construcao)G.uso[k]=U.estrada})}
+  const NARUA=new Set(["lamp","bench","m_veic","m_ponto","m_metro","m_semaforo","flowerbed","c_holo","statue","fountain","obelisk","m_outdoor"]),NOAR=new Set(["m_heli","m_aviao"]),AGUAOK=AM.AGUAOK||new Set();
+  let nObj=0;const FOLGA={m_conteiner:1.3,m_quadra:1.1,m_piscina:1.1,m_parquinho:1.1,crates:1.2};
+  const forma=(q,dx,dy,ang,teste)=>{const F=AS.ficha?AS.ficha(q.id,q.race,q.v,ang,q.aov):null,z=(q.s||1)*Z*(q.street?.85:1)*(teste?(FOLGA[q.id]||1.06):1);if(F&&F.pegada&&F.pegada.length)return F.pegada.map(P_=>P_.map(v=>[q.x+dx+v[0]*z,q.y+dy+v[1]*z]));const r=((AS.SIZE[q.id]||[6])[0])*Z*(q.s||1)*.4;return [Array.from({length:10},(_,k)=>[q.x+dx+Math.cos(k*.628)*r,q.y+dy+Math.sin(k*.628)*r])]};
+  // fracao da pegada que cai em lugar proibido
+  const ruim=(L,rua,agua)=>{let t=0,b=0;for(const P_ of L)G.poly(P_,k=>{t++;const u=G.uso[k];if(u===U.construcao||u===U.detalhe||u===U.muralha||u===U.portao||u===U.ponte||(!rua&&(u===U.rua||u===U.estrada||u===U.escada))||(G.agua[k]&&!agua&&u!==U.cais))b++});return t?b/t:0};
+  const pinta=(L,u)=>{const n=nObj++;for(const P_ of L)G.poly(P_,k=>{if(G.uso[k]<u){G.uso[k]=u;G.dono[k]=n}})};
+  const tamanho=q=>{const s=AS.SIZE[q.id]||[6,6];return s[0]*(s[1]||s[0])*(q.s||1)*(q.s||1)};
+  const confere=(L,lista,ehEsp)=>{const ord=L.filter(q=>q&&q.id).sort((a,b)=>tamanho(b)-tamanho(a)),tira=new Set();
+    for(const q of ord){if(NOAR.has(q.id)||q.livre&&ehEsp)continue;const rua=NARUA.has(q.id)||!!q.street,agua=AGUAOK.has(q.id),tol=rua?.5:.06;let L0=forma(q,0,0,q.ang||0);
+      if(OVR[q.key]){pinta(L0,ehEsp?U.construcao:U.detalhe);continue}if(ruim(forma(q,0,0,q.ang||0,1),rua,agua)<=tol){pinta(L0,ehEsp?U.construcao:U.detalhe);continue}
+      let ok=null;const giros=q.id==="m_veic"?[0]:q.id==="m_conteiner"||q.id==="crates"?[0,3.1416]:[0,1.5708,3.1416,-1.5708];
+      for(const d of [2,4,6,8,10,13,16,20,24])for(let a=0;a<16&&!ok;a++)for(const g of giros){if(ok)break;const dx=Math.cos(a*.3927)*d,dy=Math.sin(a*.3927)*d,an=(q.ang||0)+g;if(ruim(forma(q,dx,dy,an,1),rua,agua)<=tol)ok=[dx,dy,an,forma(q,dx,dy,an)]}
+      if(ok){q.x+=ok[0];q.y+=ok[1];q.ang=ok[2];pinta(ok[3],ehEsp?U.construcao:U.detalhe);R.movidos++}
+      else if(ehEsp&&LEGN_M.has(q.id)){pinta(L0,U.construcao)}// predio que esta na legenda fica, mesmo apertado
+      else{tira.add(q);R.tirados++}}
+    if(tira.size){const N=lista.filter(q=>!tira.has(q));lista.length=0;lista.push(...N)}};
+  confere(C.SPB,C.SPB,true);confere(C.props,C.props,false);
+  // 3. arvores na rua ou dentro de construcao saem
+  const T=C.trees.filter(t=>{const k=G.idx(t[0],t[1]);if(k<0)return true;const u=G.uso[k];return !(u===U.construcao||u===U.rua||u===U.estrada)});R.tirados+=C.trees.length-T.length;C.trees.length=0;C.trees.push(...T);
+  for(const t of C.trees)G.circ(t[0],t[1],3*(t[2]||1),k=>{if(G.uso[k]<U.construcao)G.uso[k]=U.arvore});
+  // 4. quarteirao calcado que ficou vazio ganha predios alinhados com a rua; o que sobra pequeno vira estacionamento
+  const RES=new Set(["moradia","nobre","pobre","universidade","parque","mercado"]),cabeR=(x,y,a,L,D)=>{const Q=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([i,j])=>[x+Math.cos(a)*i*L/2-Math.sin(a)*j*D/2,y+Math.sin(a)*i*L/2+Math.cos(a)*j*D/2]);let ok=true,t=0;G.poly(Q,k=>{t++;if(!ok)return;const u=G.uso[k];if(u!==U.livre||G.agua[k])ok=false});return ok&&t>4?Q:null};
+  let novos=0;for(const p of C.patches){if(!p.inner||p.sea||RES.has(p.type)||!p.blocks)continue;const mod=C.B.find(b=>b.pal&&!b.k&&Math.hypot(b.x-p.c[0],b.y-p.c[1])<220&&b.race===P.culture)||C.B.find(b=>b.pal&&!b.k);if(!mod)continue;let n=0;
+    for(const bk of p.blocks){if(!bk||bk.length<3)continue;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const v of bk){x0=Math.min(x0,v[0]);y0=Math.min(y0,v[1]);x1=Math.max(x1,v[0]);y1=Math.max(y1,v[1])}
+      const angDe=(x,y)=>{let bd=1e9,ba=0;for(let k=0;k<bk.length;k++){const a=bk[k],b=bk[(k+1)%bk.length],d=segD(x,y,a,b);if(d<bd){bd=d;ba=Math.atan2(b[1]-a[1],b[0]-a[0])}}return ba};
+      for(const L of [30,24,18,13])for(let y=y0+6;y<y1-4;y+=8)for(let x=x0+6;x<x1-4;x+=8){if(n>40||!inPoly(bk,x,y))continue;const a=angDe(x,y),D=L*.72,Q=cabeR(x,y,a,L+5,D+5);if(!Q)continue;
+        C.B.push({x,y,type:L>=24||p.type==="producao"||p.type==="porto"?"barn":((Math.round(x)*31+Math.round(y)*17)%2===0)?"town":"row",race:mod.race,ang:a,L,D,pal:mod.pal,zt:p.type,dn:mod.dn,fill:1,key:"h:fill:"+Math.round(x)+":"+Math.round(y)});G.poly(Q,k=>{G.uso[k]=U.construcao});n++;novos++}
+      for(let y=y0+5;y<y1-3;y+=10)for(let x=x0+5;x<x1-3;x+=12){if(!inPoly(bk,x,y))continue;const a=angDe(x,y),Q=cabeR(x,y,a,14*Z*.8,7);if(!Q)continue;C.props.push({id:"m_carros",x,y,race:P.culture,ang:a,v:((x*7+y*13)%100)/100,s:.8,key:"p:est:"+Math.round(x)+":"+Math.round(y)});G.poly(Q,k=>{G.uso[k]=U.detalhe})}}}
+  R.novos=novos;return R}
+const LEGN_M=new Set(["m_igreja","m_aeroporto","m_prefeitura","m_usina","m_museu","m_hotel","m_cinema","m_hospital","m_escola","m_estadio","m_shopping","m_bombeiros","m_estacao","m_tv","m_delegacia","c_arcologia","c_reator"]);
 function verifica(C,P){setMapa(P&&P.mapa);const AM=window.AtlasMundo,G=AM.deCidade(C,AS),G0=G,U=AM.USO,OVR=P.ovr||{},mexer=new Set(),tirT=new Set();
   for(const c of G.lista()){
     if(c.tipo==="adereço sobre construção"){const o=G.objs[c.b];if(o&&o.ref)mexer.add(o.n)}
@@ -351,6 +398,17 @@ function generate0(P0){C_ASSENTA=null;C_MOAT=[];C_ASSENTA_C=null;const P=Object.
   const edges=new Map(),ekey=(a,b)=>a<b?a+"_"+b:b+"_"+a;for(const p of patches){p.nd=p.poly.map(v=>nodeAt(v[0],v[1]));p.nd.forEach((a,k)=>{const b=p.nd[(k+1)%p.nd.length];if(a===b)return;let e=edges.get(ekey(a,b));if(!e){e={a,b,ps:[],len:Math.hypot(nodes[a].x-nodes[b].x,nodes[a].y-nodes[b].y)};edges.set(ekey(a,b),e);nodes[a].adj.push([b,e]);nodes[b].adj.push([a,e])}e.ps.push(p)})}
   const edgeOf=(p,k)=>edges.get(ekey(p.nd[k],p.nd[(k+1)%p.nd.length]));
   if(P.nodes&&Object.keys(P.nodes).length){for(const k in P.nodes){const n=nodes[+k];if(n){n.x=P.nodes[k][0];n.y=P.nodes[k][1]}}for(const p of patches){p.poly=p.nd.map(id=>[nodes[id].x,nodes[id].y]);p.c=cen(p.poly);p.area=area(p.poly)}for(const e of edges.values())e.len=Math.hypot(nodes[e.a].x-nodes[e.b].x,nodes[e.a].y-nodes[e.b].y)}
+  // 1.37: cidade moderna com ruas fluidas. As ruas sao as bordas entre os bairros (Voronoi), que se encontram em angulos de 120 graus
+  // e fazem zigue-zague. Aqui cada cruzamento e puxado para a reta da rua que passa direto por ele, e as curvas sem cruzamento sao alisadas.
+  if(MODC){const fix=new Set(Object.keys(P.nodes||{}).map(Number)),mvOk=(id,x,y)=>{if(land(x,y)<.06||land(nodes[id].x,nodes[id].y)<.06)return false;for(const [nb] of nodes[id].adj)if(Math.hypot(nodes[nb].x-x,nodes[nb].y-y)<7)return false;return true};
+    const borda=id=>nodes[id].x<24||nodes[id].x>WX-24||nodes[id].y<44||nodes[id].y>WY-104;
+    for(let it=0;it<6;it++){const mv=[];for(let id=0;id<nodes.length;id++){if(fix.has(id)||borda(id))continue;const n=nodes[id],A=n.adj.map(([b])=>nodes[b]);if(A.length<2)continue;
+        if(A.length===2){mv.push([id,(A[0].x+A[1].x)/2,(A[0].y+A[1].y)/2,.5]);continue}
+        // a dupla de vizinhos mais oposta e a rua que atravessa o cruzamento
+        let best=null,bc=1;for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++){const ax=A[i].x-n.x,ay=A[i].y-n.y,bx=A[j].x-n.x,by=A[j].y-n.y,la=Math.hypot(ax,ay)||1,lb=Math.hypot(bx,by)||1,cs=(ax*bx+ay*by)/(la*lb);if(cs<bc){bc=cs;best=[A[i],A[j]]}}
+        if(!best||bc>-.55)continue;const [P1,P2]=best,dx=P2.x-P1.x,dy=P2.y-P1.y,L2=dx*dx+dy*dy||1,t=Math.max(.15,Math.min(.85,((n.x-P1.x)*dx+(n.y-P1.y)*dy)/L2));mv.push([id,P1.x+dx*t,P1.y+dy*t,.55])}
+      for(const [id,x,y,w] of mv){const n=nodes[id],nx=n.x+(x-n.x)*w,ny=n.y+(y-n.y)*w;if(mvOk(id,nx,ny)){n.x=nx;n.y=ny}}}
+    for(const p of patches){p.poly=p.nd.map(id=>[nodes[id].x,nodes[id].y]);p.c=cen(p.poly);p.area=area(p.poly)}for(const e of edges.values())e.len=Math.hypot(nodes[e.a].x-nodes[e.b].x,nodes[e.a].y-nodes[e.b].y)}
   for(const e of edges.values()){const a=nodes[e.a],b=nodes[e.b];e.in=e.ps.filter(p=>p.inner).length;let w=0,r=0;for(let q=0;q<=6;q++){const x=lerp(a.x,b.x,q/6),y=lerp(a.y,b.y,q/6);if(land(x,y)<.03)w++;else if(rd(x,y)<rw+1)r++}e.sea=w>=3||e.ps.some(p=>p.sea)&&w>0;e.riv=r>0}
   // pontes entre partes da cidade separadas por agua (ilhas, margens)
   const comp=new Map();{let ci=0;for(const p of inner){if(comp.has(p))continue;const stack=[p];comp.set(p,ci);while(stack.length){const q=stack.pop();q.nd.forEach((_,k)=>{const e=edgeOf(q,k);if(!e||e.sea)return;for(const z of e.ps)if(z.inner&&!comp.has(z)){comp.set(z,ci);stack.push(z)}})}ci++}}
@@ -1160,7 +1218,7 @@ const BIOC={5:[[186,170,96],[166,150,80]],6:[[110,150,70],[92,132,58]],9:[[132,1
   if(WCLIP)c.restore();
   {const hs=C.B.map(b=>[b.x,b.y]);const near=(x,y)=>hs.some(h=>Math.abs(h[0]-x)<26&&Math.abs(h[1]-y)<26);const lanes=C.edges.filter(e=>!e.sea&&e.in===0&&e.len<90&&e.ps.some(p=>p.type==="arrabalde")&&[0,.5,1].every(t=>near(lerp(nodes[e.a].x,nodes[e.b].x,t),lerp(nodes[e.a].y,nodes[e.b].y,t))));for(const [wd,col] of [[6.4,"rgba(64,46,22,.5)"],[4.6,dry?PAT.areia:PAT.terra]]){c.strokeStyle=col;c.lineWidth=wd;for(const e of lanes){path([[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]],false);c.stroke()}}}
   // ruas principais com calcamento mais claro e meio-fio
-  {const segs=[...C.mainE].filter(e=>!e.bridge).map(e=>[[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]]);for(const [wd,col] of MODR?[[17.5,"rgba(40,40,40,.5)"],[16.4,MODR===2?"#565a62":"#cfcdc3"],[12.6,ASF]]:[[15.5,"rgba(70,55,30,.4)"],[13.4,rich>.25?PAT.laje:PAT.cascalho]]){c.strokeStyle=col;c.lineWidth=wd;for(const s of segs){path(s,false);c.stroke()}}
+  {const segs=[...C.mainE].filter(e=>!e.bridge).map(e=>[[nodes[e.a].x,nodes[e.a].y],[nodes[e.b].x,nodes[e.b].y]]);for(const [wd,col] of MODR?[[12.6,ASF]]:[[15.5,"rgba(70,55,30,.4)"],[13.4,rich>.25?PAT.laje:PAT.cascalho]]){c.strokeStyle=col;c.lineWidth=wd;for(const s of segs){path(s,false);c.stroke()}}
     if(MODR){c.save();c.lineCap="butt";c.setLineDash([2.6,3.4]);c.strokeStyle=MODR===2?"rgba(61,242,230,.45)":"rgba(245,243,232,.7)";c.lineWidth=.45;for(const e of C.edges){if(e.sea||e.bridge||C.mainE.has(e)||!(e.in>0)||e.len<14)continue;const a=nodes[e.a],b=nodes[e.b],ux=(b.x-a.x)/e.len,uy=(b.y-a.y)/e.len;path([[a.x+ux*6,a.y+uy*6],[b.x-ux*6,b.y-uy*6]],false);c.stroke()}
       c.setLineDash([4,3.5]);c.strokeStyle=MODR===2?"rgba(61,242,230,.8)":"rgba(246,226,120,.9)";c.lineWidth=.6;for(const z of C.SCON||[]){path([z.a,z.b],false);c.stroke()}c.restore()}
     // 1.36: vielas dentro do quarteirao (o vao entre dois blocos) tambem ganham a faixa tracejada no meio
@@ -1170,7 +1228,9 @@ const BIOC={5:[[186,170,96],[166,150,80]],6:[[110,150,70],[92,132,58]],9:[[132,1
           const t1=(c2[0]-a[0])*ux+(c2[1]-a[1])*uy,t2=(d2[0]-a[0])*ux+(d2[1]-a[1])*uy,lo=Math.max(0,Math.min(t1,t2))+3,hi=Math.min(L,Math.max(t1,t2))-3;if(hi-lo<10)continue;
           const nx=-uy,ny=ux,sd=((c2[0]-a[0])*nx+(c2[1]-a[1])*ny)>0?1:-1,h=(dist+dist2)/4*sd;VL.push([[a[0]+ux*lo+nx*h,a[1]+uy*lo+ny*h],[a[0]+ux*hi+nx*h,a[1]+uy*hi+ny*h]])}}C._vielas=VL}
       c.save();c.lineCap="butt";c.setLineDash([2.2,3.2]);c.strokeStyle=MODR===2?"rgba(61,242,230,.4)":"rgba(245,243,232,.6)";c.lineWidth=.4;for(const z of C._vielas){path(z,false);c.stroke()}c.restore()}
-    if(MODR){c.save();c.lineCap="butt";c.setLineDash([5,4]);c.strokeStyle=MODR===2?"rgba(61,242,230,.75)":"rgba(246,226,120,.9)";c.lineWidth=.8;for(const s of segs){path(s,false);c.stroke()}c.restore()}}
+    // 1.37: a faixa do meio da avenida para antes do cruzamento (nao atravessa a rua que chega)
+    if(MODR){const grau=id=>nodes[id].adj.filter(([,e])=>!e.sea&&(e.in>0||e.bridge)).length;c.save();c.lineCap="butt";c.setLineDash([5,4]);c.strokeStyle=MODR===2?"rgba(61,242,230,.75)":"rgba(246,226,120,.9)";c.lineWidth=.8;
+      for(const e of C.mainE){if(e.bridge)continue;const a=nodes[e.a],b=nodes[e.b],L=Math.hypot(b.x-a.x,b.y-a.y);if(L<4)continue;const ux=(b.x-a.x)/L,uy=(b.y-a.y)/L,ta=grau(e.a)>2?8:0,tb=grau(e.b)>2?8:0;if(L-ta-tb<4)continue;path([[a.x+ux*ta,a.y+uy*ta],[b.x-ux*tb,b.y-uy*tb]],false);c.stroke()}c.restore()}}
   if(!TER)for(const p of urb){if(p.type==="arrabalde")continue;const bl=p.blocks&&p.blocks.length?p.blocks:[p.block];for(const b of bl){path(b,true);c.fillStyle=MODR===1&&(p.type==="moradia"||p.type==="nobre"||p.type==="pobre"||p.type==="universidade")&&SEAS!=="inverno"?(dry?"#cdbf8c":"#a9b877"):EARTH;c.fill();if(MODR){c.strokeStyle=MODR===2?"#5a5e68":"#d9d6cb";c.lineWidth=2.2;c.stroke();c.strokeStyle="rgba(40,40,40,.45)";c.lineWidth=.6;c.stroke()}else{c.strokeStyle="rgba(70,55,30,.5)";c.lineWidth=.8;c.stroke()}}}
   // ligacoes das ruas ate a cabeca das pontes, pela beira da agua
   for(const z of C.SCON||[]){c.lineCap="round";if(MODR){const w=Math.max(12,z.w*1.6);c.lineCap="butt";c.strokeStyle=ASF;c.lineWidth=w;path([z.a,z.b],false);c.stroke();c.lineCap="round";c.lineWidth=w*.92;c.stroke();continue}c.strokeStyle="rgba(70,55,30,.45)";c.lineWidth=z.w+2;path([z.a,z.b],false);c.stroke();c.strokeStyle=rich>.25?PAT.laje:PAT.cascalho;c.lineWidth=z.w;c.stroke()}
