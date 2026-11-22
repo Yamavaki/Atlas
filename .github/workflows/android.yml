@@ -1,0 +1,94 @@
+# Atlas - gera o app do Android (.apk) com o Tauri 2.
+# Roda a mao (Actions > "App do Android" > Run workflow) ou ao criar uma tag v*, que tambem anexa o .apk nos Releases.
+# Assinatura: se os segredos ANDROID_KEYSTORE_B64 e ANDROID_KEY_PASSWORD existirem, o .apk sai assinado com a chave fixa
+# (e cada versao nova instala por cima da anterior). Sem eles, sai uma versao de teste com chave temporaria.
+name: App do Android
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: NDK
+        run: |
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+          ls "$ANDROID_NDK_LATEST_HOME" | head -3
+
+      - name: Ferramenta do Tauri
+        run: npm install -g @tauri-apps/cli@^2
+
+      - name: Projeto Android
+        working-directory: src-tauri
+        run: |
+          tauri android init --ci
+          tauri icon app-icon.png
+          # permissao para o proprio app abrir o instalador de uma versao nova
+          M=gen/android/app/src/main/AndroidManifest.xml
+          grep -q REQUEST_INSTALL_PACKAGES $M || sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' $M
+          cat $M
+
+      - name: Montar o app
+        working-directory: src-tauri
+        run: tauri android build --apk --target aarch64 --target armv7 --ci
+
+      - name: Assinar
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*release-unsigned.apk" | head -1)
+          echo "apk: $APK"
+          V=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "VER=$V" >> $GITHUB_ENV
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > atlas.jks; PASS="$KS_PASS"; NOME="Atlas_${V}.apk"
+          else
+            PASS=teste123; NOME="Atlas_${V}_teste.apk"
+            keytool -genkeypair -v -keystore atlas.jks -alias atlas -keyalg RSA -keysize 2048 -validity 10000 -storepass $PASS -keypass $PASS -dname "CN=Atlas teste"
+          fi
+          $BT/zipalign -p -f 4 "$APK" alinhado.apk
+          $BT/apksigner sign --ks atlas.jks --ks-key-alias atlas --ks-pass pass:$PASS --key-pass pass:$PASS --out "$NOME" alinhado.apk
+          rm -f atlas.jks
+          $BT/apksigner verify "$NOME" && ls -la "$NOME"
+          echo "APKNOME=$NOME" >> $GITHUB_ENV
+
+      - name: Guardar o .apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-android
+          path: ${{ env.APKNOME }}
+
+      - name: Publicar nos Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VER }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: ${{ env.APKNOME }}
