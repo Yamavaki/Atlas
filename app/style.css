@@ -1208,3 +1208,35 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .bt-ala-top small{color:var(--muted);font-size:12px}
 .bt-ala-top .bt-x{margin-left:auto;all:unset;cursor:pointer;color:var(--muted);padding:0 6px;border-radius:4px}
 .bt-ala-top .bt-x:hover{color:#e0776b;background:var(--panel-3)}
+/* 1.35: anotacoes do mestre */
+.manot{position:absolute;inset:0;height:100%;pointer-events:none}
+.manot[hidden]{display:none}
+.ctx:has(.anp){flex-direction:column;align-items:stretch;flex-wrap:nowrap;width:300px;max-width:calc(100% - 80px);max-height:calc(100% - 20px);overflow:auto}
+.anp{display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:0}
+.anp-modos{display:flex;flex-wrap:wrap;gap:4px}
+.anp-modos button,.anp-seg button{padding:4px 8px;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:6px;min-height:30px}
+.anp-modos button.on,.anp-seg button.on{background:var(--gold,#d4a64a);color:#1b1711;border-color:var(--gold,#d4a64a)}
+.anp-seg{display:flex;gap:4px}
+.anp-dica{margin:0;color:var(--muted);font-size:12px;line-height:1.35}
+.anp-tit{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}
+.anp-tit small{color:var(--muted)}
+.anp-c{display:flex;flex-direction:column;gap:3px}
+.anp-c>span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.anp-c input[type=text],.anp-c textarea,.anp-c input[type=number]{width:100%;box-sizing:border-box}
+.anp-l input[type=range]{width:100%}
+.anp-k{display:flex;align-items:center;gap:6px;font-size:12px}
+.anp-cores{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.anp-cor{width:24px;height:24px;border-radius:50%;border:2px solid rgba(0,0,0,.5);padding:0;min-height:0}
+.anp-cor.on{outline:2px solid var(--gold,#d4a64a);outline-offset:1px}
+.anp-cores input[type=color]{width:30px;height:26px;padding:0;border:none;background:none}
+.anp-icones{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.anp-icones button{display:grid;place-items:center;height:32px;padding:0;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:6px}
+.anp-icones button.on{background:var(--gold,#d4a64a);color:#1b1711}
+.anp-bts{display:flex;flex-wrap:wrap;gap:6px}
+.anp-lista summary{cursor:pointer;font-size:12px;color:var(--gold,#d4a64a)}
+.anp-lista{display:flex;flex-direction:column}
+.anp-it{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:4px 6px;border:none;background:transparent;color:var(--text);border-radius:4px;min-height:28px}
+.anp-it.on,.anp-it:hover{background:rgba(212,166,74,.15)}
+.anp-it span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.anp-it small{color:var(--muted)}
+.anp-tr{display:inline-block;width:14px;height:4px;border-radius:2px}

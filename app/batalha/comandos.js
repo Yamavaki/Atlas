@@ -35,5 +35,5 @@ export function criaHistorico(M,aoMudar,limite){limite=limite||200;const feitos=
     pode:()=>[feitos.length,desfeitos.length],nomeDesfazer:()=>feitos.length?feitos[feitos.length-1].nome:"",nomeRefazer:()=>desfeitos.length?desfeitos[desfeitos.length-1].nome:""};
   return H}
 // o que um lote exige do desenho: quais andares mudaram e se basta reescrever objetos no lugar
-export function alcance(lote){const R={andares:new Set(),tudo:false,leve:true,objs:[]};for(const o of lote.ops){if(o.op==="mapa"){R.tudo=true;R.leve=false;continue}if(o.op==="andar"&&Object.keys(o.para).every(k=>k==="ambiente"||k==="camadas"))continue;if(o.op==="mascara"||o.k==="camadas"){R.camadas=true;continue}R.andares.add(o.a);
+export function alcance(lote){const R={andares:new Set(),tudo:false,leve:true,objs:[]};for(const o of lote.ops){if(o.op==="mapa"){R.tudo=true;R.leve=false;continue}if(o.op==="andar"&&Object.keys(o.para).every(k=>k==="ambiente"||k==="camadas"||k==="anot"))continue;if(o.op==="mascara"||o.k==="camadas"){R.camadas=true;continue}R.andares.add(o.a);
     if(o.op==="muda"&&o.k==="objetos"&&o.de.l===o.para.l&&o.de.t===o.para.t)R.objs.push(o);else if(o.op==="muda"&&o.k==="luzes")R.luz=true;else R.leve=false}return R}
