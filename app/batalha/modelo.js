@@ -54,7 +54,7 @@ export function transforma(k,e,T){const rot=T.rot||0,s=T.s==null?1:T.s;
 // --- mapa ---
 export function texDe(M,nome){let i=M.texturas.indexOf(nome);if(i<0){i=M.texturas.length;M.texturas.push(nome)}return i}
 const b64=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return typeof btoa==="function"?btoa(s):Buffer.from(s,"binary").toString("base64")};
-const deB64=s=>{const b=typeof atob==="function"?atob(s):Buffer.from(s,"base64").toString("binary"),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+export const deB64=s=>{const b=typeof atob==="function"?atob(s):Buffer.from(s,"base64").toString("binary"),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
 export function terrenoLiso(larg,alt,tex){const w=larg*4,h=alt*4,u=new Uint8Array(w*h*4);for(let i=0;i<u.length;i+=4)u[i]=255;return {tex:[tex,-1,-1,-1],w,h,splat:b64(u)}}
 // muda o tamanho do terreno guardando o que ja estava pintado (canto de cima a esquerda fixo)
 export function terrenoRedim(T,larg,alt){const w=larg*4,h=alt*4,a=deB64(T.splat),u=new Uint8Array(w*h*4);for(let y=0;y<h;y++)for(let x=0;x<w;x++){const k=(y*w+x)*4;if(x<T.w&&y<T.h){const j=(y*T.w+x)*4;u[k]=a[j];u[k+1]=a[j+1];u[k+2]=a[j+2];u[k+3]=a[j+3]}else u[k]=255}return {tex:T.tex.slice(),w,h,splat:b64(u)}}

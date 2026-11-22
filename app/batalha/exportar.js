@@ -3,7 +3,8 @@ import {criaRender} from "./render.js";
 import {trajeto,FONTES,tipoPortal} from "./modelo.js";
 import {trajetoCaminho} from "./vetor.js";
 import {objetoDe} from "./arte.js";
-import {fxLuz} from "./modelo.js";
+import {fxLuz,acerta,deB64} from "./modelo.js";
+import {materialDe} from "./arte.js";
 
 // ---------- texto (o editor desenha do mesmo jeito) ----------
 const hex=c=>"#"+[0,1,2].map(i=>Math.round(Math.max(0,Math.min(1,c[i]))*255).toString(16).padStart(2,"0")).join("");
@@ -37,7 +38,7 @@ function pecasFoundry(M,i,o){const A=M.andares[i],px=o.px||100,dist=o.distancia|
       const ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;for(const [s0,s1] of cortes)if(s1-s0>1e-4)walls.push({c:[P(a[0]+ux*s0),P(a[1]+uy*s0),P(a[0]+ux*s1),P(a[1]+uy*s1)],move:SENSE.NORMAL,sight:bl?SENSE.NONE:SENSE.NORMAL,light:bl?SENSE.NONE:SENSE.NORMAL,sound:SENSE.NORMAL,door:0,ds:0,dir:0});acc+=L}}
   for(const q of A.portais||[]){const a=[q.x-q.dx*q.raio,q.y-q.dy*q.raio],b=[q.x+q.dx*q.raio,q.y+q.dy*q.raio],tp=tipoPortal(q,M.texturas),c=[P(a[0]),P(a[1]),P(b[0]),P(b[1])];
     if(tp==="janela")walls.push({c,move:SENSE.NORMAL,sight:SENSE.NONE,light:SENSE.NONE,sound:SENSE.NORMAL,door:0,ds:0,dir:0,flags:{atlas:{portal:1}}});
-    else walls.push({c,move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NORMAL,door:1,ds:q.fechado===false?1:0,dir:0,flags:{atlas:{portal:1}}})}
+    else{const so=somPorta(q,M.texturas);walls.push({c,move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NORMAL,door:q.sec?2:1,ds:q.tr?2:q.fechado===false?1:0,dir:0,...(so?{doorSound:so}:{}),flags:{atlas:{portal:1}}})}}
   // caminhos com "bloqueia luz" (penhasco de caverna, palicada, barranco, encosta) viram parede: bloqueiam passagem, visao e luz; o som passa
   for(const c of A.caminhos||[]){if(!c.bloqueia)continue;const Q=trajetoCaminho(c),n=Q.length;if(n<2)continue;for(let k=0;k<n-(c.laco?0:1);k++){const a=Q[k],b=Q[(k+1)%n];if(Math.hypot(b[0]-a[0],b[1]-a[1])<1e-6)continue;walls.push({c:[P(a[0]),P(a[1]),P(b[0]),P(b[1])],move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NONE,door:0,ds:0,dir:0,flags:{atlas:{caminho:true}}})}}
   for(const l of A.luzes||[]){const cl=l.claro==null?l.raio*.45:l.claro;lights.push({x:P(l.x),y:P(l.y),rotation:0,walls:l.sombras!==false,vision:false,hidden:false,config:{bright:Math.round(cl*dist*100)/100,dim:Math.round(l.raio*dist*100)/100,color:hex(l.c),alpha:.4,luminosity:.5,angle:360,attenuation:.5,coloration:1,animation:fxLuz(l)||{type:null,speed:5,intensity:5}}})}
@@ -63,7 +64,7 @@ export function cenaFoundryNiveis(M,o){o=o||{};const px=o.px||100,dist=o.distanc
 const b64=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)};
 export const atlasmapTexto=M=>JSON.stringify(M,(k,v)=>v instanceof Uint8Array?{$b64:b64(v)}:v);
 
-import {zip} from "./zip.js";export {zip};
+import {zip,deflate} from "./zip.js";export {zip};
 export const nomeArquivo=s=>(s||"mapa").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase()||"mapa";
 
 // ---------- arquivo unico para o modulo "DD2VTT URL Importer" do Foundry (.atlasvtt) ----------
@@ -73,6 +74,11 @@ export const nomeArquivo=s=>(s||"mapa").normalize("NFD").replace(/[̀-ͯ]/g,"").
 const nomeArte=t=>String(t||"").split("/").pop().replace(/\.(png|webp|jpe?g)$/i,"");
 const real_=t=>!!t&&!/^atlas:/.test(t);
 const corUV=c=>"ff"+hex(c||[1,1,1]).slice(1);
+// 1.49: som da porta no Foundry (chaves de CONFIG.Wall.doorSounds). "auto" = pelo material da porta (madeira, pedra, metal)
+export const SONS_PORTA=[["auto","Automático (pelo material)"],["","Sem som"],["woodBasic","Madeira"],["woodCreaky","Madeira rangendo"],["woodHeavy","Madeira pesada"],["stoneBasic","Pedra"],["stoneRocky","Pedra áspera"],["stoneSandy","Pedra arenosa"],["metal","Metal"],["jail","Grade de cela"],["industrial","Industrial"],["industrialCreaky","Industrial rangendo"],["slidingWood","Correr · madeira"],["slidingMetal","Correr · metal"],["slidingModern","Correr · moderna"],["futuristicFast","Futurista rápida"],["futuristicHydraulic","Futurista hidráulica"],["futuristicForcefield","Campo de força"]];
+export function materialPorta(q,TEX){const n=[TEX[q.t],TEX[q.tq]].map(t=>nomeArte(t)).join(" ").toLowerCase();if(/metal|iron|steel|ferro|bars|grate|cell|jail/.test(n))return "metal";if(/stone|pedra|rock|marble/.test(n))return "stone";return "wood"}
+// som escolhido; sem escolha (auto) devolve null no .atlasvtt (o modulo decide pelo material) e o do material na cena unica
+export function somPorta(q,TEX,cru){if(q.som!=null&&q.som!=="auto")return q.som||"";if(cru)return null;return {wood:"woodBasic",stone:"stoneBasic",metal:"metal"}[materialPorta(q,TEX)]}
 // nome da moldura no padrao da Forgotten Adventures (Door_Frame_<Material>_<Cor>_...), que o modulo usa para escolher a folha
 export function molduraDe(q,TEX){const fr=q.tq!=null&&real_(TEX[q.tq])?nomeArte(TEX[q.tq]):"",fo=real_(TEX[q.t])?nomeArte(TEX[q.t]):"";
   if(fr)return fr;if(/^(Door_Frame|Window_Sill)_/i.test(fo))return fo;const m=fo.match(/^Door_(Double_)?(.+)$/i);return m?"Door_Frame_"+(m[1]||"")+m[2]:null}
@@ -81,12 +87,45 @@ export function andarUVTT(M,i,o){o=o||{};const A=M.andares[i],TEX=M.texturas,px=
   const portals=(A.portais||[]).map(q=>{const tp=tipoPortal(q,TEX),a={x:q.x-q.dx*q.raio,y:q.y-q.dy*q.raio},b={x:q.x+q.dx*q.raio,y:q.y+q.dy*q.raio},fr=molduraDe(q,TEX),
       soMold=tp!=="janela"&&(!!q.sm||!!fr&&/^Door_Frame_/i.test(nomeArte(TEX[q.t]))||q.tq!=null&&!real_(TEX[q.t]));
     return {position:{x:q.x,y:q.y},bounds:[a,b],rotation:Math.atan2(q.dy,q.dx),closed:tp!=="janela",freestanding:false,
-      nauren:{texture:fr,opening:2*q.raio,frameOnly:tp==="janela"?null:soMold,leaf:real_(TEX[q.t])?nomeArte(TEX[q.t]):null,double:tp==="dupla"||2*q.raio>=1.6,open:q.fechado===false}}});
+      nauren:{texture:fr,opening:2*q.raio,frameOnly:tp==="janela"?null:soMold,leaf:real_(TEX[q.t])?nomeArte(TEX[q.t]):null,double:tp==="dupla"||2*q.raio>=1.6,open:q.fechado===false,...(tp!=="janela"?{locked:!!q.tr,secret:!!q.sec,sound:somPorta(q,TEX,true),material:materialPorta(q,TEX)}:{})}}});
   const lights=(A.luzes||[]).map(l=>{const fx=fxLuz(l);return {position:{x:l.x,y:l.y},range:l.raio,intensity:1,color:corUV(l.c),shadows:l.sombras!==false,...(fx?{nauren:{animation:fx}}:{})}});
   const am=A.ambiente||[1,1,1];
   return {format:0.3,resolution:{map_origin:{x:0,y:0},map_size:{x:M.larg,y:M.alt},pixels_per_grid:px},line_of_sight:los,objects_line_of_sight:obj,portals,
     environment:{baked_lighting:true,ambient_light:corUV(am)},lights,
-    nauren:{level:{label:A.nome||("Andar "+(i+1)),floor:i,index:M.andares.length-1-i,count:M.andares.length},light_walls:luzP,image_file:null,atlas:true}}}
+    nauren:{level:{label:A.nome||("Andar "+(i+1)),floor:i,index:M.andares.length-1-i,count:M.andares.length},light_walls:luzP,image_file:null,atlas:true,...(o.sons?{sounds:sonsAndar(M,i,o.sons)}:{})}}}
+// ---------- 1.49: sons ambiente (fogo, agua, vento) ----------
+// pontos em quadrados {kind, x, y, radius}; o modulo escolhe o arquivo de cada tipo. op = {fogo, agua, vento} (true/false)
+const ehAgua=t=>/^agua/.test(materialDe(t||""));
+function aguaCelulas(M,A){const W=M.larg,H=M.alt,TEX=M.texturas,g=new Uint8Array(W*H);
+  // camadas de chao: agua visivel no centro do quadrado (camada de cima que nao e agua e esta cheia ali cobre a de baixo)
+  const C=(A.camadas||[]).filter(c=>c.vis!==false&&(c.op==null||c.op>.2));if(C.length){for(let y=0;y<H;y++)for(let x=0;x<W;x++){let ag=0;for(const c of C){let v=255;if(c.m){const m=typeof c.m==="string"?(c.m=deB64(c.m)):c.m,r=c.mw/W,j=Math.min(c.mh-1,Math.floor((y+.5)*r))*c.mw+Math.min(c.mw-1,Math.floor((x+.5)*r));v=m[j]}if(v>128)ag=ehAgua(TEX[c.t])?1:0}if(ag)g[y*W+x]=1}}
+  for(const k of ["formas","padroes","pisos"])for(const e of A[k]||[]){if(!ehAgua(TEX[e.t])||!e.p||e.p.length<3)continue;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of e.p){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
+    for(let y=Math.max(0,Math.floor(y0));y<Math.min(H,Math.ceil(y1));y++)for(let x=Math.max(0,Math.floor(x0));x<Math.min(W,Math.ceil(x1));x++)if(acerta(k==="pisos"?"padroes":k,e,x+.5,y+.5,0))g[y*W+x]=1}
+  for(const c of A.caminhos||[]){if(!ehAgua(TEX[c.t])&&!/(^|[^a-z])(water|river|stream|creek)/i.test((TEX[c.t]||"").split("/").pop()))continue;const Q=trajetoCaminho(c),n=Q.length,hw=Math.max(.5,(c.larg||1)/2);for(let k=0;k<n-1;k++){const a=Q[k],b=Q[k+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]),st=Math.max(1,Math.ceil(L*2));for(let s=0;s<=st;s++){const px=a[0]+(b[0]-a[0])*s/st,py=a[1]+(b[1]-a[1])*s/st;for(let y=Math.floor(py-hw);y<=Math.floor(py+hw);y++)for(let x=Math.floor(px-hw);x<=Math.floor(px+hw);x++)if(x>=0&&y>=0&&x<W&&y<H)g[y*W+x]=1}}}
+  return g}
+// quadrados ao ar livre: ligados a borda do mapa sem atravessar parede, porta ou janela, e sem telhado em cima
+export function arLivre(M,i){const W=M.larg,H=M.alt,A=M.andares[i],{walls}=pecasFoundry(M,i,{px:1}),bR=new Uint8Array(W*H),bD=new Uint8Array(W*H);
+  const cruza=(a,b,c,d)=>{const r=(p,q,s)=>(q[0]-p[0])*(s[1]-p[1])-(q[1]-p[1])*(s[0]-p[0]);return r(a,b,c)*r(a,b,d)<0&&r(c,d,a)*r(c,d,b)<0};
+  for(const w of walls){const a=[w.c[0],w.c[1]],b=[w.c[2],w.c[3]];for(let y=Math.max(0,Math.floor(Math.min(a[1],b[1]))-1);y<=Math.min(H-1,Math.ceil(Math.max(a[1],b[1])));y++)for(let x=Math.max(0,Math.floor(Math.min(a[0],b[0]))-1);x<=Math.min(W-1,Math.ceil(Math.max(a[0],b[0])));x++){const p=[x+.5,y+.5];if(x+1<W&&cruza(a,b,p,[x+1.5,y+.5]))bR[y*W+x]=1;if(y+1<H&&cruza(a,b,p,[x+.5,y+1.5]))bD[y*W+x]=1}}
+  const teto=new Uint8Array(W*H);for(const t of A.telhados||[])for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(!teto[y*W+x]&&acerta("telhados",t,x+.5,y+.5,0))teto[y*W+x]=1;
+  const fora=new Uint8Array(W*H),F=[];const poe=k=>{if(!fora[k]&&!teto[k]){fora[k]=1;F.push(k)}};for(let x=0;x<W;x++){poe(x);poe((H-1)*W+x)}for(let y=0;y<H;y++){poe(y*W);poe(y*W+W-1)}
+  while(F.length){const k=F.pop(),x=k%W,y=(k-x)/W;if(x+1<W&&!bR[k])poe(k+1);if(x>0&&!bR[k-1])poe(k-1);if(y+1<H&&!bD[k])poe(k+W);if(y>0&&!bD[k-W])poe(k-W)}
+  // piso de dentro de casa (madeira, ladrilho, tapete) pintado por cima: corredor aberto, nao rua
+  for(const k of ["formas","padroes","pisos"])for(const e of A[k]||[]){if(!e.p||e.p.length<3||!/^(madeira|madeiraEscura|ladrilho|tapete)$/.test(materialDe(M.texturas[e.t]||"")))continue;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of e.p){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
+    for(let y=Math.max(0,Math.floor(y0));y<Math.min(H,Math.ceil(y1));y++)for(let x=Math.max(0,Math.floor(x0));x<Math.min(W,Math.ceil(x1));x++)if(fora[y*W+x]&&acerta(k==="pisos"?"padroes":k,e,x+.5,y+.5,0))fora[y*W+x]=0}
+  return fora}
+// junta celulas em blocos: um ponto de som no meio das celulas de cada bloco que tem bastante delas
+function pontosDe(g,W,H,bloco,min,kind,raio){const P=[];for(let by=0;by<H;by+=bloco)for(let bx=0;bx<W;bx+=bloco){let n=0,sx=0,sy=0,t=0;for(let y=by;y<Math.min(H,by+bloco);y++)for(let x=bx;x<Math.min(W,bx+bloco);x++){t++;if(g[y*W+x]){n++;sx+=x+.5;sy+=y+.5}}if(n>=Math.max(2,t*min))P.push({kind,x:+(sx/n).toFixed(2),y:+(sy/n).toFixed(2),radius:raio})}return P}
+export function sonsAndar(M,i,op){op=op||{};const A=M.andares[i],W=M.larg,H=M.alt,S=[];
+  if(op.fogo!==false){const F=[];const poe=(x,y,r)=>{const o=F.find(f=>Math.hypot(f.x-x,f.y-y)<2.5);if(o){o.radius=Math.max(o.radius,r);return}F.push({kind:"fire",x:+x.toFixed(2),y:+y.toFixed(2),radius:r})};
+    for(const l of A.luzes||[]){const f=fxLuz(l);if(f&&f.type==="torch")poe(l.x,l.y,Math.max(3,Math.min(10,Math.round(l.raio*.7))))}
+    for(const o of A.objetos||[])if(objetoDe(M.texturas[o.t])==="fogo"||/fireplace|campfire|bonfire|brazier|forge|hearth|lareira|fogueira/i.test(M.texturas[o.t]||""))poe(o.x,o.y,5);S.push(...F)}
+  if(op.agua!==false){const g=aguaCelulas(M,A),P=pontosDe(g,W,H,8,.15,"water",7);
+    // fonte de verdade (bebedouro de 1 quadrado nao conta)
+    for(const o of A.objetos||[])if(/fountain|fonte|waterfall|cachoeira/i.test(M.texturas[o.t]||"")&&(o.w||1)*(o.h||1)>=3&&!P.some(p=>Math.hypot(p.x-o.x,p.y-o.y)<3))P.push({kind:"water",x:+o.x.toFixed(2),y:+o.y.toFixed(2),radius:4});S.push(...P)}
+  // vento: so no andar de baixo e fora de cavernas (ambiente muito escuro)
+  const am=A.ambiente||[1,1,1];if(op.vento!==false&&i===0&&Math.max(am[0],am[1],am[2])>.15){const g=arLivre(M,i);S.push(...pontosDe(g,W,H,12,.5,"wind",9))}
+  return S}
 // escadas: objetos com arte de escada; ligam o andar delas ao andar marcado em "Leva ao andar" (ou ao de cima)
 // andar a que uma escada leva: o marcado (leva), senao o de cima, senao o de baixo; -1 se nao ha outro andar
 export const ehEscadaCaminho=(M,c)=>/stair|escada|ladder|degrau/i.test(M.texturas[c.t]||"");
@@ -104,6 +143,11 @@ export function escadasDe(M){const L=[],poe=(i,j,cells)=>{const a=Math.min(i,j),
       const dS=(px,py,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2?Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/l2)):0;return Math.hypot(px-a[0]-t*dx,py-a[1]-t*dy)},cells=[];
       for(let y=Math.floor(y0-hw);y<=Math.ceil(y1+hw);y++)for(let x=Math.floor(x0-hw);x<=Math.ceil(x1+hw);x++){let d=1e9;for(let k=0;k<n-(c.laco?0:1);k++)d=Math.min(d,dS(x+.5,y+.5,Q[k],Q[(k+1)%n]));if(d<=hw)cells.push([x,y])}
       if(cells.length)poe(i,j,cells)}});return L}
+// 1.49: .atlasvtt compactado (zip): atlas.json + uma imagem por andar, sem base64
+export async function pacoteAtlasVTT(M,o){o=o||{};const floors=[],arqs=[],base=String(M.nome||"mapa").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"").toLowerCase()||"mapa";
+  for(let i=0;i<M.andares.length;i++){const F=andarUVTT(M,i,o),im=o.imagens&&o.imagens[i];if(im){const fmt=im.formato||"webp",nome="andar"+(i+1)+"."+(fmt==="jpeg"?"jpg":fmt);F.image_file=nome;F.image_format=fmt;arqs.push({nome,dados:new Uint8Array(await im.blob.arrayBuffer())})}floors.push(F)}
+  const J={format:"atlas-vtt",version:2,atlas:o.versao||"",id:M.uid||null,name:M.nome||"Mapa",slug:base,grid:{distance:o.distancia||1.5,units:o.unidade||"m",floorHeight:o.alturaAndar||(o.unidade==="ft"?10:3)},floors,stairs:o.escadas===false?[]:escadasDe(M)};
+  const js=new TextEncoder().encode(JSON.stringify(J));arqs.unshift({nome:"atlas.json",dados:js,cd:await deflate(js)});return zip(arqs)}
 export async function arquivoAtlasVTT(M,o){o=o||{};const b64s=async blob=>{const u8=new Uint8Array(await blob.arrayBuffer());return b64(u8)};
   const floors=[];for(let i=0;i<M.andares.length;i++){const F=andarUVTT(M,i,o);if(o.imagens&&o.imagens[i]){F.image=await b64s(o.imagens[i].blob);F.image_format=o.imagens[i].formato||"webp"}floors.push(F)}
-  return {format:"atlas-vtt",version:1,atlas:o.versao||"",name:M.nome||"Mapa",grid:{distance:o.distancia||1.5,units:o.unidade||"m",floorHeight:o.alturaAndar||(o.unidade==="ft"?10:3)},floors,stairs:escadasDe(M)}}
+  return {format:"atlas-vtt",version:1,atlas:o.versao||"",id:M.uid||null,name:M.nome||"Mapa",grid:{distance:o.distancia||1.5,units:o.unidade||"m",floorHeight:o.alturaAndar||(o.unidade==="ft"?10:3)},floors,stairs:escadasDe(M)}}
