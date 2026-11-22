@@ -1,7 +1,7 @@
 // Atlas - Modo Batalha: editor. Barra de cima (mapa), ferramentas a esquerda, propriedades a direita, dica embaixo.
 // Tudo o que muda o mapa passa pelo historico de comandos (desfazer e refazer) e e salvo sozinho.
 import {criaRender} from "./render.js";
-import {desenhaTexto,imagemAndar,cenaFoundry,cenaFoundryNiveis,EXT_IMG,atlasmapTexto,zip,nomeArquivo,arquivoAtlasVTT} from "./exportar.js";
+import {desenhaTexto,imagemAndar,cenaFoundry,cenaFoundryNiveis,EXT_IMG,atlasmapTexto,zip,nomeArquivo,arquivoAtlasVTT,destinoEscada,ehEscadaCaminho} from "./exportar.js";
 import {criaHistorico,alcance} from "./comandos.js";
 import * as MD from "./modelo.js";
 import {materialDe,objetoDe} from "./arte.js";
@@ -361,6 +361,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     else if(k==="textos"){const C=MD.cantos({x:e.x,y:e.y,r:e.r||0,w:Math.max(.3,e.lw||1),h:(e.lh||e.tam*1.15)}).map(p=>tela(p[0],p[1]));g.moveTo(C[0][0],C[0][1]);for(let i=1;i<4;i++)g.lineTo(C[i][0],C[i][1]);g.closePath()}
     else if(k==="portais"){const a=tela(e.x-e.dx*e.raio,e.y-e.dy*e.raio),b=tela(e.x+e.dx*e.raio,e.y+e.dy*e.raio),nx=-e.dy*.2*cam.z,ny=e.dx*.2*cam.z;g.moveTo(a[0]+nx,a[1]+ny);g.lineTo(b[0]+nx,b[1]+ny);g.lineTo(b[0]-nx,b[1]-ny);g.lineTo(a[0]-nx,a[1]-ny);g.closePath()}
     else{const P=k==="paredes"?arredonda(e.p,e.raio==null?RAIO_PADRAO:e.raio,e.laco):e.p;P.forEach((q,i)=>{const p=tela(q[0],q[1]);if(i)g.lineTo(p[0],p[1]);else g.moveTo(p[0],p[1])});if(e.laco||k==="padroes")g.closePath()}};
+  const nomeAndar=j=>{const A=M.andares[j];if(!A)return "?";const n=(A.nome||"").split(/\s+[—–-]\s+/)[0].trim();return n&&n.length<=18?n:"Andar "+(j+1)};
   const sobre=()=>{const d=dpr();g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,ov.width,ov.height);g.lineJoin="round";
     // textos: desenhados aqui, nitidos em qualquer zoom (a exportacao desenha do mesmo jeito)
     for(const t of fl().textos||[])desenhaTexto(g,t,tela,cam.z);
@@ -368,6 +369,10 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     // zonas do gerador: contorno tracejado enquanto a ferramenta Zona esta em uso
     if(ferr==="zon")for(const z of zonasDe()){const s=z.id===zsel;g.beginPath();z.p.forEach((q,i)=>{const p=tela(q[0],q[1]);if(i)g.lineTo(p[0],p[1]);else g.moveTo(p[0],p[1])});g.closePath();g.fillStyle=s?"rgba(122,200,243,.13)":"rgba(122,200,243,.05)";g.fill();g.setLineDash([6*d,4*d]);g.lineWidth=(s?2.2:1.2)*d;g.strokeStyle=s?"#7ac8f3":"rgba(122,200,243,.65)";g.stroke();g.setLineDash([]);
       let cx=0,cy=0;for(const q of z.p){cx+=q[0];cy+=q[1]}const c=tela(cx/z.p.length,cy/z.p.length),nm=(ZN.COMODOS[z.tipo]||{nome:"Zona"}).nome;g.font="600 "+(12*d)+"px 'Alegreya Sans',sans-serif";g.textAlign="center";g.lineWidth=3*d;g.strokeStyle="rgba(20,16,12,.8)";g.strokeText(nm,c[0],c[1]);g.fillStyle="#d8efff";g.fillText(nm,c[0],c[1]);g.textAlign="start"}
+    // 1.47: escadas mostram o andar de destino (seta para cima ou para baixo)
+    if(M.andares.length>1&&ferr!=="anot"){const A=fl(),rot=(x,y,j)=>{const p=tela(x,y);if(p[0]<-60||p[1]<-30||p[0]>ov.width+60||p[1]>ov.height+30)return;const t=(j>andar?"↑ ":"↓ ")+nomeAndar(j);g.font="600 "+(11*d)+"px 'Alegreya Sans',sans-serif";const w=g.measureText(t).width+10*d,h=17*d;g.fillStyle="rgba(29,22,13,.82)";g.beginPath();g.roundRect(p[0]-w/2,p[1]-h/2,w,h,h/2);g.fill();g.lineWidth=1*d;g.strokeStyle=j>andar?"#f3d27a":"#9fd3ff";g.stroke();g.fillStyle=j>andar?"#f3d27a":"#9fd3ff";g.textAlign="center";g.textBaseline="middle";g.fillText(t,p[0],p[1]+.5*d);g.textAlign="start";g.textBaseline="alphabetic"};
+      for(const o of A.objetos||[])if(objetoDe(M.texturas[o.t])==="escada"){const j=destinoEscada(M,andar,o);if(j>=0)rot(o.x,o.y,j)}
+      for(const c of A.caminhos||[])if(ehEscadaCaminho(M,c)&&c.p&&c.p.length){const j=destinoEscada(M,andar,c);if(j<0)continue;const q=c.p[Math.floor(c.p.length/2)],q0=c.p[Math.max(0,Math.floor(c.p.length/2)-1)];rot((q[0]+q0[0])/2,(q[1]+q0[1])/2,j)}}
     // luzes: um marcador pequeno em cada uma
     if(luz)for(const l of fl().luzes||[]){const p=tela(l.x,l.y);if(p[0]<-20||p[1]<-20||p[0]>ov.width+20||p[1]>ov.height+20)continue;g.beginPath();g.arc(p[0],p[1],3.2*d,0,7);g.fillStyle=hexDe(l.c);g.fill();g.lineWidth=1.2*d;g.strokeStyle="rgba(29,22,13,.9)";g.stroke()}
     if(passa&&!arr&&ferr==="sel"&&fl()[passa.k].includes(passa.e)){g.lineWidth=1.4*d;g.strokeStyle="rgba(255,248,230,.85)";tracado(passa.k,passa.e);g.stroke()}
@@ -564,12 +569,15 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     marcaTudo();filtra();return [el("input",{type:"search",class:"bt-busca",placeholder:"Buscar arte…",value:busca,"aria-label":"Buscar arte",oninput:e=>{busca=e.target.value;filtra()}}),chips,caixa,vazia]};
   // luz: prontas, cor, forca, luz plena e penumbra. aplica(fn, nome, junta) muda a luz escolhida (ou o pincel de luz)
   const painelLuz=(l,aplica)=>{const claro=l.claro==null?l.raio*.45:l.claro;
-    return [sec("Luzes prontas",el("div",{class:"bt-chips"},MD.LUZES.map(([k,n,r,cl,f,c])=>chip(n,c,()=>{aplica(e=>{e.raio=r;e.claro=cl;e.forca=f;e.c=[c[0],c[1],c[2],1];delete e.dd},"Luz: "+n.toLowerCase());painel(true)})))),
+    return [sec("Luzes prontas",el("div",{class:"bt-chips"},MD.LUZES.map(([k,n,r,cl,f,c,fx,fi])=>chip(n,c,()=>{aplica(e=>{e.raio=r;e.claro=cl;e.forca=f;e.c=[c[0],c[1],c[2],1];delete e.dd;e.fx=fx||"";if(fx){e.fxi=fi||5;e.fxv=5}else{delete e.fxi;delete e.fxv}},"Luz: "+n.toLowerCase());painel(true)})))),
       sec("Cor e força",corC("Cor da luz",l.c,c=>aplica(e=>{e.c=[c[0],c[1],c[2],1]},"Cor da luz","c")),faixaC(v=>"Força · "+Math.round(v*100)+"%",l.forca,.05,3,.05,v=>aplica(e=>{e.forca=v},"Força da luz","forca"))),
       sec("Alcance",ck("Queda suave",!!l.dd,v=>{aplica(e=>{if(v)e.dd=1;else delete e.dd},v?"Queda suave":"Luz plena e penumbra");painel(true)}),
         l.dd?null:faixaC(v=>"Luz plena · "+arr2(v,1)+" quadrados",claro,0,30,.25,v=>aplica(e=>{e.claro=Math.min(v,e.raio)},"Luz plena","claro")),faixaC(v=>(l.dd?"Alcance · ":"Penumbra até · ")+arr2(v,1)+" quadrados",l.raio,.5,40,.5,v=>aplica(e=>{e.raio=v;if(e.claro!=null&&e.claro>v)e.claro=v},"Alcance da luz","raio")),
         el("p",{class:"bt-nota"},l.dd?"A luz diminui gradualmente do centro até o alcance.":"Dentro da luz plena fica tudo claro. Na penumbra a luz cai devagar até sumir.")),
       formaLuz(l,aplica),
+      (()=>{const fx=MD.fxLuz(l),t=fx?fx.type:"";return sec("Animação no Foundry",el("div",{class:"bt-chips"},MD.FX_LUZ.map(([k,n])=>chip(n,null,()=>{aplica(e=>{e.fx=k;if(k){e.fxv=e.fxv||(fx&&fx.speed)||5;e.fxi=e.fxi||(fx&&fx.intensity)||5}else{delete e.fxv;delete e.fxi}},k?"Animação: "+n.toLowerCase():"Sem animação");painel(true)},k===t))),
+        fx?faixaC(v=>"Velocidade · "+v,fx.speed,1,10,1,v=>aplica(e=>{e.fx=t;e.fxv=v;if(!e.fxi)e.fxi=fx.intensity},"Velocidade da animação","fxv")):null,fx?faixaC(v=>"Intensidade · "+v,fx.intensity,1,10,1,v=>aplica(e=>{e.fx=t;e.fxi=v;if(!e.fxv)e.fxv=fx.speed},"Intensidade da animação","fxi")):null,
+        el("p",{class:"bt-nota"},"A luz tremula ou pulsa quando o mapa é aberto no Foundry. Velas e tochas já vêm animadas."))})(),
       sec("Sombra",ck("As paredes fazem sombra",l.sombras!==false,v=>aplica(e=>{e.sombras=v},v?"Luz com sombra":"Luz sem sombra")),el("p",{class:"bt-nota"},"Janelas e portas abertas deixam a luz passar."))]};
   // forma da luz: cone, farol, entre folhas, agua... (do Atlas) ou as luzes dos pacotes; giro e animacao
   const formaLuz=(l,aplica)=>{const F=R.formas(),mini=(f,t)=>{const c=el("canvas",{width:t,height:t});c.getContext("2d").drawImage(f.img,0,0,t,t);return c};
@@ -851,8 +859,9 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
             pc?escolhePC("Arte da borda (caminho do pacote)",t0.bordaT!=null?M.texturas[t0.bordaT]:null,["paths"],v=>muda(tls,x=>{if(v)x.bordaT=MD.texDe(M,v);else delete x.bordaT},"Arte da borda")):null,
             el("p",{class:"bt-nota"},"A borda é a faixa em volta do telhado. Ponha 0 para tirar.")),
           corC("Tingir",t0.c||[1,1,1],k=>muda(tls,x=>{x.c=[k[0],k[1],k[2],1]},"Tingir telhado","c")),el("p",{class:"bt-nota"},temAlas?"Arraste os quadradinhos dos cantos para mudar cada ala. Para editar o interior, esconda os telhados pelo botão Telhados da barra superior.":"Para editar o interior, esconda os telhados pelo botão Telhados da barra superior.")))}
-      if(um&&um.k==="objetos"&&objetoDe(M.texturas[um.e.t])==="escada"){const o=um.e,alvoI=M.andares.findIndex(A=>A.id===o.leva);K.push(sec("Escada",campo("Leva ao andar",el("select",{onchange:ev=>muda(sel,x=>{if(ev.target.value)x.leva=ev.target.value;else delete x.leva},"Ligar escada")},el("option",{value:""},"Nenhum"),M.andares.map((A,i)=>i===andar?null:el("option",{value:A.id,selected:A.id===o.leva},(i+1)+" · "+A.nome)))),
-          alvoI>=0?el("button",{type:"button",class:"bt-a",onclick:()=>irPara(alvoI)},ico(alvoI>andar?"subir":"descer"),el("span",{},"Ir ao andar "+(alvoI+1))):null,el("p",{class:"bt-nota"},"Duplo clique na escada também leva ao andar ligado.")))}
+      if(um&&((um.k==="objetos"&&objetoDe(M.texturas[um.e.t])==="escada")||(um.k==="caminhos"&&ehEscadaCaminho(M,um.e)))){const o=um.e,alvoI=destinoEscada(M,andar,o),auto=M.andares.length<2?"Automático":"Automático ("+nomeAndar(destinoEscada(M,andar,{}))+")";
+        K.push(sec("Escada",campo("Leva ao andar",el("select",{onchange:ev=>{muda(sel,x=>{if(ev.target.value)x.leva=ev.target.value;else delete x.leva},"Ligar escada");painel(true)}},el("option",{value:""},auto),M.andares.map((A,i)=>i===andar?null:el("option",{value:A.id,selected:A.id===o.leva},(i+1)+" · "+A.nome)))),
+          alvoI>=0?el("button",{type:"button",class:"bt-a",onclick:()=>irPara(alvoI)},ico(alvoI>andar?"subir":"descer"),el("span",{},"Ir ao andar "+(alvoI+1))):el("p",{class:"bt-nota"},"Crie outro andar para a escada levar a ele."),el("p",{class:"bt-nota"},"No mapa aparece a seta com o andar de destino. No Foundry vira a região que troca o token de andar. Duplo clique na escada leva ao andar ligado.")))}
       const txs=sel.filter(s=>s.k==="textos");if(txs.length&&txs.length===n){const t0=txs[0].e;K.push(sec("Texto",um?campo("Escrita",el("textarea",{rows:3,class:"bt-ta",oninput:ev=>muda(txs,x=>{x.txt=ev.target.value},"Escrever","txt")},t0.txt||"")):null,
           faixaC(v=>"Tamanho · "+arr2(v,2)+" quadrados",t0.tam,.2,8,.05,v=>muda(txs,x=>{x.tam=v},"Tamanho do texto","tam")),corC("Cor",t0.cor||[0,0,0],k=>muda(txs,x=>{x.cor=k},"Cor do texto","cor")),
           campo("Letra",el("select",{onchange:ev=>muda(txs,x=>{x.fonte=ev.target.value},"Letra do texto")},MD.FONTES.map(([k,nm])=>el("option",{value:k,selected:(t0.fonte||"fell")===k},nm)))),ck("Contorno claro",t0.contorno,v=>muda(txs,x=>{x.contorno=v},"Contorno")),

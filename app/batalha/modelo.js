@@ -17,7 +17,11 @@ const CAT={natureza:"arvore arvoreEscura pinheiro palmeira arbusto samambaia cap
 export const categoriaDe=k=>{for(const c in CAT)if(CAT[c].split(" ").includes(k))return c;return "outros"};
 export const semAcento=t=>(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 // luzes prontas: alcance (penumbra ate), luz plena, forca, cor
-export const LUZES=[["vela","Vela",2,.8,.85,[1,.72,.38]],["tocha","Tocha",6,2.5,1,[1,.62,.25]],["lareira","Lareira",8,3.5,1.2,[1,.5,.18]],["lampiao","Lampião",5,2.5,1,[1,.88,.62]],["magica","Mágica",6,2,1.1,[.5,.7,1]],["lua","Luar",12,6,.6,[.72,.78,1]],["veneno","Veneno",4,1.5,1,[.45,1,.4]]];
+export const LUZES=[["vela","Vela",2,.8,.85,[1,.72,.38],"flame",4],["tocha","Tocha",6,2.5,1,[1,.62,.25],"torch",5],["lareira","Lareira",8,3.5,1.2,[1,.5,.18],"torch",6],["lampiao","Lampião",5,2.5,1,[1,.88,.62],"flame",2],["magica","Mágica",6,2,1.1,[.5,.7,1],"fairy",5],["lua","Luar",12,6,.6,[.72,.78,1],"",5],["veneno","Veneno",4,1.5,1,[.45,1,.4],"pulse",4]];
+// 1.47: animacoes de luz do Foundry (tipo do Foundry, nome)
+export const FX_LUZ=[["","Nenhuma"],["torch","Tocha"],["flame","Chama"],["pulse","Pulsar"],["fairy","Fadas"],["wave","Onda"],["ghost","Fantasma"],["energy","Energia"],["starlight","Estrelas"],["siren","Sirene"]];
+// animacao da luz no Foundry: a marcada (fx; "" = nenhuma), senao a da luz pronta com a mesma cor e alcance, senao fogo se a cor e laranja (chama pequena, tocha grande), senao onda se a forma anima
+export function fxLuz(l){if(l.fx!=null)return l.fx?{type:l.fx,speed:l.fxv||5,intensity:l.fxi||5}:null;const c=l.c||[1,1,1],P=LUZES.find(q=>q[6]&&Math.abs(q[2]-l.raio)<.01&&Math.abs(q[5][0]-c[0])<.02&&Math.abs(q[5][1]-c[1])<.02&&Math.abs(q[5][2]-c[2])<.02);if(P)return {type:P[6],speed:5,intensity:P[7]||5};const r=Math.max(c[0],.001);if(c[0]>=c[1]&&c[1]>=c[2]&&(r-c[2])/r>=.5&&c[1]/r<=.8)return l.raio<=3?{type:"flame",speed:5,intensity:4}:{type:"torch",speed:5,intensity:5};if(l.anim&&l.tex)return {type:"wave",speed:3,intensity:3};return null}
 // ambientes prontos (a cor que a luz do andar tem sem nenhuma luz acesa)
 export const AMBIENTES=[["dia","Dia",[1,1,1]],["tarde","Fim de tarde",[.95,.74,.55]],["noite","Noite",[.2,.25,.42]],["interior","Interior",[.42,.38,.33]],["caverna","Caverna",[.08,.08,.11]],["breu","Breu",[0,0,0]]];
 // --- medidas ---

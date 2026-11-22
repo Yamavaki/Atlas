@@ -3,6 +3,7 @@ import {criaRender} from "./render.js";
 import {trajeto,FONTES,tipoPortal} from "./modelo.js";
 import {trajetoCaminho} from "./vetor.js";
 import {objetoDe} from "./arte.js";
+import {fxLuz} from "./modelo.js";
 
 // ---------- texto (o editor desenha do mesmo jeito) ----------
 const hex=c=>"#"+[0,1,2].map(i=>Math.round(Math.max(0,Math.min(1,c[i]))*255).toString(16).padStart(2,"0")).join("");
@@ -39,7 +40,7 @@ function pecasFoundry(M,i,o){const A=M.andares[i],px=o.px||100,dist=o.distancia|
     else walls.push({c,move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NORMAL,door:1,ds:q.fechado===false?1:0,dir:0,flags:{atlas:{portal:1}}})}
   // caminhos com "bloqueia luz" (penhasco de caverna, palicada, barranco, encosta) viram parede: bloqueiam passagem, visao e luz; o som passa
   for(const c of A.caminhos||[]){if(!c.bloqueia)continue;const Q=trajetoCaminho(c),n=Q.length;if(n<2)continue;for(let k=0;k<n-(c.laco?0:1);k++){const a=Q[k],b=Q[(k+1)%n];if(Math.hypot(b[0]-a[0],b[1]-a[1])<1e-6)continue;walls.push({c:[P(a[0]),P(a[1]),P(b[0]),P(b[1])],move:SENSE.NORMAL,sight:SENSE.NORMAL,light:SENSE.NORMAL,sound:SENSE.NONE,door:0,ds:0,dir:0,flags:{atlas:{caminho:true}}})}}
-  for(const l of A.luzes||[]){const cl=l.claro==null?l.raio*.45:l.claro;lights.push({x:P(l.x),y:P(l.y),rotation:0,walls:l.sombras!==false,vision:false,hidden:false,config:{bright:Math.round(cl*dist*100)/100,dim:Math.round(l.raio*dist*100)/100,color:hex(l.c),alpha:.4,luminosity:.5,angle:360,attenuation:.5,coloration:1,animation:{type:null,speed:5,intensity:5}}})}
+  for(const l of A.luzes||[]){const cl=l.claro==null?l.raio*.45:l.claro;lights.push({x:P(l.x),y:P(l.y),rotation:0,walls:l.sombras!==false,vision:false,hidden:false,config:{bright:Math.round(cl*dist*100)/100,dim:Math.round(l.raio*dist*100)/100,color:hex(l.c),alpha:.4,luminosity:.5,angle:360,attenuation:.5,coloration:1,animation:fxLuz(l)||{type:null,speed:5,intensity:5}}})}
   return {walls,lights}}
 export function cenaFoundry(M,i,o){o=o||{};const A=M.andares[i],px=o.px||100,dist=o.distancia||1.5,un=o.unidade||"m",{walls,lights}=pecasFoundry(M,i,o);
   const am=A.ambiente||[1,1,1],dk=Math.round((1-Math.max(am[0],am[1],am[2]))*100)/100;
@@ -81,22 +82,28 @@ export function andarUVTT(M,i,o){o=o||{};const A=M.andares[i],TEX=M.texturas,px=
       soMold=tp!=="janela"&&(!!q.sm||!!fr&&/^Door_Frame_/i.test(nomeArte(TEX[q.t]))||q.tq!=null&&!real_(TEX[q.t]));
     return {position:{x:q.x,y:q.y},bounds:[a,b],rotation:Math.atan2(q.dy,q.dx),closed:tp!=="janela",freestanding:false,
       nauren:{texture:fr,opening:2*q.raio,frameOnly:tp==="janela"?null:soMold,leaf:real_(TEX[q.t])?nomeArte(TEX[q.t]):null,double:tp==="dupla"||2*q.raio>=1.6,open:q.fechado===false}}});
-  const lights=(A.luzes||[]).map(l=>({position:{x:l.x,y:l.y},range:l.raio,intensity:1,color:corUV(l.c),shadows:l.sombras!==false}));
+  const lights=(A.luzes||[]).map(l=>{const fx=fxLuz(l);return {position:{x:l.x,y:l.y},range:l.raio,intensity:1,color:corUV(l.c),shadows:l.sombras!==false,...(fx?{nauren:{animation:fx}}:{})}});
   const am=A.ambiente||[1,1,1];
   return {format:0.3,resolution:{map_origin:{x:0,y:0},map_size:{x:M.larg,y:M.alt},pixels_per_grid:px},line_of_sight:los,objects_line_of_sight:obj,portals,
     environment:{baked_lighting:true,ambient_light:corUV(am)},lights,
     nauren:{level:{label:A.nome||("Andar "+(i+1)),floor:i,index:M.andares.length-1-i,count:M.andares.length},light_walls:luzP,image_file:null,atlas:true}}}
 // escadas: objetos com arte de escada; ligam o andar delas ao andar marcado em "Leva ao andar" (ou ao de cima)
-export function escadasDe(M){const L=[];M.andares.forEach((A,i)=>{for(const o of A.objetos||[]){if(objetoDe(M.texturas[o.t])!=="escada")continue;let j=o.leva!=null?M.andares.findIndex(B=>B.id===o.leva):-1;if(j<0)j=i+1<M.andares.length?i+1:i-1;if(j<0||j===i)continue;
+// andar a que uma escada leva: o marcado (leva), senao o de cima, senao o de baixo; -1 se nao ha outro andar
+export const ehEscadaCaminho=(M,c)=>/stair|escada|ladder|degrau/i.test(M.texturas[c.t]||"");
+export function destinoEscada(M,i,e){let j=e.leva!=null?M.andares.findIndex(B=>B.id===e.leva):-1;if(j<0)j=i+1<M.andares.length?i+1:i-1;return j<0||j===i?-1:j}
+export function escadasDe(M){const L=[],poe=(i,j,cells)=>{const a=Math.min(i,j),b=Math.max(i,j),K=new Set(cells.map(c=>c+""));
+    // a mesma escada desenhada nos dois andares vira uma regiao so
+    const d=L.find(s=>s.from===a&&s.to===b&&s.cells.filter(c=>K.has(c+"")).length>=Math.min(s.cells.length,cells.length)*.5);if(d){for(const c of cells)if(!d.cells.some(q=>q[0]===c[0]&&q[1]===c[1]))d.cells.push(c);return}L.push({kind:"stairs",from:a,to:b,cells})};
+  M.andares.forEach((A,i)=>{for(const o of A.objetos||[]){if(objetoDe(M.texturas[o.t])!=="escada")continue;const j=destinoEscada(M,i,o);if(j<0)continue;
     const c=Math.cos(o.r||0),s=Math.sin(o.r||0),hw=(o.w||1)/2,hh=(o.h||1)/2,R_=Math.hypot(hw,hh),cells=[];
     for(let y=Math.floor(o.y-R_);y<=Math.ceil(o.y+R_);y++)for(let x=Math.floor(o.x-R_);x<=Math.ceil(o.x+R_);x++){const dx=x+.5-o.x,dy=y+.5-o.y,u=dx*c+dy*s,v=-dx*s+dy*c;if(Math.abs(u)<=hw+.25&&Math.abs(v)<=hh+.25)cells.push([x,y])}
-    if(!cells.length)cells.push([Math.floor(o.x),Math.floor(o.y)]);L.push({kind:"stairs",from:Math.min(i,j),to:Math.max(i,j),cells})}
+    if(!cells.length)cells.push([Math.floor(o.x),Math.floor(o.y)]);poe(i,j,cells)}
     // escada pintada como caminho (textura de degraus): a faixa do caminho vira a area da escada, ligando ao andar de cima (ou ao marcado)
-    for(const c of A.caminhos||[]){if(!/stair|escada|ladder|degrau/i.test(M.texturas[c.t]||""))continue;let j=c.leva!=null?M.andares.findIndex(B=>B.id===c.leva):-1;if(j<0)j=i+1<M.andares.length?i+1:i-1;if(j<0||j===i)continue;
+    for(const c of A.caminhos||[]){if(!ehEscadaCaminho(M,c))continue;const j=destinoEscada(M,i,c);if(j<0)continue;
       const Q=trajetoCaminho(c),n=Q.length;if(n<2)continue;const hw=(c.larg||1)/2+.15;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of Q){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
       const dS=(px,py,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy,t=l2?Math.max(0,Math.min(1,((px-a[0])*dx+(py-a[1])*dy)/l2)):0;return Math.hypot(px-a[0]-t*dx,py-a[1]-t*dy)},cells=[];
       for(let y=Math.floor(y0-hw);y<=Math.ceil(y1+hw);y++)for(let x=Math.floor(x0-hw);x<=Math.ceil(x1+hw);x++){let d=1e9;for(let k=0;k<n-(c.laco?0:1);k++)d=Math.min(d,dS(x+.5,y+.5,Q[k],Q[(k+1)%n]));if(d<=hw)cells.push([x,y])}
-      if(cells.length)L.push({kind:"stairs",from:Math.min(i,j),to:Math.max(i,j),cells})}});return L}
+      if(cells.length)poe(i,j,cells)}});return L}
 export async function arquivoAtlasVTT(M,o){o=o||{};const b64s=async blob=>{const u8=new Uint8Array(await blob.arrayBuffer());return b64(u8)};
   const floors=[];for(let i=0;i<M.andares.length;i++){const F=andarUVTT(M,i,o);if(o.imagens&&o.imagens[i]){F.image=await b64s(o.imagens[i].blob);F.image_format=o.imagens[i].formato||"webp"}floors.push(F)}
   return {format:"atlas-vtt",version:1,atlas:o.versao||"",name:M.nome||"Mapa",grid:{distance:o.distancia||1.5,units:o.unidade||"m",floorHeight:o.alturaAndar||(o.unidade==="ft"?10:3)},floors,stairs:escadasDe(M)}}
