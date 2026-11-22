@@ -2,7 +2,7 @@
 // Vertice: x, y, u, v, camada da textura (-1 = cor lisa), r, g, b, a, matiz, saturacao, brilho  (12 numeros). Sem DOM: pode rodar em Worker.
 import {materialDe,objetoDe} from "./arte.js";
 import {arredonda,fita,tampa,limpa,RAIO_PADRAO,curva,suaviza,trajetoCaminho} from "./vetor.js";
-import {trajeto,tipoPortal} from "./modelo.js";
+import {trajeto,tipoPortal,alasBeiral} from "./modelo.js";
 export const VERT=12;
 const hex=h=>[parseInt(h.substr(1,2),16)/255,parseInt(h.substr(3,2),16)/255,parseInt(h.substr(5,2),16)/255,1];
 const BR=[1,1,1,1],TINTA=hex("#2a2018");
@@ -101,6 +101,8 @@ export function malhaAndar(A,TEX,IND,REC){REC=REC||[];const itens=[];let ordem=0
         const o={x:p[0],y:p[1],r:Math.atan2(uy,ux),w:len,h:gg,m:m};const off=B.length;escreveObjeto(B,off,o,re,IND["rc:"+pe]);nv+=12}}return}
     const wsd=sdDe(w,"paredes");if(wsd){SH(wsd);for(const pc of pedacos(P,w.laco,vaos))faixa(pc.pts,g+.12,-1,BR,pc.laco);SH(null)}
     for(const pc of pedacos(P,w.laco,vaos))faixa(pc.pts,g+.12,-1,TINTA,pc.laco,[pc.ini,pc.fim]);for(const pc of pedacos(P,w.laco,vaos))faixa(pc.pts,g,mat(w.t),w.c||[.86,.84,.8,1],pc.laco,[pc.ini,pc.fim])},sdDe(w,"paredes")?sdDe(w,"paredes")[1]:0);
+  // telhado posto numa camada (1.30): entra na ordem das camadas, junto com os objetos
+  for(const t of A.telhados||[])if(t.l!=null)add(t.l,()=>{const r=malhaTelhados({telhados:[t]},TEX,IND,PAR,true);for(let i=0;i<r.verts.length;i++)B.push(r.verts[i]);nv+=r.n});
   // portas e janelas: tipo proprio (porta, dupla, janela) ou pelo nome da arte importada; porta aberta gira na dobradica
   const rect=(cx,cy,ux,uy,hl,hw,l,c)=>{const nx=-uy,ny=ux;quadM([cx-ux*hl+nx*hw,cy-uy*hl+ny*hw],[cx+ux*hl+nx*hw,cy+uy*hl+ny*hw],[cx+ux*hl-nx*hw,cy+uy*hl-ny*hw],[cx-ux*hl-nx*hw,cy-uy*hl-ny*hw],l,c)};
   const MAD=[.55,.36,.2,1],VID=[.62,.82,.9,1];
@@ -195,13 +197,13 @@ export function panosTelhado(ALAS,FUROS){const PANOS=ALAS.map(panosAla);let out=
     if((FUROS||[]).some(H=>dentroConv(H,mx+nx*.03,my+ny*.03)))continue;
     if(!linhas.some(l=>Math.hypot(l[0][0]-v[0],l[0][1]-v[1])<.01&&Math.hypot(l[1][0]-u[0],l[1][1]-u[1])<.01))linhas.push([u,v])}
   return {panos:out,linhas}}
-export function malhaTelhados(A,TEX,IND,PAR){const B=[];let n=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
+export function malhaTelhados(A,TEX,IND,PAR,todos){const B=[];let n=0;const lay=k=>IND[k]==null?IND["m:neutro"]:IND[k],real=t=>t!=null&&t>=0?IND["r:"+TEX[t]]:null;
   const v=(x,y,u,w,l,c,br)=>{B.push(x,y,u,w,l,c[0]*br,c[1]*br,c[2]*br,c[3],0,1,1);n++};
-  for(const t of A.telhados||[]){if(t.alas&&t.alas.length){telhadoAlas(t,TEX,IND,PAR,v,lay,real);continue}
+  for(const t of A.telhados||[]){if(t.l!=null&&!todos)continue;if(t.alas&&t.alas.length){telhadoAlas(t,TEX,IND,PAR,v,lay,real);continue}
     // telhado pronto (arte de objeto, ex. telhado conico de torre da FA): cobre a caixa da forma
     if(t.arte!=null&&real(t.arte)!=null){const tx=TEX[t.arte],rc=IND["rc:"+tx]||[0,0,1,1],l=real(t.arte);let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.p){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
       const k=t.escArte||1.12,cx=(x0+x1)/2,cy=(y0+y1)/2,hw=(x1-x0)/2*k,hh=(y1-y0)/2*k,cs=Math.cos(t.r||0),sn=Math.sin(t.r||0),P=[[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([a,b])=>[cx+a*cs-b*sn,cy+a*sn+b*cs]),e=.0003,U=[[rc[0]+e,rc[1]+e],[rc[2]-e,rc[1]+e],[rc[2]-e,rc[3]-e],[rc[0]+e,rc[3]-e]],c=t.c||[1,1,1,1];
-      for(const i of [0,1,2,0,2,3])v(P[i][0],P[i][1],U[i][0],U[i][1],l,c,1);continue}const w=t.parede!=null&&PAR&&PAR.get(t.parede);let P=w?trajeto(w):(t.raio?arredonda(t.p,t.raio,true):t.p);if(!P||P.length<3)continue;
+      for(const i of [0,1,2,0,2,3])v(P[i][0],P[i][1],U[i][0],U[i][1],l,c,1);continue}const w=t.parede!=null&&PAR&&PAR.get(t.parede);let P=w?trajeto(w):(t.raio?arredonda(t.p,t.raio,true):t.p);if(!P||P.length<3)continue;if(t.beiral>0){const {E,D}=fita(P,2*t.beiral,true),ar=Q=>{let a=0;for(let i=0;i<Q.length;i++){const u=Q[i],z=Q[(i+1)%Q.length];a+=u[0]*z[1]-z[0]*u[1]}return Math.abs(a)};if(E&&D&&E.length>=3)P=ar(E)>ar(D)?E:D}
     let ar=0;for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length];ar+=a[0]*b[1]-b[0]*a[1]}if(ar<0)P=P.slice().reverse();
     const rl=real(t.t),l=rl!=null?rl:lay("m:"+materialDe(TEX[t.t]||"atlas:m/telha")),c=t.c||[1,1,1,1],es=(rl!=null&&IND["w:"+TEX[t.t]]?256/IND["w:"+TEX[t.t]]:.5)/(t.esc||1),LX=-.6,LY=-.8;
     const pano=(Q,ang,br)=>{const T=triangula(Q),cs=Math.cos(ang),sn=Math.sin(ang);if(rl!=null)for(const k of T)v(Q[k][0],Q[k][1],0,0,-1,[.11,.1,.1,1],1);for(const k of T){const q=Q[k];v(q[0],q[1],(q[0]*cs+q[1]*sn)*es,(-q[0]*sn+q[1]*cs)*es,l,c,br)}};
@@ -214,12 +216,13 @@ export function malhaTelhados(A,TEX,IND,PAR){const B=[];let n=0;const lay=k=>IND
       const a=[cx+d[0]*t0,cy+d[1]*t0],b=[cx+d[0]*t1,cy+d[1]*t1],h=.05;for(const z of[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]+nx*h,a[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]])v(z[0],z[1],0,0,-1,[.12,.08,.06,.85],1)}
     else for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-6)continue;const ang=Math.atan2(b[1]-a[1],b[0]-a[0])+Math.PI,nx=(b[1]-a[1])/L,ny=-(b[0]-a[0])/L;pano([a,b,[cx,cy]],ang,luzDe(nx,ny))}
     if(!t.estilo||t.estilo==="quatro")for(const q of RAW)linha(q,[cx,cy],.035,[.14,.09,.06,.7]);
+    if(t.estilo==="cone"){let r=1e9;for(const q of P)r=Math.min(r,Math.hypot(q[0]-cx,q[1]-cy));r=Math.max(.06,Math.min(.18,r*.08));for(let i=0;i<12;i++){const a1=i/12*Math.PI*2,a2=(i+1)/12*Math.PI*2;for(const z of[[cx,cy],[cx+Math.cos(a1)*r,cy+Math.sin(a1)*r],[cx+Math.cos(a2)*r,cy+Math.sin(a2)*r]])v(z[0],z[1],0,0,-1,[.16,.12,.09,1],1)}}
     // beiral escuro em volta
     const {E,D}=fita(P,.1,true);for(let i=0;i<P.length;i++){const k=(i+1)%P.length;for(const z of[E[i],E[k],D[k],E[i],D[k],D[i]])v(z[0],z[1],0,0,-1,[.1,.07,.05,.9],1)}}
   return {verts:new Float32Array(B),n}}
 // telhado de alas: panos com a textura (fileiras paralelas ao beiral, caindo para fora), sombra pelo lado, cumeeiras/espigoes/rincoes e beiral
 function telhadoAlas(t,TEX,IND,PAR,v,lay,real){const rl=real(t.t),l=rl!=null?rl:lay("m:"+materialDe(TEX[t.t]||"atlas:m/telha")),c=t.c||[1,1,1,1],tx=TEX[t.t],es=(rl!=null&&IND["w:"+tx]?256/IND["w:"+tx]:.5)/(t.esc||1),LX=-.6,LY=-.8;
-  const {panos,linhas}=panosTelhado(t.alas,t.furos);
+  const ALAS=alasBeiral(t),{panos,linhas}=panosTelhado(ALAS,t.furos);
   for(const {P,q} of panos){const g=Math.hypot(q.a,q.b);let sn=0,cs=1,br=.95;if(g>1e-9){sn=q.a/g;cs=-q.b/g;br=.8+.32*((-q.a/g)*LX+(-q.b/g)*LY)}
     const T=triangula(P);for(const k of T){const z=P[k];v(z[0],z[1],0,0,-1,[.11,.1,.1,1],1)}for(const k of T){const z=P[k];v(z[0],z[1],(z[0]*cs+z[1]*sn)*es,(-z[0]*sn+z[1]*cs)*es,l,c,br)}}
   // linhas de encontro: com a arte de cumeeira (caminho do pacote) ou uma linha escura
@@ -228,7 +231,7 @@ function telhadoAlas(t,TEX,IND,PAR,v,lay,real){const rl=real(t.t),l=rl!=null?rl:
     if(rq!=null){const h=lw/2,u1=L/(asp*lw),P=[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]],U=[[0,0],[u1,0],[u1,1],[0,1]];for(const k of [0,1,2,0,2,3])v(P[k][0],P[k][1],U[k][0],U[k][1],rq,cq,1)}
     else{const h=.035;for(const z of[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]+nx*h,a[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]])v(z[0],z[1],0,0,-1,[.12,.09,.07,.75],1)}}
   // beiral: em volta de cada ala, so nos trechos que nao ficam dentro de outra
-  for(let i=0;i<t.alas.length;i++){const R=t.alas[i],E=[[[R.x0,R.y0],[R.x1,R.y0]],[[R.x1,R.y0],[R.x1,R.y1]],[[R.x1,R.y1],[R.x0,R.y1]],[[R.x0,R.y1],[R.x0,R.y0]]];
+  for(let i=0;i<ALAS.length;i++){const R=ALAS[i],E=[[[R.x0,R.y0],[R.x1,R.y0]],[[R.x1,R.y0],[R.x1,R.y1]],[[R.x1,R.y1],[R.x0,R.y1]],[[R.x0,R.y1],[R.x0,R.y0]]];
     for(const [a,b] of E){const L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/.25));for(let s2=0;s2<n;s2++){const p=[a[0]+(b[0]-a[0])*s2/n,a[1]+(b[1]-a[1])*s2/n],q=[a[0]+(b[0]-a[0])*(s2+1)/n,a[1]+(b[1]-a[1])*(s2+1)/n],mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2;
-      if(t.alas.some((o,j)=>j!==i&&mx>o.x0+.01&&mx<o.x1-.01&&my>o.y0+.01&&my<o.y1-.01))continue;if((t.furos||[]).some(H=>dentroConv(H,mx,my)))continue;const nx=-(q[1]-p[1])/(L/n)*.05,ny=(q[0]-p[0])/(L/n)*.05;
+      if(ALAS.some((o,j)=>j!==i&&mx>o.x0+.01&&mx<o.x1-.01&&my>o.y0+.01&&my<o.y1-.01))continue;if((t.furos||[]).some(H=>dentroConv(H,mx,my)))continue;const nx=-(q[1]-p[1])/(L/n)*.05,ny=(q[0]-p[0])/(L/n)*.05;
       for(const z of[[p[0]+nx,p[1]+ny],[q[0]+nx,q[1]+ny],[q[0]-nx,q[1]-ny],[p[0]+nx,p[1]+ny],[q[0]-nx,q[1]-ny],[p[0]-nx,p[1]-ny]])v(z[0],z[1],0,0,-1,[.08,.06,.05,.9],1)}}}}

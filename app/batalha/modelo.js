@@ -23,12 +23,12 @@ export const AMBIENTES=[["dia","Dia",[1,1,1]],["tarde","Fim de tarde",[.95,.74,.
 // --- medidas ---
 export function cantos(o){const c=Math.cos(o.r),s=Math.sin(o.r),hw=o.w/2,hh=o.h/2;return [[-hw,-hh],[hw,-hh],[hw,hh],[-hw,hh]].map(([a,b])=>[o.x+a*c-b*s,o.y+a*s+b*c])}
 const caixaTxt=e=>({x:e.x,y:e.y,r:e.r||0,w:Math.max(.3,e.lw||((e.txt||"").length*e.tam*.5)),h:e.lh||e.tam*1.2});
-export function caixa(k,e){if(k==="objetos")return caixaPts(cantos(e));if(k==="textos")return caixaPts(cantos(caixaTxt(e)));if(k==="portais")return caixaPts([[e.x-e.dx*e.raio,e.y-e.dy*e.raio],[e.x+e.dx*e.raio,e.y+e.dy*e.raio]],.15);if(k==="luzes")return [e.x-.4,e.y-.4,e.x+.4,e.y+.4];return caixaPts(e.p,k==="caminhos"?(e.larg||.5)/2:k==="paredes"?.15:0)}
+export function caixa(k,e){if(k==="telhados"&&e.alas&&e.alas.length){const P=retAlas(alasBeiral(e));return [P[0][0],P[0][1],P[2][0],P[2][1]]}if(k==="telhados"&&e.beiral)return caixaPts(e.p,e.beiral);if(k==="objetos")return caixaPts(cantos(e));if(k==="textos")return caixaPts(cantos(caixaTxt(e)));if(k==="portais")return caixaPts([[e.x-e.dx*e.raio,e.y-e.dy*e.raio],[e.x+e.dx*e.raio,e.y+e.dy*e.raio]],.15);if(k==="luzes")return [e.x-.4,e.y-.4,e.x+.4,e.y+.4];return caixaPts(e.p,k==="caminhos"?(e.larg||.5)/2:k==="paredes"?.15:0)}
 export function uneCaixas(L){let b=[1e9,1e9,-1e9,-1e9];for(const c of L){b[0]=Math.min(b[0],c[0]);b[1]=Math.min(b[1],c[1]);b[2]=Math.max(b[2],c[2]);b[3]=Math.max(b[3],c[3])}return b}
 export function acerta(k,e,x,y,tol){if(k==="textos")e=caixaTxt(e);if(k==="objetos"||k==="textos"){const c=Math.cos(-e.r),s=Math.sin(-e.r),dx=x-e.x,dy=y-e.y,lx=dx*c-dy*s,ly=dx*s+dy*c;return Math.abs(lx)<=Math.max(e.w/2,tol)&&Math.abs(ly)<=Math.max(e.h/2,tol)}
   if(k==="luzes")return Math.hypot(x-e.x,y-e.y)<=Math.max(.35,tol*1.6);if(k==="portais")return distSeg(x,y,[e.x-e.dx*e.raio,e.y-e.dy*e.raio],[e.x+e.dx*e.raio,e.y+e.dy*e.raio])<=.2+tol;if(k==="paredes")return distPoli(e.p,x,y,e.laco)<=.15+tol;if(k==="caminhos")return distPoli(e.p,x,y,e.laco)<=Math.max((e.larg||.5)/2,.12)+tol;
-  if(k==="telhados")return e.p.length>2&&dentro(e.p,x,y);return e.p.length>2&&dentro(e.p,x,y)}
-export const camada=(k,e)=>k==="luzes"?1e4:k==="textos"?9e3:k==="telhados"?800:k==="portais"?510:k==="paredes"?500:e.l||0;
+  if(k==="telhados"){if(e.alas&&e.alas.length)return alasBeiral(e).some(a=>x>=a.x0&&x<=a.x1&&y>=a.y0&&y<=a.y1);return e.p.length>2&&(dentro(e.p,x,y)||(e.beiral>0&&distPoli(e.p,x,y,true)<=e.beiral))}return e.p.length>2&&dentro(e.p,x,y)}
+export const camada=(k,e)=>k==="luzes"?1e4:k==="textos"?9e3:k==="telhados"?(e.l!=null?e.l:800):k==="portais"?510:k==="paredes"?500:e.l||0;
 // portas, janelas e pisos presos a uma parede seguem a parede (posicao derivada, recalculada depois de cada mudanca)
 export function sincroniza(A){if(!A.paredes||!A.paredes.length)return;const W=new Map();for(const w of A.paredes)if(w.id!=null)W.set(w.id,w);
   for(const q of A.portais||[]){if(q.d==null)continue;const w=W.get(q.parede);if(!w)continue;const p=pontoEm(trajeto(w),w.laco,q.d);q.x=p[0];q.y=p[1];q.dx=p[2];q.dy=p[3];q.r=Math.atan2(p[3],p[2])}
@@ -89,6 +89,10 @@ export const FORMAS=[["chao","Chão","terra",0,null],["agua","Água","agua",.35,
 export const FONTES=[["fell","Medieval",'"IM Fell English",Georgia,serif'],["alegreya","Livro",'"Alegreya",Georgia,serif'],["sans","Simples",'"Alegreya Sans",system-ui,sans-serif']];
 // ---------- andares ----------
 export const ESTILOS_TELHADO=[["quatro","Quatro águas"],["duas","Duas águas"],["plano","Plano"]];
+// 1.30: telhado de alas (retangulos que se juntam em L, T, U) e torre (cone)
+export const ALA_TIPOS=[["quatro","Quatro águas"],["duas","Duas águas"],["meia","Meia-água"],["plano","Plano"]];
+export const alasBeiral=t=>{const b=+t.beiral||0;return (t.alas||[]).map(a=>b?Object.assign({},a,{x0:a.x0-b,y0:a.y0-b,x1:a.x1+b,y1:a.y1+b}):a)};
+export const retAlas=A=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const a of A){x0=Math.min(x0,a.x0);y0=Math.min(y0,a.y0);x1=Math.max(x1,a.x1);y1=Math.max(y1,a.y1)}return [[x0,y0],[x1,y0],[x1,y1],[x0,y1]]};
 export function idsAndares(M){let n=1;for(const A of M.andares)if(A.id&&/^a\d+$/.test(A.id))n=Math.max(n,+A.id.slice(1)+1);for(const A of M.andares)if(!A.id)A.id="a"+(n++);return M}
 // copia um andar com ids novos (as ligacoes com paredes acompanham)
 export function copiaAndar(M,A){const B=structuredClone(A);B.id=null;B.nome=A.nome+" (cópia)";const mapa=new Map();for(const w of B.paredes||[]){const n=novoId(M);mapa.set(w.id,n);w.id=n}

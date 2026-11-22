@@ -1201,3 +1201,10 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .ng-i{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer}
 .ng-i:hover{background:var(--panel-3)}.ng-i small{margin-left:auto;color:var(--muted-2)}
 .row .ico{padding:6px 8px}
+/* 1.30: alas do telhado */
+.bt-alas{display:flex;flex-direction:column;gap:8px;margin:4px 0 8px}
+.bt-ala{border:1px solid var(--line);border-radius:8px;padding:6px 8px 2px}
+.bt-ala-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.bt-ala-top small{color:var(--muted);font-size:12px}
+.bt-ala-top .bt-x{margin-left:auto;all:unset;cursor:pointer;color:var(--muted);padding:0 6px;border-radius:4px}
+.bt-ala-top .bt-x:hover{color:#e0776b;background:var(--panel-3)}
