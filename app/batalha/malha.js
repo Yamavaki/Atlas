@@ -245,6 +245,18 @@ function telhadoAlas(t,TEX,IND,PAR,v0,lay,real){const rl=real(t.t),l=rl!=null?rl
   for(const [a,b] of linhas){const L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1e-4)continue;const nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L;
     if(rq!=null){const h=lw/2,u1=L/(asp*lw),P=[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]],U=[[0,0],[u1,0],[u1,1],[0,1]];for(const k of [0,1,2,0,2,3])v(P[k][0],P[k][1],U[k][0],U[k][1],rq,cq,1)}
     else{const h=.035;for(const z of[[a[0]+nx*h,a[1]+ny*h],[b[0]+nx*h,b[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]+nx*h,a[1]+ny*h],[b[0]-nx*h,b[1]-ny*h],[a[0]-nx*h,a[1]-ny*h]])v(z[0],z[1],0,0,-1,[.12,.09,.07,.75],1)}}
+  // aguas-furtadas (1.31): telhadinho de duas aguas que sai do pano, com a janela virada para o beiral
+  for(const d of t.trapeiras||[]){const F={N:[0,-1],S:[0,1],W:[-1,0],L:[1,0]}[d.lado||"S"]||[0,1],Sd=[-F[1],F[0]],hw=(d.w||1.2)/2,hd=(d.d||1.4)/2,cx=d.x,cy=d.y,P=(a,b)=>[cx+F[0]*a+Sd[0]*b,cy+F[1]*a+Sd[1]*b];
+    const quad=(A,B,C,D,cor,br,uv)=>{const Q=[A,B,C,D];for(const k of [0,1,2,0,2,3]){const z=Q[k];if(uv)v(z[0],z[1],(z[0]*uv[0]+z[1]*uv[1])*es,(-z[0]*uv[1]+z[1]*uv[0])*es,l,c,br);else v(z[0],z[1],0,0,-1,cor,1)}};
+    // sombra no pano, para o lado contrario da luz
+    const sx=-LX*.18,sy=-LY*.18;quad(...[P(-hd,-hw),P(hd,-hw),P(hd+.05,hw),P(-hd,hw)].map(q=>[q[0]+sx,q[1]+sy]),[0,0,0,.32]);
+    // os dois panos: fileiras paralelas a cumeeira (que vai do fundo para a frente)
+    for(const sg of [-1,1]){const nx=Sd[0]*sg,ny=Sd[1]*sg,br=.8+.32*(nx*LX+ny*LY),A=P(-hd,0),B=P(hd,0),C=P(hd,hw*sg),D=P(-hd,hw*sg);if(rl!=null)quad(A,B,C,D,[.11,.1,.1,1]);quad(A,B,C,D,null,br,[F[0],F[1]])}
+    // cumeeira e contorno
+    const ln=(a,b,h,cor)=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/L*h,ny=(b[0]-a[0])/L*h;quad([a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny],cor)};
+    ln(P(-hd,0),P(hd,0),.03,[.12,.08,.06,.85]);for(const [a,b] of [[P(-hd,-hw),P(hd,-hw)],[P(hd,hw),P(-hd,hw)],[P(hd,-hw),P(hd,hw)]])ln(a,b,.022,[.08,.06,.05,.9]);
+    // janela na frente: moldura, vidro e a travessa
+    const jw=hw*.72,f0=hd,f1=hd+.2;quad(P(f0,-jw-.05),P(f1+.04,-jw-.05),P(f1+.04,jw+.05),P(f0,jw+.05),[.2,.13,.08,1]);quad(P(f0+.03,-jw),P(f1,-jw),P(f1,jw),P(f0+.03,jw),[.42,.58,.66,1]);quad(P(f0+.03,-.025),P(f1,-.025),P(f1,.025),P(f0+.03,.025),[.2,.13,.08,1]);quad(P(f0+.1,-jw*.8),P(f0+.14,-jw*.8),P(f0+.14,-jw*.2),P(f0+.1,-jw*.2),[.85,.95,1,.5])}
   // beiral: em volta de cada ala, so nos trechos que nao ficam dentro de outra
   for(let i=0;i<ALAS.length;i++){const R=ALAS[i],E=[[[R.x0,R.y0],[R.x1,R.y0]],[[R.x1,R.y0],[R.x1,R.y1]],[[R.x1,R.y1],[R.x0,R.y1]],[[R.x0,R.y1],[R.x0,R.y0]]];
     for(const [a,b] of E){const L=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.max(1,Math.ceil(L/.25));for(let s2=0;s2<n;s2++){const p=[a[0]+(b[0]-a[0])*s2/n,a[1]+(b[1]-a[1])*s2/n],q=[a[0]+(b[0]-a[0])*(s2+1)/n,a[1]+(b[1]-a[1])*(s2+1)/n],mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2;

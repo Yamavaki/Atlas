@@ -79,7 +79,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     botoes();painel();sujo=true;agendaSalvar()});
   // ---------- selecao ----------
   const tem=e=>sel.some(s=>s.e===e);
-  const seleciona=L=>{sel=L.slice();passa=null;vsel=null;painel();sujo=true};
+  const seleciona=L=>{sel=L.slice();if(modoTrap&&!(sel.length===1&&sel[0].k==="telhados"))modoTrap=false;passa=null;vsel=null;painel();sujo=true};
   const acertos=(x,y)=>{const A=fl(),tol=7*dpr()/cam.z;let L=[],n=0;for(const k of MD.TIPOS){if((k==="luzes"&&!luz)||(k==="telhados"&&!telhados))continue;for(const e of A[k]||[]){n++;if(MD.acerta(k,e,x,y,tol))L.push({k,e,c:MD.camada(k,e),n})}}L.sort((a,b)=>b.c-a.c||b.n-a.n);
     const W=new Map();for(const w of A.paredes||[])W.set(w.id,w);const vis=new Set();return L.map(h=>{if(h.k==="padroes"&&h.e.parede!=null){const w=W.get(h.e.parede);if(w)return {k:"paredes",e:w,c:h.c,n:h.n}}return h}).filter(h=>vis.has(h.e)?false:(vis.add(h.e),true))};
   // caixa da selecao: um objeto sozinho guarda o giro dele; o resto usa a caixa reta que cobre tudo
@@ -237,7 +237,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   // ferramentas de vetor: parede, caminho e forma usam os mesmos gestos
   // ---------- 1.30: ferramenta Telhado ----------
   // retangulo = telhado de alas (outro retangulo que encosta vira mais uma ala: L, T, U) · circulo/poligono = torre (cone) · clique num comodo fechado = telhado sobre ele
-  const telhadoP={modo:"ret",estilo:"quatro",beiral:.25,lados:8,t:null};
+  const telhadoP={modo:"ret",estilo:"quatro",beiral:.25,lados:8,t:null,tw:1.2,td:1.4};let modoTrap=false;
   const mostraTelhados=()=>{if(telhados)return;telhados=true;const b=[...barra.querySelectorAll("button")].find(x=>x.title&&/telhados/i.test(x.title));if(b)b.setAttribute("aria-pressed","true")};
   const r4=v=>+(+v).toFixed(4),texTelhado=()=>telhadoP.t!=null?telhadoP.t:MD.texDe(M,"atlas:m/telha");
   const sobrepoe=(a,b,tol)=>a.x0<=b.x1+tol&&b.x0<=a.x1+tol&&a.y0<=b.y1+tol&&b.y0<=a.y1+tol;
@@ -801,6 +801,13 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
         const retsP=!temAlas&&!temArte&&tls.length===1?MD.alasDePoligono(t0.parede!=null?(()=>{const w=(fl().paredes||[]).find(x=>x.id===t0.parede);return w?w.p:t0.p})():t0.p):null;
         K.push(sec("Telhado",temArte?null:el("div",{class:"bt-chips"},(temAlas&&tls.length===1?[]:EST).map(([k,nm])=>chip(nm,null,()=>{muda(tls,x=>{x.estilo=k;if(x.alas)x.alas=x.alas.map(a=>Object.assign({},a,{tipo:k}))},"Estilo do telhado");painel(true)},estA===k))),alasUI,
           temAlas&&tls.length===1?el("button",{type:"button",class:"bt-a",onclick:()=>{usa("tel");telhadoP.modo="ret";painel(true)}},ico("tel"),el("span",{},"Nova ala: arraste um retângulo encostado")):null,
+          temAlas&&tls.length===1&&!temArte?sec("Água-furtada",el("button",{type:"button",class:"bt-a"+(modoTrap?" on":""),"aria-pressed":String(modoTrap),onclick:()=>{modoTrap=!modoTrap;dica.textContent=modoTrap?"Clique no telhado onde vai a janelinha · ela vira para o beiral daquele pano · Esc termina":"";painel(true)}},ico("tel"),el("span",{},modoTrap?"Clicando no telhado… (Esc termina)":"Pôr água-furtada (clique no telhado)")),
+            (t0.trapeiras||[]).length?el("div",{class:"bt-alas"},t0.trapeiras.map((d,j)=>el("div",{class:"bt-ala-top"},el("b",{},"Janela "+(j+1)),el("small",{},{N:"para cima",S:"para baixo",W:"para a esquerda",L:"para a direita"}[d.lado||"S"]),
+              el("button",{type:"button",class:"bt-x",title:"Girar a janela para o próximo lado",onclick:()=>{muda(tls,x=>{x.trapeiras=x.trapeiras.map((q,i)=>i===j?Object.assign({},q,{lado:{S:"W",W:"N",N:"L",L:"S"}[q.lado||"S"]}):q)},"Girar água-furtada");painel(true)}},"↻"),
+              el("button",{type:"button",class:"bt-x",title:"Tirar","aria-label":"Tirar a janela "+(j+1),onclick:()=>{muda(tls,x=>{x.trapeiras=x.trapeiras.filter((_,i)=>i!==j);if(!x.trapeiras.length)delete x.trapeiras},"Tirar água-furtada");painel(true)}},"×")))):null,
+            faixaC(v=>"Largura · "+arr2(v,2),(t0.trapeiras&&t0.trapeiras[0]?t0.trapeiras[0].w:telhadoP.tw)||1.2,.6,3,.05,v=>{telhadoP.tw=v;if(t0.trapeiras)muda(tls,x=>{x.trapeiras=(x.trapeiras||[]).map(q=>Object.assign({},q,{w:v}))},"Largura da água-furtada","tw")}),
+            faixaC(v=>"Comprimento · "+arr2(v,2),(t0.trapeiras&&t0.trapeiras[0]?t0.trapeiras[0].d:telhadoP.td)||1.4,.6,4,.05,v=>{telhadoP.td=v;if(t0.trapeiras)muda(tls,x=>{x.trapeiras=(x.trapeiras||[]).map(q=>Object.assign({},q,{d:v}))},"Comprimento da água-furtada","td")}),
+            el("p",{class:"bt-nota"},"A janelinha fica virada para o beiral do pano onde você clicou. Para tirar uma, use o × da lista.")):null,
           retsP&&retsP.alas.length<=8?el("button",{type:"button",class:"bt-a",title:"Cada parte retangular vira uma ala que dá para mudar",onclick:()=>{const b0=t0.parede!=null?r4(((((fl().paredes||[]).find(x=>x.id===t0.parede))||{}).larg||.18)/2+(+t0.beiral||0)):(+t0.beiral||0);muda(tls,x=>{x.alas=retsP.alas.map(r=>novaAla(r[0],r[1],r[2],r[3],x.estilo&&x.estilo!=="cone"?x.estilo:"quatro"));if(retsP.ang){x.ang=retsP.ang;x.piv=retsP.piv}else{delete x.ang;delete x.piv}delete x.parede;x.beiral=b0;x.p=pTel(x)},"Telhado em alas");painel(true)}},ico("tel"),el("span",{},"Separar em alas (L, T…)")):null,
           t0.alas&&t0.alas.length?el("p",{class:"bt-nota"},"Telhado de "+t0.alas.length+(t0.alas.length>1?" alas":" ala")+(t0.furos&&t0.furos.length?", com "+t0.furos.length+" furos para as torres":"")+"."):null,
           pc?escolhePC("Arte pronta (cone de torre, etc.)",temArte?M.texturas[t0.arte]:null,["objects"],v=>{muda(tls,x=>{if(v)x.arte=MD.texDe(M,v);else delete x.arte},"Arte do telhado");painel(true)}):null,
@@ -860,6 +867,9 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     if(VT[ferr]){const C=VT[ferr],q=[enc(w[0],e.altKey),enc(w[1],e.altKey)];if(C.P.modo==="livre"){arr={tipo:"livre",P:[[w[0],w[1]]],C};return}if(C.P.modo==="linha"){if(!traco||traco.ferr!==ferr){traco={P:[q],H:[],ferr};arr={tipo:"alca",i:0,p}}else{const T=traco.P,f=T[0],u=T[T.length-1];if(T.length>=3&&Math.hypot(q[0]-f[0],q[1]-f[1])<Math.max(.2,9*dpr()/cam.z))fimTraco(true);else if(Math.hypot(q[0]-u[0],q[1]-u[1])<1e-6)fimTraco(false);else{T.push(q);arr={tipo:"alca",i:T.length-1,p}}}sujo=true;return}
       arr={tipo:"forma",a:q,b:q,p,moveu:false,C};return}
     if(ferr==="porta"){const pp=portaEm(w[0],w[1],e.altKey);if(pp)poePorta(pp);return}
+    if(modoTrap){const t=sel.length===1&&sel[0].k==="telhados"&&sel[0].e.alas&&sel[0].e.alas.length?sel[0].e:null;if(t){const L=MD.paraLocal(t,w[0],w[1]),pn=MD.panoEm(t,L[0],L[1]);
+        if(pn){muda([{k:"telhados",e:t}],x=>{x.trapeiras=(x.trapeiras||[]).concat([{x:r4(L[0]),y:r4(L[1]),lado:pn.lado,w:telhadoP.tw,d:telhadoP.td}])},"Água-furtada");painel(true);sujo=true;return}
+        dica.textContent="Clique num pano inclinado do telhado selecionado (telhado plano não leva água-furtada).";return}modoTrap=false;painel(true)}
     const hd=alcaEm(p[0],p[1]);if(hd&&(hd.t==="vert"||hd.t==="meio")){const i=hd.t==="meio"?hd.i+1:hd.i;comeca("vert",w,{p,i,ins:hd.t==="meio"});if(arr.ins){const o=arr.itens[0].e,P=o.p.slice(),a=P[hd.i],b=P[(hd.i+1)%P.length];P.splice(i,0,[(a[0]+b[0])/2,(a[1]+b[1])/2]);o.p=P;if(o.raios){const r=o.raios.slice();r.splice(i,0,null);o.raios=r}if(o.cv){const c=o.cv.slice();c.splice(i,0,null);o.cv=c}redesenha(arr.itens)}vsel={e:arr.itens[0].e,i};sujo=true;return}
     if(hd&&hd.t==="ala"){comeca("ala",w,{hd,p});return}
     if(hd){const B=caixaSel();comeca(hd.t,w,{hd,B,p});return}
@@ -933,7 +943,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     else if(traco&&(k==="enter"||k==="escape"||k==="backspace")){if(k==="backspace"){traco.P.pop();if(!traco.P.length)traco=null}else if(traco.P.length>=2)fimTraco(false);else traco=null;sujo=true}
     else if(vsel&&(k==="delete"||k==="backspace"))apagaPonto();
     else if(k==="w")usa("par");else if(k==="d")usa("porta");else if(k==="k")usa("cam");else if(k==="s")usa("for");else if(k==="t")usa("txt");
-    else if(k==="escape"){if(arr)cancela();else if(sel.length)seleciona([]);else if(ferr!=="sel")usa("sel")}else if(k==="delete"||k==="backspace")apagar();
+    else if(k==="escape"){if(modoTrap){modoTrap=false;dica.textContent="";painel(true);sujo=true}else if(arr)cancela();else if(sel.length)seleciona([]);else if(ferr!=="sel")usa("sel")}else if(k==="delete"||k==="backspace")apagar();
     else if(k==="v")usa("sel");else if(k==="h")usa("mao");else if(k==="o")usa("obj");else if(k==="b")usa("esp");else if(k==="l")usa("lz");
     else if(k==="z")usa("zon");else if(k==="u")usa("tel");else if(k==="p")usa("pin");else if(ferr==="pin"&&(k==="["||k==="]")){pinc.raio=Math.max(.25,Math.min(20,pinc.raio*(k==="]"?1.25:.8)));sujo=true;painel(true)}
     else if(ferr==="esp"&&(k==="["||k==="]")){espalha.raio=Math.max(.5,Math.min(15,espalha.raio+(k==="]"?.5:-.5)));sujo=true;const r=pCorpo.querySelector("input[type=range]");painel(true)}else if(k==="g")bSnap.click();else if(k==="f")enquadra();

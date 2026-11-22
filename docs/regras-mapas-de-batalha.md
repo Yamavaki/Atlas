@@ -34,6 +34,14 @@ Checklist para quem monta mapas de batalha à mão ou por IA, no Dungeondraft ou
 - Paredes bloqueiam luz. Deixe a sombra suave ligada em paredes e caminhos.
 - **Penhasco de caverna, paliçada, barranco e encosta:** faça como caminho com "bloqueia luz" (`block_light`). Desde a versão 1.24, o Atlas transforma esse caminho em parede ao exportar para o Foundry. Ela bloqueia passagem, visão e luz, mas deixa o som passar.
 
+## Telhados
+- O Atlas não lê os telhados do Dungeondraft. Para o telhado ir junto, escreva-o no `.atlasmap` (veja `docs/telhados-no-atlasmap.md`) ou faça no Atlas com a ferramenta Telhado (U).
+- Casa retangular: uma ala de quatro águas. Casa em L ou T: uma ala por braço, e a que sai entra até o outro lado da principal.
+- Beiral: metade da espessura da parede mais 0,15 quadrado, para não aparecer a borda das paredes.
+- Torre redonda: estilo `cone`, ou a arte pronta de cone do pacote.
+- Águas-furtadas: em casas de dois andares ou mais, de 1 a 3 por pano comprido, viradas para a rua ou para o pátio, nunca em telhado plano.
+- Chaminé, cata-vento e bandeira: objetos no andar do telhado. Ponha o telhado com `"l": 700` e as peças com camada maior, para ficarem por cima.
+
 ## Arrumação
 - Cadeiras numa camada abaixo da mesa, um pouco enfiadas embaixo dela. De 2 a 4 por mesa, e não todas iguais.
 - Mesas em fileira ou em grade. O meio do salão não fica vazio, mas tem espaço para andar.
