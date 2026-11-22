@@ -8,11 +8,14 @@ Este documento explica o formato para que uma IA (por exemplo o Claude) consiga 
 
 | Mapa | Campo | Unidade das coordenadas |
 |---|---|---|
-| Região (`type` vazio ou `region`) | `anot` no objeto do mapa | pixels do desenho do mapa (largura × altura do canvas, a mesma do PNG) |
-| Cidade (`type: "city"`) | `anot` no objeto do mapa | pixels do desenho do mapa |
+| Região (`type` vazio ou `region`) | `anot` no objeto do mapa | coordenadas do mundo da região (as mesmas de povoados, pinos e estradas: `x` de 0 a MW, `y` sem a inclinação do desenho) |
+| Cidade (`type: "city"`) | `anot` no objeto do mapa | coordenadas do mundo da cidade (as mesmas dos lugares em `places`) |
 | Batalha (`.atlasmap`) | `andares[i].anot`, uma lista por andar | quadrados (0,0 é o canto de cima à esquerda) |
 
 Outros campos:
+
+- `anotUn: "mundo"` marca que os pontos estão em coordenadas do mundo (desde a 1.35.1). Assim a anotação fica presa ao terreno quando o relevo muda.
+- `anotRef: [largura, altura]` guarda o tamanho do mundo quando as anotações foram feitas. Se o tamanho do mapa mudar, o Atlas escala os pontos.
 
 - `anotOculto: true` esconde as anotações fora da ferramenta.
 - `anotCols` é o número de colunas da grade A1. Só existe em região e cidade; o padrão é 16 na região e 12 na cidade.
@@ -89,7 +92,7 @@ Outros campos:
 
 ## Como escrever (para a IA)
 
-Acrescente itens à lista `anot` com `id` único, `tipo` e `pts` na unidade certa (pixels na região e na cidade, quadrados na batalha). `celula` e `perto` podem faltar: o Atlas recalcula os dois quando o mestre mexe na anotação.
+Acrescente itens à lista `anot` com `id` único, `tipo` e `pts` na unidade certa (coordenadas do mundo na região e na cidade, quadrados na batalha). Na região e na cidade, ponha também `anotUn: "mundo"` no mapa. `celula` e `perto` podem faltar: o Atlas recalcula os dois quando o mestre mexe na anotação.
 
 ## No app
 
@@ -99,6 +102,6 @@ Acrescente itens à lista `anot` com `id` único, `tipo` e `pts` na unidade cert
 Modos: Selecionar, Pincel, Linha, Área, Área à mão, Ponto e Texto.
 
 - Duplo clique numa anotação ligada a uma nota abre a nota.
-- Na região e na cidade, arrastar uma nota da lista para o mapa cria um ponto ligado a ela.
+- Pôr uma nota no mapa: no painel da ferramenta, busque a nota, clique nela e clique no mapa, ou arraste a nota para o mapa. Funciona nos três mapas. Na região e na cidade, a lista lateral de notas também pode ser arrastada.
 - "Criar nota desta anotação" cria uma nota de local com o texto da anotação.
 - Ctrl+Z desfaz.

@@ -424,7 +424,7 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
   const anotNota=t=>{const A=APP(),nm=String(t).replace(/^\[\[|\]\]$/g,"");const n=A&&A.findNote&&A.findNote(nm);if(n&&A.openNote)A.openNote(n.id);else toast("A nota “"+nm+"” não existe ainda.")};
   const AC_=AAN?AAN.ferramenta({itens:anotItens,muda:(L,nome)=>{exec([{op:"andar",a:andar,de:{anot:fl().anot||[]},para:{anot:L}}],nome)},T:(x,y)=>tela(x,y),inv:(x,y)=>mundo(x,y),k:dpr,tol:()=>8*dpr(),unidade:100,simplifica:.04,grade:anotGrade,lugar:anotLugar,preferencias:anotPref,
     desenha:()=>{sujo=true},painel:()=>{if(ferr==="anot")painel(true)},abreNota:anotNota}):null;
-  const painelAnot=()=>AAN.painel(AC_,{itens:anotItens,notas:()=>{const A=APP();return A&&A.S?[...A.S.notes.values()].map(n=>n.title).sort((a,b)=>a.localeCompare(b,"pt")):[]},abreNota:anotNota,
+  const painelAnot=()=>AAN.painel(AC_,{itens:anotItens,notas:()=>{const A=APP();return A&&A.S?[...A.S.notes.values()].map(n=>n.title).sort((a,b)=>a.localeCompare(b,"pt")):[]},abreNota:anotNota,aviso:toast,tipoNota:t=>{const A=APP(),n=A&&A.findNote&&A.findNote(t);return n?(A.fm(n.content).props.tipo||"livre"):"livre"},
     criaNota:it=>{const A=APP();if(!A||!A.novaNota)return null;const n=A.novaNota("local",it.titulo||"Lugar do mapa","---\ntipo: local\n---\n\n"+(it.texto||"")+"\n\nNo mapa de batalha"+(it.celula?", quadrado "+it.celula:"")+".\n");return n&&n.title},
     redesenha:()=>{sujo=true},redesenhaPainel:()=>painel(true),foca:x=>{const c=x.tipo==="ponto"||x.tipo==="texto"?x.pts[0]:AAN.centro(x);cam.x=c[0];cam.y=c[1];sujo=true}});
   // ---------- painel de propriedades ----------
@@ -944,6 +944,9 @@ export function abrirEditor(raiz,M,opt){opt=opt||{};MD.garanteIds(M);for(const A
     else if(a.tipo==="girar"||a.tipo==="redim"){if(a.moveu){arr=a;fecha(a.tipo==="girar"?"Girar":"Mudar o tamanho");arr=null}}
     sujo=true};
   function usaCursor(){cv.style.cursor=ferr==="mao"||espaco?"grab":ferr==="obj"||ferr==="lz"||VT[ferr]||ferr==="porta"||ferr==="txt"?"crosshair":ferr==="esp"||ferr==="pin"?(ferr==="pin"&&pinc.modo==="balde"?"crosshair":"none"):"default"}
+  // nota arrastada (da lista do painel de anotacoes) vira um ponto ligado a ela
+  cv.addEventListener("dragover",e=>{if(AC_&&[...e.dataTransfer.types].includes("text/x-atlas-nota"))e.preventDefault()});
+  cv.addEventListener("drop",e=>{const t=e.dataTransfer.getData("text/x-atlas-nota");if(!t||!AC_)return;e.preventDefault();const p=local(e),A=APP(),n=A&&A.findNote&&A.findNote(t);if(ferr!=="anot")usa("anot");AC_.largaNota(p[0],p[1],n?n.title:t,n?(A.fm(n.content).props.tipo||"livre"):"livre");toast("“"+t+"” ficou marcada no mapa.");sujo=true});
   cv.addEventListener("pointerup",solta);cv.addEventListener("pointercancel",solta);cv.addEventListener("pointerleave",()=>{if(!P.size){cursor=null;passa=null;sujo=true}});
   // roda do mouse: aproxima; ao colocar objeto gira (Shift muda o tamanho); nos pinceis muda o tamanho; com selecao, Alt gira e Alt+Shift muda o tamanho. Ctrl+roda sempre aproxima
   let tPainel=0;const painelDepois=()=>{clearTimeout(tPainel);tPainel=setTimeout(()=>painel(true),260)};

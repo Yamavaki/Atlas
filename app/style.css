@@ -1240,3 +1240,10 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .anp-it span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .anp-it small{color:var(--muted)}
 .anp-tr{display:inline-block;width:14px;height:4px;border-radius:2px}
+.anp-nm{display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--line);padding-top:8px}
+.anp-sub{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.anp-nres{display:flex;flex-direction:column;gap:2px}
+.anp-nota{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:4px 6px;border:1px solid transparent;background:transparent;color:var(--text);border-radius:4px;min-height:28px;cursor:grab}
+.anp-nota span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.anp-nota:hover{background:rgba(212,166,74,.12)}
+.anp-nota.on{border-color:var(--gold);background:rgba(212,166,74,.18)}
