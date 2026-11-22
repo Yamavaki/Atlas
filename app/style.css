@@ -1311,3 +1311,8 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
   .bt-ferr{position:absolute;left:8px;top:8px;right:auto;bottom:auto;flex-direction:column;overflow-y:auto;overflow-x:hidden;max-height:calc(100% - 16px);border:1px solid var(--line);border-radius:14px;padding:5px}
 }
 @media (max-height:520px) and (orientation:landscape){.bt-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.bt-bar::-webkit-scrollbar{display:none}.bt-area{height:calc(100vh - 44px - 40px - 46px)}}
+/* 1.49.3: lista de aguas-furtadas: clicar escolhe uma para editar */
+.bt-trap{cursor:pointer;padding:3px 6px;border-radius:6px;border:1px solid transparent}
+.bt-trap:hover{background:rgba(243,210,122,.06)}
+.bt-trap.on{border-color:var(--accent,#f3d27a);background:rgba(243,210,122,.1)}
+.bt-trap:focus-visible{outline:2px solid var(--accent,#f3d27a);outline-offset:1px}

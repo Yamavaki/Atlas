@@ -250,14 +250,18 @@ function telhadoAlas(t,TEX,IND,PAR,v0,lay,real){const rl=real(t.t),l=rl!=null?rl
   // aguas-furtadas (1.31): telhadinho de duas aguas que sai do pano, com a janela virada para o beiral
   for(const d of t.trapeiras||[]){const F={N:[0,-1],S:[0,1],W:[-1,0],L:[1,0]}[d.lado||"S"]||[0,1],Sd=[-F[1],F[0]],hw=(d.w||1.2)/2,hd=(d.d||1.4)/2,cx=d.x,cy=d.y,P=(a,b)=>[cx+F[0]*a+Sd[0]*b,cy+F[1]*a+Sd[1]*b];
     const quad=(A,B,C,D,cor,br,uv)=>{const Q=[A,B,C,D];for(const k of [0,1,2,0,2,3]){const z=Q[k];if(uv)v(z[0],z[1],(z[0]*uv[0]+z[1]*uv[1])*es,(-z[0]*uv[1]+z[1]*uv[0])*es,l,c,br);else v(z[0],z[1],0,0,-1,cor,1)}};
+    // 1.49.3: o fundo encosta no telhado em V (os panos terminam em triangulo, a ponta da cumeeira no fundo)
+    const kb=Math.max(0,Math.min(hw,2*hd-.15)),bk=-hd+kb;
     // sombra no pano, para o lado contrario da luz
-    const sx=-LX*.18,sy=-LY*.18;quad(...[P(-hd,-hw),P(hd,-hw),P(hd+.05,hw),P(-hd,hw)].map(q=>[q[0]+sx,q[1]+sy]),[0,0,0,.32]);
+    const sx=-LX*.18,sy=-LY*.18,sh=q=>[q[0]+sx,q[1]+sy];quad(...[P(bk,-hw),P(hd,-hw),P(hd+.05,hw),P(bk,hw)].map(sh),[0,0,0,.32]);quad(...[P(-hd,0),P(bk,-hw),P(bk,hw),P(-hd,0)].map(sh),[0,0,0,.32]);
     // os dois panos: fileiras paralelas a cumeeira (que vai do fundo para a frente)
     const rd=d.tex!=null?real(d.tex):null,ld=rd!=null?rd:(d.tex!=null?lay("m:"+materialDe(TEX[d.tex]||"atlas:m/telha")):l),quadT=(A,B,C,D,br,uv)=>{const Q=[A,B,C,D];for(const k of [0,1,2,0,2,3]){const z=Q[k];v(z[0],z[1],(z[0]*uv[0]+z[1]*uv[1])*es,(-z[0]*uv[1]+z[1]*uv[0])*es,ld,c,br)}};
-    for(const sg of [-1,1]){const nx=Sd[0]*sg,ny=Sd[1]*sg,br=.8+.32*(nx*LX+ny*LY),A=P(-hd,0),B=P(hd,0),C=P(hd,hw*sg),D=P(-hd,hw*sg);if(rl!=null||rd!=null)quad(A,B,C,D,[.11,.1,.1,1]);quadT(A,B,C,D,br,[F[0],F[1]])}
+    for(const sg of [-1,1]){const nx=Sd[0]*sg,ny=Sd[1]*sg,br=.8+.32*(nx*LX+ny*LY),A=P(-hd,0),B=P(hd,0),C=P(hd,hw*sg),D=P(bk,hw*sg);if(rl!=null||rd!=null)quad(A,B,C,D,[.11,.1,.1,1]);quadT(A,B,C,D,br,[F[0],F[1]])}
     // cumeeira e contorno
     const ln=(a,b,h,cor)=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/L*h,ny=(b[0]-a[0])/L*h;quad([a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny],cor)};
-    ln(P(-hd,0),P(hd,0),.018,[.12,.08,.06,.45]);if(d.contorno)for(const [a,b] of [[P(-hd,-hw),P(hd,-hw)],[P(hd,hw),P(-hd,hw)],[P(hd,-hw),P(hd,hw)]])ln(a,b,.018,[.08,.06,.05,.7]);
+    ln(P(-hd,0),P(hd,0),.018,[.12,.08,.06,.45]);// encontro do fundo com o telhado (V) e, com contorno, os lados e a frente
+    for(const sg of [-1,1])ln(P(-hd,0),P(bk,hw*sg),.014,[.1,.07,.05,.5]);
+    if(d.contorno)for(const [a,b] of [[P(bk,-hw),P(hd,-hw)],[P(hd,hw),P(bk,hw)],[P(hd,-hw),P(hd,hw)]])ln(a,b,.018,[.08,.06,.05,.7]);
     // frente: janela de vidro, de madeira (venezianas) ou nenhuma
     const jan=d.janela||"vidro";if(jan!=="nenhuma"){const jw=hw*.62,f0=hd-.02,f1=hd+.1;if(jan==="madeira"){quad(P(f0,-jw),P(f1,-jw),P(f1,jw),P(f0,jw),[.33,.22,.13,1]);for(let k=-2;k<=2;k++){const y=jw*k/2.6;quad(P(f0+.01,y-.008),P(f1-.01,y-.008),P(f1-.01,y+.008),P(f0+.01,y+.008),[.2,.13,.08,.8])}}
       else{quad(P(f0,-jw),P(f1,-jw),P(f1,jw),P(f0,jw),[.26,.18,.11,1]);quad(P(f0+.02,-jw+.035),P(f1-.015,-jw+.035),P(f1-.015,jw-.035),P(f0+.02,jw-.035),[.36,.5,.58,1]);quad(P(f0+.02,-.012),P(f1-.015,-.012),P(f1-.015,.012),P(f0+.02,.012),[.26,.18,.11,1])}}}
