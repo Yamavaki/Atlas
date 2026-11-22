@@ -593,10 +593,12 @@ function mkMod(race,type,rng,ang,dim){const cy=race==="cyber",sp=SPEC[type]||SPE
   else if(type==="farm")kind="casa";
   else if(type==="tavern")kind="loja";
   else{kind=t>.74?"torre":t>.44?"predio":t>.24?(rng()<.5?"sobrado":"loja"):"casa";if((type==="manor"||(type==="rich"&&rng()<.5))&&(kind==="casa"||kind==="sobrado")&&mn>8)kind="mansao";if(zt==="pobre"&&kind==="casa"&&rng()<.5)kind="barraco"}
-  if(kind==="torre"&&mn<6.5)kind="predio";if(kind==="predio"&&mn<5.5)kind="sobrado";if(cy&&kind==="casa")kind="sobrado";
+  if(kind==="torre"&&mn<6.5)kind="predio";if(dim&&dim.fill&&kind==="torre")kind="predio";if(kind==="predio"&&mn<5.5)kind="sobrado";if(cy&&kind==="casa")kind="sobrado";
   if(kind==="casa")return null;
   const FH=1.7;let fl=1;
   if(kind==="sobrado")fl=2+(rng()<.25?1:0);else if(kind==="loja")fl=1+(rng()<.45?1:0);else if(kind==="predio")fl=3+Math.round(rng()*(2+u*7));else if(kind==="torre")fl=Math.min(cy?26:20,Math.round(8+u*10*rng()+rng()*5),Math.round(mn*2.2));else if(kind==="mansao")fl=2;else if(kind==="galpao")fl=2;
+  // 1.36: predio de preenchimento (vazio dentro do quarteirao) nao vira torre: no maximo 4 andares e nunca mais alto que o lote permite
+  if(dim&&dim.fill&&kind==="predio")fl=Math.max(2,Math.min(fl,4,Math.round(mn*.55)));
   const wall=kind==="torre"?(cy?pick(["m_cyv","m_cyv2","m_cy1","m_cy3"]):pick(["m_vidro","m_vidro","m_vidro2","m_vidro3","m_bronze","m_conc","m_grafite"])):kind==="mansao"&&!cy?pick(["m_branco","m_branco","m_creme","m_conc"]):kind==="galpao"?(cy?pick(["m_cy4","m_cy1","rust"]):pick(["m_conc","m_tijolo","m_azulc","m_conc","m_areia"])):kind==="barraco"?pick(["m_tijolo","m_tijolo","rust","m_conc","m_azulc","m_rosa","m_verdec"]):dim&&dim.wall&&WALL[dim.wall]&&String(dim.wall).startsWith("m_")?dim.wall:pick(C.wall);
   return {k:1,ang,type,L,D,H:fl*FH,Hm:fl*FH,R:0,form:"mod",roof:"dark",wall,kind,fl,cy:cy?1:0,mv:(rng()*997)|0,sd:(rng()*4294967295)>>>0,wing:null,tower:null,dorm:null,tr:0,tw:0,door:1,win:1}}
 function drawMod(c,x,y,o){const ca=Math.cos(o.ang),sa=Math.sin(o.ang),U=[ca,sa*TILT],V=[-sa,ca*TILT],W=WALL[o.wall]||WALL.m_conc,cy=o.cy,hl=o.L/2,hd=o.D/2,snow=o.roof==="snow";
