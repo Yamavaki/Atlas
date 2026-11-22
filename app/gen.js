@@ -593,10 +593,13 @@ function mkMod(race,type,rng,ang,dim){const cy=race==="cyber",sp=SPEC[type]||SPE
   else if(type==="farm")kind="casa";
   else if(type==="tavern")kind="loja";
   else{kind=t>.74?"torre":t>.44?"predio":t>.24?(rng()<.5?"sobrado":"loja"):"casa";if((type==="manor"||(type==="rich"&&rng()<.5))&&(kind==="casa"||kind==="sobrado")&&mn>8)kind="mansao";if(zt==="pobre"&&kind==="casa"&&rng()<.5)kind="barraco"}
+  // 1.42: porte da cidade pelas medidas do OpenStreetMap: cidade pequena (Gramado, Paraty, Carmel) 1-2 andares e no maximo 4-5;
+  // media (Curitiba, Cuiaba, Porto, Kyoto) predios ate ~16; grande (Sao Paulo, Rio, Nova York, Dubai) torres de 30 a 50+ no centro
+  const cls=sz<=12?0:sz<=24?1:2;if(cls===0&&kind==="torre")kind="predio";if(cls===0&&kind==="predio"&&rng()<.55)kind=rng()<.5?"sobrado":"loja";
   if(kind==="torre"&&mn<6.5)kind="predio";if(dim&&dim.fill&&kind==="torre")kind="predio";if(kind==="predio"&&mn<5.5)kind="sobrado";if(cy&&kind==="casa")kind="sobrado";
   if(kind==="casa")return null;
   const FH=1.7;let fl=1;
-  if(kind==="sobrado")fl=2+(rng()<.25?1:0);else if(kind==="loja")fl=1+(rng()<.45?1:0);else if(kind==="predio")fl=3+Math.round(rng()*(2+u*7));else if(kind==="torre")fl=Math.min(cy?26:20,Math.round(8+u*10*rng()+rng()*5),Math.round(mn*2.2));else if(kind==="mansao")fl=2;else if(kind==="galpao")fl=2;
+  if(kind==="sobrado")fl=2+(rng()<.25?1:0);else if(kind==="loja")fl=1+(rng()<.45?1:0);else if(kind==="predio")fl=cls===0?2+Math.round(rng()*2):3+Math.round(rng()*(2+u*(cls===1?5:7)));else if(kind==="torre")fl=Math.min(cls===1?16:(cy?50:42),Math.round((cls===2?10:8)+u*(cls===2?22:10)*rng()+rng()*5),Math.round(mn*(cls===2?2.8:2.2)));else if(kind==="mansao")fl=2;else if(kind==="galpao")fl=2;
   // 1.36: predio de preenchimento (vazio dentro do quarteirao) nao vira torre: no maximo 4 andares e nunca mais alto que o lote permite
   if(dim&&dim.fill&&kind==="predio")fl=Math.max(2,Math.min(fl,4,Math.round(mn*.55)));
   const wall=kind==="torre"?(cy?pick(["m_cyv","m_cyv2","m_cy1","m_cy3"]):pick(["m_vidro","m_vidro","m_vidro2","m_vidro3","m_bronze","m_conc","m_grafite"])):kind==="mansao"&&!cy?pick(["m_branco","m_branco","m_creme","m_conc"]):kind==="galpao"?(cy?pick(["m_cy4","m_cy1","rust"]):pick(["m_conc","m_tijolo","m_azulc","m_conc","m_areia"])):kind==="barraco"?pick(["m_tijolo","m_tijolo","rust","m_conc","m_azulc","m_rosa","m_verdec"]):dim&&dim.wall&&WALL[dim.wall]&&String(dim.wall).startsWith("m_")?dim.wall:pick(C.wall);
