@@ -19,6 +19,7 @@ const P={
   item:"M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5",
   faccao:"M5 3h14v9a7 7 0 01-14 0zM9 9h6",
   criatura:"M5 4c2 5 2 10-1 16M11 3c2 6 2 12-1 18M17 4c2 5 2 10-1 16",
+  relogio:"M12 3a9 9 0 100 18 9 9 0 000-18zM12 7v5l3 2",pista:"M10 4a6 6 0 104.2 10.2L20 20M10 4a6 6 0 010 12",escrito:"M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7",tabela:"M3 5h18v14H3zM3 10h18M9 5v14",grupos:"M3 6h7v5H3zM14 6h7v5h-7zM3 15h7v5H3zM14 15h7v5h-7z",
   mundo:"M12 3a9 9 0 100 18 9 9 0 000-18zM3 12h18M12 3c3.5 3.5 3.5 14.5 0 18M12 3c-3.5 3.5-3.5 14.5 0 18",
   campanha:"M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 19V5M9 7h6M9 11h4",
   quadro:"M4 4h7v7H4zM13 13h7v7h-7zM11 7.5h4.5V13",

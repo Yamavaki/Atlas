@@ -22,7 +22,7 @@
       async lerBin(rel){try{const [ps,n]=separa(rel),d=await dir(ps,false);return await (await d.getFileHandle(n)).getFile()}catch(e){return null}},
       async gravar(rel,dados){const [ps,n]=separa(rel),d=await dir(ps,true),h=await d.getFileHandle(n,{create:true}),w=await h.createWritable();await w.write(dados);await w.close()},
       async apagar(rel){try{const [ps,n]=separa(rel),d=await dir(ps,false);await d.removeEntry(n)}catch(e){}},
-      async listar(){const out=[];const anda=async(d,pre)=>{for await(const [n,h] of d.entries()){if(n.startsWith(".")&&n!==".atlas")continue;if(h.kind==="directory"){if(n===".atlas")continue;await anda(h,pre+n+"/")}else{const f=await h.getFile();out.push({rel:pre+n,quando:f.lastModified})}}};await anda(raiz,"");return out},
+      async listar(filtro,semStat){const out=[];const anda=async(d,pre)=>{for await(const [n,h] of d.entries()){if(n.startsWith(".")&&n!==".atlas")continue;if(h.kind==="directory"){if(n===".atlas"||filtro&&!pre&&PESADAS.has(n))continue;await anda(h,pre+n+"/")}else{if(filtro&&!filtro(pre+n))continue;const f=semStat?null:await h.getFile();out.push({rel:pre+n,quando:f?f.lastModified:0})}}};await anda(raiz,"");return out},
       async permissao(pedir){const o={mode:"readwrite"};if((await raiz.queryPermission(o))==="granted")return true;return pedir?(await raiz.requestPermission(o))==="granted":false}}}
 
   // ---------- disco: app instalado (Tauri 2, plugin fs) ----------
@@ -33,12 +33,12 @@
       async lerBin(rel){try{const u=await fs.readFile(abs(rel));return new Blob([u])}catch(e){return null}},
       async gravar(rel,dados){const p=abs(rel),d=p.slice(0,p.lastIndexOf("/"));await fs.mkdir(d,{recursive:true}).catch(()=>{});if(typeof dados==="string")await fs.writeTextFile(p,dados);else await fs.writeFile(p,new Uint8Array(await new Blob([dados]).arrayBuffer()))},
       async apagar(rel){try{await fs.remove(abs(rel))}catch(e){}},
-      async listar(){const out=[];const anda=async(rel)=>{let L=[];try{L=await fs.readDir(rel?abs(rel):base)}catch(e){return}for(const x of L){const n=x.name;if(n.startsWith("."))continue;const r=rel?rel+"/"+n:n;if(x.isDirectory)await anda(r);else{let q=0;try{const st=await fs.stat(abs(r));q=st.mtime?+new Date(st.mtime):0}catch(e){}out.push({rel:r,quando:q})}}};await anda("");return out},
+      async listar(filtro,semStat){const out=[];const anda=async(rel)=>{let L=[];try{L=await fs.readDir(rel?abs(rel):base)}catch(e){return}for(const x of L){const n=x.name;if(n.startsWith("."))continue;const r=rel?rel+"/"+n:n;if(x.isDirectory){if(filtro&&!rel&&PESADAS.has(n))continue;await anda(r)}else{if(filtro&&!filtro(r))continue;let q=0;if(!semStat)try{const st=await fs.stat(abs(r));q=st.mtime?+new Date(st.mtime):0}catch(e){}out.push({rel:r,quando:q})}}};await anda("");return out},
       async permissao(){return true}}}
 
   // ---------- o mundo ----------
   let D=null,IND={notas:{},mapas:{},versao:1},fila=Promise.resolve(),gravandoIdx=null,VISTO=new Map();
-  const relev=rel=>/\.(md|canvas)$/i.test(rel)||/\.atlasmapa\.json$/i.test(rel);
+  const relev=rel=>/\.(md|canvas)$/i.test(rel)||/\.atlasmapa\.json$/i.test(rel),PESADAS=new Set(["Assets","Backups"]);let LIMG=null;
   const salvaIndice=()=>{clearTimeout(gravandoIdx);gravandoIdx=setTimeout(()=>{fila=fila.then(()=>D&&D.gravar(IDX,JSON.stringify(IND,null,1))).catch(e=>console.warn("indice",e))},400)};
   const caminhoNota=o=>juntaP((o.folder||"").split("/").map(safe).join("/"),safe(o.title)+(o.kind==="canvas"?".canvas":".md"));
   const caminhoMapa=m=>juntaP(MAPAS,safe(m.name||m.id)+".atlasmapa.json");
@@ -77,7 +77,7 @@
         if(a.quando&&(!o.updated||a.quando>o.updated+2000))o.updated=a.quando;IND.notas[id]={caminho:a.rel,extra:extraNota(o)};vistos.add(id);notas.push(o)}
       for(const id of Object.keys(IND.notas))if(!vistos.has(id))delete IND.notas[id];salvaIndice();VISTO=new Map(arqs.filter(a=>relev(a.rel)).map(a=>[a.rel,a.quando]));return {notas,mapas,nome:D.nome}},
     // o que mudou na pasta desde a ultima olhada (outro programa: Google Drive para computador, Obsidian, o Claude pelo Drive)
-    async verifica(){if(!D)return null;const arqs=(await D.listar()).filter(a=>relev(a.rel)),agora=new Map(arqs.map(a=>[a.rel,a.quando])),R={notas:[],mapas:[],apagadas:[],mapasApagados:[]};
+    async verifica(){if(!D)return null;const arqs=await D.listar(relev),agora=new Map(arqs.map(a=>[a.rel,a.quando])),R={notas:[],mapas:[],apagadas:[],mapasApagados:[]};
       const porCaminho=new Map();for(const [id,x] of Object.entries(IND.notas))porCaminho.set(x.caminho,id);const mapaPorCaminho=new Map();for(const [id,x] of Object.entries(IND.mapas))mapaPorCaminho.set(x.caminho,id);
       for(const [rel,q] of agora){const v=VISTO.get(rel);if(v!=null&&(!q||v===q))continue;const t=await D.ler(rel);if(!t)continue;
         if(/\.atlasmapa\.json$/i.test(rel)){try{const m=JSON.parse(t.texto);if(m&&m.id){IND.mapas[m.id]={caminho:rel};R.mapas.push({m,texto:t.texto})}}catch(e){}continue}
@@ -100,6 +100,9 @@
     // arquivos soltos (imagens, mapas de batalha): caminho relativo dentro do mundo
     gravaArquivo:(rel,dados)=>D?(fila=fila.then(()=>D.gravar(rel,dados))):Promise.resolve(),
     leArquivo:rel=>D?D.lerBin(rel):Promise.resolve(null),
+    // imagem por nome de arquivo (![[Retrato.png]]): procura em qualquer subpasta, a comecar por Imagens/
+    async achaArquivo(nome){if(!D||!nome)return null;if(!LIMG||Date.now()-LIMG.t>15000)LIMG={t:Date.now(),L:(await D.listar(r=>/\.(png|jpe?g|webp|gif|avif)$/i.test(r),true)).map(a=>a.rel)};const q=String(nome).replace(/\\/g,"/").toLowerCase(),fim=q.includes("/")?q:"/"+q;
+      const c=LIMG.L.filter(r=>("/"+r.toLowerCase()).endsWith(fim));return c.sort((a,b)=>(b.toLowerCase().startsWith("imagens/")-a.toLowerCase().startsWith("imagens/"))||a.length-b.length)[0]||null},
     apagaArquivo:rel=>D?(fila=fila.then(()=>D.apagar(rel))):Promise.resolve(),
     espera:()=>fila,
     // para testes: usar um disco em memoria

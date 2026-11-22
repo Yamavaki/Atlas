@@ -43,8 +43,10 @@ envolvidos: "[[Abade Tomas]], [[Irmã Ludmila]]"
 ```
 
 - O cabeçalho fica entre linhas `---`, no topo do arquivo.
-- Uma propriedade por linha, sempre `chave: valor` numa linha só.
-- **Não** usar listas YAML em várias linhas (`- item` embaixo da chave). O Atlas ainda não lê esse formato.
+- Uma propriedade por linha (`chave: valor`). Desde a 1.28 o Atlas também lê listas YAML (`- item` embaixo da chave, ou `[a, b]` na mesma linha) e arquivos com quebra de linha do Windows.
+- **Outros nomes:** `aliases: Lisel, a Viúva` (ou lista YAML). Um link `[[Lisel]]` abre a nota e mostra o texto do apelido. Se um apelido for igual ao título de outra nota, o título ganha e a nota mostra um aviso.
+- **Grupos:** `grupo: Conselho, Suspeitos` em qualquer tipo. As #tags do texto também contam como grupo. A barra lateral pode agrupar por pasta, tipo, grupo, local, facção ou campanha.
+- **Retrato:** `imagem: retrato-lisel.png` (só o nome do arquivo; o Atlas procura em `Imagens/` primeiro e depois em qualquer subpasta).
 - **Links:** `[[Título]]`. Vários links ficam na mesma linha, separados por vírgula. Também vale o nome sem colchetes: `local: Olshany`.
 - **Valores de escolha:** sempre minúsculos e sem acento (`concluida`, `secundaria`, `medio`).
 - **Propriedades vazias:** pode omitir a linha.
@@ -61,7 +63,14 @@ envolvidos: "[[Abade Tomas]], [[Irmã Ludmila]]"
 | `faccao` | `lider` (link) — `sede` (link) — `aliados` (links) — `inimigos` (links) — `data` |
 | `item` | `dono` (link) — `onde` (link) — `data` |
 | `sessao` | `data` — `jogadores` — `lugares` (links) |
+| `relogio` | `segmentos` (4, 6, 8…) — `cheios` (quantos já encheram) — `dono` (link: de quem é o relógio) — `estado`: ativo · cheio · parado — `campanha` (link). A pizza é clicável e aparece pequena na nota do dono e no quadro |
+| `pista` | `revela` (link: o segredo) — `nivel` (1, 2, 3: ordem da escada) — `status`: oculta · entregue · perdida — `onde` (link: lugar ou pessoa) — `sessao` (link) — `quem` (quem achou) |
+| `escrito` | `formato`: nota · carta · livro · pergaminho · diario · cartaz… — `era`: classico · moderno — `papel` — `letra` — `entregue` (link: a quem foi entregue). Páginas separadas por `---` no corpo; `%%texto%%` vira segredo no JSON exportado para o Nauren |
 | `livre` | `data` |
+
+**Campos do Nauren RPG** (opcionais, aparecem num bloco compacto): em `personagem` — `nivel`, `cores`, `classe`, `vida`, `sincronia`, `travado`; em `criatura` — `nivel`, `cores`, `categoria` (1–4), `funcao`, `chefe` (sim), `vida`, `xp`. Todo tipo aceita também `aliases` e `grupo`.
+
+O menu **+ Nova → Importar fichas do Nauren** lê o JSON exportado do Foundry (Export Data de um ator ou item, uma lista ou um lote do Importar em massa) e cria ou atualiza as notas.
 
 ## 4. Corpo das notas (modelos do Atlas)
 
@@ -103,6 +112,22 @@ Sessão: `## Onde paramos`, `## Cenas previstas`, `## NPCs em jogo`, `## Anotaç
 - **Segredo do mestre:** use o bloco `> [!segredo] ...` ou `%%texto%%` no meio da frase. Os dois somem na visão dos jogadores.
 - **Ligações livres:** no fim, em `## Ligações`, uma por linha: `- [[Destino]] — o que liga`.
 - **Links no texto:** `[[Título]]` ou `[[Título|texto mostrado]]`.
+
+### Recursos do texto (1.28)
+
+- **Link para seção:** `[[Nota#Seção]]` ou `[[Nota#Seção|texto]]`; `[[#Seção]]` aponta para a própria nota.
+- **Imagem pelo nome:** `![[mapa-vau.png]]` ou `![[mapa-vau.png|300]]` (largura em pixels).
+- **Lista automática:** um bloco ` ```lista ` monta uma tabela das notas que batem com os filtros. Uma linha por filtro; vírgula = qualquer um dos valores; `!valor` = negação; `este` = esta nota.
+
+````
+```lista
+tipo: personagem
+local: este
+situacao: !morto
+colunas: papel, faccao
+ordem: nome
+```
+````
 
 ## 5. Como o quadro da campanha é montado
 

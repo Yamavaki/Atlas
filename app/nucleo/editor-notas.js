@@ -57,7 +57,11 @@
       try{return Decoration.set(D,true)}catch(e){console.warn("decoracoes",e);return Decoration.none}}
     const vivo=ViewPlugin.fromClass(class{constructor(v){this.decorations=monta(v)}update(u){if(u.docChanged||u.selectionSet||u.viewportChanged||syntaxTree(u.startState)!==syntaxTree(u.state))this.decorations=monta(u.view)}},{decorations:v=>v.decorations});
     // ---------- sugestao de [[links]] ----------
-    const sugestao=ctx=>{const m=ctx.matchBefore(/\[\[[^\]\n|]*/);if(!m)return null;const q=m.text.slice(2).toLowerCase(),nomes=(cfg.nomes?cfg.nomes():[]);
+    const sugestao=ctx=>{const m=ctx.matchBefore(/\[\[[^\]\n|]*/);if(!m)return null;
+      // depois do #: titulos da nota (link para secao)
+      {const i=m.text.indexOf("#");if(i>=0&&cfg.secoes){const t=m.text.slice(2,i),q2=m.text.slice(i+1).toLowerCase(),depois=ctx.state.sliceDoc(ctx.pos,ctx.pos+2)==="]]";
+        const ops=cfg.secoes(t).filter(x=>x.toLowerCase().includes(q2)).slice(0,40).map(x=>({label:x,detail:"seção",apply:(v,c,f,to)=>{const ins=x+(depois?"":"]]");v.dispatch({changes:{from:f,to,insert:ins},selection:{anchor:f+x.length+2}})}}));return {from:m.from+i+1,options:ops,filter:false}}}
+      const q=m.text.slice(2).toLowerCase(),nomes=(cfg.nomes?cfg.nomes():[]);
       const depois=ctx.state.sliceDoc(ctx.pos,ctx.pos+2)==="]]";
       const ops=nomes.filter(n=>n.nome.toLowerCase().includes(q)).sort((a,b)=>a.nome.toLowerCase().indexOf(q)-b.nome.toLowerCase().indexOf(q)).slice(0,40)
         .map(n=>({label:n.nome,detail:n.tipo||"",apply:(v,c,f,t)=>{const ins=n.nome+(depois?"":"]]");v.dispatch({changes:{from:f,to:t,insert:ins},selection:{anchor:f+n.nome.length+2}})}}));
