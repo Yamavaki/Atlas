@@ -48,6 +48,10 @@ jobs:
           npm pkg set scripts.tauri=tauri
           npm install -D @tauri-apps/cli@^2
 
+      # 1.50: lista dos arquivos da interface (para a atualização sem reinstalar)
+      - name: Lista da interface
+        run: node scripts/web-json.mjs
+
       - name: Projeto Android
         run: |
           npx tauri android init --ci
@@ -93,5 +97,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "v$VER" "$APKNOME" --clobber -R "$GITHUB_REPOSITORY" \
-            || gh release create "v$VER" "$APKNOME" --prerelease --title "Atlas $VER" --target "$GITHUB_SHA" -R "$GITHUB_REPOSITORY"
+          cp app/web.json web.json
+          gh release upload "v$VER" "$APKNOME" web.json --clobber -R "$GITHUB_REPOSITORY" \
+            || gh release create "v$VER" "$APKNOME" web.json --prerelease --title "Atlas $VER" --target "$GITHUB_SHA" -R "$GITHUB_REPOSITORY"

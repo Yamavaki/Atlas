@@ -39,6 +39,120 @@ async fn atualizar(app: tauri::AppHandle, url: String) -> Result<(), String> {
 }
 
 
+// ---------- 1.50: atualização da interface sem reinstalar ----------
+// A interface (pasta app/) pode vir baixada: os arquivos que mudaram ficam em <dados do app>/web/<versão>/ e são
+// servidos no lugar dos que vieram dentro do app; o resto continua vindo de dentro do app. A parte nativa (este
+// arquivo, plugins) só muda com um app novo: por isso cada interface diz a "nativa" de que precisa (app/nativo.txt).
+// Proteção: a versão baixada que não confirmar a abertura (web_ok) duas vezes seguidas é desligada sozinha.
+const NATIVO: u32 = 1;
+static WEB_DIR: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
+
+fn cmp_versao(a: &str, b: &str) -> std::cmp::Ordering {
+    let p = |s: &str| s.trim().split('.').map(|x| x.parse::<u64>().unwrap_or(0)).collect::<Vec<_>>();
+    let (a, b) = (p(a), p(b));
+    for i in 0..3 { let o = a.get(i).unwrap_or(&0).cmp(b.get(i).unwrap_or(&0)); if o != std::cmp::Ordering::Equal { return o; } }
+    std::cmp::Ordering::Equal
+}
+// pasta da interface baixada que está valendo (só se for mais nova que a que veio no app)
+fn web_ativa() -> Option<(String, std::path::PathBuf)> {
+    let base = WEB_DIR.get()?;
+    let v = std::fs::read_to_string(base.join("atual.txt")).ok()?.trim().to_string();
+    if v.is_empty() || v.contains('/') || v.contains('\\') || v.contains("..") { return None; }
+    if cmp_versao(&v, env!("CARGO_PKG_VERSION")) != std::cmp::Ordering::Greater { return None; }
+    let d = base.join(&v);
+    if d.is_dir() { Some((v, d)) } else { None }
+}
+
+struct AtlasAssets<R: tauri::Runtime> { base: Box<dyn tauri::Assets<R>> }
+impl<R: tauri::Runtime> tauri::Assets<R> for AtlasAssets<R> {
+    fn setup(&self, app: &tauri::App<R>) { self.base.setup(app) }
+    fn get(&self, key: &tauri::utils::assets::AssetKey) -> Option<std::borrow::Cow<'_, [u8]>> {
+        if let Some((_, d)) = web_ativa() {
+            let rel = key.as_ref().trim_start_matches('/');
+            if !rel.is_empty() && !rel.contains("..") {
+                if let Ok(b) = std::fs::read(d.join(rel)) { return Some(std::borrow::Cow::Owned(b)); }
+            }
+        }
+        self.base.get(key)
+    }
+    fn iter(&self) -> Box<tauri::utils::assets::AssetsIter<'_>> { self.base.iter() }
+    fn csp_hashes(&self, k: &tauri::utils::assets::AssetKey) -> Box<dyn Iterator<Item = tauri::utils::assets::CspHash<'_>> + '_> { self.base.csp_hashes(k) }
+}
+struct Vazio;
+impl<R: tauri::Runtime> tauri::Assets<R> for Vazio {
+    fn get(&self, _: &tauri::utils::assets::AssetKey) -> Option<std::borrow::Cow<'_, [u8]>> { None }
+    fn iter(&self) -> Box<tauri::utils::assets::AssetsIter<'_>> { Box::new(std::iter::empty()) }
+    fn csp_hashes(&self, _: &tauri::utils::assets::AssetKey) -> Box<dyn Iterator<Item = tauri::utils::assets::CspHash<'_>> + '_> { Box::new(std::iter::empty()) }
+}
+
+// versões: a nativa (do app instalado), a da interface que está valendo e o número da parte nativa
+#[tauri::command]
+fn web_versao() -> (String, String, u32) {
+    let app = env!("CARGO_PKG_VERSION").to_string();
+    let web = web_ativa().map(|(v, _)| v).unwrap_or_else(|| app.clone());
+    (app, web, NATIVO)
+}
+// a interface abriu bem: tira a marca de "em teste"
+#[tauri::command]
+fn web_ok() { if let Some(b) = WEB_DIR.get() { let _ = std::fs::remove_file(b.join("pendente.txt")); } }
+// volta para a interface que veio no app
+#[tauri::command]
+fn web_voltar() { if let Some(b) = WEB_DIR.get() { let _ = std::fs::remove_file(b.join("atual.txt")); let _ = std::fs::remove_file(b.join("pendente.txt")); } }
+
+// baixa a interface de uma versão: lê a lista de arquivos (web.json do Release, com o hash de cada arquivo) e
+// baixa só os que mudaram em relação à que está valendo; os outros são copiados ou continuam vindo de dentro do app
+#[tauri::command]
+async fn web_atualizar(versao: String) -> Result<u32, String> {
+    let base = WEB_DIR.get().ok_or("pasta do app indisponível")?.clone();
+    if versao.is_empty() || !versao.chars().all(|c| c.is_ascii_digit() || c == '.') { return Err("versão inválida".into()); }
+    if cmp_versao(&versao, env!("CARGO_PKG_VERSION")) != std::cmp::Ordering::Greater { return Ok(0); }
+    let cli = reqwest::Client::new();
+    let lista_url = format!("https://github.com/Yamavaki/Atlas/releases/download/v{versao}/web.json");
+    let r = cli.get(&lista_url).send().await.map_err(|e| format!("sem conexão: {e}"))?;
+    if !r.status().is_success() { return Err(format!("lista da versão {versao}: {}", r.status())); }
+    let novo: serde_json::Value = r.json().await.map_err(|e| e.to_string())?;
+    let nat = novo.get("nativo").and_then(|x| x.as_u64()).unwrap_or(1) as u32;
+    if nat > NATIVO { return Err(format!("APP_NOVO:{nat}")); }
+    let arqs = novo.get("arquivos").and_then(|x| x.as_object()).ok_or("lista sem arquivos")?;
+    // lista da que vale agora: a baixada, ou a que veio no app (web.json embutido)
+    let atual: serde_json::Value = match web_ativa() {
+        Some((_, d)) => std::fs::read(d.join("web.json")).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or(serde_json::Value::Null),
+        None => serde_json::Value::Null,
+    };
+    let embut: serde_json::Value = serde_json::from_str(include_str!("../../app/web.json")).unwrap_or(serde_json::Value::Null);
+    let velho = if atual.is_null() { &embut } else { &atual };
+    let ant = web_ativa().map(|(_, d)| d);
+    let dest = base.join(format!("{versao}.tmp"));
+    let _ = std::fs::remove_dir_all(&dest);
+    std::fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+    let mut baixados = 0u32;
+    for (rel, h) in arqs {
+        if rel.contains("..") || rel.starts_with('/') || rel.contains('\\') { continue; }
+        let h = h.as_str().unwrap_or("");
+        let igual_embut = embut.pointer(&format!("/arquivos/{}", rel.replace('~', "~0").replace('/', "~1"))).and_then(|x| x.as_str()) == Some(h);
+        let igual_velho = velho.pointer(&format!("/arquivos/{}", rel.replace('~', "~0").replace('/', "~1"))).and_then(|x| x.as_str()) == Some(h);
+        let alvo = dest.join(rel);
+        if let Some(p) = alvo.parent() { std::fs::create_dir_all(p).map_err(|e| e.to_string())?; }
+        if igual_embut { continue; } // vem de dentro do app
+        if igual_velho { if let Some(a) = &ant { if std::fs::copy(a.join(rel), &alvo).is_ok() { continue; } } }
+        let url = format!("https://raw.githubusercontent.com/Yamavaki/Atlas/v{versao}/app/{rel}");
+        let r = cli.get(&url).send().await.map_err(|e| format!("{rel}: {e}"))?;
+        if !r.status().is_success() { return Err(format!("{rel}: {}", r.status())); }
+        let b = r.bytes().await.map_err(|e| format!("{rel}: {e}"))?;
+        std::fs::write(&alvo, &b).map_err(|e| e.to_string())?;
+        baixados += 1;
+    }
+    std::fs::write(dest.join("web.json"), serde_json::to_vec(&novo).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    let fim = base.join(&versao);
+    let _ = std::fs::remove_dir_all(&fim);
+    std::fs::rename(&dest, &fim).map_err(|e| e.to_string())?;
+    std::fs::write(base.join("pendente.txt"), "0").map_err(|e| e.to_string())?;
+    std::fs::write(base.join("atual.txt"), &versao).map_err(|e| e.to_string())?;
+    // limpa versões velhas baixadas
+    if let Ok(rd) = std::fs::read_dir(&base) { for e in rd.flatten() { let n = e.file_name().to_string_lossy().to_string(); if e.path().is_dir() && n != versao { let _ = std::fs::remove_dir_all(e.path()); } } }
+    Ok(baixados)
+}
+
 // ---------- Google Drive: login pelo navegador do sistema (o Google não permite login dentro do app) ----------
 // Abre o login no navegador e espera a volta num endereço local (127.0.0.1) por até 5 minutos.
 fn codifica(s: &str) -> String {
@@ -129,11 +243,29 @@ async fn google_token(campos: Vec<(String, String)>) -> Result<String, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let mut ctx = tauri::generate_context!();
+    let base = ctx.set_assets(Box::new(Vazio));
+    ctx.set_assets(Box::new(AtlasAssets { base }));
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![atualizar, google_entrar, google_token])
-        .run(tauri::generate_context!())
+        .setup(|app| {
+            use tauri::Manager;
+            if let Ok(d) = app.path().app_data_dir() {
+                let w = d.join("web");
+                let _ = std::fs::create_dir_all(&w);
+                // interface baixada que já falhou em abrir uma vez sem confirmar: desliga e volta à do app
+                let p = w.join("pendente.txt");
+                if let Ok(n) = std::fs::read_to_string(&p) {
+                    if n.trim().parse::<u32>().unwrap_or(0) >= 1 { let _ = std::fs::remove_file(w.join("atual.txt")); let _ = std::fs::remove_file(&p); }
+                    else { let _ = std::fs::write(&p, "1"); }
+                }
+                let _ = WEB_DIR.set(w);
+            }
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![atualizar, google_entrar, google_token, web_versao, web_ok, web_voltar, web_atualizar])
+        .run(ctx)
         .expect("não foi possível abrir o Atlas");
 }

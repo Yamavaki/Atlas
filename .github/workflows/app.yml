@@ -26,6 +26,10 @@ jobs:
         with:
           workspaces: src-tauri -> target
 
+      # 1.50: lista dos arquivos da interface (para a atualização sem reinstalar)
+      - name: Lista da interface
+        run: node scripts/web-json.mjs
+
       - name: Ferramenta do Tauri
         run: npm install -g @tauri-apps/cli@^2
 
