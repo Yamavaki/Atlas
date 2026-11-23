@@ -69,6 +69,15 @@
       const h=await kv("atual");if(!h)return false;const d=discoFSA(h);if(!(await d.permissao(pedir)))return false;D=d;return true},
     async fechar(){D=null;if(tauri())localStorage.removeItem("atlas:pasta");else await kv("atual",null)},
     recentes:async()=>{try{return (await kv("recentes"))||[]}catch(e){return []}},
+    chaveRecente:chaveR,
+    // muda a ficha de um mundo da lista (patch); null tira da lista (nao apaga a pasta)
+    atualizaRecente:(k,patch)=>mexeRecente(k,r=>Object.assign({},r,patch)),
+    removeRecente:k=>mexeRecente(k,()=>null),
+    // ficha do mundo aberto, gravada na propria pasta (.atlas/mundo.json): vai junto com a pasta (Drive, outro PC)
+    async meta(){if(!D)return null;try{const r=await D.ler(".atlas/mundo.json");return r&&r.texto?JSON.parse(r.texto):null}catch(e){return null}},
+    async gravaMeta(o){if(!D)return false;try{await D.gravar(".atlas/mundo.json",JSON.stringify(o,null,1));return true}catch(e){return false}},
+    // ficha de um mundo que nao esta aberto (so no app do PC, que grava direto na pasta)
+    async gravaMetaEm(r,o){if(!(tauri()&&r&&r.caminho))return false;try{await discoTauri(r.caminho).gravar(".atlas/mundo.json",JSON.stringify(o,null,1));return true}catch(e){return false}},
     async abrirRecente(r){if(tauri()&&r.caminho){D=discoTauri(r.caminho);localStorage.setItem("atlas:pasta",r.caminho);return true}if(r.h){const d=discoFSA(r.h);if(!(await d.permissao(true)))return false;D=d;await kv("atual",r.h);return true}return false},
 
     // le tudo: notas (.md e .canvas, inclusive as criadas fora do Atlas) e mapas
@@ -119,6 +128,9 @@
     // para testes: usar um disco em memoria
     _disco:d=>{D=d},_usarHandle:h=>{D=discoFSA(h);return D.nome}
   };
-  async function guardaRecente(nome,caminho,h){try{let L=(await kv("recentes"))||[];L=L.filter(r=>!(caminho?r.caminho===caminho:r.nome===nome));L.unshift({nome,caminho,h,quando:Date.now()});await kv("recentes",L.slice(0,8))}catch(e){}}
+  // 1.51: lista de mundos (biblioteca): guarda tambem a ficha de cada um (titulo, cor, icone, etiquetas, fixado, arquivado, contagens)
+  function chaveR(r){return r.caminho||r.nome}
+  async function guardaRecente(nome,caminho,h){try{let L=(await kv("recentes"))||[];const k=caminho||nome,ant=L.find(r=>chaveR(r)===k)||{};L=L.filter(r=>chaveR(r)!==k);L.unshift(Object.assign({},ant,{nome,caminho,h:h||ant.h,quando:Date.now()}));await kv("recentes",L.slice(0,60))}catch(e){}}
+  async function mexeRecente(k,fn){try{let L=(await kv("recentes"))||[];const i=L.findIndex(r=>chaveR(r)===k);if(i<0)return false;const r=fn(L[i]);if(r===null)L.splice(i,1);else L[i]=r;await kv("recentes",L);return true}catch(e){return false}}
   window.AtlasPasta=API;
 })();

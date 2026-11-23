@@ -146,7 +146,7 @@ const Store={db:null,dl:null,dirty:new Set(),timers:new Map(),chain:new Map(),
   async abrirPasta(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return toast("Este navegador não abre pastas. Use o Chrome, o Edge ou o app do Atlas.");
     try{const n=await AP.escolher();if(!n)return;await this.dePasta(true);toast("Mundo aberto: "+n)}catch(e){if(e&&e.name==="AbortError")return;console.warn(e);toast(e.message||"Não foi possível abrir a pasta.")}},
   async reabrirPasta(){const AP=window.AtlasPasta;try{if(await AP.reabrir(true))await this.dePasta(false);else toast("Sem permissão para abrir a pasta.")}catch(e){toast("Não foi possível abrir a pasta.")}},
-  async fecharPasta(){const AP=window.AtlasPasta;await AP.espera();await AP.fechar();location.reload()},
+  async fecharPasta(){const AP=window.AtlasPasta;await AP.espera();try{guardaAbas();localStorage.setItem("atlas:irMundos","1")}catch(e){}await AP.fechar();location.reload()},
   save(kind,o){o.updated=now();if(kind==="notes")NV++;if(window.AtlasDrive)AtlasDrive.marca();const key=kind+"/"+o.id;this.dirty.add(key);clearTimeout(this.timers.get(key));pill("Salvando…");
     this.timers.set(key,setTimeout(()=>this.flush(kind,o.id),700))},
   flush(kind,id){const key=kind+"/"+id,o=S[kind].get(id);if(!o){this.dirty.delete(key);return}
@@ -1528,7 +1528,7 @@ function poeAlca(){let a=$("#sideRes");if(!a){a=h("div",{id:"sideRes",class:"sid
     a.addEventListener("dblclick",()=>{ajustaLargLado(288);poeAlca()});a.addEventListener("keydown",e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();ajustaLargLado($("#side").getBoundingClientRect().width+(e.key==="ArrowRight"?24:-24));poeAlca()}});addEventListener("resize",()=>poeAlca())}
   requestAnimationFrame(()=>{const sd=$("#side"),r=sd&&sd.getBoundingClientRect(),vis=r&&r.width>40&&getComputedStyle(sd).position!=="fixed"&&!$("#app").classList.contains("no-side");a.hidden=!vis;if(vis){a.style.left=(r.right-4)+"px";a.style.top=r.top+"px";a.style.height=r.height+"px"}})}
 function drawSide(){const side=$("#side");side.replaceChildren();setTimeout(poeAlca,0);for(const b of document.querySelectorAll(".rail button"))b.classList.toggle("on",b.dataset.sec===S.sec);
-  $("#app").classList.toggle("no-side",S.sec==="home");if(S.sec==="home")return;
+  $("#app").classList.toggle("no-side",S.sec==="home"||S.sec==="mundos");if(S.sec==="home"||S.sec==="mundos")return;
   if(S.sec==="notes"){const nova=h("button",{type:"button",class:"primary sm",onclick:e=>menuPop(e.currentTarget,[{ic:"quadro",cor:"#a88bd6",txt:"Quadro",det:"Cartões, imagens e ligações num quadro livre",fn:novoQuadro},{ic:"importar",txt:"Importar fichas do Nauren",det:"JSON do Foundry (Export Data, lista ou lote)",fn:importaNauren},{sep:true},...Object.entries(TYPES).map(([k,v])=>({ic:TICO[k],cor:TCOL[k],txt:v,fn:()=>{const o=newNote(k,k==="livre"?"":TYPES[k]);openNote(o.id,"edit")}}))])},icone("mais",16),"Nova");
     const V=S.view||"list",views=h("div",{class:"vtabs seg",role:"tablist","aria-label":"Ver notas como"},[["list","Lista","lista"],["tabela","Tabela","tabela"],["quests","Missões","missao"],["graph","Grafo","grafo"],["time","Tempo","tempo"]].map(([v,l,ic])=>h("button",{type:"button",role:"tab","aria-selected":String(V===v),class:V===v?"on":"",onclick:()=>{S.view=v==="list"?null:v;drawAll();if(v!=="list")$("#side").classList.remove("open")}},l)));
     const q=h("input",{type:"search",placeholder:"Buscar (título, texto ou ficha)",value:S.q,"aria-label":"Buscar notas",oninput:e=>{S.q=e.target.value;drawList()}}),list=h("div",{class:"list"});
@@ -1674,13 +1674,13 @@ function drawHome(){const main=$("#main");main.replaceChildren();const notas=[..
   const MIC={battle:["batalha","#e0776b","Mapa de batalha"],city:["cidade","#d4a64a","Mapa de cidade"]};
   const itens=rec.map(r=>{if(r.k==="m"){const mi=MIC[r.o.type]||["regiao","#8db06a","Mapa de região"];return h("button",{type:"button",class:"hrec","data-mid":r.o.id,onclick:()=>openMap(r.o.id)},h("i",{class:"tic",style:"color:"+mi[1]},icone(mi[0],20)),h("span",{class:"hrt"},h("b",{},r.o.name),h("small",{},mi[2]+(r.t?" · "+quando(r.t):""))))}
     const ty=fm(r.o.content).props.tipo||"livre",qd=r.o.kind==="canvas";return h("button",{type:"button",class:"hrec","data-nid":r.o.id,onclick:()=>openNote(r.o.id)},h("i",{class:"tic",style:"color:"+(qd?"#a88bd6":TCOL[ty]||TCOL.livre)},icone(qd?"quadro":TICO[ty]||"livre",20)),h("span",{class:"hrt"},h("b",{},r.o.title),h("small",{},(qd?"Quadro":TYPES[ty]||"Nota")+(r.t?" · "+quando(r.t):""))))});
-  main.append(h("div",{class:"home"},h("h1",{},vazio?"Seu mundo começa aqui":"Seu mundo"),h("p",{class:"hsub"},vazio?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":notas.length+" nota"+(notas.length===1?"":"s")+" e "+mapas.length+" mapa"+(mapas.length===1?"":"s")+". Continue de onde parou ou comece algo novo."),
+  main.append(h("div",{class:"home"},h("h1",{},vazio?"Seu mundo começa aqui":Store.pasta&&MM&&MM.titulo?MM.titulo:"Seu mundo"),Store.pasta&&MM&&MM.desc?h("p",{class:"hsub"},MM.desc):null,h("p",{class:"hsub"},vazio?"O Atlas junta notas ligadas entre si e mapas gerados e editáveis. Cada povoado do mapa pode ter a sua nota.":notas.length+" nota"+(notas.length===1?"":"s")+" e "+mapas.length+" mapa"+(mapas.length===1?"":"s")+". Continue de onde parou ou comece algo novo."),
     blocoMundo(),h("h2",{},"Começar"),h("div",{class:"hcards"},cards),vazio?h("div",{class:"row"},h("button",{type:"button",onclick:sample},icone("estrela",16),"Criar mundo de exemplo")):null,
     rec.length?h("h2",{},"Recentes"):null,rec.length?h("div",{class:"hrecs"},itens):null))}
 // onde o mundo esta guardado: pasta do PC (como o Obsidian), nuvem do Claude ou so este navegador
 function blocoMundo(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return null;const at=AP.atual(),box=h("div",{class:"hmundo"});
   if(Store.pasta&&at)box.append(h("p",{},icone("pasta",16)," Mundo na pasta ",h("b",{},at.nome),". Tudo é gravado lá: notas em .md, quadros em .canvas e mapas em arquivos próprios, compatíveis com o Obsidian."),
-    h("div",{class:"row"},h("button",{type:"button",onclick:()=>novoMundo()},icone("mais",16),"Novo mundo"),h("button",{type:"button",onclick:()=>abrirMundo()},icone("pasta",16),"Abrir outro mundo"),h("button",{type:"button",class:"ghost",onclick:()=>Store.fecharPasta()},"Fechar este mundo")));
+    h("div",{class:"row"},h("button",{type:"button",onclick:irMundos},icone("mundo",16),"Todos os mundos"),h("button",{type:"button",onclick:()=>editaMundo(null)},icone("editar",16),"Editar ficha"),h("button",{type:"button",onclick:()=>novoMundo()},icone("mais",16),"Novo mundo"),h("button",{type:"button",class:"ghost",onclick:()=>Store.fecharPasta()},"Fechar este mundo")));
   else if(!AP.suporta()&&document.documentElement.classList.contains("android")){box.append(h("p",{},"Seu mundo está salvo neste aparelho. Ligue o Google Drive para guardar uma cópia e abrir o mesmo mundo no computador."),
     h("div",{class:"row"},h("button",{type:"button",onclick:e=>window.AtlasDrive&&AtlasDrive.menu(e.currentTarget)},icone("nuvem",16)," Google Drive")))}
   else{box.append(h("p",{},Store.db?"Seu mundo está salvo na nuvem deste chat.":"Seu mundo está salvo só neste navegador.",AP.noApp()?"":" Salve numa pasta do computador para manter seus arquivos em segurança."),
@@ -1697,7 +1697,7 @@ function sample(){const m=newMap();m.name="Vale do Sasau";m.params=Object.assign
   newNote("campanha","A sombra sobre Sasau",{content:"---\ntipo: campanha\nestado: andamento\nprincipal: sim\njogadores: Ana, Bruno, Caio\ninicio: 1403-08-12\n---\n\n## Resumo\n\nUm incêndio num mosteiro do vale do Sasau esconde algo maior: alguém está desviando os grãos da região.\n\n## Arcos\n\n1. Ato I: o celeiro queimado\n2. Ato II: o abade\n"});
   newNote("sessao","Sessão 1",{content:"---\ntipo: sessao\ndata: 1403-08-12\njogadores: Ana, Bruno, Caio\nlugares: Olshany\n---\n\n## Onde paramos\n\nO grupo chegou a Olshany ao anoitecer e viu a fumaça do celeiro.\n\n## Missões\n\n- [[O celeiro queimado]]\n"});
   S.sec="notes";drawAll();toast("Mundo de exemplo criado.")}
-function drawMain(flash){hoverCard(null);$("#main").classList.remove("dividido");if(S.sec!=="notes"||S.view){const ab=$("#achar");if(ab){achaLimpa();ab.remove();ACH.q=""}}if(S.sec==="home")drawHome();else if(S.sec==="notes"){if(S.view==="graph")drawGraph();else if(S.view==="time")drawTime();else if(S.view==="quests")drawQuests();else if(S.view==="tabela")drawTabela();else drawNote()}else drawMap(flash);abaDesenha();marcaMundo()}
+function drawMain(flash){hoverCard(null);$("#main").classList.remove("dividido");if(S.sec!=="notes"||S.view){const ab=$("#achar");if(ab){achaLimpa();ab.remove();ACH.q=""}}if(S.sec==="home")drawHome();else if(S.sec==="mundos")drawMundos();else if(S.sec==="notes"){if(S.view==="graph")drawGraph();else if(S.view==="time")drawTime();else if(S.view==="quests")drawQuests();else if(S.view==="tabela")drawTabela();else drawNote()}else drawMap(flash);abaDesenha();marcaMundo()}
 function drawAll(flash){drawSide();drawMain(flash)}
 
 // ---------- exportar e importar ----------
@@ -1959,10 +1959,10 @@ function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}if(!btn||!btn.
 // ---------- inicio ----------
 let booted=false;
 function ready(){if(booted)return;booted=true;syncUCAT();if(!S.notes.size&&!S.maps.size)S.sec="home";else if(S.maps.size&&!S.notes.size&&S.sec!=="home")S.sec="maps";drawAll()}
-const RIC={home:"inicio",notes:"notas",maps:"mapas"};for(const b of document.querySelectorAll(".rail button"))b.querySelector(".ri").append(icone(b.dataset.busca?"buscar":RIC[b.dataset.sec],22));
+const RIC={home:"inicio",mundos:"mundo",notes:"notas",maps:"mapas"};for(const b of document.querySelectorAll(".rail button"))b.querySelector(".ri").append(icone(b.dataset.busca?"buscar":RIC[b.dataset.sec],22));
 $("#menu").append(icone("lista",20));$("#bBusca .bi").append(icone("buscar",18));$("#bExp").append(icone("pontos",20));{const bd=$("#bDrive");if(bd){bd.append(icone("nuvem",20),h("i",{class:"gd-pt","aria-hidden":"true"}));bd.addEventListener("click",e=>window.AtlasDrive&&AtlasDrive.menu(e.currentTarget))}}
 const marcaPlay=()=>{const b=$("#bPlay");b.replaceChildren(icone(S.players?"olhoF":"olho",20));b.setAttribute("aria-pressed",String(!!S.players));b.setAttribute("aria-label",S.players?"Visão dos jogadores (segredos escondidos)":"Visão do mestre (segredos à mostra)");b.title=b.getAttribute("aria-label")};
-for(const b of document.querySelectorAll(".rail button"))b.addEventListener("click",()=>{if(b.dataset.busca){abrePaleta();return}S.sec=b.dataset.sec;if(S.sec==="home"){closePlace();drawAll();return}closePlace();drawAll();if(window.AtlasCompacto()&&!(S.sec==="notes"?S.note:S.map))$("#side").classList.add("open")});
+for(const b of document.querySelectorAll(".rail button"))b.addEventListener("click",()=>{if(b.dataset.busca){abrePaleta();return}S.sec=b.dataset.sec;if(S.sec==="home"||S.sec==="mundos"){closePlace();drawAll();return}closePlace();drawAll();if(window.AtlasCompacto()&&!(S.sec==="notes"?S.note:S.map))$("#side").classList.add("open")});
 $("#menu").addEventListener("click",()=>$("#side").classList.toggle("open"));
 document.addEventListener("keydown",e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey||e.shiftKey||(e.key!=="z"&&e.key!=="Z"))return;const ae=document.activeElement;if(ae&&(/INPUT|TEXTAREA|SELECT/.test(ae.tagName)&&ae.type!=="range"||ae.isContentEditable))return;if(S.sec!=="maps")return;const b=document.querySelector('#main button[aria-label="Desfazer"]');if(b){e.preventDefault();b.click()}});
 $("#bExp").addEventListener("click",e=>menuPop(e.currentTarget,[{ic:"importar",txt:"Importar notas",det:"Markdown (.md) e quadros .canvas",fn:()=>$("#imp").click()},{ic:"exportar",txt:"Exportar…",det:"Mundo completo, versão dos jogadores, Foundry VTT",fn:()=>exportMenu($("#bExp"))},{ic:"nuvem",txt:"Google Drive…",det:"Enviar, atualizar e configurar a cópia do mundo",fn:()=>window.AtlasDrive&&AtlasDrive.configuracoes()},{sep:true},{ic:"estrela",txt:"Criar mundo de exemplo",fn:sample},...(window.AtlasToque()?[]:[{ic:"ajuda",txt:"Atalhos do teclado",det:"Ctrl K busca · Ctrl Z desfaz",fn:()=>folhaAtalhos()}])]));
@@ -1985,7 +1985,7 @@ function abrePaleta(){let P=$("#paleta");if(P){P.querySelector("input").focus();
   const fecha=()=>{P.remove()};const BT=window.AtlasBatalha;
   const acoes=[["regiao","#8db06a","Novo mapa de região",()=>openMap(newMap().id)],["cidade","#d4a64a","Novo mapa de cidade",()=>novaCidade()],["cidade","#5fa8d0","Nova cidade moderna",()=>novaModerna("moderno")],["cidade","#c05fd0","Nova cidade cyberpunk",()=>novaModerna("cyber")],["cidade","#b0733a","Nova cidade a vapor",()=>novaModerna("vapor")],["regiao","#9a86d8","Nova caverna",()=>novaCaverna()],BT?["batalha","#e0776b","Novo mapa de batalha",async()=>{try{novoBatalha(await BT.novo())}catch(er){toast("Não foi possível criar o mapa de batalha.")}}]:null,
     ...Object.entries(TYPES).map(([k,v])=>[TICO[k],TCOL[k],"Nova nota: "+v,()=>openNote(newNote(k,k==="livre"?"":TYPES[k]).id,"edit")]),["importar","","Importar notas",()=>$("#imp").click()],["exportar","","Exportar…",()=>exportMenu($("#bExp"))],["olho","","Alternar visão do mestre e dos jogadores",()=>$("#bPlay").click()],["nuvem","","Google Drive: enviar o mundo",()=>window.AtlasDrive&&AtlasDrive.enviar()],["nuvem","","Google Drive: atualizar do Drive",()=>window.AtlasDrive&&AtlasDrive.atualizar()],["nuvem","","Google Drive: configurações",()=>window.AtlasDrive&&AtlasDrive.configuracoes()],
-    ["inicio","","Ir para o Início",()=>{S.sec="home";drawAll()}],["ajuda","","Atalhos do teclado",()=>folhaAtalhos()],["quadro","#a88bd6","Novo quadro",()=>{S.sec="notes";novoQuadro()}],["grafo","","Ver o grafo das notas",()=>{S.sec="notes";S.view="graph";drawAll()}],["missao","","Ver as missões",()=>{S.sec="notes";S.view="quests";drawAll()}]].filter(Boolean);
+    ["inicio","","Ir para o Início",()=>{S.sec="home";drawAll()}],["mundo","#d4a64a","Todos os mundos",irMundos],...BIBM.filter(x=>window.AtlasPasta&&AtlasPasta.chaveRecente(x)!==chaveAtual()&&!(x.meta&&x.meta.arq)).map(x=>[(x.meta&&x.meta.icone)||"mundo",(x.meta&&x.meta.cor)||"","Abrir o mundo: "+tituloMundo(x),()=>abrirMundo(x)]),["ajuda","","Atalhos do teclado",()=>folhaAtalhos()],["quadro","#a88bd6","Novo quadro",()=>{S.sec="notes";novoQuadro()}],["grafo","","Ver o grafo das notas",()=>{S.sec="notes";S.view="graph";drawAll()}],["missao","","Ver as missões",()=>{S.sec="notes";S.view="quests";drawAll()}]].filter(Boolean);
   const monta=()=>{const q=norm(inp.value.trim());lista=[];const MIC={battle:["batalha","#e0776b"],city:["cidade","#d4a64a"]};
     for(const n of S.notes.values())if(!q||norm(n.title).includes(q)){const ty=fm(n.content).props.tipo||"livre",qd=n.kind==="canvas";lista.push({ic:qd?"quadro":TICO[ty]||"livre",cor:qd?"#a88bd6":TCOL[ty],t:n.title,d:qd?"Quadro":TYPES[ty]||"Nota",fn:()=>openNote(n.id),r:q&&norm(n.title).startsWith(q)?0:1})}
     for(const m of S.maps.values())if(m.type!=="assets"&&(!q||norm(m.name).includes(q))){const mi=MIC[m.type]||["regiao","#8db06a"];lista.push({ic:mi[0],cor:mi[1],t:m.name,d:"Mapa",fn:()=>openMap(m.id),r:q&&norm(m.name).startsWith(q)?0:1})}
@@ -2000,7 +2000,7 @@ function abrePaleta(){let P=$("#paleta");if(P){P.querySelector("input").focus();
 $("#imp").addEventListener("change",e=>{importFiles([...e.target.files]);e.target.value=""});
 $("#main").addEventListener("pointerdown",()=>$("#side").classList.remove("open"));
 drawSide();$("#main").append(h("div",{class:"welcome"},h("h1",{},"Abrindo o mundo…")));
-Store.init();
+Store.init().then(async()=>{await carregaBib();let ir=false;try{ir=localStorage.getItem("atlas:irMundos")==="1";localStorage.removeItem("atlas:irMundos");ir=ir||localStorage.getItem("atlas:iniciarMundos")==="1"}catch(e){}if(ir)irMundos();else if(booted)restauraAbas();marcaMundo()}).catch(e=>console.warn(e));
 setTimeout(()=>{(window.requestIdleCallback||setTimeout)(()=>{carregaEditor();carregaCidade()})},2500);
 // app instalado: confere nos Releases do GitHub se ha versao nova; "Atualizar agora" baixa, instala e reabre o Atlas (um clique)
 const ATU={nova:null,url:null,pagina:null};
@@ -2025,7 +2025,7 @@ setTimeout(()=>procuraAtualizacao(false),4000);
 const ABAS={L:[],i:0,seq:1};
 function abaFoto(){const f={sec:S.sec,note:S.note,map:S.map,view:S.view,qv:S.qv,camp:S.camp,campEsc:S.campEsc,mode:S.mode};if(S.quadro&&S.quadro.cam&&$("#main .qd"))f.cam=S.quadro.cam();return f}
 function abaGarante(){if(!ABAS.L.length)ABAS.L.push({id:ABAS.seq++,f:abaFoto()})}
-function abaTitulo(f){if(f.sec==="home")return ["inicio","Início",null];
+function abaTitulo(f){if(f.sec==="home")return ["inicio","Início",null];if(f.sec==="mundos")return ["mundo","Mundos",null];
   if(f.sec==="maps"){const m=f.map&&S.maps.get(f.map);return m?[m.type==="battle"?"batalha":m.type==="city"?"cidade":"regiao",m.name,m.type==="battle"?"#e0776b":m.type==="city"?"#d4a64a":"#8db06a"]:["mapas","Mapas",null]}
   if(f.view==="quests")return ["missao",f.qv==="teia"&&f.camp&&f.camp!=="-"?"Quadro · "+f.camp:"Missões",TCOL.missao];if(f.view==="graph")return ["grafo","Grafo",null];if(f.view==="tabela")return ["tabela","Tabela",null];if(f.view==="time")return ["tempo","Linha do tempo",null];
   const n=f.note&&S.notes.get(f.note);if(!n)return ["notas","Notas",null];if(n.kind==="canvas")return ["quadro",n.title,"#a88bd6"];const ty=tipoDe(n);return [TICO[ty]||"livre",n.title,TCOL[ty]]}
@@ -2089,20 +2089,95 @@ document.addEventListener("auxclick",e=>{if(e.button===1)abreNovaAba(e)},true);
 document.addEventListener("mousedown",e=>{if(e.button===1&&e.target.closest&&e.target.closest("[data-nid],[data-mid]")&&!e.target.closest(".qd"))e.preventDefault()},true);
 
 // ---------- mundos: novo mundo (pasta vazia), abrir mundo, recentes ----------
-function nomeMundo(){const AP=window.AtlasPasta,at=AP&&AP.atual();return Store.pasta&&at?at.nome:Store.db?"Mundo deste chat":"Mundo deste app"}
-function marcaMundo(){const b=$("#bMundo");if(!b)return;b.replaceChildren(icone("mundo",17),h("span",{class:"mb-t"},nomeMundo()),icone("baixo",14));b.title="Mundo: "+nomeMundo()+" · trocar, criar ou abrir outro"}
+function nomeMundo(){const AP=window.AtlasPasta,at=AP&&AP.atual();return Store.pasta&&at?(MM&&MM.titulo)||at.nome:Store.db?"Mundo deste chat":"Mundo deste app"}
+function marcaMundo(){const b=$("#bMundo");if(!b)return;const cor=Store.pasta&&MM&&MM.cor;b.replaceChildren(h("span",{class:"mb-i",style:cor?"color:"+cor:""},icone(Store.pasta&&MM&&MM.icone||"mundo",17)),h("span",{class:"mb-t"},nomeMundo()),icone("baixo",14));b.style.setProperty("--mcor",cor||"transparent");b.classList.toggle("tem-cor",!!cor);b.title="Mundo: "+nomeMundo()+" · trocar, criar ou abrir outro (Ctrl+Shift+M: todos os mundos)";document.title=nomeMundo()+" · Atlas"}
 async function novoMundo(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return toast("Para ter vários mundos, use o app do Atlas ou o Chrome/Edge.");
   if(!Store.pasta&&(S.notes.size||S.maps.size)&&!(await confirma("Criar um mundo novo","O mundo atual não está numa pasta. Ele continua guardado aqui e volta quando você fechar o mundo novo (menu do mundo › Fechar este mundo).","Continuar")))return;
   let n;try{await AP.espera();n=await AP.escolher("Crie ou escolha uma pasta vazia para o mundo novo")}catch(e){if(e&&e.name==="AbortError")return;return toast(e.message||"Não foi possível abrir a pasta.")}if(!n)return;
-  await Store.dePasta(false);abaLimpa();S.sec="home";drawAll();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();
+  guardaAbas();await Store.dePasta(false);abaLimpa();S.sec="home";drawAll();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();
   toast(S.notes.size||S.maps.size?"Essa pasta já tinha um mundo: “"+n+"” foi aberto.":"Mundo novo criado em “"+n+"”.")}
-async function abrirMundo(r){const AP=window.AtlasPasta;try{await AP.espera();if(r){if(!(await AP.abrirRecente(r)))return toast("Sem permissão para abrir a pasta.");await Store.dePasta(false)}else{const n=await AP.escolher("Escolha a pasta de um mundo do Atlas");if(!n)return;await Store.dePasta(false)}
-    abaLimpa();S.sec="home";drawAll();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();toast("Mundo aberto: "+nomeMundo())}catch(e){if(e&&e.name==="AbortError")return;console.warn(e);toast(e.message||"Não foi possível abrir o mundo.")}}
+async function abrirMundo(r){const AP=window.AtlasPasta;try{await AP.espera();guardaAbas();if(r){if(!(await AP.abrirRecente(r)))return toast("Sem permissão para abrir a pasta.");await Store.dePasta(false)}else{const n=await AP.escolher("Escolha a pasta de um mundo do Atlas");if(!n)return;await Store.dePasta(false)}
+    restauraAbas();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();toast("Mundo aberto: "+nomeMundo())}catch(e){if(e&&e.name==="AbortError")return;console.warn(e);toast(e.message||"Não foi possível abrir o mundo.")}}
 async function menuMundo(btn){const AP=window.AtlasPasta,r=btn.getBoundingClientRect(),pode=AP&&AP.suporta(),it=[{tit:"Mundo atual: "+nomeMundo()}];
   if(!pode){it.push({ic:"ajuda",txt:"Vários mundos",det:"No Claude o mundo fica salvo neste chat. Use o app do Atlas para ter um mundo por pasta.",fn:()=>{}},{ic:"exportar",txt:"Baixar este mundo",det:"arquivo .atlasmundo",fn:exportMundo},{ic:"importar",txt:"Importar um mundo",det:".atlasmundo",fn:()=>$("#imp").click()});return menuEmPonto(r.left,r.bottom+6,it)}
-  it.push({ic:"mais",cor:"#d4a64a",txt:"Novo mundo…",det:"numa pasta vazia, começa do zero",fn:novoMundo},{ic:"pasta",txt:"Abrir mundo…",det:"uma pasta com um mundo do Atlas ou do Obsidian",fn:()=>abrirMundo()});
-  const at=AP.atual(),L=(await AP.recentes()).filter(x=>!(at&&Store.pasta&&(x.caminho?x.caminho===at.chave:x.nome===at.nome))).slice(0,6);if(L.length){it.push({tit:"Recentes"});for(const x of L)it.push({ic:"mundo",txt:x.nome,det:x.caminho||null,fn:()=>abrirMundo(x)})}
-  if(Store.pasta)it.push({sep:true},{ic:"refazer",txt:"Recarregar a pasta",det:"pega o que mudou por fora (Drive, Obsidian, Claude)",fn:()=>vigiaPasta(true)},{ic:"fechar",txt:"Fechar este mundo",det:"volta para o mundo guardado no app",fn:()=>Store.fecharPasta()});menuEmPonto(r.left,r.bottom+6,it)}
+  it.push({ic:"mundo",cor:"#d4a64a",txt:"Todos os mundos",det:"lista com busca, etiquetas e fixados · Ctrl+Shift+M",fn:irMundos});
+  if(Store.pasta)it.push({ic:"editar",txt:"Editar este mundo…",det:"nome, descrição, cor, ícone e etiquetas",fn:()=>editaMundo(null)});
+  const k=chaveAtual(),L=(await carregaBib()).filter(x=>AP.chaveRecente(x)!==k&&!(x.meta&&x.meta.arq)),fx=L.filter(x=>x.meta&&x.meta.fixo),rc=L.filter(x=>!(x.meta&&x.meta.fixo)).slice(0,Math.max(2,7-fx.length));
+  const item=x=>({ic:(x.meta&&x.meta.icone)||"mundo",cor:(x.meta&&x.meta.cor)||null,txt:tituloMundo(x),det:[(x.meta&&x.meta.tags||[]).join(", "),quandoM(x.quando)].filter(Boolean).join(" · ")||null,fn:()=>abrirMundo(x)});
+  if(fx.length){it.push({tit:"Fixados"});for(const x of fx)it.push(item(x))}if(rc.length){it.push({tit:"Recentes"});for(const x of rc)it.push(item(x))}
+  it.push({sep:true},{ic:"mais",txt:"Novo mundo…",det:"numa pasta vazia, começa do zero",fn:novoMundo},{ic:"pasta",txt:"Abrir mundo…",det:"uma pasta com um mundo do Atlas ou do Obsidian",fn:()=>abrirMundo()});
+  if(Store.pasta)it.push({ic:"refazer",txt:"Recarregar a pasta",det:"pega o que mudou por fora (Drive, Obsidian, Claude)",fn:()=>vigiaPasta(true)},{ic:"fechar",txt:"Fechar este mundo",det:"vai para a lista de mundos",fn:()=>Store.fecharPasta()});menuEmPonto(r.left,r.bottom+6,it)}
+
+// ---------- 1.51 biblioteca de mundos: lista com ficha (titulo, descricao, cor, icone, etiquetas), fixados, arquivados ----------
+// A ficha fica na pasta do mundo (.atlas/mundo.json) e uma copia na lista do app; vale a mais nova.
+const CORES_MUNDO=["#d4a64a","#e0776b","#8db06a","#5fa8d0","#a88bd6","#c05fd0","#6fc2b0","#c9c2b6"];
+const ICONES_MUNDO=["mundo","campanha","regiao","cidade","batalha","criatura","faccao","missao","personagem","estrela","chave","dado"];
+let MM=null,BIBM=[];
+const chaveAtual=()=>{const AP=window.AtlasPasta,at=AP&&AP.atual();return Store.pasta&&at?at.chave:"__app"};
+const tituloMundo=r=>(r&&r.meta&&r.meta.titulo)||(r&&r.nome)||"Mundo";
+const quandoM=t=>{if(!t)return"";const d=(Date.now()-t)/6e4;return d<2?"agora":d<60?"há "+Math.round(d)+" min":d<1440?"há "+Math.round(d/60)+" h":d<2880?"ontem":"há "+Math.round(d/1440)+" dias"};
+async function carregaBib(){const AP=window.AtlasPasta;try{BIBM=AP&&AP.suporta()?await AP.recentes():[]}catch(e){BIBM=[]}return BIBM}
+// o mundo da pasta abriu: le a ficha, junta com a da lista e anota as contagens
+async function mundoAberto(){const AP=window.AtlasPasta;if(!AP||!Store.pasta)return;const at=AP.atual();if(!at)return;let m=await AP.meta();await carregaBib();const r=BIBM.find(x=>AP.chaveRecente(x)===at.chave),c=r&&r.meta;
+  if(c&&(!m||(c.alterado||0)>(m.alterado||0))){m=c;AP.gravaMeta(m)}MM=m||{};
+  if(r)await AP.atualizaRecente(at.chave,{meta:MM,notas:S.notes.size,mapas:[...S.maps.values()].filter(x=>x.type!=="assets").length,quando:Date.now()});await carregaBib();marcaMundo();if(S.sec==="mundos"||S.sec==="home")drawMain()}
+{const _dp=Store.dePasta.bind(Store);Store.dePasta=async(...a)=>{const r=await _dp(...a);try{await mundoAberto()}catch(e){console.warn("mundo",e)}return r}}
+// cada mundo lembra as abas abertas: ao voltar para ele, abre onde voce parou
+function guardaAbas(){try{if(!booted)return;abaGarante();ABAS.L[ABAS.i].f=abaFoto();localStorage.setItem("atlas:abas:"+chaveAtual(),JSON.stringify({L:ABAS.L.map(a=>({f:a.f})),i:ABAS.i}))}catch(e){}}
+function restauraAbas(){let o=null;try{o=JSON.parse(localStorage.getItem("atlas:abas:"+chaveAtual())||"null")}catch(e){}
+  const ok=f=>f&&f.sec!=="mundos"&&(f.sec==="home"||(f.sec==="maps"?!f.map||S.maps.has(f.map):!f.note||S.notes.has(f.note)));
+  abaLimpa();const L=o&&o.L?o.L.filter(a=>ok(a.f)):[];if(!L.length){S.sec="home";S.note=null;S.map=null;S.view=null;closePlace();drawAll();return}
+  for(const a of L)ABAS.L.push({id:ABAS.seq++,f:a.f});ABAS.i=Math.max(0,Math.min(o.i||0,ABAS.L.length-1));abaAplica(ABAS.L[ABAS.i].f);abaDesenha()}
+addEventListener("beforeunload",guardaAbas);
+function irMundos(){S.sec="mundos";closePlace();drawAll()}
+addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(e.key==="M"||e.key==="m")){e.preventDefault();irMundos()}});
+// ficha: nome, descricao, cor, icone e etiquetas (r = mundo da lista; null = o aberto)
+async function editaMundo(r){const AP=window.AtlasPasta,aberto=!r||AP.chaveRecente(r)===chaveAtual();const m=Object.assign({},aberto?MM||{}:(r.meta||{})),nomeP=aberto?(AP.atual()||{}).nome:r.nome;
+  let cor=m.cor||"",ico=m.icone||"mundo";const tit=h("input",{type:"text",value:m.titulo||nomeP||"",placeholder:nomeP||"Nome do mundo"}),des=h("textarea",{rows:3,placeholder:"Sistema, grupo, dia da sessão, do que trata a campanha…"},m.desc||""),tags=h("input",{type:"text",value:(m.tags||[]).join(", "),placeholder:"ex.: Nauren, mesa de sexta, encerrada"});
+  const cores=h("div",{class:"mf-cores",role:"radiogroup","aria-label":"Cor"}),icos=h("div",{class:"mf-icos",role:"radiogroup","aria-label":"Ícone"});
+  const pintaC=()=>cores.replaceChildren(...["",...CORES_MUNDO].map(c=>h("button",{type:"button",class:"mf-cor"+(c===cor?" on":""),role:"radio","aria-checked":String(c===cor),"aria-label":c||"Sem cor",style:c?"background:"+c:"",onclick:()=>{cor=c;pintaC();pintaI()}},c?"":"—")));
+  const pintaI=()=>icos.replaceChildren(...ICONES_MUNDO.map(k=>h("button",{type:"button",class:"mf-ico"+(k===ico?" on":""),role:"radio","aria-checked":String(k===ico),"aria-label":k,style:cor?"color:"+cor:"",onclick:()=>{ico=k;pintaI()}},icone(k,20))));pintaC();pintaI();
+  const corpo=h("div",{class:"mf"},h("label",{class:"cxa-lab"},"Nome",tit),h("label",{class:"cxa-lab"},"Descrição",des),h("span",{class:"cxa-lab"},"Cor"),cores,h("span",{class:"cxa-lab"},"Ícone"),icos,h("label",{class:"cxa-lab"},"Etiquetas (separadas por vírgula)",tags),
+    h("p",{class:"hsub"},"A ficha fica na pasta do mundo (",h("code",{},".atlas/mundo.json"),"), então vai junto se você copiar a pasta ou usar o Drive."));
+  const v=await caixaAtlas("Ficha do mundo",corpo,[{txt:"Cancelar",cls:"ghost",v:null},{txt:"Salvar",cls:"primary",v:"ok"}]);if(v!=="ok")return;
+  const n=Object.assign(m,{titulo:tit.value.trim()||undefined,desc:des.value.trim()||undefined,cor:cor||undefined,icone:ico==="mundo"?undefined:ico,tags:tags.value.split(",").map(x=>x.trim()).filter(Boolean),alterado:Date.now()});if(!n.tags.length)delete n.tags;
+  if(aberto){MM=n;await AP.gravaMeta(n);const k=chaveAtual();if(k!=="__app")await AP.atualizaRecente(k,{meta:n})}else{await AP.atualizaRecente(AP.chaveRecente(r),{meta:n});await AP.gravaMetaEm(r,n)}
+  await carregaBib();marcaMundo();drawMain()}
+async function mudaFicha(r,patch){const AP=window.AtlasPasta,k=AP.chaveRecente(r),m=Object.assign({},r.meta||{},patch,{alterado:Date.now()});for(const x of Object.keys(patch))if(patch[x]===undefined)delete m[x];
+  await AP.atualizaRecente(k,{meta:m});if(k===chaveAtual()){MM=m;await AP.gravaMeta(m)}else await AP.gravaMetaEm(r,m);await carregaBib();marcaMundo();drawMain()}
+const MF={q:"",tag:"",arq:false};
+function drawMundos(){const main=$("#main"),AP=window.AtlasPasta;main.replaceChildren();const pode=AP&&AP.suporta();
+  const box=h("div",{class:"home mundos"});main.append(box);
+  const topo=h("div",{class:"mn-topo"},h("div",{class:"grow"},h("h1",{},"Mundos"),h("p",{class:"hsub"},"Cada mundo é uma pasta: uma campanha, um cenário ou um rascunho. Troque por aqui ou pelo botão do mundo no alto (Ctrl+Shift+M).")),
+    pode?h("div",{class:"row"},h("button",{type:"button",class:"primary",onclick:()=>novoMundo()},icone("mais",16),"Novo mundo"),h("button",{type:"button",onclick:()=>abrirMundo()},icone("pasta",16),"Abrir pasta de mundo")):null);
+  box.append(topo);
+  if(!pode){box.append(h("div",{class:"hmundo"},h("p",{},document.documentElement.classList.contains("android")?"No celular o Atlas tem um mundo só, guardado no aparelho (e no Google Drive, se ligar). Vários mundos ficam no app do computador.":"Aqui o mundo fica salvo neste "+(Store.db?"chat":"navegador")+". Para ter vários mundos, use o app do Atlas no computador ou o Chrome/Edge.")));return}
+  const lista=h("div",{class:"mn-grade"}),filtros=h("div",{class:"mn-filtros"});box.append(filtros,lista);
+  const busca=h("input",{type:"search",placeholder:"Buscar mundo…","aria-label":"Buscar mundo",value:MF.q,oninput:()=>{MF.q=busca.value;pinta()}});
+  const ini=h("label",{class:"mn-ini"},h("input",{type:"checkbox",checked:(()=>{try{return localStorage.getItem("atlas:iniciarMundos")==="1"}catch(e){return false}})(),onchange:e=>{try{localStorage.setItem("atlas:iniciarMundos",e.target.checked?"1":"0")}catch(er){}}}),"Abrir esta lista ao iniciar o Atlas");
+  const pinta=()=>{const k=chaveAtual(),todos=BIBM.slice(),tagsT=[...new Set(todos.flatMap(x=>x.meta&&x.meta.tags||[]))].sort((a,b)=>a.localeCompare(b)),narq=todos.filter(x=>x.meta&&x.meta.arq).length;
+    if(MF.tag&&!tagsT.includes(MF.tag))MF.tag="";
+    const chip=(t,on,fn,n)=>h("button",{type:"button",class:"chip"+(on?" on":""),"aria-pressed":String(on),onclick:fn},t,n!=null?h("small",{}," "+n):null);
+    filtros.replaceChildren(busca,chip("Todos",!MF.tag&&!MF.arq,()=>{MF.tag="";MF.arq=false;pinta()}),...tagsT.map(t=>chip(t,MF.tag===t,()=>{MF.tag=MF.tag===t?"":t;MF.arq=false;pinta()})),narq?chip("Arquivados",MF.arq,()=>{MF.arq=!MF.arq;MF.tag="";pinta()},narq):null,ini);
+    const q=norm(MF.q.trim());let L=todos.filter(x=>!!(x.meta&&x.meta.arq)===MF.arq&&(!MF.tag||(x.meta&&x.meta.tags||[]).includes(MF.tag))&&(!q||norm([tituloMundo(x),x.nome,x.meta&&x.meta.desc,(x.meta&&x.meta.tags||[]).join(" ")].join(" ")).includes(q)));
+    // o aberto primeiro, depois os fixados, depois por ultimo acesso
+    L.sort((a,b)=>(AP.chaveRecente(b)===k)-(AP.chaveRecente(a)===k)||(!!(b.meta&&b.meta.fixo))-(!!(a.meta&&a.meta.fixo))||(b.quando||0)-(a.quando||0));
+    const cards=L.map(x=>cardMundo(x,AP.chaveRecente(x)===k));
+    if(!Store.pasta&&!MF.arq&&!MF.tag&&!q)cards.unshift(h("div",{class:"mn-card atual"},h("div",{class:"mn-cab"},h("span",{class:"mn-ic"},icone("mundo",22)),h("div",{class:"grow"},h("b",{},nomeMundo()),h("small",{class:"mn-ag"},"Aberto agora"))),h("p",{class:"mn-desc"},"Mundo guardado dentro do app, fora de uma pasta. Use “Salvar este mundo numa pasta” no Início para ele entrar na lista.")));
+    lista.replaceChildren(...(cards.length?cards:[h("p",{class:"hsub"},MF.arq?"Nenhum mundo arquivado.":q||MF.tag?"Nenhum mundo com esse filtro.":"Nenhum mundo na lista ainda. Crie um ou abra a pasta de um mundo.")]))};
+  carregaBib().then(pinta);pinta()}
+function cardMundo(x,aberto){const AP=window.AtlasPasta,m=x.meta||{},cor=m.cor||"",n=[x.notas!=null?x.notas+" nota"+(x.notas===1?"":"s"):null,x.mapas!=null?x.mapas+" mapa"+(x.mapas===1?"":"s"):null].filter(Boolean).join(" · ");
+  const abre=()=>{if(aberto){S.sec="home";closePlace();drawAll()}else abrirMundo(x)};
+  const mais=e=>{e.stopPropagation();menuPop(e.currentTarget,[{ic:"pasta",txt:aberto?"Ir para o Início":"Abrir",fn:abre},{ic:"editar",txt:"Editar ficha…",det:"nome, descrição, cor, ícone, etiquetas",fn:()=>editaMundo(x)},{ic:"estrela",txt:m.fixo?"Desafixar":"Fixar no topo",fn:()=>mudaFicha(x,{fixo:m.fixo?undefined:true})},
+    {ic:"camadas",txt:m.arq?"Tirar do arquivo":"Arquivar",det:m.arq?null:"some da lista principal (a pasta continua igual)",fn:()=>mudaFicha(x,{arq:m.arq?undefined:true})},
+    x.caminho&&window.__TAURI__&&window.__TAURI__.opener?{ic:"link",txt:"Mostrar a pasta",det:x.caminho,fn:()=>window.__TAURI__.opener.revealItemInDir(x.caminho).catch(()=>toast(x.caminho))}:null,
+    aberto?null:{ic:"fechar",txt:"Tirar da lista",det:"não apaga nada: dá para abrir a pasta de novo depois",fn:async()=>{await AP.removeRecente(AP.chaveRecente(x));await carregaBib();drawMain()}}].filter(Boolean))};
+  return h("div",{class:"mn-card"+(aberto?" atual":"")+(m.fixo?" fixo":""),style:cor?"--mcor:"+cor:"",role:"button",tabindex:"0","aria-label":(aberto?"Mundo aberto: ":"Abrir o mundo ")+tituloMundo(x),onclick:abre,onkeydown:e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();abre()}}},
+    h("div",{class:"mn-cab"},h("span",{class:"mn-ic",style:cor?"color:"+cor:""},icone(m.icone||"mundo",22)),h("div",{class:"grow"},h("b",{},tituloMundo(x)),aberto?h("small",{class:"mn-ag"},"Aberto agora"):h("small",{},x.quando?"Aberto "+quandoM(x.quando):"")),
+      m.fixo?h("span",{class:"mn-fixo",title:"Fixado"},icone("estrela",14)):null,h("button",{type:"button",class:"ghost sm mn-mais","aria-label":"Mais opções de "+tituloMundo(x),onclick:mais},icone("pontos",16))),
+    m.desc?h("p",{class:"mn-desc"},m.desc):null,
+    m.tags&&m.tags.length?h("div",{class:"mn-tags"},m.tags.map(t=>h("span",{class:"mn-tag"},t))):null,
+    h("div",{class:"mn-pe"},h("span",{},n),h("span",{class:"mn-cam",title:x.caminho||x.nome},x.caminho||x.nome)))}
 {const b=$("#bMundo");if(b)b.addEventListener("click",e=>menuMundo(e.currentTarget))}
 
 // ---------- 1.23 a pasta mudou por fora (Google Drive para computador, Obsidian, o Claude pelo Drive) ----------
