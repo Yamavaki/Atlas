@@ -110,7 +110,7 @@ async fn web_atualizar(versao: String) -> Result<u32, String> {
     let lista_url = format!("https://github.com/Yamavaki/Atlas/releases/download/v{versao}/web.json");
     let r = cli.get(&lista_url).send().await.map_err(|e| format!("sem conexão: {e}"))?;
     if !r.status().is_success() { return Err(format!("lista da versão {versao}: {}", r.status())); }
-    let novo: serde_json::Value = r.json().await.map_err(|e| e.to_string())?;
+    let novo: serde_json::Value = serde_json::from_slice(&r.bytes().await.map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
     let nat = novo.get("nativo").and_then(|x| x.as_u64()).unwrap_or(1) as u32;
     if nat > NATIVO { return Err(format!("APP_NOVO:{nat}")); }
     let arqs = novo.get("arquivos").and_then(|x| x.as_object()).ok_or("lista sem arquivos")?;
