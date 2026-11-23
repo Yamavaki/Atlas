@@ -1,11 +1,12 @@
 # Atlas - gera o app do Android (.apk) com o Tauri 2.
-# Roda a mao (Actions > "App do Android" > Run workflow) ou ao criar uma tag v*, que tambem anexa o .apk nos Releases.
+# Roda junto com o app do Windows (a cada versao, depois dele), a mao (Actions > "App do Android" > Run workflow) ou ao criar uma tag v*; anexa o .apk nos Releases.
 # Assinatura: se os segredos ANDROID_KEYSTORE_B64 e ANDROID_KEY_PASSWORD existirem, o .apk sai assinado com a chave fixa
 # (e cada versao nova instala por cima da anterior). Sem eles, sai uma versao de teste com chave temporaria.
 name: App do Android
 
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     tags: ["v*"]
 

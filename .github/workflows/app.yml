@@ -66,3 +66,9 @@ jobs:
           files: |
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
+
+  # 1.49.5: o .apk do Android sai junto em toda versao (depois do Windows, para os dois nao criarem o Release ao mesmo tempo)
+  android:
+    needs: windows
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
