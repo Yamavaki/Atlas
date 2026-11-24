@@ -1354,3 +1354,7 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 
 /* 1.51.1: celular — titulo do Inicio menor (a margem das barras do sistema vem da parte nativa do app) */
 @media (max-width:600px){.home h1{font-size:30px}.home{padding:22px 16px 36px}}
+/* 1.51.4: escolher pasta do Drive: Meu Drive, Computadores e busca */
+.gd-raizes{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.gd-raizes input[type=search]{flex:1 1 180px;min-width:0}
+.gd-dica{color:var(--muted);font-size:.8em}
