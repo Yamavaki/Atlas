@@ -60,6 +60,10 @@ jobs:
           M=src-tauri/gen/android/app/src/main/AndroidManifest.xml
           grep -q REQUEST_INSTALL_PACKAGES $M || sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' $M
           cat $M
+          # 1.51.1: atividade com margem das barras do sistema (status e gestos) e fundo escuro atras delas
+          MA=$(find src-tauri/gen/android/app/src/main/java -name MainActivity.kt | head -1)
+          { grep -m1 '^package ' "$MA"; cat src-tauri/android/MainActivity.kt; } > /tmp/MainActivity.kt && mv /tmp/MainActivity.kt "$MA"
+          cat "$MA"
 
       - name: Montar o app
         run: npx tauri android build --apk --target aarch64 --target armv7 --ci

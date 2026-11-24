@@ -1051,7 +1051,7 @@ body{--abas-h:0px}body.com-abas{--abas-h:41px}
 .mundo-bt{display:inline-flex;align-items:center;gap:7px;max-width:230px;height:34px;padding:0 10px 0 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2);color:var(--muted);font-size:13.5px;min-height:0}
 .mundo-bt:hover{color:var(--text);border-color:var(--line-2)}
 .mundo-bt .mb-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:860px){.mundo-bt{max-width:42px;padding:0 10px}.mundo-bt .mb-t,.mundo-bt svg:last-child{display:none}}
+@media (max-width:860px){.mundo-bt{max-width:42px;padding:0 10px}.mundo-bt .mb-t,.mundo-bt>svg:last-child{display:none}}
 .mitem.temsub .mt{flex:1}.mitem .msub{display:inline-flex;color:var(--muted-2);margin-left:auto}
 /* 1.26 texturas do chao */
 .matgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:4px;max-width:100%}
@@ -1273,7 +1273,7 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
   .brand{font-size:18px}
   .busca{flex:0 0 40px;width:40px;padding:0;justify-content:center;margin:0}.busca .bt-txt,.busca kbd{display:none}
   .pill{font-size:0;gap:0}.top #sync{margin-left:auto}
-  .mundo-bt{max-width:42px;padding:0 10px}.mundo-bt .mb-t,.mundo-bt svg:last-child{display:none}
+  .mundo-bt{max-width:42px;padding:0 10px}.mundo-bt .mb-t,.mundo-bt>svg:last-child{display:none}
   .top .ib{width:38px;height:38px;min-width:38px;min-height:38px}
   .rail{grid-area:rail;flex-direction:column;justify-content:flex-start;align-items:stretch;border-top:none;border-right:1px solid var(--panel-3);padding:6px 4px;gap:4px;overflow-y:auto}
   .rail button{flex:none;padding:6px 0;min-height:0;gap:2px}.rail button span:last-child{font-size:10px}
@@ -1351,3 +1351,6 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .mf-ico{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;padding:0;background:var(--panel-2);color:var(--muted)}
 .mf-ico.on{border-color:var(--accent);background:var(--panel)}
 .mn-filtros .chip.on{color:var(--text);border-color:var(--accent);background:var(--panel-2)}
+
+/* 1.51.1: celular — titulo do Inicio menor (a margem das barras do sistema vem da parte nativa do app) */
+@media (max-width:600px){.home h1{font-size:30px}.home{padding:22px 16px 36px}}
