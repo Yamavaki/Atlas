@@ -275,14 +275,6 @@ async fn google_entrar_android(app: tauri::AppHandle, base: String) -> Result<(S
     Err("O login demorou demais. Tente de novo.".into())
 }
 async fn tokio_espera(ms: u64) { let _ = tauri::async_runtime::spawn_blocking(move || std::thread::sleep(std::time::Duration::from_millis(ms))).await; }
-fn decodifica(s: &str) -> String {
-    let b = s.as_bytes(); let mut o = Vec::with_capacity(b.len()); let mut i = 0;
-    while i < b.len() {
-        if b[i] == b'%' && i + 2 < b.len() { if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) { o.push(v); i += 3; continue; } }
-        o.push(if b[i] == b'+' { b' ' } else { b[i] }); i += 1;
-    }
-    String::from_utf8_lossy(&o).into_owned()
-}
 // troca o código pelo token e renova o token (feito aqui para não depender das regras de CORS do Google)
 #[tauri::command]
 async fn google_token(campos: Vec<(String, String)>) -> Result<String, String> {
