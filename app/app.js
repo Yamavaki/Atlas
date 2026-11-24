@@ -1949,7 +1949,7 @@ function exportMenu(btn){let m=$("#expm");if(m){m.remove();return}if(!btn||!btn.
     window.AtlasPasta&&window.AtlasPasta.suporta()?h("button",{type:"button",class:"mi",onclick:()=>{m.remove();Store.abrirPasta()}},h("b",{},Store.pasta?"Abrir outra pasta":"Abrir pasta do mundo"),h("small",{},Store.pasta?"Agora: "+((window.AtlasPasta.atual()||{}).nome||""):"Salva notas, quadros e mapas numa pasta do computador")):null,
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportMundo()}},h("b",{},"Mundo completo (.atlasmundo)"),h("small",{},"Tudo num arquivo: notas, mapas, batalhas e imagens. Leva do artefato para o app")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();$("#imp").click()}},h("b",{},"Importar"),h("small",{},".atlasmundo, notas .md ou quadros .canvas")),
-    window.__TAURI__?h("button",{type:"button",class:"mi",onclick:()=>{m.remove();ATU.url?atualizarAgora():procuraAtualizacao(true)}},h("b",{},ATU.nova?"Atualizar agora para a "+ATU.nova:"Verificar atualizações"),h("small",{},ATU.nova?"Baixa, instala e reabre o Atlas":"Verifica se há uma versão nova")):null,
+    window.__TAURI__?h("button",{type:"button",class:"mi",onclick:()=>{m.remove();ATU.url?atualizarAgora():procuraAtualizacao(true)}},h("b",{},ATU.nova?"Atualizar agora para a "+ATU.nova:"Verificar atualizações"),h("small",{},(ATU.nova?"Baixa, instala e reabre o Atlas":"Verifica se há uma versão nova")+(VERS?" · "+VERS:""))):null,
     h("b",{},"Exportar"),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault()}},h("b",{},"Mundo completo (.zip)"),h("small",{},"Notas em Markdown, com segredos e mapas (compatível com Obsidian)")),
     h("button",{type:"button",class:"mi",onclick:()=>{m.remove();exportVault(true)}},h("b",{},"Para os jogadores (.zip)"),h("small",{},"Sem segredos do mestre")),
@@ -2018,7 +2018,10 @@ async function procuraAtualizacao(avisa){const T=window.__TAURI__;if(!T||!T.app)
     const ex=(u.assets||[]).find(x=>(/Android/.test(navigator.userAgent)?/\.apk$/i:/setup\.exe$/i).test(x.name));ATU.nova=nova;ATU.url=ex?ex.browser_download_url:null;ATU.pagina=u.html_url;if(!ATU.url){ATU.url=u.html_url}
     const t=$("#toast");toast("Nova versão do Atlas disponível: "+nova+". Clique para atualizar.");t.style.cursor="pointer";clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,20000);t.onclick=()=>{t.hidden=true;atualizarAgora()};return true}catch(e){if(avisa)toast("Não foi possível verificar atualizações agora.");return false}}
 // 1.50: a interface abriu bem (a casca do app tira a marca de teste da versao baixada; sem isso, volta para a do app)
-setTimeout(()=>{try{const T=window.__TAURI__;if(T&&T.core)T.core.invoke("web_ok").catch(()=>{})}catch{}},2500);
+let VERS="";
+setTimeout(()=>{try{const T=window.__TAURI__;if(T&&T.core){T.core.invoke("web_ok").catch(()=>{});
+  // 1.51.2: versao do app instalado e da interface que esta valendo (aparece no menu, em Verificar atualizacoes)
+  T.core.invoke("web_versao").then(v=>{VERS=v[0]===v[1]?"versão "+v[0]:"app "+v[0]+" · interface "+v[1]}).catch(()=>{if(T.app)T.app.getVersion().then(v=>{VERS="versão "+v})})}}catch{}},2500);
 setTimeout(()=>procuraAtualizacao(false),4000);
 // ---------- 1.22 abas, menus do botao direito e troca de mundo ----------
 // abas: cada aba guarda onde voce estava (nota, mapa, missoes, quadro e a camera do quadro); trocar de aba volta para la
