@@ -59,6 +59,23 @@ jobs:
           # permissao para o proprio app abrir o instalador de uma versao nova
           M=src-tauri/gen/android/app/src/main/AndroidManifest.xml
           grep -q REQUEST_INSTALL_PACKAGES $M || sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' $M
+          # 1.51.3: volta do login do Google (esquema com.yamavaki.atlas) abre o app na mesma tela
+          python3 - "$M" <<'PY'
+          import sys,re
+          p=sys.argv[1];s=open(p).read()
+          if "com.yamavaki.atlas\"" not in s.split("<application")[1]:
+              f='''<intent-filter>
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="com.yamavaki.atlas" />
+                      </intent-filter>
+                  </activity>'''
+              s=s.replace("</activity>",f,1)
+          s=re.sub(r'(<activity[^>]*?)android:launchMode="[^"]*"',r'\1',s,count=1)
+          s=s.replace("<activity","<activity android:launchMode=\"singleTask\"",1)
+          open(p,"w").write(s)
+          PY
           cat $M
           # 1.51.1: atividade com margem das barras do sistema (status e gestos) e fundo escuro atras delas
           MA=$(find src-tauri/gen/android/app/src/main/java -name MainActivity.kt | head -1)

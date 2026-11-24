@@ -38,21 +38,23 @@
 
   // ---------- login ----------
   let tokMem=null,gisCli=null;
+  // 1.51.3: no celular o login usa um cliente do tipo Android (sem chave secreta), que volta para o app pelo esquema com.yamavaki.atlas
+  const ANDROID=/Android/.test(navigator.userAgent);
   const b64url=u8=>btoa(String.fromCharCode(...u8)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
   const aleatorio=n=>{const u=new Uint8Array(n);crypto.getRandomValues(u);return b64url(u)};
-  async function tokenDoApp(campos){const t=tauri(),r=await t.core.invoke("google_token",{campos});let j={};try{j=JSON.parse(r)}catch(e){throw new Error("O Google respondeu de um jeito inesperado.")}
+  async function tokenDoApp(campos){campos=campos.filter(c=>!(c[0]==="client_secret"&&!c[1]));const t=tauri(),r=await t.core.invoke("google_token",{campos});let j={};try{j=JSON.parse(r)}catch(e){throw new Error("O Google respondeu de um jeito inesperado.")}
     if(j.error)throw new Error(j.error==="invalid_grant"?"A autorização expirou ou foi revogada. Conecte a conta de novo.":j.error==="invalid_client"?"O ID ou a chave do cliente não conferem com o projeto do Google Cloud.":"O Google recusou o login ("+(j.error_description||j.error)+").");return j}
-  async function entrarApp(c){if(!c.clientId||!c.clientSecret)throw new Error("Informe o ID e a chave do cliente do Google Cloud.");
+  async function entrarApp(c){if(!c.clientId||!ANDROID&&!c.clientSecret)throw new Error(ANDROID?"Informe o ID do cliente Android do Google Cloud.":"Informe o ID e a chave do cliente do Google Cloud.");
     const ver=aleatorio(48),dig=new Uint8Array(await crypto.subtle.digest("SHA-256",enc.encode(ver))),est=aleatorio(16);
     const base="https://accounts.google.com/o/oauth2/v2/auth?"+new URLSearchParams({client_id:c.clientId,response_type:"code",scope:ESCOPO,code_challenge:b64url(dig),code_challenge_method:"S256",access_type:"offline",prompt:"consent",state:est}).toString();
-    const [codigo,estVolta,redirect]=await tauri().core.invoke("google_entrar",{base});if(estVolta!==est)throw new Error("A resposta do login não confere. Tente de novo.");
-    const j=await tokenDoApp([["code",codigo],["client_id",c.clientId],["client_secret",c.clientSecret],["redirect_uri",redirect],["grant_type","authorization_code"],["code_verifier",ver]]);
+    const [codigo,estVolta,redirect]=await tauri().core.invoke(ANDROID?"google_entrar_android":"google_entrar",{base});if(estVolta!==est)throw new Error("A resposta do login não confere. Tente de novo.");
+    const j=await tokenDoApp([["code",codigo],["client_id",c.clientId],["client_secret",ANDROID?"":c.clientSecret],["redirect_uri",redirect],["grant_type","authorization_code"],["code_verifier",ver]]);
     if(!j.refresh_token)throw new Error("O Google não devolveu a autorização permanente. Remova o acesso do Atlas em myaccount.google.com/permissions e conecte de novo.");
     tokMem={acc:j.access_token,exp:Date.now()+(j.expires_in-60)*1000};ls(K_TOK,{ref:j.refresh_token})}
   const carregaGis=()=>new Promise((ok,er)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return ok();const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.onload=()=>ok();s.onerror=()=>er(new Error("Não foi possível carregar o login do Google."));document.head.append(s)});
   async function tokenSite(c,interativo){await carregaGis();return new Promise((ok,er)=>{gisCli=google.accounts.oauth2.initTokenClient({client_id:c.clientId,scope:ESCOPO,callback:r=>{if(r.error)return er(new Error(r.error==="access_denied"?"O acesso ao Drive não foi autorizado.":"O Google recusou o login ("+r.error+")."));tokMem={acc:r.access_token,exp:Date.now()+(r.expires_in-60)*1000};ok(tokMem.acc)},error_callback:e=>er(new Error(e&&e.type==="popup_closed"?"A janela de login foi fechada.":"Não foi possível abrir a janela de login do Google."))});gisCli.requestAccessToken({prompt:interativo?"consent":""})})}
   async function token(interativo){if(tokMem&&tokMem.exp>Date.now())return tokMem.acc;const c=cfg();
-    if(ambiente()==="app"){const t=ls(K_TOK);if(!t||!t.ref)throw new Error("Conta Google não conectada.");const j=await tokenDoApp([["refresh_token",t.ref],["client_id",c.clientId],["client_secret",c.clientSecret],["grant_type","refresh_token"]]);tokMem={acc:j.access_token,exp:Date.now()+(j.expires_in-60)*1000};return tokMem.acc}
+    if(ambiente()==="app"){const t=ls(K_TOK);if(!t||!t.ref)throw new Error("Conta Google não conectada.");const j=await tokenDoApp([["refresh_token",t.ref],["client_id",c.clientId],["client_secret",ANDROID?"":c.clientSecret],["grant_type","refresh_token"]]);tokMem={acc:j.access_token,exp:Date.now()+(j.expires_in-60)*1000};return tokMem.acc}
     if(ambiente()==="site"){if(!c.clientId)throw new Error("Informe o ID do cliente do Google Cloud.");return tokenSite(c,!!interativo)}
     throw new Error("A sincronização com o Google Drive funciona no app do Atlas para Windows.")}
 
@@ -186,7 +188,7 @@
     const chk=(k,t,d,fixo)=>el("label",{class:"gd-chk"+(fixo?" fixo":"")},el("input",{type:"checkbox",checked:fixo||c[k],disabled:fixo,onchange:ev=>{const n=cfg();n[k]=ev.target.checked;salvaCfg(n)}}),el("span",{},el("b",{},t),el("small",{},d)));
     if(amb==="bloqueado")return caixa("Google Drive","nuvem",el("div",{},sec("Indisponível nesta versão","A sincronização com o Google Drive funciona no app do Atlas para Windows. Esta versão do Atlas roda num ambiente protegido que não pode se comunicar com o Google.")),el("button",{type:"button",class:"btn",onclick:()=>document.getElementById("gdrive")._fecha()},"Fechar"));
     const idI=el("input",{type:"text",value:c.clientId,placeholder:"000000000000-xxxx.apps.googleusercontent.com",spellcheck:"false",autocomplete:"off","aria-label":"ID do cliente"}),
-      segI=amb==="app"?el("input",{type:"password",value:c.clientSecret,placeholder:"GOCSPX-…",autocomplete:"off","aria-label":"Chave secreta do cliente"}):null;
+      segI=amb==="app"&&!ANDROID?el("input",{type:"password",value:c.clientSecret,placeholder:"GOCSPX-…",autocomplete:"off","aria-label":"Chave secreta do cliente"}):null;
     const guardaCred=()=>{const n=cfg(),id=idI.value.trim(),sg=segI?segI.value.trim():"";if(n.clientId!==id||segI&&n.clientSecret!==sg){n.clientId=id;if(segI)n.clientSecret=sg;n.conta=null;salvaCfg(n);ls(K_TOK,null);tokMem=null}};
     const conta=con?el("div",{class:"gd-conta"},el("span",{class:"gd-av"},((c.conta&&c.conta.nome)||"G").slice(0,1).toUpperCase()),el("div",{class:"grow"},el("b",{},c.conta&&c.conta.nome||"Conta Google"),el("small",{},c.conta&&c.conta.email||"Conectada")),
         el("button",{type:"button",class:"btn ghost",onclick:()=>{if(!confirmaInline(conta,"Desconectar a conta? Nada é apagado do Drive nem deste computador.",()=>{ls(K_TOK,null);tokMem=null;const n=cfg();n.conta=null;salvaCfg(n);atualizaBotao();configuracoes()}))return}},"Desconectar"))
@@ -198,8 +200,9 @@
       el("li",{},"Abra console.cloud.google.com e crie um projeto (por exemplo, \"Atlas\")."),
       el("li",{},"Em APIs e serviços › Biblioteca, ative a Google Drive API."),
       el("li",{},"Em Tela de permissão OAuth, escolha Externo, preencha nome e e-mail e, em Usuários de teste, adicione o seu e-mail."),
+      ANDROID?el("li",{},"Em Clientes › Criar cliente, escolha Android. Nome do pacote: com.yamavaki.atlas. Impressão digital SHA-1: F3:FF:78:AB:B6:A0:36:58:C6:46:03:D1:74:A9:B1:8C:42:6E:76:F8. Crie, abra o cliente e, em Configurações avançadas, ligue \"Ativar esquema de URI personalizado\" e salve."):
       el("li",{},"Em Credenciais › Criar credenciais › ID do cliente OAuth, escolha "+(amb==="app"?"App para computador":"Aplicativo da Web (com a origem "+location.origin+")")+"."),
-      el("li",{},"Copie o ID do cliente"+(amb==="app"?" e a chave secreta":"")+" para os campos acima e clique em Conectar."),
+      el("li",{},"Copie o ID do cliente"+(amb==="app"&&!ANDROID?" e a chave secreta":"")+" para o campo acima e toque em Conectar."+(ANDROID?" No celular é um ID diferente do computador (o do cliente Android), e não tem chave secreta.":"")),
       el("li",{},"No login, o Google avisa que o app não foi verificado: clique em Avançado e em Continuar. É esperado para uso pessoal.")));
     const corpo=el("div",{},
       sec("Conta",null,conta),
@@ -212,7 +215,7 @@
         chk("backup","Cópia de segurança a cada envio","Guarda o mundo inteiro num arquivo .atlasmundo em Backups (mantém os 10 últimos)")),
       el("details",{class:"gd-sec gd-cred",open:!c.clientId||null},el("summary",{},el("h3",{},"Configuração do Google Cloud")),
         el("p",{class:"gd-d"},"O Atlas usa um projeto seu no Google Cloud para acessar o Drive. Os dados vão direto do seu computador para a sua conta."),
-        el("label",{class:"gd-campo"},el("span",{},"ID do cliente"),idI),segI?el("label",{class:"gd-campo"},el("span",{},"Chave secreta do cliente"),segI):null,
+        el("label",{class:"gd-campo"},el("span",{},ANDROID?"ID do cliente Android":"ID do cliente"),idI),segI?el("label",{class:"gd-campo"},el("span",{},"Chave secreta do cliente"),segI):null,
         el("div",{class:"gd-linha"},el("button",{type:"button",class:"btn",onclick:()=>{guardaCred();toast("Configuração guardada.");configuracoes()}},"Guardar")),ajuda));
     const rod=[el("span",{class:"gd-ult"},"Última sincronização: "+quando(e.ultima)),el("span",{class:"grow"}),
       el("button",{type:"button",class:"btn",disabled:!con||!c.pasta,onclick:()=>fluxo("atualizar")},ic("importar",16),"Atualizar do Drive"),

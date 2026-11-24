@@ -233,6 +233,56 @@ async fn google_entrar(app: tauri::AppHandle, base: String) -> Result<(String, S
     let (codigo, estado) = tauri::async_runtime::spawn_blocking(move || espera_volta(ouvinte)).await.map_err(|e| e.to_string())??;
     Ok((codigo, estado, volta))
 }
+// 1.51.3: login no Android. O navegador volta para "com.yamavaki.atlas:/oauth2redirect?code=..." (cliente do
+// tipo Android no Google Cloud, com esquema de URI personalizado). A MainActivity recebe essa volta e grava o
+// endereço em atlas-oauth.txt nas pastas do app; aqui esperamos esse arquivo aparecer (até 5 minutos).
+#[tauri::command]
+async fn google_entrar_android(app: tauri::AppHandle, base: String) -> Result<(String, String, String), String> {
+    use tauri::Manager;
+    if !base.starts_with("https://accounts.google.com/o/oauth2/v2/auth?") { return Err("Endereço de login inválido.".into()); }
+    let volta = "com.yamavaki.atlas:/oauth2redirect".to_string();
+    let p = app.path();
+    let mut lugares: Vec<std::path::PathBuf> = vec![];
+    for d in [p.app_data_dir(), p.app_local_data_dir(), p.app_cache_dir(), p.app_config_dir()].into_iter().flatten() {
+        lugares.push(d.join("atlas-oauth.txt"));
+        if let Some(pai) = d.parent() { lugares.push(pai.join("atlas-oauth.txt")); lugares.push(pai.join("files").join("atlas-oauth.txt")); }
+    }
+    lugares.push(std::path::PathBuf::from("/data/data/com.yamavaki.atlas/files/atlas-oauth.txt"));
+    for l in &lugares { let _ = std::fs::remove_file(l); }
+    let url = format!("{base}&redirect_uri={}", codifica(&volta));
+    {
+        use tauri_plugin_opener::OpenerExt;
+        app.opener().open_url(url, None::<&str>).map_err(|e| format!("Não foi possível abrir o navegador: {e}"))?;
+    }
+    for _ in 0..600 {
+        tokio_espera(500).await;
+        for l in &lugares {
+            if let Ok(t) = std::fs::read_to_string(l) {
+                let _ = std::fs::remove_file(l);
+                let q = t.splitn(2, '?').nth(1).unwrap_or("");
+                let mut codigo = String::new(); let mut estado = String::new(); let mut erro = String::new();
+                for par in q.split('&') {
+                    let mut kv = par.splitn(2, '=');
+                    let (k, v) = (kv.next().unwrap_or(""), decodifica(kv.next().unwrap_or("")));
+                    match k { "code" => codigo = v, "state" => estado = v, "error" => erro = v, _ => {} }
+                }
+                if !erro.is_empty() { return Err(if erro == "access_denied" { "O acesso ao Drive não foi permitido.".into() } else { format!("O Google recusou o login ({erro}).") }); }
+                if codigo.is_empty() { return Err("O login voltou sem o código. Tente de novo.".into()); }
+                return Ok((codigo, estado, volta));
+            }
+        }
+    }
+    Err("O login demorou demais. Tente de novo.".into())
+}
+async fn tokio_espera(ms: u64) { let _ = tauri::async_runtime::spawn_blocking(move || std::thread::sleep(std::time::Duration::from_millis(ms))).await; }
+fn decodifica(s: &str) -> String {
+    let b = s.as_bytes(); let mut o = Vec::with_capacity(b.len()); let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'%' && i + 2 < b.len() { if let Ok(v) = u8::from_str_radix(&s[i + 1..i + 3], 16) { o.push(v); i += 3; continue; } }
+        o.push(if b[i] == b'+' { b' ' } else { b[i] }); i += 1;
+    }
+    String::from_utf8_lossy(&o).into_owned()
+}
 // troca o código pelo token e renova o token (feito aqui para não depender das regras de CORS do Google)
 #[tauri::command]
 async fn google_token(campos: Vec<(String, String)>) -> Result<String, String> {
@@ -265,7 +315,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![atualizar, google_entrar, google_token, web_versao, web_ok, web_voltar, web_atualizar])
+        .invoke_handler(tauri::generate_handler![atualizar, google_entrar, google_entrar_android, google_token, web_versao, web_ok, web_voltar, web_atualizar])
         .run(ctx)
         .expect("não foi possível abrir o Atlas");
 }
