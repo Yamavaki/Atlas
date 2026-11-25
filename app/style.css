@@ -1358,3 +1358,6 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .gd-raizes{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .gd-raizes input[type=search]{flex:1 1 180px;min-width:0}
 .gd-dica{color:var(--muted);font-size:.8em}
+
+.stage>canvas.mtopo{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#1d1b16;pointer-events:none;z-index:3}
+.zbox .vtb{width:auto;padding:0 10px;font-size:13px;border-radius:8px;white-space:nowrap}
