@@ -55,11 +55,21 @@
   const uidN=()=>"n"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
   const API={
-    suporta:()=>{if(tauri())return !/Android/.test(navigator.userAgent);let solto=true;try{solto=window.self===window.top}catch(e){solto=false}return solto&&typeof window.showDirectoryPicker==="function"},
+    suporta:()=>{if(tauri())return true;let solto=true;try{solto=window.self===window.top}catch(e){solto=false}return solto&&typeof window.showDirectoryPicker==="function"},
     noApp:()=>!!tauri(),
+    // 1.54: no celular cada mundo e uma pasta dentro do app (nao ha seletor de pastas); no PC o padrao e Documentos/Atlas
+    interno:()=>!!tauri()&&/Android/.test(navigator.userAgent),
+    async basePadrao(){const T=tauri();if(!T||!T.path)return null;const j=(a,b)=>a.replace(/[\\/]+$/,"")+"/"+b;if(API.interno())return j(await T.path.appDataDir(),"Mundos");try{return j(await T.path.documentDir(),"Atlas/Mundos")}catch(e){return j(await T.path.homeDir(),"Atlas/Mundos")}},
+    // cria a pasta de um mundo novo (base: a padrao ou a escolhida) e abre; nome repetido ganha " 2", " 3"...
+    async criarEm(nome,base){const T=tauri();if(!T)throw new Error("Só no app do Atlas.");base=base||await API.basePadrao();const lim=String(nome||"Mundo").replace(/[\\/:*?"<>|]+/g,"-").replace(/\s+/g," ").trim().slice(0,80)||"Mundo";let p=base.replace(/[\\/]+$/,"")+"/"+lim,k=2;
+      while(await T.fs.exists(p).catch(()=>false)){const L=await T.fs.readDir(p).catch(()=>[]);if(!L.length)break;p=base.replace(/[\\/]+$/,"")+"/"+lim+" "+(k++)}
+      await T.fs.mkdir(p,{recursive:true});D=discoTauri(p);localStorage.setItem("atlas:pasta",p);await guardaRecente(D.nome,p);return {nome:D.nome,caminho:p}},
+    // escolhe so o lugar (pasta-mae) no PC
+    async escolheLugar(){const T=tauri();if(!T||!T.dialog||API.interno())return null;const p=await T.dialog.open({directory:true,multiple:false,title:"Onde guardar o mundo novo"});return p?String(p):null},
     atual:()=>D?{nome:D.nome,tipo:D.tipo,chave:D.caminho||D.nome}:null,
     // escolher a pasta (precisa de um clique do usuario no navegador)
-    async escolher(titulo){if(tauri()){const T=tauri(),dl=T.dialog;if(!dl)throw new Error("O seletor de pastas não está disponível.");const p=await dl.open({directory:true,multiple:false,title:titulo||"Escolha a pasta do mundo"});if(!p)return null;D=discoTauri(String(p));localStorage.setItem("atlas:pasta",String(p));await guardaRecente(D.nome,String(p));return D.nome}
+    async escolher(titulo){if(API.interno()){const n=API.pedeNome?await API.pedeNome(titulo):"Mundo";if(!n)return null;return (await API.criarEm(n)).nome}
+      if(tauri()){const T=tauri(),dl=T.dialog;if(!dl)throw new Error("O seletor de pastas não está disponível.");const p=await dl.open({directory:true,multiple:false,title:titulo||"Escolha a pasta do mundo"});if(!p)return null;D=discoTauri(String(p));localStorage.setItem("atlas:pasta",String(p));await guardaRecente(D.nome,String(p));return D.nome}
       if(typeof window.showDirectoryPicker!=="function")throw new Error("Este navegador não abre pastas. Use o Chrome, o Edge ou o app do Atlas.");
       const h=await window.showDirectoryPicker({id:"atlas-mundo",mode:"readwrite"});D=discoFSA(h);await kv("atual",h);await guardaRecente(D.nome,null,h);return D.nome},
     // a pasta da ultima vez (no navegador so volta com um clique, por causa da permissao)

@@ -1365,3 +1365,9 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .stage.vtop>#mo{z-index:5;visibility:visible}.stage.vtop>svg,.stage.vtop>.manot{z-index:6}
 .stage>canvas.mtopo[hidden]{display:none!important}
 .stage.vtop>#mg{z-index:4;position:absolute}.stage.vtop>canvas.mtopoO{z-index:4}
+.gd-bt[data-est=sync] .gd-pt{background:#5fa8d0;animation:gdpisca 1s ease-in-out infinite}
+.gd-bt[data-est=conf] .gd-pt,.gd-bt[data-est=erro] .gd-pt{background:#e0605a}
+@keyframes gdpisca{50%{opacity:.35}}
+.gd-outros{margin:6px 12px;font-size:12.5px;color:#8fc4e0}
+.mn-drive{margin-top:26px}.mn-dtopo{display:flex;align-items:center;gap:10px;margin-bottom:8px}.mn-h2{font-size:17px;margin:0;display:flex;align-items:center;gap:6px;flex:1}
+.mn-nuvem{color:#5fa8d0;display:inline-flex}.mn-fora{opacity:.92;border-style:dashed}.mn-fora .row{gap:6px;margin-top:2px}

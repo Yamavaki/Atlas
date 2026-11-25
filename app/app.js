@@ -2113,11 +2113,28 @@ document.addEventListener("mousedown",e=>{if(e.button===1&&e.target.closest&&e.t
 function nomeMundo(){const AP=window.AtlasPasta,at=AP&&AP.atual();return Store.pasta&&at?(MM&&MM.titulo)||at.nome:Store.db?"Mundo deste chat":"Mundo deste app"}
 function marcaMundo(){const b=$("#bMundo");if(!b)return;const cor=Store.pasta&&MM&&MM.cor;b.replaceChildren(h("span",{class:"mb-i",style:cor?"color:"+cor:""},icone(Store.pasta&&MM&&MM.icone||"mundo",17)),h("span",{class:"mb-t"},nomeMundo()),icone("baixo",14));b.style.setProperty("--mcor",cor||"transparent");b.classList.toggle("tem-cor",!!cor);b.title="Mundo: "+nomeMundo()+" · trocar, criar ou abrir outro (Ctrl+Shift+M: todos os mundos)";document.title=nomeMundo()+" · Atlas"}
 async function novoMundo(){const AP=window.AtlasPasta;if(!AP||!AP.suporta())return toast("Para ter vários mundos, use o app do Atlas ou o Chrome/Edge.");
-  if(!Store.pasta&&(S.notes.size||S.maps.size)&&!(await confirma("Criar um mundo novo","O mundo atual não está numa pasta. Ele continua guardado aqui e volta quando você fechar o mundo novo (menu do mundo › Fechar este mundo).","Continuar")))return;
-  let n;try{await AP.espera();n=await AP.escolher("Crie ou escolha uma pasta vazia para o mundo novo")}catch(e){if(e&&e.name==="AbortError")return;return toast(e.message||"Não foi possível abrir a pasta.")}if(!n)return;
-  guardaAbas();await Store.dePasta(false);abaLimpa();S.sec="home";drawAll();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();
-  toast(S.notes.size||S.maps.size?"Essa pasta já tinha um mundo: “"+n+"” foi aberto.":"Mundo novo criado em “"+n+"”.")}
-async function abrirMundo(r){const AP=window.AtlasPasta;try{await AP.espera();guardaAbas();if(r){if(!(await AP.abrirRecente(r)))return toast("Sem permissão para abrir a pasta.");await Store.dePasta(false)}else{const n=await AP.escolher("Escolha a pasta de um mundo do Atlas");if(!n)return;await Store.dePasta(false)}
+  // navegador (Chrome/Edge): escolhe uma pasta vazia
+  if(!AP.noApp()){if(!Store.pasta&&(S.notes.size||S.maps.size)&&!(await confirma("Criar um mundo novo","O mundo atual não está numa pasta. Ele continua guardado aqui e volta quando você fechar o mundo novo (menu do mundo › Fechar este mundo).","Continuar")))return;
+    let n;try{await AP.espera();n=await AP.escolher("Crie ou escolha uma pasta vazia para o mundo novo")}catch(e){if(e&&e.name==="AbortError")return;return toast(e.message||"Não foi possível abrir a pasta.")}if(!n)return;
+    guardaAbas();await Store.dePasta(false);abaLimpa();S.sec="home";drawAll();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();
+    return toast(S.notes.size||S.maps.size?"Essa pasta já tinha um mundo: “"+n+"” foi aberto.":"Mundo novo criado em “"+n+"”.")}
+  // 1.54 app (PC e celular): nome, lugar e, se quiser, uma pasta no Google Drive sincronizada
+  const D_=window.AtlasDrive,dOk=!!(D_&&D_.conectado&&D_.conectado()&&D_.ambiente()!=="bloqueado"),bp=await AP.basePadrao();let base=null;
+  const nome=h("input",{type:"text",placeholder:"ex.: Campanha de sexta","aria-label":"Nome do mundo"}),onde=h("small",{class:"hsub"}),
+    mostra=()=>{onde.textContent=AP.interno()?"Fica guardado neste celular.":"No computador: "+(base||bp)+"/"+(nome.value.trim()||"…")};nome.addEventListener("input",mostra);mostra();
+  const cDrive=h("input",{type:"checkbox",checked:dOk,disabled:!dOk}),levar=!Store.pasta&&(S.notes.size||S.maps.size)?h("input",{type:"checkbox",checked:AP.interno()}):null;
+  const corpo=h("div",{class:"mf"},h("label",{class:"cxa-lab"},"Nome",nome),h("div",{class:"row"},onde,AP.interno()?null:h("button",{type:"button",class:"ghost sm",onclick:async()=>{const b=await AP.escolheLugar();if(b){base=b;mostra()}}},"Escolher outro lugar…")),
+    h("label",{class:"cf chk"},cDrive,h("span",{},h("b",{},"Guardar também no Google Drive"),h("br"),h("small",{},dOk?"Cria uma pasta em Meu Drive › Atlas e mantém este mundo igual nos seus outros aparelhos.":"Conecte o Google Drive (botão da nuvem, no alto) para usar."))),
+    levar?h("label",{class:"cf chk"},levar,h("span",{},h("b",{},"Levar o mundo atual para dentro dele"),h("br"),h("small",{},"As "+S.notes.size+" notas e "+S.maps.size+" mapas que estão no app, fora de um mundo com nome."))):null);
+  setTimeout(()=>nome.focus(),50);const v=await caixaAtlas("Novo mundo",corpo,[{txt:"Cancelar",cls:"ghost",v:null},{txt:"Criar",cls:"primary",v:"ok"}]);if(v!=="ok")return;
+  const n=nome.value.trim()||"Mundo novo";let r;try{await AP.espera();guardaAbas();r=await AP.criarEm(n,base);await Store.dePasta(!!(levar&&levar.checked))}catch(e){console.warn(e);return toast(e.message||"Não foi possível criar o mundo.")}
+  abaLimpa();S.sec="home";drawAll();marcaMundo();
+  if(cDrive.checked&&dOk){toast("Criando a pasta no Google Drive…");try{const p=await D_.ligaNovo(r.nome);toast("Mundo “"+r.nome+"” criado e guardado no Drive (Atlas › "+p.nome+").")}catch(e){toast("O mundo foi criado, mas a pasta no Drive não: "+e.message)}}
+  else toast("Mundo novo criado: “"+r.nome+"”.");if(D_)D_.atualizaBotao()}
+// nome de um mundo novo (no celular, "Salvar numa pasta" cria uma pasta interna)
+if(window.AtlasPasta)AtlasPasta.pedeNome=async titulo=>{const i=h("input",{type:"text",placeholder:"Nome do mundo","aria-label":"Nome do mundo"});setTimeout(()=>i.focus(),50);
+  const v=await caixaAtlas(titulo&&/pasta/i.test(titulo)?"Nome do mundo":titulo||"Nome do mundo",h("div",{class:"mf"},h("label",{class:"cxa-lab"},"Nome",i)),[{txt:"Cancelar",cls:"ghost",v:null},{txt:"OK",cls:"primary",v:"ok"}]);return v==="ok"?(i.value.trim()||"Mundo"):null};
+async function abrirMundo(r){const AP=window.AtlasPasta;if(!r&&AP&&AP.interno&&AP.interno())return irMundos();try{await AP.espera();guardaAbas();if(r){if(!(await AP.abrirRecente(r)))return toast("Sem permissão para abrir a pasta.");await Store.dePasta(false)}else{const n=await AP.escolher("Escolha a pasta de um mundo do Atlas");if(!n)return;await Store.dePasta(false)}
     restauraAbas();marcaMundo();if(window.AtlasDrive)AtlasDrive.atualizaBotao();toast("Mundo aberto: "+nomeMundo())}catch(e){if(e&&e.name==="AbortError")return;console.warn(e);toast(e.message||"Não foi possível abrir o mundo.")}}
 async function menuMundo(btn){const AP=window.AtlasPasta,r=btn.getBoundingClientRect(),pode=AP&&AP.suporta(),it=[{tit:"Mundo atual: "+nomeMundo()}];
   if(!pode){it.push({ic:"ajuda",txt:"Vários mundos",det:"No Claude o mundo fica salvo neste chat. Use o app do Atlas para ter um mundo por pasta.",fn:()=>{}},{ic:"exportar",txt:"Baixar este mundo",det:"arquivo .atlasmundo",fn:exportMundo},{ic:"importar",txt:"Importar um mundo",det:".atlasmundo",fn:()=>$("#imp").click()});return menuEmPonto(r.left,r.bottom+6,it)}
@@ -2141,6 +2158,7 @@ async function carregaBib(){const AP=window.AtlasPasta;try{BIBM=AP&&AP.suporta()
 // o mundo da pasta abriu: le a ficha, junta com a da lista e anota as contagens
 async function mundoAberto(){const AP=window.AtlasPasta;if(!AP||!Store.pasta)return;const at=AP.atual();if(!at)return;let m=await AP.meta();await carregaBib();const r=BIBM.find(x=>AP.chaveRecente(x)===at.chave),c=r&&r.meta;
   if(c&&(!m||(c.alterado||0)>(m.alterado||0))){m=c;AP.gravaMeta(m)}MM=m||{};
+  if(window.AtlasDrive&&AtlasDrive.mundoAberto)try{AtlasDrive.mundoAberto()}catch(e){}
   if(r)await AP.atualizaRecente(at.chave,{meta:MM,notas:S.notes.size,mapas:[...S.maps.values()].filter(x=>x.type!=="assets").length,quando:Date.now()});await carregaBib();marcaMundo();if(S.sec==="mundos"||S.sec==="home")drawMain()}
 {const _dp=Store.dePasta.bind(Store);Store.dePasta=async(...a)=>{const r=await _dp(...a);try{await mundoAberto()}catch(e){console.warn("mundo",e)}return r}}
 // cada mundo lembra as abas abertas: ao voltar para ele, abre onde voce parou
@@ -2170,7 +2188,7 @@ const MF={q:"",tag:"",arq:false};
 function drawMundos(){const main=$("#main"),AP=window.AtlasPasta;main.replaceChildren();const pode=AP&&AP.suporta();
   const box=h("div",{class:"home mundos"});main.append(box);
   const topo=h("div",{class:"mn-topo"},h("div",{class:"grow"},h("h1",{},"Mundos"),h("p",{class:"hsub"},"Cada mundo é uma pasta: uma campanha, um cenário ou um rascunho. Troque por aqui ou pelo botão do mundo no alto (Ctrl+Shift+M).")),
-    pode?h("div",{class:"row"},h("button",{type:"button",class:"primary",onclick:()=>novoMundo()},icone("mais",16),"Novo mundo"),h("button",{type:"button",onclick:()=>abrirMundo()},icone("pasta",16),"Abrir pasta de mundo")):null);
+    pode?h("div",{class:"row"},h("button",{type:"button",class:"primary",onclick:()=>novoMundo()},icone("mais",16),"Novo mundo"),AP.interno&&AP.interno()?null:h("button",{type:"button",onclick:()=>abrirMundo()},icone("pasta",16),"Abrir pasta de mundo")):null);
   box.append(topo);
   if(!pode){box.append(h("div",{class:"hmundo"},h("p",{},document.documentElement.classList.contains("android")?"No celular o Atlas tem um mundo só, guardado no aparelho (e no Google Drive, se ligar). Vários mundos ficam no app do computador.":"Aqui o mundo fica salvo neste "+(Store.db?"chat":"navegador")+". Para ter vários mundos, use o app do Atlas no computador ou o Chrome/Edge.")));return}
   const lista=h("div",{class:"mn-grade"}),filtros=h("div",{class:"mn-filtros"});box.append(filtros,lista);
@@ -2179,14 +2197,44 @@ function drawMundos(){const main=$("#main"),AP=window.AtlasPasta;main.replaceChi
   const pinta=()=>{const k=chaveAtual(),todos=BIBM.slice(),tagsT=[...new Set(todos.flatMap(x=>x.meta&&x.meta.tags||[]))].sort((a,b)=>a.localeCompare(b)),narq=todos.filter(x=>x.meta&&x.meta.arq).length;
     if(MF.tag&&!tagsT.includes(MF.tag))MF.tag="";
     const chip=(t,on,fn,n)=>h("button",{type:"button",class:"chip"+(on?" on":""),"aria-pressed":String(on),onclick:fn},t,n!=null?h("small",{}," "+n):null);
-    filtros.replaceChildren(busca,chip("Todos",!MF.tag&&!MF.arq,()=>{MF.tag="";MF.arq=false;pinta()}),...tagsT.map(t=>chip(t,MF.tag===t,()=>{MF.tag=MF.tag===t?"":t;MF.arq=false;pinta()})),narq?chip("Arquivados",MF.arq,()=>{MF.arq=!MF.arq;MF.tag="";pinta()},narq):null,ini);
+    filtros.replaceChildren(busca,chip("Todos",!MF.tag&&!MF.arq,()=>{MF.tag="";MF.arq=false;pinta()}),...tagsT.map(t=>chip(t,MF.tag===t,()=>{MF.tag=MF.tag===t?"":t;MF.arq=false;pinta()})),...[narq?chip("Arquivados",MF.arq,()=>{MF.arq=!MF.arq;MF.tag="";pinta()},narq):null,ini].filter(Boolean));
     const q=norm(MF.q.trim());let L=todos.filter(x=>!!(x.meta&&x.meta.arq)===MF.arq&&(!MF.tag||(x.meta&&x.meta.tags||[]).includes(MF.tag))&&(!q||norm([tituloMundo(x),x.nome,x.meta&&x.meta.desc,(x.meta&&x.meta.tags||[]).join(" ")].join(" ")).includes(q)));
     // o aberto primeiro, depois os fixados, depois por ultimo acesso
     L.sort((a,b)=>(AP.chaveRecente(b)===k)-(AP.chaveRecente(a)===k)||(!!(b.meta&&b.meta.fixo))-(!!(a.meta&&a.meta.fixo))||(b.quando||0)-(a.quando||0));
     const cards=L.map(x=>cardMundo(x,AP.chaveRecente(x)===k));
-    if(!Store.pasta&&!MF.arq&&!MF.tag&&!q)cards.unshift(h("div",{class:"mn-card atual"},h("div",{class:"mn-cab"},h("span",{class:"mn-ic"},icone("mundo",22)),h("div",{class:"grow"},h("b",{},nomeMundo()),h("small",{class:"mn-ag"},"Aberto agora"))),h("p",{class:"mn-desc"},"Mundo guardado dentro do app, fora de uma pasta. Use “Salvar este mundo numa pasta” no Início para ele entrar na lista.")));
+    if(!Store.pasta&&!MF.arq&&!MF.tag&&!q)cards.unshift(h("div",{class:"mn-card atual"},h("div",{class:"mn-cab"},h("span",{class:"mn-ic"},icone("mundo",22)),h("div",{class:"grow"},h("b",{},nomeMundo()),h("small",{class:"mn-ag"},"Aberto agora"))),h("p",{class:"mn-desc"},AP.interno&&AP.interno()?"Mundo guardado no app, ainda sem nome. Toque em “Novo mundo” e marque “Levar o mundo atual” para dar um nome a ele e pôr na lista (e no Drive).":"Mundo guardado dentro do app, fora de uma pasta. Use “Salvar este mundo numa pasta” no Início para ele entrar na lista.")));
     lista.replaceChildren(...(cards.length?cards:[h("p",{class:"hsub"},MF.arq?"Nenhum mundo arquivado.":q||MF.tag?"Nenhum mundo com esse filtro.":"Nenhum mundo na lista ainda. Crie um ou abra a pasta de um mundo.")]))};
-  carregaBib().then(pinta);pinta()}
+  const secD=h("div",{class:"mn-drive"});box.append(secD);drawMundosDrive(secD);
+  carregaBib().then(()=>{pinta();drawMundosDrive(secD)});pinta()}
+// 1.54: mundos que estão no Google Drive (no PC e no celular): os que ainda não estão neste aparelho podem ser baixados
+let MDRV=null;
+function drawMundosDrive(sec){const D_=window.AtlasDrive,AP=window.AtlasPasta;sec.replaceChildren();if(!D_||D_.ambiente()==="bloqueado"||!AP||!AP.noApp())return;
+  const tit=h("div",{class:"mn-dtopo"},h("h2",{class:"mn-h2"},icone("nuvem",18)," No Google Drive"),D_.conectado()?h("button",{type:"button",class:"ghost sm",onclick:async()=>{MDRV=null;await D_.mundosNoDrive(true).then(L=>{MDRV=L}).catch(()=>{});drawMundosDrive(sec)}},icone("refazer",14),"Atualizar"):null);sec.append(tit);
+  if(!D_.conectado()){sec.append(h("p",{class:"hsub"},"Conecte o Google Drive para ver aqui os mundos guardados lá e abrir os mesmos mundos no computador e no celular."),h("button",{type:"button",onclick:()=>D_.configuracoes()},icone("nuvem",16),"Conectar o Google Drive"));return}
+  const lista=h("div",{class:"mn-grade"});sec.append(lista);
+  const pinta=L=>{const lig=new Map();for(const x of BIBM){const c=D_.cfgDe(AP.chaveRecente(x));if(c&&c.pasta)lig.set(c.pasta.id,x)}
+    // PC: pasta de computador do Google Drive para computador com o mesmo nome de um mundo da lista = é este mesmo
+    if(!(AP.interno&&AP.interno()))for(const m of L)if(m.pc&&!lig.has(m.id)){const x=BIBM.find(r=>r.nome===m.nome&&r.caminho);if(x)lig.set(m.id,x)}
+    if(!L.length){lista.replaceChildren(h("p",{class:"hsub"},"Nenhum mundo do Atlas no seu Drive ainda. Crie um com “Novo mundo” marcando “Guardar também no Google Drive”, ou ligue um mundo pelo botão da nuvem."));return}
+    const ja=L.filter(m=>lig.has(m.id)).length;L=L.filter(m=>!lig.has(m.id));
+    if(!L.length){lista.replaceChildren(h("p",{class:"hsub"},ja===1?"O seu mundo do Drive já está neste aparelho e sincronizado (marcado com a nuvem).":"Os seus "+ja+" mundos do Drive já estão neste aparelho e sincronizados (marcados com a nuvem)."));return}
+    lista.replaceChildren(...L.map(m=>{const x=lig.get(m.id),me=m.meta||{},cor=me.cor||"",tit=me.titulo||m.nome,aqui=!!x;
+      const abre=async()=>{if(x)return abrirMundo(x);
+        if(m.pc&&!AP.interno()&&!(await confirma("Baixar “"+tit+"”?","Este mundo está na pasta de um computador sincronizado pelo Google Drive para computador ("+m.onde+"). Se for ESTE computador, abra a pasta dele em “Abrir pasta de mundo” em vez de baixar uma cópia.","Baixar uma cópia")))return;
+        try{await D_.baixaMundo(m,null);MDRV=null;await carregaBib();drawMain()}catch(e){console.warn(e);toast("Não foi possível baixar: "+e.message)}};
+      const lugar=async e=>{e.stopPropagation();const b=await AP.escolheLugar();if(!b)return;try{await D_.baixaMundo(m,b);MDRV=null;await carregaBib();drawMain()}catch(er){toast("Não foi possível baixar: "+er.message)}};
+      return h("div",{class:"mn-card"+(aqui?"":" mn-fora"),style:cor?"--mcor:"+cor:"",role:"button",tabindex:"0","aria-label":(aqui?"Abrir ":"Baixar e abrir ")+tit,onclick:abre,onkeydown:e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();abre()}}},
+        h("div",{class:"mn-cab"},h("span",{class:"mn-ic",style:cor?"color:"+cor:""},icone(me.icone||"mundo",22)),h("div",{class:"grow"},h("b",{},tit),h("small",{},aqui?"Neste aparelho também":"Só no Drive"+(m.onde?" · "+m.onde:""))),
+          aqui?h("span",{class:"mn-nuvem",title:"Sincronizado"},icone("nuvem",15)):null),
+        me.desc?h("p",{class:"mn-desc"},me.desc):null,
+        aqui?null:h("div",{class:"row"},h("button",{type:"button",class:"primary sm",onclick:e=>{e.stopPropagation();abre()}},icone("importar",14),AP.interno()?"Baixar e abrir":"Baixar para Documentos"),AP.interno()?null:h("button",{type:"button",class:"ghost sm",onclick:lugar},"Escolher lugar…")))}))};
+  if(MDRV)pinta(MDRV);else lista.replaceChildren(h("p",{class:"hsub"},"Procurando mundos no Drive…"));{D_.mundosNoDrive().then(L=>{MDRV=L;if(sec.isConnected)pinta(L)}).catch(e=>{lista.replaceChildren(h("p",{class:"hsub"},"Não foi possível ler o Drive: "+e.message))})}}
+// chegaram mudanças pelo Drive: redesenha sem atrapalhar quem está escrevendo
+function aposSync(mud){const ns=new Set(mud.filter(k=>k[0]==="n").map(k=>k.slice(1))),ms=new Set(mud.filter(k=>k[0]==="m").map(k=>k.slice(1)));
+  if(S.quadro&&$("#main .qd"))S.camPend=S.quadro.cam();drawSide();
+  if(S.sec==="notes"){if(S.note&&!S.notes.has(S.note)){S.note=null;drawMain()}else if(!S.note||ns.has(S.note)||S.mode!=="edit")drawMain()}
+  else if(S.sec==="maps"){if(S.map&&!S.maps.has(S.map)){S.map=null;drawMain()}else if(!S.map||ms.has(S.map))drawMain()}
+  else if(S.sec!=="mundos")drawMain();S.camPend=null;if(S.place)try{drawPlace()}catch(e){}}
 function cardMundo(x,aberto){const AP=window.AtlasPasta,m=x.meta||{},cor=m.cor||"",n=[x.notas!=null?x.notas+" nota"+(x.notas===1?"":"s"):null,x.mapas!=null?x.mapas+" mapa"+(x.mapas===1?"":"s"):null].filter(Boolean).join(" · ");
   const abre=()=>{if(aberto){S.sec="home";closePlace();drawAll()}else abrirMundo(x)};
   const mais=e=>{e.stopPropagation();menuPop(e.currentTarget,[{ic:"pasta",txt:aberto?"Ir para o Início":"Abrir",fn:abre},{ic:"editar",txt:"Editar ficha…",det:"nome, descrição, cor, ícone, etiquetas",fn:()=>editaMundo(x)},{ic:"estrela",txt:m.fixo?"Desafixar":"Fixar no topo",fn:()=>mudaFicha(x,{fixo:m.fixo?undefined:true})},
@@ -2195,7 +2243,7 @@ function cardMundo(x,aberto){const AP=window.AtlasPasta,m=x.meta||{},cor=m.cor||
     aberto?null:{ic:"fechar",txt:"Tirar da lista",det:"não apaga nada: dá para abrir a pasta de novo depois",fn:async()=>{await AP.removeRecente(AP.chaveRecente(x));await carregaBib();drawMain()}}].filter(Boolean))};
   return h("div",{class:"mn-card"+(aberto?" atual":"")+(m.fixo?" fixo":""),style:cor?"--mcor:"+cor:"",role:"button",tabindex:"0","aria-label":(aberto?"Mundo aberto: ":"Abrir o mundo ")+tituloMundo(x),onclick:abre,onkeydown:e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();abre()}}},
     h("div",{class:"mn-cab"},h("span",{class:"mn-ic",style:cor?"color:"+cor:""},icone(m.icone||"mundo",22)),h("div",{class:"grow"},h("b",{},tituloMundo(x)),aberto?h("small",{class:"mn-ag"},"Aberto agora"):h("small",{},x.quando?"Aberto "+quandoM(x.quando):"")),
-      m.fixo?h("span",{class:"mn-fixo",title:"Fixado"},icone("estrela",14)):null,h("button",{type:"button",class:"ghost sm mn-mais","aria-label":"Mais opções de "+tituloMundo(x),onclick:mais},icone("pontos",16))),
+      m.fixo?h("span",{class:"mn-fixo",title:"Fixado"},icone("estrela",14)):null,(()=>{const D_=window.AtlasDrive,c=D_&&D_.cfgDe&&D_.cfgDe(AP.chaveRecente(x));return c&&c.pasta?h("span",{class:"mn-nuvem",title:"Sincronizado com o Google Drive: "+c.pasta.nome},icone("nuvem",15)):null})(),h("button",{type:"button",class:"ghost sm mn-mais","aria-label":"Mais opções de "+tituloMundo(x),onclick:mais},icone("pontos",16))),
     m.desc?h("p",{class:"mn-desc"},m.desc):null,
     m.tags&&m.tags.length?h("div",{class:"mn-tags"},m.tags.map(t=>h("span",{class:"mn-tag"},t))):null,
     h("div",{class:"mn-pe"},h("span",{},n),h("span",{class:"mn-cam",title:x.caminho||x.nome},x.caminho||x.nome)))}
@@ -2222,5 +2270,5 @@ async function vigiaPasta(avisaSempre){const AP=window.AtlasPasta;if(!Store.past
     if(pul)toast(pul+" arquivo(s) mudaram na pasta enquanto você editava; o Atlas manteve a sua versão.")}
   catch(e){console.warn("vigia",e);if(avisaSempre)toast("Não foi possível ler a pasta agora.")}finally{vigiando=false}}
 setInterval(()=>vigiaPasta(false),4000);addEventListener("focus",()=>setTimeout(()=>vigiaPasta(false),300));
-window.AtlasApp={S,Store,fm,setProps,findNote,naurenParaNotas,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t),novaNota:(tipo,titulo,conteudo)=>{const n=newNote(tipo,titulo,{content:conteudo});try{drawSide()}catch(e){}return n}};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
+window.AtlasApp={aposSync,S,Store,fm,setProps,findNote,naurenParaNotas,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t),novaNota:(tipo,titulo,conteudo)=>{const n=newNote(tipo,titulo,{content:conteudo});try{drawSide()}catch(e){}return n}};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
 })();

@@ -14,7 +14,7 @@
   function migra(g){if(!g.pasta)return null;const w={pasta:g.pasta,batalhas:g.batalhas,imagens:g.imagens,backup:g.backup};ls(kM(K_CFG),w);const b=ls(K_BASE),e=ls(K_EST);if(b)ls(kM(K_BASE),b);if(e)ls(kM(K_EST),e);
     const g2=Object.assign({},g);delete g2.pasta;delete g2.batalhas;delete g2.imagens;delete g2.backup;ls(K_CFG,g2);try{localStorage.removeItem(K_BASE);localStorage.removeItem(K_EST)}catch(x){}return w}
   const cfg=()=>{const g=ls(K_CFG)||{},w=ls(kM(K_CFG))||migra(g)||{};return Object.assign({clientId:"",clientSecret:"",pasta:null,batalhas:true,imagens:true,backup:false,conta:null},w,{clientId:g.clientId||"",clientSecret:g.clientSecret||"",conta:g.conta||null})};
-  const salvaCfg=c=>{const g=ls(K_CFG)||{};ls(K_CFG,Object.assign(g,{clientId:c.clientId,clientSecret:c.clientSecret,conta:c.conta}));ls(kM(K_CFG),{pasta:c.pasta,batalhas:c.batalhas,imagens:c.imagens,backup:c.backup})};
+  const salvaCfg=c=>{const g=ls(K_CFG)||{};ls(K_CFG,Object.assign(g,{clientId:c.clientId,clientSecret:c.clientSecret,conta:c.conta}));ls(kM(K_CFG),{pasta:c.pasta,auto:c.auto,batalhas:c.batalhas,imagens:c.imagens,backup:c.backup})};
   const estado=()=>Object.assign({ultima:null,acao:null,sujo:false},ls(kM(K_EST))||{});
   const salvaEstado=e=>{ls(kM(K_EST),e);atualizaBotao()};
   const safe=s=>String(s||"Sem título").replace(/[\\/:*?"<>|#^[\]]+/g,"-").replace(/\s+/g," ").trim().slice(0,120)||"Sem título";
@@ -102,7 +102,7 @@
   // ---------- comparar os dois lados com o que estava igual na última vez ----------
   // base[caminho] = {r: md5 no Drive, l: md5 deste lado} no fim da última sincronização
   const conhecido=p=>/\.(md|canvas)$/i.test(p)||/^Mapas\/[^/]+\.atlasmapa\.json$/i.test(p)||/^Mapas\/Batalha\/[^/]+\.atlasmap$/i.test(p)||/^Imagens\/[^/]+\.webp$/i.test(p);
-  const quer=(c,p)=>conhecido(p)&&(c.batalhas||!/\.atlasmap$/i.test(p))&&(c.imagens||!/^Imagens\//.test(p));
+  const quer=(c,p)=>!p.startsWith(".atlas/")&&conhecido(p)&&(c.batalhas||!/\.atlasmap$/i.test(p))&&(c.imagens||!/^Imagens\//.test(p));
   function compara(c,L,R,base,modo){const itens=[],todos=new Set([...L.keys(),...[...R.keys()].filter(p=>quer(c,p)),...Object.keys(base).filter(p=>quer(c,p))]);
     for(const p of [...todos].sort()){const l=L.get(p),r=R.get(p),b=base[p];if(p===IDX)continue;
       const lm=l&&l.md5,rm=r&&r.md5Checksum;if(l&&r&&lm===rm){itens.push({p,acao:"igual",l,r});continue}
@@ -144,17 +144,20 @@
     if(esc==="drive"){if(!x.r){await removeLocal(x.l);feitos[x.p]=null;return}await aplicaRemoto(x.p,x.r,indR,P.L,false);feitos[x.p]={r:x.r.md5Checksum,l:"novo"};return}
     if(esc==="duas"&&x.l&&x.r){await aplicaRemoto(x.p,x.r,indR,P.L,true);const j=await sobe(P.R.pastas,x.p,x.l.dados,x.r.id);feitos[x.p]={r:j.md5Checksum,l:x.l.md5}}}
   async function fechaNovos(P,feitos){if(Object.values(feitos).some(v=>v&&v.l==="novo")){const {L}=await montaLocal(P.c);for(const [p,v] of Object.entries(feitos))if(v&&v.l==="novo")v.l=L.get(p)?L.get(p).md5:"?"}}
-  async function enviar(P,escolhas,prog){const R=P.R.arqs,feitos={},erros=[],indR=await indiceRemoto(P);const vai=P.itens.filter(x=>x.acao==="novo"||x.acao==="alterado"||x.acao==="remover"||x.acao==="conflito"&&escolhas[x.p]&&escolhas[x.p]!=="pular");
+  async function enviar(P,escolhas,prog,seguro){let tarde=0;const subidos=[];const R=P.R.arqs,feitos={},erros=[],indR=await indiceRemoto(P);const vai=P.itens.filter(x=>x.acao==="novo"||x.acao==="alterado"||x.acao==="remover"||x.acao==="conflito"&&escolhas[x.p]&&escolhas[x.p]!=="pular");
     for(const x of P.itens)if(x.acao==="igual"&&x.l&&x.r)feitos[x.p]={r:x.r.md5Checksum,l:x.l.md5};
     quieto=true;try{await fila(vai,4,async x=>{try{if(x.acao==="conflito")return await resolve(P,x,escolhas[x.p],indR,feitos);
+        // automático: confere de novo logo antes de gravar; se mudou lá nesse meio tempo, vira conflito (não sobrescreve)
+        if(seguro&&x.r){const at=await json(API+"/files/"+x.r.id+"?fields=md5Checksum,trashed");if(at.md5Checksum!==x.r.md5Checksum||at.trashed){tarde++;return}}
         if(x.acao==="remover"){await lixeira(x.r.id);feitos[x.p]=null;return}
-        const j=await sobe(P.R.pastas,x.p,x.l.dados,x.r&&x.r.id);feitos[x.p]={r:j.md5Checksum,l:x.l.md5}}catch(e){erros.push(x.p+": "+e.message)}},prog)}finally{quieto=false}
+        const j=await sobe(P.R.pastas,x.p,x.l.dados,x.r&&x.r.id);feitos[x.p]={r:j.md5Checksum,l:x.l.md5};subidos.push([x.p,j.id||(x.r&&x.r.id),j.md5Checksum])}catch(e){erros.push(x.p+": "+e.message)}},prog)}finally{quieto=false}
     await fechaNovos(P,feitos);
     // indice com ids e dados que o .md nao guarda
-    try{const ix=P.R.arqs.get(IDX);await sobe(P.R.pastas,IDX,JSON.stringify(P.ind,null,1),ix&&ix.id)}catch(e){erros.push("índice: "+e.message)}
+    try{const a=aparelho();P.ind.por={id:a.id,nome:a.nome,quando:new Date().toISOString()};const ix=P.R.arqs.get(IDX);await sobe(P.R.pastas,IDX,JSON.stringify(P.ind,null,1),ix&&ix.id)}catch(e){erros.push("índice: "+e.message)}
+    try{const AP=window.AtlasPasta,m=AP&&AP.meta?await AP.meta():null;if(m){const f=P.R.arqs.get(".atlas/mundo.json"),t=JSON.stringify(m,null,1);if(!f||f.md5Checksum!==md5(enc.encode(t)))await sobe(P.R.pastas,".atlas/mundo.json",t,f&&f.id)}}catch(e){}
     if(P.c.backup)try{await copiaSeguranca(P)}catch(e){erros.push("cópia de segurança: "+e.message)}
-    fechaBase(P,feitos);return {n:vai.length,erros}}
-  async function atualizar(P,escolhas,prog){const indR=await indiceRemoto(P);
+    fechaBase(P,feitos);return {n:vai.length-tarde,erros,tarde,subidos}}
+  async function atualizar(P,escolhas,prog,suave){const indR=await indiceRemoto(P);
     const feitos={},erros=[],vai=P.itens.filter(x=>x.acao==="novo"||x.acao==="alterado"||x.acao==="remover"||x.acao==="conflito"&&escolhas[x.p]&&escolhas[x.p]!=="pular");
     for(const x of P.itens)if(x.acao==="igual"&&x.l&&x.r)feitos[x.p]={r:x.r.md5Checksum,l:x.l.md5};
     quieto=true;try{await fila(vai,4,async x=>{try{if(x.acao==="conflito")return await resolve(P,x,escolhas[x.p],indR,feitos);
@@ -162,7 +165,7 @@
         await aplicaRemoto(x.p,x.r,indR,P.L,false);feitos[x.p]={r:x.r.md5Checksum,l:"novo"}}catch(e){erros.push(x.p+": "+e.message)}},prog)}finally{quieto=false}
     // o md5 deste lado de quem acabou de chegar (o texto pode ter mudado de \r\n para \n)
     await fechaNovos(P,feitos);
-    fechaBase(P,feitos);app().drawAll&&app().drawAll();return {n:vai.length,erros}}
+    fechaBase(P,feitos);if(!suave)app().drawAll&&app().drawAll();return {n:vai.length,erros}}
   async function copiaSeguranca(P){const juntar=app().juntaMundo;if(!juntar)return;const txt=await juntar(),d=new Date(),nome="Atlas "+d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+"h"+String(d.getMinutes()).padStart(2,"0")+".atlasmundo";
     let pid=null;for(const f of await listaFilhos(P.c.pasta.id))if(f.mimeType===PASTA_MIME&&f.name===BACKUPS)pid=f.id;if(!pid)pid=(await json(API+"/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:BACKUPS,mimeType:PASTA_MIME,parents:[P.c.pasta.id]})})).id;
     const ps=new Map([["",pid]]);await sobe(ps,nome,txt,null);const L=(await listaFilhos(pid)).filter(f=>/\.atlasmundo$/.test(f.name)).sort((a,b)=>b.name.localeCompare(a.name));for(const f of L.slice(10))await lixeira(f.id).catch(()=>{})}
@@ -195,7 +198,10 @@
       :el("div",{class:"gd-conta vazio"},el("div",{class:"grow"},el("b",{},"Nenhuma conta conectada"),el("small",{},"Conecte a conta Google onde o mundo vai ficar guardado.")),
         el("button",{type:"button",class:"btn primary",onclick:async ev=>{guardaCred();const b=ev.currentTarget;b.disabled=true;b.textContent=amb==="app"?"Aguardando o navegador…":"Conectando…";try{await conecta();toast("Conta Google conectada.");configuracoes()}catch(er){b.disabled=false;b.textContent="Conectar conta Google";erroEm(conta,er.message)}}},"Conectar conta Google"));
     const pasta=el("div",{class:"gd-pasta"},el("span",{class:"gd-pi"},ic("pasta",20)),el("div",{class:"grow"},el("b",{},c.pasta?c.pasta.nome:"Nenhuma pasta escolhida"),el("small",{},c.pasta?(c.pasta.caminho||"Meu Drive"):"Notas, quadros e mapas ficam nesta pasta, no mesmo formato da pasta do mundo.")),
-      el("button",{type:"button",class:"btn",disabled:!con,onclick:()=>escolhePasta()},c.pasta?"Trocar":"Escolher pasta"));
+      el("button",{type:"button",class:"btn",disabled:!con,onclick:()=>escolhePasta()},c.pasta?"Trocar":"Escolher pasta"),
+      !c.pasta&&con&&window.AtlasPasta&&window.AtlasPasta.atual&&window.AtlasPasta.atual()?el("button",{type:"button",class:"btn primary",onclick:async ev=>{const b=ev.currentTarget;b.disabled=true;b.textContent="Criando…";try{const p=await ligaNovo(window.AtlasPasta.atual().nome);toast("Pasta criada no Drive: Atlas › "+p.nome);configuracoes()}catch(er){b.disabled=false;b.textContent="Criar pasta nova";erroEm(pasta,er.message)}}},"Criar pasta nova"):null);
+    const ap=aparelho(),apI=el("input",{type:"text",value:ap.nome,maxlength:30,"aria-label":"Nome deste aparelho",onchange:ev=>{const a=aparelho();a.nome=ev.target.value.trim()||a.nome;ls(K_APAR,a);tPres=0}});
+    const auto=c.pasta?el("label",{class:"gd-chk"},el("input",{type:"checkbox",checked:autoOn(c),onchange:ev=>{const n=cfg();n.auto=ev.target.checked;salvaCfg(n);atualizaBotao();if(n.auto)sincroniza("tudo")}}),el("span",{},el("b",{},"Sincronizar automaticamente"),el("small",{},c.pasta.pc&&!ANDROID?"Esta pasta é de um computador sincronizado pelo Google Drive para computador. Se for ESTE computador, deixe desligado: o Google Drive já mantém a pasta igual.":"Envia alguns segundos depois de cada mudança e busca o que chegou ao abrir o mundo, ao voltar para o app e a cada minuto. Só pergunta quando o mesmo arquivo mudou nos dois lados."))):null;
     const ajuda=el("details",{class:"gd-ajuda"},el("summary",{},"Como criar o ID no Google Cloud"),el("ol",{},
       el("li",{},"Abra console.cloud.google.com e crie um projeto (por exemplo, \"Atlas\")."),
       el("li",{},"Em APIs e serviços › Biblioteca, ative a Google Drive API."),
@@ -206,7 +212,7 @@
       el("li",{},"No login, o Google avisa que o app não foi verificado: clique em Avançado e em Continuar. É esperado para uso pessoal.")));
     const corpo=el("div",{},
       sec("Conta",null,conta),
-      sec("Pasta no Drive",null,pasta),
+      sec("Pasta no Drive",null,pasta,auto,el("label",{class:"gd-campo"},el("span",{},"Nome deste aparelho (aparece para os outros)"),apI)),
       sec("O que sincronizar","As artes dos pacotes do Dungeondraft nunca são enviadas: continuam só neste computador.",
         chk("notas","Notas e quadros","Arquivos .md e .canvas, legíveis pelo Obsidian e pelo Claude",true),
         chk("mapas","Mapas de região e cidade","Parâmetros e edições de cada mapa",true),
@@ -235,7 +241,7 @@
     return L.map(f=>Object.assign({},f,{dica:f.parents&&pais[f.parents[0]]?"em "+pais[f.parents[0]]:f.parents&&f.parents.length?"":"(computador)"}))}
   async function escolhePasta(){let pilha=[{id:"root",nome:"Meu Drive"}];const lista=el("div",{class:"gd-lista",role:"listbox","aria-label":"Pastas"}),trilha=el("div",{class:"gd-trilha"}),nova=el("input",{type:"text",placeholder:"Nome da pasta nova","aria-label":"Nome da pasta nova"});
     const virtual=id=>id==="root"||id.startsWith("__");
-    const usar=el("button",{type:"button",class:"btn primary",onclick:()=>{const at=pilha[pilha.length-1];if(virtual(at.id))return;const n=cfg(),mudou=!n.pasta||n.pasta.id!==at.id;n.pasta={id:at.id,nome:at.nome,caminho:pilha.slice(0,-1).map(x=>x.nome).join(" › ")};salvaCfg(n);if(mudou)ls(K_BASE,null);toast("Pasta do mundo: "+at.nome);configuracoes()}},"Usar esta pasta");
+    const usar=el("button",{type:"button",class:"btn primary",onclick:()=>{const at=pilha[pilha.length-1];if(virtual(at.id))return;const n=cfg(),mudou=!n.pasta||n.pasta.id!==at.id;n.pasta={id:at.id,nome:at.nome,caminho:pilha.slice(0,-1).map(x=>x.nome).join(" › "),pc:pilha.some(x=>x.id==="__pc")||undefined};if(mudou)n.auto=undefined;salvaCfg(n);if(mudou){ls(kM(K_BASE),null);mundoAberto()}toast("Pasta do mundo: "+at.nome);configuracoes()}},"Usar esta pasta");
     const mostra=async()=>{const at=pilha[pilha.length-1];usar.disabled=virtual(at.id);trilha.replaceChildren(...pilha.flatMap((x,i)=>[i?el("span",{class:"sep"},"›"):"",el("button",{type:"button",class:"gd-tr",onclick:()=>{pilha=pilha.slice(0,i+1);mostra()}},x.nome)]));
       lista.replaceChildren(el("p",{class:"gd-d"},"Carregando…"));try{const L=(at.id==="__pc"?await computadores():at.id.startsWith("__b:")?await buscaPastas(at.id.slice(4)):(await listaFilhos(at.id)).filter(f=>f.mimeType===PASTA_MIME)).sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
         lista.replaceChildren(...(L.length?L.map(f=>el("button",{type:"button",class:"gd-item",role:"option",onclick:()=>{pilha.push({id:f.id,nome:f.name});mostra()}},ic(at.id==="__pc"?"mundo":"pasta",18),el("span",{},f.name,f.dica?el("small",{class:"gd-dica"}," "+f.dica):null),ic("seta",16))):[el("p",{class:"gd-d"},at.id==="__pc"?"Nenhum computador sincronizado com este Drive. No PC, o Google Drive para computador precisa estar sincronizando alguma pasta.":at.id.startsWith("__b:")?"Nenhuma pasta com esse nome.":"Nenhuma subpasta aqui.")]))}catch(e){lista.replaceChildren(el("p",{class:"gd-erro"},e.message))}};
@@ -266,27 +272,123 @@
   async function executa(P,modo,escolhas,titulo){const env=modo==="enviar",barra=el("div",{class:"gd-barra"},el("i",{})),txt=el("p",{class:"gd-d"},"Preparando…");
     caixa(titulo,env?"exportar":"importar",el("div",{class:"gd-espera"},el("p",{},env?"Enviando para o Drive…":"Trazendo do Drive…"),barra,txt),null,{preso:true});
     const prog=(f,n,x)=>{barra.firstChild.style.width=Math.round(f/n*100)+"%";txt.textContent=f+" de "+n+" · "+nomeArq(x.p,x)};
-    let r;try{r=env?await enviar(P,escolhas,prog):await atualizar(P,escolhas,prog)}catch(e){r={n:0,erros:[e.message]}}
-    const e=estado();if(!r.erros.length||r.n>r.erros.length){e.ultima=new Date().toISOString();e.acao=modo;if(env&&!r.erros.length)e.sujo=false;salvaEstado(e)}
+    let r;const tinha=SY.on;SY.on=true;try{r=env?await enviar(P,escolhas,prog):await atualizar(P,escolhas,prog)}catch(e){r={n:0,erros:[e.message]}}finally{if(!tinha)SY.on=false}
+    const e=estado();if(!r.erros.length||r.n>r.erros.length){e.ultima=new Date().toISOString();e.acao=modo;if(env&&!r.erros.length)e.sujo=false;e.conflitos=0;salvaEstado(e)}if(autoOn())setTimeout(()=>sincroniza("tudo"),600);
     const ok=!r.erros.length;caixa(titulo,ok?"salvo":"nuvem",el("div",{class:ok?"gd-ok":""},ok?ic("salvo",36):null,el("h3",{},ok?(env?"Mundo enviado":"Mundo atualizado"):"Concluído com avisos"),
         el("p",{},env?(r.n?r.n+" arquivo(s) enviados para "+P.c.pasta.nome+".":"Nada a enviar."):(r.n?r.n+" arquivo(s) atualizados a partir do Drive.":"Nada a atualizar.")),
         r.erros.length?el("details",{class:"gd-grupo r",open:true},el("summary",{},el("b",{},"Não foi possível processar"),el("span",{class:"gd-n"},r.erros.length)),el("ul",{},...r.erros.slice(0,30).map(t=>el("li",{},t)))):null),
       [el("span",{class:"grow"}),el("button",{type:"button",class:"btn primary",onclick:()=>document.getElementById("gdrive")._fecha()},"Fechar")])}
 
   // botão da barra de cima: estado e atalhos
-  function atualizaBotao(){const b=document.getElementById("bDrive");if(!b)return;const c=cfg(),e=estado(),con=conectado()&&c.pasta;b.dataset.est=!con?"off":e.sujo?"sujo":"ok";
-    const t=!con?"Google Drive: não configurado":e.sujo?"Google Drive: há alterações não enviadas":"Google Drive: sincronizado "+quando(e.ultima);b.title=t;b.setAttribute("aria-label",t)}
+  function atualizaBotao(){const b=document.getElementById("bDrive");if(!b)return;const c=cfg(),e=estado(),con=conectado()&&c.pasta,au=con&&autoOn(c);
+    b.dataset.est=!con?"off":SY.on?"sync":e.conflitos?"conf":SY.erro&&au?"erro":e.sujo?"sujo":"ok";
+    const ou=SY.outros.length?" · também aberto em "+SY.outros.map(o=>o.nome).join(", "):"";
+    const t=!con?"Google Drive: não configurado":SY.on?"Google Drive: sincronizando…":e.conflitos?"Google Drive: "+e.conflitos+" conflito(s) para resolver":SY.erro&&au?"Google Drive: erro ("+SY.erro+")":e.sujo?(au?"Google Drive: enviando em instantes":"Google Drive: há alterações não enviadas"):"Google Drive: sincronizado "+quando(e.ultima)+(au?" (automático)":"");
+    b.title=t+ou;b.setAttribute("aria-label",t+ou)}
   function menu(btn){const c=cfg(),e=estado(),con=conectado()&&c.pasta;if(!con)return configuracoes();let m=document.getElementById("gdmenu");if(m){m.remove();return}const r=btn.getBoundingClientRect();
     const fecha=()=>{m.remove();document.removeEventListener("pointerdown",fora,true)},fora=ev=>{if(!m.contains(ev.target)&&ev.target!==btn&&!btn.contains(ev.target))fecha()};
     const item=(i,t,d,fn,cls)=>el("button",{type:"button",class:"gd-mi"+(cls?" "+cls:""),onclick:()=>{fecha();fn()}},el("span",{class:"gd-mii"},ic(i,18)),el("span",{},el("b",{},t),el("small",{},d)));
     m=el("div",{id:"gdmenu",class:"gd-menu",style:"top:"+(r.bottom+8)+"px;right:"+Math.max(8,innerWidth-r.right)+"px"},
       el("div",{class:"gd-mh"},el("span",{class:"gd-av"},((c.conta&&c.conta.nome)||"G").slice(0,1).toUpperCase()),el("div",{},el("b",{},c.pasta.nome),el("small",{},(c.conta&&c.conta.email?c.conta.email+" · ":"")+"última: "+quando(e.ultima)))),
-      e.sujo?el("p",{class:"gd-aviso"},"Há alterações neste computador que ainda não foram enviadas."):null,
-      item("exportar","Enviar para o Drive","Manda o que mudou aqui",()=>fluxo("enviar"),"pri"),
+      SY.outros.length?el("p",{class:"gd-outros"},"Também aberto agora em: "+SY.outros.map(o=>o.nome+" ("+quando(o.quando)+")").join(", ")):null,
+      e.conflitos?el("p",{class:"gd-aviso"},e.conflitos===1?"1 arquivo mudou aqui e no Drive. Escolha qual versão fica.":e.conflitos+" arquivos mudaram aqui e no Drive. Escolha qual versão fica."):e.sujo&&!autoOn(c)?el("p",{class:"gd-aviso"},"Há alterações neste aparelho que ainda não foram enviadas."):null,
+      SY.erro&&autoOn(c)?el("p",{class:"gd-aviso"},"Última tentativa falhou: "+SY.erro):null,
+      e.conflitos?item("importar","Resolver conflitos","Mostra o que mudou nos dois lados",()=>fluxo("atualizar"),"pri"):null,
+      autoOn(c)?item("refazer","Sincronizar agora","Busca e envia o que mudou",()=>{sincroniza("tudo");toast("Sincronizando…")},e.conflitos?"":"pri"):null,
+      item("nuvem",autoOn(c)?"Automático: ligado":"Automático: desligado",autoOn(c)?"Envia e busca sozinho. Toque para desligar":c.pasta.pc&&!ANDROID?"Pasta já sincronizada pelo Google Drive para computador":"Toque para sincronizar sozinho",()=>{const n=cfg();n.auto=!autoOn(n);salvaCfg(n);atualizaBotao();if(n.auto)sincroniza("tudo");toast(n.auto?"Sincronização automática ligada.":"Sincronização automática desligada.")}),
+      item("exportar","Enviar para o Drive","Manda o que mudou aqui",()=>fluxo("enviar"),autoOn(c)?"":"pri"),
       item("importar","Atualizar do Drive","Traz o que mudou lá, inclusive pelo Claude",()=>fluxo("atualizar")),
       item("ajustes","Configurações","Conta, pasta e o que sincronizar",()=>configuracoes()));
     document.body.append(m);setTimeout(()=>document.addEventListener("pointerdown",fora,true))}
-  const marca=()=>{if(quieto)return;const e=estado();if(!e.sujo&&conectado()&&cfg().pasta){e.sujo=true;salvaEstado(e)}};
 
-  window.AtlasDrive={ambiente,configuracoes,menu,atualizaBotao,marca,enviar:()=>fluxo("enviar"),atualizar:()=>fluxo("atualizar"),conectado,_md5:md5,_compara:compara};
+  // ---------- 1.54: mundos no Drive, pasta por mundo, sincronização automática, outros aparelhos ----------
+  // Cada mundo do app (pasta no PC ou pasta interna no celular) guarda a sua pasta do Drive. Com "automático"
+  // ligado: envia uns segundos depois de cada edição, busca ao abrir o mundo, ao voltar para o app e a cada
+  // ~40 s (só quando a lista de mudanças do Drive mostra algo nesta pasta). Só pergunta em conflito.
+  const K_APAR="atlas:drive:aparelho",PRES=".atlas/aparelhos/";
+  const aparelho=()=>{let a=ls(K_APAR);if(!a||!a.id){a={id:aleatorio(6).replace(/[^A-Za-z0-9]/g,"x"),nome:ANDROID?"Celular":"Computador"};ls(K_APAR,a)}return a};
+  const autoOn=c=>{c=c||cfg();if(ambiente()==="bloqueado"||!conectado()||!c.pasta)return false;return c.auto!=null?!!c.auto:!(c.pasta.pc&&!ANDROID)};
+  const SY={on:false,pend:null,tEnv:0,tIni:0,arq:new Set(),pastas:new Set(),chave:null,tok:null,erro:null,outros:[],vistos:{},avisoConf:0,ultBusca:0};
+  const lembra=P=>{SY.chave=mk();SY.arq=new Set([...P.R.arqs.values()].map(f=>f.id));SY.pastas=new Set(P.R.pastas.values());
+    const eu=aparelho().id,ag=Date.now(),L=[];for(const [p,f] of P.R.arqs){if(!p.startsWith(PRES))continue;const m=/^(.*)~([A-Za-z0-9]+)\.json$/.exec(p.slice(PRES.length));if(!m||m[2]===eu)continue;const t=+new Date(f.modifiedTime||0);if(ag-t<6*60000)L.push({nome:m[1],quando:t,id:m[2]})}
+    setOutros(L)};
+  function setOutros(L){const ag=Date.now(),novos=L.filter(o=>!SY.outros.some(x=>x.id===o.id));SY.outros=L;for(const o of novos)if(!SY.vistos[o.id]||ag-SY.vistos[o.id]>30*60000){SY.vistos[o.id]=ag;toast("Este mundo também está aberto em: "+o.nome+".")}atualizaBotao()}
+  const nomeP=a=>a.nome.replace(/[^\p{L}\p{N} _-]/gu,"").trim()||"Aparelho";
+  // pasta sincronizada pelo Google Drive para computador (sem o automático): a presença vai por um arquivo na própria pasta
+  async function presencaLocal(){const AP=window.AtlasPasta,T=tauri();if(!AP||!T||!T.fs||ANDROID||!conectado()||autoOn())return;const at=AP.atual&&AP.atual();if(!at||at.tipo!=="app"||!at.chave)return;
+    const dir=at.chave.replace(/[\\/]+$/,"")+"/.atlas/aparelhos",a=aparelho();
+    try{await T.fs.mkdir(dir,{recursive:true}).catch(()=>{});await T.fs.writeTextFile(dir+"/"+nomeP(a)+"~"+a.id+".json",JSON.stringify({nome:a.nome,quando:new Date().toISOString()}));
+      const ag=Date.now(),out=[];for(const x of await T.fs.readDir(dir)){const m=/^(.*)~([A-Za-z0-9]+)\.json$/.exec(x.name||"");if(!m||m[2]===a.id)continue;try{const st=await T.fs.stat(dir+"/"+x.name),t=st.mtime?+new Date(st.mtime):0;if(ag-t<6*60000)out.push({nome:m[1],quando:t,id:m[2]})}catch(e){}}setOutros(out)}catch(e){}}
+  setInterval(()=>{if(!document.hidden)presencaLocal()},100000);
+  // presença: um arquivinho por aparelho, atualizado a cada ~2 min enquanto o mundo está aberto
+  let tPres=0;async function presenca(P){if(Date.now()-tPres<110000)return;tPres=Date.now();const a=aparelho(),rel=PRES+nomeP(a)+"~"+a.id+".json",f=P.R.arqs.get(rel);
+    try{await sobe(P.R.pastas,rel,JSON.stringify({nome:a.nome,quando:new Date().toISOString()}),f&&f.id)}catch(e){}}
+  // o que o app mostra antes e depois de receber (para redesenhar só o necessário)
+  const foto=()=>{const {S}=app(),o={};if(!S)return o;for(const [id,n] of S.notes)o["n"+id]=n.updated||0;for(const [id,m] of S.maps)o["m"+id]=m.updated||0;return o};
+  async function sincroniza(modo){if(!autoOn())return;if(SY.on){SY.pend=!SY.pend||SY.pend===modo?modo:"tudo";return}
+    const chave=mk();SY.on=true;atualizaBotao();let rec=0,env=0,conf=0,por=null;
+    try{if(modo!=="enviar"){const P=await prepara("atualizar");lembra(P);if(window.__SYNCLOG)__SYNCLOG.push(["rec",P.itens.filter(x=>x.acao!=="igual").map(x=>x.p+":"+x.acao)]);if(mk()!==chave)return;conf=P.itens.filter(x=>x.acao==="conflito").length;
+        if(P.itens.some(x=>x.acao==="novo"||x.acao==="alterado"||x.acao==="remover")){const antes=foto(),r=await atualizar(P,{},null,true);rec=r.n-r.erros.length;if(rec){try{por=(await indiceRemoto(P)).por}catch(e){}const depois=foto(),mud=Object.keys(depois).filter(k=>antes[k]!==depois[k]).concat(Object.keys(antes).filter(k=>!(k in depois)));
+          if(app().aposSync)app().aposSync(mud);toast((rec===1?"Chegou 1 mudança":"Chegaram "+rec+" mudanças")+(por&&por.nome&&por.id!==aparelho().id?" do "+por.nome:" do Drive")+".")}}
+        presenca(P)}
+      if(mk()!==chave)return;
+      if(modo!=="receber"&&(estado().sujo||modo==="enviar")){const P=await prepara("enviar");lembra(P);if(window.__SYNCLOG)__SYNCLOG.push(["env",P.itens.filter(x=>x.acao!=="igual").map(x=>x.p+":"+x.acao)]);if(mk()!==chave)return;const c2=P.itens.filter(x=>x.acao==="conflito").length;conf=Math.max(conf,c2);
+        if(P.itens.some(x=>x.acao==="novo"||x.acao==="alterado"||x.acao==="remover")){const r=await enviar(P,{},null,true);env=r.n-r.erros.length;if(r.erros.length)SY.erro=r.erros[0];if(r.tarde)SY.pend="tudo";
+          // outro aparelho gravou o mesmo arquivo logo depois? então foi conflito: volta a base para o usuário escolher
+          if(r.subidos.length){await new Promise(ok=>setTimeout(ok,2500));const bt=ls(kM(K_BASE))||{arq:{}};let ruim=0;for(const [pp,id,md] of r.subidos){try{const at=await json(API+"/files/"+id+"?fields=md5Checksum");if(at.md5Checksum!==md){ruim++;if(P.base[pp])bt.arq[pp]=P.base[pp];else delete bt.arq[pp]}}catch(e){}}if(ruim){ls(kM(K_BASE),bt);SY.pend="tudo"}}}
+        presenca(P);const e=estado();e.sujo=c2>0;salvaEstado(e)}
+      const e=estado();e.ultima=new Date().toISOString();e.acao="auto";e.conflitos=conf;salvaEstado(e);SY.erro=null;
+      if(conf&&Date.now()-SY.avisoConf>10*60000){SY.avisoConf=Date.now();toast(conf===1?"1 arquivo mudou aqui e no outro aparelho: toque no botão do Drive para escolher.":conf+" arquivos mudaram aqui e no outro aparelho: toque no botão do Drive para escolher.")}}
+    catch(er){SY.erro=er.message;console.warn("sincroniza",er)}
+    finally{SY.on=false;SY.ultBusca=Date.now();atualizaBotao();if(SY.pend){const m=SY.pend;SY.pend=null;setTimeout(()=>sincroniza(m),400)}}}
+  function agendaEnvio(){if(!autoOn())return;clearTimeout(SY.tEnv);if(!SY.tIni)SY.tIni=Date.now();SY.tEnv=setTimeout(()=>{SY.tIni=0;sincroniza("enviar")},Date.now()-SY.tIni>30000?300:6000)}
+  // lista de mudanças do Drive: barato de consultar; só busca tudo quando algo desta pasta mudou
+  async function mudouLa(){try{if(!SY.tok){SY.tok=(await json(API+"/changes/startPageToken")).startPageToken;return true}let tok=SY.tok,rel=false;
+      for(let k=0;k<5&&tok;k++){const j=await json(API+"/changes?pageToken="+q(tok)+"&pageSize=500&includeRemoved=true&spaces=drive&fields="+q("nextPageToken,newStartPageToken,changes(fileId,removed,file(parents))"));
+        for(const ch of j.changes||[]){if(SY.arq.has(ch.fileId)||SY.pastas.has(ch.fileId)||ch.file&&(ch.file.parents||[]).some(p=>SY.pastas.has(p)))rel=true}
+        if(j.newStartPageToken){SY.tok=j.newStartPageToken;break}tok=j.nextPageToken;SY.tok=tok}return rel||SY.chave!==mk()}catch(e){return true}}
+  async function vigia(forca){if(!autoOn()||document.hidden||SY.on)return;if(!forca&&Date.now()-SY.ultBusca<15000)return;SY.ultBusca=Date.now();
+    if(forca||await mudouLa())sincroniza(estado().sujo?"tudo":"receber");else{const P0=SY.chave===mk()?null:1;if(P0)sincroniza("receber");else if(Date.now()-tPres>110000)sincroniza("receber")}}
+  setInterval(()=>vigia(false),10000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(()=>vigia(true),600)});
+  addEventListener("focus",()=>setTimeout(()=>vigia(false),800));
+  // o app trocou de mundo: zera o que era do outro e busca o deste
+  function mundoAberto(){SY.chave=null;SY.arq=new Set();SY.pastas=new Set();SY.outros=[];tPres=0;clearTimeout(SY.tEnv);SY.tIni=0;atualizaBotao();setTimeout(presencaLocal,1500);if(autoOn())setTimeout(()=>sincroniza(estado().sujo?"tudo":"receber"),800)}
+
+  // todos os mundos do Atlas que estão no Drive: pastas que têm uma .atlas dentro
+  async function buscaTodos(qs,campos){const out=[];let tok="";for(let k=0;k<10;k++){const j=await json(API+"/files?pageSize=1000&fields="+q("nextPageToken,files("+campos+")")+"&q="+q(qs)+(tok?"&pageToken="+q(tok):""));out.push(...(j.files||[]));if(!(tok=j.nextPageToken))break}return out}
+  let raizId=null,cacheMundos=null;
+  let promMundos=null;
+  function mundosNoDrive(forca){if(!conectado())return Promise.resolve([]);if(cacheMundos&&!forca&&Date.now()-cacheMundos.t<60000)return Promise.resolve(cacheMundos.L);if(promMundos&&!forca)return promMundos;promMundos=mundosNoDrive0().finally(()=>{promMundos=null});return promMundos}
+  async function mundosNoDrive0(){
+    const [at,fich]=await Promise.all([buscaTodos("name='.atlas' and mimeType='"+PASTA_MIME+"' and trashed=false","id,parents"),buscaTodos("name='mundo.json' and trashed=false","id,parents")]);
+    const fPor=new Map();for(const f of fich)if(f.parents)fPor.set(f.parents[0],f);if(!raizId)try{raizId=(await json(API+"/files/root?fields=id")).id}catch(e){}
+    const out=[],nomes={};await fila(at.slice(0,80),6,async a=>{const pid=a.parents&&a.parents[0];if(!pid)return;try{const w=await json(API+"/files/"+pid+"?fields="+q("id,name,parents,modifiedTime,trashed"));if(w.trashed)return;
+        let pc=false,onde="Meu Drive";const pai=w.parents&&w.parents[0];if(!pai)pc=true;else if(pai!==raizId){try{const p2=nomes[pai]||(nomes[pai]=await json(API+"/files/"+pai+"?fields="+q("id,name,parents")));onde=p2.name;pc=!p2.parents||!p2.parents.length}catch(e){onde=""}}
+        let meta=null;const mf=fPor.get(a.id);if(mf)try{meta=JSON.parse(await baixaTexto(mf.id))}catch(e){}
+        out.push({id:w.id,nome:w.name,onde,pc,meta,mod:w.modifiedTime})}catch(e){}});
+    out.sort((a,b)=>String(b.mod).localeCompare(String(a.mod)));cacheMundos={t:Date.now(),L:out};return out}
+  // pasta do Drive ligada a um mundo do app (pela chave do mundo)
+  const cfgDe=chave=>ls(K_CFG+"@pasta:"+chave);
+  function ligaEm(chave,pasta,auto){ls(K_CFG+"@pasta:"+chave,Object.assign({batalhas:true,imagens:true,backup:false},cfgDe(chave)||{},{pasta,auto:auto==null?undefined:auto}));ls(K_BASE+"@pasta:"+chave,null);ls(K_EST+"@pasta:"+chave,null)}
+  // pasta nova no Drive para um mundo: Meu Drive › Atlas › <nome>
+  async function criaPastaDrive(nome){let raiz=(await json(API+"/files?pageSize=10&fields="+q("files(id,name)")+"&q="+q("name='Atlas' and 'root' in parents and mimeType='"+PASTA_MIME+"' and trashed=false"))).files[0];
+    if(!raiz)raiz=await json(API+"/files?fields=id,name",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:"Atlas",mimeType:PASTA_MIME,parents:["root"]})});
+    const ja=new Set((await listaFilhos(raiz.id)).map(f=>f.name.toLowerCase()));let n=safe(nome),k=2;while(ja.has(n.toLowerCase()))n=safe(nome)+" "+(k++);
+    const f=await json(API+"/files?fields=id,name",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:n,mimeType:PASTA_MIME,parents:[raiz.id]})});cacheMundos=null;setTimeout(()=>{cacheMundos=null},15000);return {id:f.id,nome:f.name,caminho:"Meu Drive › Atlas"}}
+  // liga o mundo aberto a uma pasta nova no Drive e envia tudo
+  async function ligaNovo(nome){const p=await criaPastaDrive(nome),n=cfg();n.pasta=p;n.auto=undefined;salvaCfg(n);ls(kM(K_BASE),null);const e=estado();e.sujo=true;salvaEstado(e);await sincroniza("enviar");return p}
+  // baixa um mundo do Drive para uma pasta nova deste aparelho e abre (base: pasta-mãe; no celular, a interna)
+  async function baixaMundo(m,base){const AP=window.AtlasPasta,A=app();if(!AP||!AP.criarEm)throw new Error("Este Atlas não cria pastas.");
+    const tit=(m.meta&&m.meta.titulo)||m.nome;caixa("Baixando “"+tit+"”","importar",el("div",{class:"gd-espera"},el("span",{class:"gd-giro"}),el("p",{},"Trazendo o mundo do Drive para "+(AP.interno()?"este celular":"este computador")+"…")),null,{preso:true});
+    SY.on=true;try{await AP.espera();const r=await AP.criarEm(m.nome,base);ligaEm(r.caminho,{id:m.id,nome:m.nome,caminho:m.onde,pc:m.pc||undefined},true);
+      if(m.meta&&AP.gravaMeta)await AP.gravaMeta(m.meta);await A.Store.dePasta(false);
+      const P=await prepara("atualizar");lembra(P);const x=await atualizar(P,{},null,true);const e=estado();e.ultima=new Date().toISOString();e.sujo=false;salvaEstado(e);
+      A.drawAll&&A.drawAll();const F=document.getElementById("gdrive");if(F)F._fecha();
+      toast("“"+tit+"” está neste aparelho"+(x.erros.length?" (com "+x.erros.length+" aviso(s))":"")+" e vai se manter sincronizado.");return true}
+    catch(er){const F=document.getElementById("gdrive");if(F)F._fecha();throw er}finally{SY.on=false;atualizaBotao()}}
+
+  const marca=()=>{if(quieto)return;const e=estado();if(!e.sujo&&conectado()&&cfg().pasta){e.sujo=true;salvaEstado(e)}agendaEnvio()};
+
+  window.AtlasDrive={ambiente,configuracoes,menu,atualizaBotao,marca,mundoAberto,mundosNoDrive,baixaMundo,ligaNovo,criaPastaDrive,ligaEm,cfgDe,autoOn,sincroniza,aparelho,outros:()=>SY.outros,enviar:()=>fluxo("enviar"),atualizar:()=>fluxo("atualizar"),conectado,_md5:md5,_compara:compara};
 })();

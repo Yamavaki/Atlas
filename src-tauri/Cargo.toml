@@ -1,6 +1,6 @@
 [package]
 name = "atlas"
-version = "1.53.2"
+version = "1.54.0"
 description = "Atlas: notas, mapas e campanhas para RPG"
 authors = ["Yamavaki"]
 license = "GPL-3.0"
