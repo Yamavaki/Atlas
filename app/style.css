@@ -1364,3 +1364,4 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .stage>canvas.mtopoO{background:transparent;z-index:4}
 .stage.vtop>#mo{z-index:5;visibility:visible}.stage.vtop>svg,.stage.vtop>.manot{z-index:6}
 .stage>canvas.mtopo[hidden]{display:none!important}
+.stage.vtop>#mg{z-index:4;position:absolute}.stage.vtop>canvas.mtopoO{z-index:4}
