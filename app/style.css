@@ -1408,3 +1408,4 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .qd-vp{stroke:#17140f;stroke-width:2.5}
 @media (pointer:coarse){.qd-vm{r:11}.qd-vp{r:12}}
 .qd-dicaL{margin:2px 0 0;font-size:12px;color:var(--muted);line-height:1.35}
+.qd-mao .qd-pt,.qd-mao .qd-redim,.qd-mao .qd-vh{display:none!important}

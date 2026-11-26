@@ -128,6 +128,8 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   let modoQ=(()=>{try{const v=localStorage.getItem("atlas:quadroModo");if(v)return v}catch(_){}return matchMedia("(pointer:coarse)").matches?"mao":"sel"})();
   vista.addEventListener("pointerdown",e=>{if(e.target.closest(".qd-ed"))return;vista.focus({preventScroll:true});try{const sl=getSelection();if(sl&&sl.rangeCount&&!sl.isCollapsed)sl.removeAllRanges()}catch(_){}clearTimeout(toqueL);if(e.pointerType!=="mouse"&&e.button===0){const x0=e.clientX,y0=e.clientY,alvo0=e.target;toqueL=setTimeout(()=>{const p=P.get(e.pointerId);if(!p||Math.hypot(p[0]-x0,p[1]-y0)>10||P.size>1)return;arr=null;menuToque=Date.now();menuAqui(alvo0,x0,y0)},560)}const w=doMundo(e.clientX,e.clientY);P.set(e.pointerId,[e.clientX,e.clientY]);try{vista.setPointerCapture(e.pointerId)}catch(_){}
     if(P.size===2){arr={t:"pinca"};pin=0;return}
+    // 1.57/1.58.1: modo Mover (mão): nada se mexe nem se puxa; arrastar só move a câmera e tocar só seleciona
+    if(modoQ==="mao"&&!e.shiftKey&&e.button===0){const nd0=e.target.closest(".qd-no"),ln0=e.target.closest(".qd-l,.qd-vh");arr={t:"pan",x:e.clientX,y:e.clientY,limpa:!nd0&&!ln0,toque:nd0?nd0.dataset.id:null,linha:ln0&&!nd0?ln0.dataset.l:null,moveu:false};return}
     const vp=e.target.closest(".qd-vp,.qd-vm");if(vp&&e.button===0){const L=D.edges.find(x=>x.id===vp.dataset.l);if(L){const i=+vp.dataset.i;
         if(vp.classList.contains("qd-vm")){const g=rotear(D,nos,vis).get(L.id);marca();L.atlas=Object.assign({},L.atlas);const base=formaDe(L)==="pontos"?L.atlas.pts.map(v=>v.slice()):(g&&g.P?g.P.slice(1,-1).map(v=>[Math.round(v[0]),Math.round(v[1])]):[]);delete L.atlas.curva;delete L.atlas.forma;
           base.splice(i-1,0,[Math.round(w[0]),Math.round(w[1])]);L.atlas.pts=base;arr={t:"vponto",L,i:i-1,moveu:true};desenhaLinhas();return}
@@ -137,8 +139,6 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
     if(pt&&nd){const n=nos.get(nd.dataset.id);arr={t:"liga",de:n,lado:pt.dataset.lado,w};return}
     if(rd&&nd){const n=nos.get(nd.dataset.id);marca();arr={t:"redim",n,w0:w,w:n.width,h:n.height};return}
     // 1.57: modo Mover (mão): arrastar sempre move a câmera; tocar seleciona
-    if(modoQ==="mao"&&!e.shiftKey){if(nd&&(pt||rd)&&!sel.has(nd.dataset.id)){arr={t:"pan",x:e.clientX,y:e.clientY,toque:nd.dataset.id,moveu:false};return}
-      if(!(nd&&(pt||rd))){arr={t:"pan",x:e.clientX,y:e.clientY,limpa:!nd&&!ln,toque:nd?nd.dataset.id:null,linha:ln&&!nd?ln.dataset.l:null,moveu:false};return}}
     if(nd){const id=nd.dataset.id;if(e.shiftKey){if(sel.has(id))sel.delete(id);else sel.add(id)}else if(!sel.has(id)){sel=new Set([id])}selL=null;
       const mov=new Set(sel);for(const i of sel){const g=nos.get(i);if(g&&g.type==="group")for(const n of D.nodes)if(n.type!=="group"&&dentroDe(g,n))mov.add(n.id)}
       arr={t:"mover",w0:w,ini:[...mov].map(i=>{const n=nos.get(i);return [n,n.x,n.y]}),moveu:false};marcaSel();return}
