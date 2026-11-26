@@ -291,7 +291,7 @@
   function menu(btn){const c=cfg(),e=estado(),con=conectado()&&c.pasta;if(!con)return configuracoes();let m=document.getElementById("gdmenu");if(m){m.remove();return}const r=btn.getBoundingClientRect();
     const fecha=()=>{m.remove();document.removeEventListener("pointerdown",fora,true)},fora=ev=>{if(!m.contains(ev.target)&&ev.target!==btn&&!btn.contains(ev.target))fecha()};
     const item=(i,t,d,fn,cls)=>el("button",{type:"button",class:"gd-mi"+(cls?" "+cls:""),onclick:()=>{fecha();fn()}},el("span",{class:"gd-mii"},ic(i,18)),el("span",{},el("b",{},t),el("small",{},d)));
-    m=el("div",{id:"gdmenu",class:"gd-menu",style:"top:"+(r.bottom+8)+"px;right:"+Math.max(8,innerWidth-r.right)+"px"},
+    m=el("div",{id:"gdmenu",class:"gd-menu",style:(()=>{const W=Math.min(320,innerWidth-16),L=Math.max(8,Math.min(r.right-W,innerWidth-W-8));return "top:"+(r.bottom+8)+"px;left:"+L+"px;max-height:calc(100vh - "+(r.bottom+16)+"px);overflow:auto"})()},
       el("div",{class:"gd-mh"},el("span",{class:"gd-av"},((c.conta&&c.conta.nome)||"G").slice(0,1).toUpperCase()),el("div",{},el("b",{},c.pasta.nome),el("small",{},(c.conta&&c.conta.email?c.conta.email+" · ":"")+"última: "+quando(e.ultima)))),
       SY.outros.length?el("p",{class:"gd-outros"},"Também aberto agora em: "+SY.outros.map(o=>o.nome+" ("+quando(o.quando)+")").join(", ")):null,
       e.conflitos?el("p",{class:"gd-aviso"},e.conflitos===1?"1 arquivo mudou aqui e no Drive. Escolha qual versão fica.":e.conflitos+" arquivos mudaram aqui e no Drive. Escolha qual versão fica."):e.sujo&&!autoOn(c)?el("p",{class:"gd-aviso"},"Há alterações neste aparelho que ainda não foram enviadas."):null,
