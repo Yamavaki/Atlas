@@ -117,12 +117,16 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   const dentroDe=(g,n)=>n.x>=g.x&&n.y>=g.y&&n.x+n.width<=g.x+g.width&&n.y+n.height<=g.y+g.height;
   // ---- ponteiro ----
   const P=new Map();let pin=0,toqueL=0,ultMenu=0,menuToque=0;
+  let modoQ=(()=>{try{const v=localStorage.getItem("atlas:quadroModo");if(v)return v}catch(_){}return matchMedia("(pointer:coarse)").matches?"mao":"sel"})();
   vista.addEventListener("pointerdown",e=>{if(e.target.closest(".qd-ed"))return;vista.focus({preventScroll:true});try{const sl=getSelection();if(sl&&sl.rangeCount&&!sl.isCollapsed)sl.removeAllRanges()}catch(_){}clearTimeout(toqueL);if(e.pointerType!=="mouse"&&e.button===0){const x0=e.clientX,y0=e.clientY,alvo0=e.target;toqueL=setTimeout(()=>{const p=P.get(e.pointerId);if(!p||Math.hypot(p[0]-x0,p[1]-y0)>10||P.size>1)return;arr=null;menuToque=Date.now();menuAqui(alvo0,x0,y0)},560)}const w=doMundo(e.clientX,e.clientY);P.set(e.pointerId,[e.clientX,e.clientY]);try{vista.setPointerCapture(e.pointerId)}catch(_){}
     if(P.size===2){arr={t:"pinca"};pin=0;return}
     const pt=e.target.closest(".qd-pt"),rd=e.target.closest(".qd-redim"),nd=e.target.closest(".qd-no"),ln=e.target.closest(".qd-l");
     if(e.button===1||(e.button===0&&e.altKey)){arr={t:"pan",x:e.clientX,y:e.clientY};return}
     if(pt&&nd){const n=nos.get(nd.dataset.id);arr={t:"liga",de:n,lado:pt.dataset.lado,w};return}
     if(rd&&nd){const n=nos.get(nd.dataset.id);marca();arr={t:"redim",n,w0:w,w:n.width,h:n.height};return}
+    // 1.57: modo Mover (mão): arrastar sempre move a câmera; tocar seleciona
+    if(modoQ==="mao"&&!e.shiftKey){if(nd&&(pt||rd)&&!sel.has(nd.dataset.id)){arr={t:"pan",x:e.clientX,y:e.clientY,toque:nd.dataset.id,moveu:false};return}
+      if(!(nd&&(pt||rd))){arr={t:"pan",x:e.clientX,y:e.clientY,limpa:!nd&&!ln,toque:nd?nd.dataset.id:null,linha:ln&&!nd?ln.dataset.l:null,moveu:false};return}}
     if(nd){const id=nd.dataset.id;if(e.shiftKey){if(sel.has(id))sel.delete(id);else sel.add(id)}else if(!sel.has(id)){sel=new Set([id])}selL=null;
       const mov=new Set(sel);for(const i of sel){const g=nos.get(i);if(g&&g.type==="group")for(const n of D.nodes)if(n.type!=="group"&&dentroDe(g,n))mov.add(n.id)}
       arr={t:"mover",w0:w,ini:[...mov].map(i=>{const n=nos.get(i);return [n,n.x,n.y]}),moveu:false};marcaSel();return}
@@ -137,7 +141,7 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
     if(arr.t==="liga"){const p=ponto(arr.de,arr.lado);camT.remove();const t=sv("path",{d:"M"+p+"L"+w,stroke:corDe(arr.de.color)||"#D4A64A","stroke-width":2.4,"stroke-dasharray":"6 5",fill:"none",class:"qd-tmp"});const old=camL.querySelector(".qd-tmp");if(old)old.remove();camL.append(t);arr.w=w;return}
     if(arr.t==="caixa"){arr.w1=w;let b=vista.querySelector(".qd-caixa");if(!b){b=el("div",{class:"qd-caixa"});mundo.append(b)}const x0=Math.min(arr.w0[0],w[0]),y0=Math.min(arr.w0[1],w[1]);b.style.cssText="left:"+x0+"px;top:"+y0+"px;width:"+Math.abs(w[0]-arr.w0[0])+"px;height:"+Math.abs(w[1]-arr.w0[1])+"px"}});
   const solta=e=>{if(!P.has(e.pointerId))return;P.delete(e.pointerId);pin=0;const a=arr;if(!a)return;if(a.t==="pinca"){if(P.size<2)arr=null;return}arr=null;
-    if(a.t==="pan"){if(a.limpa&&!a.moveu&&(sel.size||selL)){sel.clear();selL=null;tudo()}return}
+    if(a.t==="pan"){if(!a.moveu&&a.toque){sel=new Set([a.toque]);selL=null;marcaSel();return}if(!a.moveu&&a.linha){selL=a.linha;sel.clear();tudo();return}if(a.limpa&&!a.moveu&&(sel.size||selL)){sel.clear();selL=null;tudo()}return}
     if(a.t==="mover"){if(a.moveu){if(ctx.mudaArco)for(const [n] of a.ini){if(tipoNo(n)!=="nota")continue;const cx=n.x+n.width/2,cy=n.y+n.height/2,g=D.nodes.find(G=>G.type==="group"&&G.label&&cx>G.x&&cx<G.x+G.width&&cy>G.y&&cy<G.y+G.height);if(g)ctx.mudaArco(tituloArq(n.file),g.label)}salva();desenhaMini()}return}
     if(a.t==="redim"){tudo();salva();return}
     if(a.t==="caixa"){const b=vista.querySelector(".qd-caixa");if(b)b.remove();const x0=Math.min(a.w0[0],a.w1[0]),x1=Math.max(a.w0[0],a.w1[0]),y0=Math.min(a.w0[1],a.w1[1]),y1=Math.max(a.w0[1],a.w1[1]);sel=new Set(D.nodes.filter(n=>n.x>=x0&&n.y>=y0&&n.x+n.width<=x1&&n.y+n.height<=y1).map(n=>n.id));selL=null;tudo();return}
@@ -226,6 +230,9 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   const menuNotas=btn=>menuSimples(btn,ctx.notas().map(n=>({ic:n.ic,cor:n.cor,txt:n.titulo,det:n.tipo,fn:()=>criaNota(n.titulo)})),true);
   const menuMapas=btn=>menuSimples(btn,ctx.mapas().map(m=>({ic:m.ic,cor:"#8DB06A",txt:m.nome,det:m.det,fn:()=>criaMapa(m)})),false);
   const zoomTxt=el("span",{class:"qd-zt"});
+  const bSel=el("button",{type:"button",class:"qd-zb qd-modo",title:"Selecionar: arrastar move as notas",onclick:()=>poeModo("sel")},ic("selecionar",18)),bMao=el("button",{type:"button",class:"qd-zb qd-modo",title:"Mover a tela: arrastar só move a câmera; tocar seleciona",onclick:()=>poeModo("mao")},ic("mao",18));
+  function poeModo(m){modoQ=m;try{localStorage.setItem("atlas:quadroModo",m)}catch(_){}bSel.setAttribute("aria-pressed",String(m==="sel"));bMao.setAttribute("aria-pressed",String(m==="mao"));vista.classList.toggle("qd-mao",m==="mao")}
+  zoomB.append(bSel,bMao,el("span",{class:"qd-sep"}));poeModo(modoQ);
   zoomB.append(el("button",{type:"button",class:"qd-zb",title:"Desfazer (Ctrl+Z)","aria-label":"Desfazer",onclick:()=>volta(pilha,refaz)},ic("desfazer",18)),el("button",{type:"button",class:"qd-zb",title:"Refazer","aria-label":"Refazer",onclick:()=>volta(refaz,pilha)},ic("refazer",18)),
     el("button",{type:"button",class:"qd-zb",title:"Afastar","aria-label":"Afastar",onclick:()=>{const r=vista.getBoundingClientRect();zoomEm(r.left+r.width/2,r.top+r.height/2,1/1.25)}},ic("menos",18)),zoomTxt,
     el("button",{type:"button",class:"qd-zb",title:"Aproximar","aria-label":"Aproximar",onclick:()=>{const r=vista.getBoundingClientRect();zoomEm(r.left+r.width/2,r.top+r.height/2,1.25)}},ic("mais",18)),el("button",{type:"button",class:"qd-zb",title:"Enquadrar tudo (F)","aria-label":"Enquadrar tudo",onclick:enquadra},ic("enquadrar",18)));
