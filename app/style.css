@@ -1402,3 +1402,9 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .qwrap.qteia{height:auto}
 .qd-area.qd-teia{height:calc(100vh - 150px);height:calc(100dvh - 150px);min-height:380px}
 @media (max-width:860px){.qd-area.qd-teia{height:calc(100dvh - 56px - 68px - 24px)}}
+/* 1.58: pontos de edição das linhas do quadro */
+.qd-vm,.qd-vp{pointer-events:all;cursor:grab}
+.qd-vm{fill:#17140f;stroke-width:2;opacity:.85}.qd-vm:hover{opacity:1;fill:#2a241a}
+.qd-vp{stroke:#17140f;stroke-width:2.5}
+@media (pointer:coarse){.qd-vm{r:11}.qd-vp{r:12}}
+.qd-dicaL{margin:2px 0 0;font-size:12px;color:var(--muted);line-height:1.35}

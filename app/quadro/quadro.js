@@ -16,6 +16,7 @@ const abreImg=async arq=>{try{return await createImageBitmap(arq)}catch(e){const
 export async function reduzImagem(arq,max){max=max||2048;const bmp=await abreImg(arq),k=Math.min(1,max/Math.max(bmp.width,bmp.height)),c=document.createElement("canvas");c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
   const blob=await new Promise(ok=>c.toBlob(ok,"image/webp",.86));return {blob,w:c.width,h:c.height}}
 export {leImg};
+import {criaRoteador,formaDe} from "./rotas.js";
 
 // ---------- geometria das linhas ----------
 const LADOS={top:[0,-1],bottom:[0,1],left:[-1,0],right:[1,0]};
@@ -26,7 +27,7 @@ function caminhoLinha(A,B,e){let fs=e.fromSide,ts=e.toSide;if(!fs||!ts){const m=
   const L=Math.max(40,Math.min(220,Math.hypot(q[0]-p[0],q[1]-p[1])*.45)),a=LADOS[fs],b=LADOS[ts],c1=[p[0]+a[0]*L,p[1]+a[1]*L],c2=[q[0]+b[0]*L,q[1]+b[1]*L];
   const bz=t=>{const u=1-t;return [u*u*u*p[0]+3*u*u*t*c1[0]+3*u*t*t*c2[0]+t*t*t*q[0],u*u*u*p[1]+3*u*u*t*c1[1]+3*u*t*t*c2[1]+t*t*t*q[1]]};
   return {d:"M"+p+"C"+c1+" "+c2+" "+q,p,q,meio:bz(.5),t:[q[0]-c2[0],q[1]-c2[1]],t0:[p[0]-c1[0],p[1]-c1[1]]}}
-const seta=(q,t,cor)=>{const l=Math.hypot(t[0],t[1])||1,ux=t[0]/l,uy=t[1]/l,s=12,w=6;return el("path",{d:"M"+q+"L"+[q[0]-ux*s-uy*w,q[1]-uy*s+ux*w]+"L"+[q[0]-ux*s+uy*w,q[1]-uy*s-ux*w]+"Z",fill:cor})};
+const seta=(q,t,cor)=>{const l=Math.hypot(t[0],t[1])||1,ux=t[0]/l,uy=t[1]/l,s=12,w=6;return sv("path",{d:"M"+q+"L"+[q[0]-ux*s-uy*w,q[1]-uy*s+ux*w]+"L"+[q[0]-ux*s+uy*w,q[1]-uy*s-ux*w]+"Z",fill:cor})};
 const SVG="http://www.w3.org/2000/svg";const sv=(t,a)=>{const e=document.createElementNS(SVG,t);for(const k in a||{})if(a[k]!=null)e.setAttribute(k,a[k]);return e};
 
 // ---------- o quadro ----------
@@ -66,11 +67,17 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   function montaNo(n){let d=elNo.get(n.id);const k=tipoNo(n),c=corDe(n.color);if(!d){d=el("div",{class:"qd-no","data-id":n.id});elNo.set(n.id,d);mundo.append(d)}
     d.className="qd-no qd-"+k+(sel.has(n.id)?" on":"")+(vizFoco&&!vizFoco.has(n.id)?" qd-apaga":"")+(n.atlas&&n.atlas.segredo?" qd-seg":"");d.style.cssText="left:"+n.x+"px;top:"+n.y+"px;width:"+n.width+"px;height:"+n.height+"px"+(c?";--cor:"+c:"")+(k==="group"?";z-index:0":"");
     d.replaceChildren(...corpoNo(n).filter(Boolean),el("span",{class:"qd-redim",title:"Mudar o tamanho"}),...["top","right","bottom","left"].map(l=>el("span",{class:"qd-pt qd-pt-"+l,"data-lado":l,title:"Arraste para ligar"})));return d}
-  function desenhaLinhas(){camL.replaceChildren();for(const e of D.edges){const A=nos.get(e.fromNode),B=nos.get(e.toNode);if(!A||!B||!vis(A)||!vis(B))continue;const c=corDe(e.color)||"#B3A486",g=caminhoLinha(A,B,e),est=e.atlas&&e.atlas.estilo,on=selL===e.id;
+  const rotear=criaRoteador();
+  function desenhaLinhas(){camL.replaceChildren();const RT=rotear(D,nos,vis,!!(arr&&arr.t==="mover"&&arr.moveu));clearTimeout(desenhaLinhas._t);if(RT.pendente||(arr&&arr.t==="mover"&&arr.moveu))desenhaLinhas._t=setTimeout(()=>{if(!(arr&&arr.t==="mover"))desenhaLinhas()},RT.pendente?20:250);for(const e of D.edges){const A=nos.get(e.fromNode),B=nos.get(e.toNode);if(!A||!B||!vis(A)||!vis(B))continue;const c=corDe(e.color)||"#B3A486",g=RT.get(e.id)||caminhoLinha(A,B,e),est=e.atlas&&e.atlas.estilo,on=selL===e.id;
       const grp=sv("g",{"data-l":e.id,class:"qd-l"+(on?" on":"")+(vizFoco&&!(vizFoco.has(e.fromNode)&&vizFoco.has(e.toNode))?" qd-apaga":"")});const gr=e.atlas&&e.atlas.grossa?1.4:1;grp.append(sv("path",{d:g.d,class:"qd-lhit"}),sv("path",{d:g.d,stroke:c,"stroke-width":(on?3.5:2.4)*gr,fill:"none","stroke-dasharray":est==="tracejada"?"10 7":est==="pontilhada"?"2 6":null,"stroke-linecap":"round"}));
       if(e.toEnd!=="none")grp.append(seta(g.q,g.t,c));if(e.fromEnd==="arrow")grp.append(seta(g.p,g.t0,c));
       if(e.label){const t=sv("text",{x:g.meio[0],y:g.meio[1]+4,"text-anchor":"middle",class:"qd-lr"});t.textContent=e.label;const w=e.label.length*7.4+16;grp.append(sv("rect",{x:g.meio[0]-w/2,y:g.meio[1]-12,width:w,height:24,rx:12,class:"qd-lbg",stroke:c}),t)}
-      camL.append(grp)}}
+      camL.append(grp);
+      // 1.58: linha selecionada: pontos para editar (arrastar move; tocar duas vezes tira) e "+" no meio de cada trecho para criar ponto
+      if(on&&g.P&&!(ctx.somenteLeitura)){const P=g.P,man=formaDe(e)==="pontos",hg=sv("g",{class:"qd-vh","data-l":e.id});
+        for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(Math.hypot(b[0]-a[0],b[1]-a[1])<34)continue;const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];hg.append(sv("circle",{cx:m[0],cy:m[1],r:7,class:"qd-vm","data-i":i,"data-l":e.id,stroke:c}))}
+        if(man)P.slice(1,-1).forEach((v,i)=>hg.append(sv("circle",{cx:v[0],cy:v[1],r:8,class:"qd-vp","data-i":i,"data-l":e.id,fill:c})));
+        camL.append(hg)}}}
   // so troca a marcacao da selecao (sem refazer os cartoes: refazer no pointerdown impede o clique e o duplo clique)
   function marcaSel(){for(const [id,d] of elNo)d.classList.toggle("on",sel.has(id));desenhaLinhas();mostraPainel()}
   function tudo(){nos.clear();for(const n of D.nodes)nos.set(n.id,n);for(const [id,d] of elNo)if(!nos.has(id)||!vis(nos.get(id))){d.remove();elNo.delete(id)}if(foco&&!nos.has(foco))foco=null;vizFoco=foco?new Set([foco,...D.edges.filter(e=>e.fromNode===foco||e.toNode===foco).flatMap(e=>[e.fromNode,e.toNode])]):null;focoChip.hidden=!foco;dica.hidden=!!foco||D.nodes.length>3;
@@ -101,7 +108,8 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
     if(L){const at=L.atlas||{},A=nos.get(L.fromNode),B=nos.get(L.toNode),opt=(rot,v,lista,fn)=>el("div",{class:"qd-seg"},lista.map(([k,n])=>el("button",{type:"button",class:v===k?"on":"",onclick:()=>muda(o=>fn(o,k))},n)));
       K.push(el("label",{class:"qd-lab"},"Rótulo",el("input",{type:"text",value:L.label||"",placeholder:"ex.: traiu, deve dinheiro a",onchange:e=>muda(o=>{if(e.target.value.trim())o.label=e.target.value.trim();else delete o.label})})),
         opt("Traço",at.estilo||"cheia",[["cheia","Cheia"],["tracejada","Tracejada"],["pontilhada","Pontilhada"]],(o,k)=>{o.atlas=Object.assign({},o.atlas);if(k==="cheia")delete o.atlas.estilo;else o.atlas.estilo=k}),
-        opt("Forma",at.curva===false?"reta":"curva",[["curva","Curva"],["reta","Reta"]],(o,k)=>{o.atlas=Object.assign({},o.atlas);if(k==="curva")delete o.atlas.curva;else o.atlas.curva=false}),
+        opt("Forma",formaDe(L),[["contorna","Contorna"],["curva","Curva"],["reta","Reta"]].concat(formaDe(L)==="pontos"?[["pontos","Pontos"]]:[]),(o,k)=>{if(k==="pontos")return;o.atlas=Object.assign({},o.atlas);delete o.atlas.pts;delete o.atlas.curva;delete o.atlas.forma;if(k==="reta")o.atlas.curva=false;else if(k==="curva")o.atlas.forma="curva";if(!Object.keys(o.atlas).length)delete o.atlas}),
+        el("p",{class:"qd-dicaL"},formaDe(L)==="pontos"?"Arraste os pontos para ajustar. Toque duas vezes num ponto para tirar. Escolha Contorna para voltar ao automático.":"Arraste o + no meio de um trecho para criar um ponto e desenhar o caminho da linha."),
         opt("Pontas",L.fromEnd==="arrow"?"duas":L.toEnd==="none"?"nenhuma":"seta",[["seta","Seta"],["duas","Dupla"],["nenhuma","Nenhuma"]],(o,k)=>{o.toEnd=k==="nenhuma"?"none":undefined;o.fromEnd=k==="duas"?"arrow":undefined;if(!o.toEnd)delete o.toEnd;if(!o.fromEnd)delete o.fromEnd}));
       if(A&&B&&tipoNo(A)==="nota"&&tipoNo(B)==="nota")K.push(el("button",{type:"button",class:"qd-acao",onclick:()=>{ctx.ligarNotas(tituloArq(A.file),tituloArq(B.file),L.label);ctx.aviso("Ligação escrita na nota "+tituloArq(A.file)+".")}},ic("link",16),"Ligar as notas"));
       if(A&&B&&tipoNo(A)==="nota"&&tipoNo(B)==="nota"&&ctx.tiposLigacao)K.push(el("button",{type:"button",class:"qd-acao",onclick:e=>{const r=e.currentTarget.getBoundingClientRect();perguntaTipo(L,r.left,r.top-10)}},ic("link",16),at.auto?"Mudar o tipo da ligação":"Escolher o tipo da ligação"));
@@ -120,6 +128,10 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   let modoQ=(()=>{try{const v=localStorage.getItem("atlas:quadroModo");if(v)return v}catch(_){}return matchMedia("(pointer:coarse)").matches?"mao":"sel"})();
   vista.addEventListener("pointerdown",e=>{if(e.target.closest(".qd-ed"))return;vista.focus({preventScroll:true});try{const sl=getSelection();if(sl&&sl.rangeCount&&!sl.isCollapsed)sl.removeAllRanges()}catch(_){}clearTimeout(toqueL);if(e.pointerType!=="mouse"&&e.button===0){const x0=e.clientX,y0=e.clientY,alvo0=e.target;toqueL=setTimeout(()=>{const p=P.get(e.pointerId);if(!p||Math.hypot(p[0]-x0,p[1]-y0)>10||P.size>1)return;arr=null;menuToque=Date.now();menuAqui(alvo0,x0,y0)},560)}const w=doMundo(e.clientX,e.clientY);P.set(e.pointerId,[e.clientX,e.clientY]);try{vista.setPointerCapture(e.pointerId)}catch(_){}
     if(P.size===2){arr={t:"pinca"};pin=0;return}
+    const vp=e.target.closest(".qd-vp,.qd-vm");if(vp&&e.button===0){const L=D.edges.find(x=>x.id===vp.dataset.l);if(L){const i=+vp.dataset.i;
+        if(vp.classList.contains("qd-vm")){const g=rotear(D,nos,vis).get(L.id);marca();L.atlas=Object.assign({},L.atlas);const base=formaDe(L)==="pontos"?L.atlas.pts.map(v=>v.slice()):(g&&g.P?g.P.slice(1,-1).map(v=>[Math.round(v[0]),Math.round(v[1])]):[]);delete L.atlas.curva;delete L.atlas.forma;
+          base.splice(i-1,0,[Math.round(w[0]),Math.round(w[1])]);L.atlas.pts=base;arr={t:"vponto",L,i:i-1,moveu:true};desenhaLinhas();return}
+        marca();arr={t:"vponto",L,i,moveu:false,x:e.clientX,y:e.clientY};return}}
     const pt=e.target.closest(".qd-pt"),rd=e.target.closest(".qd-redim"),nd=e.target.closest(".qd-no"),ln=e.target.closest(".qd-l");
     if(e.button===1||(e.button===0&&e.altKey)){arr={t:"pan",x:e.clientX,y:e.clientY};return}
     if(pt&&nd){const n=nos.get(nd.dataset.id);arr={t:"liga",de:n,lado:pt.dataset.lado,w};return}
@@ -135,12 +147,17 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
     arr={t:"pan",x:e.clientX,y:e.clientY,limpa:true,moveu:false}});
   vista.addEventListener("pointermove",e=>{if(!P.has(e.pointerId))return;const ant=P.get(e.pointerId);P.set(e.pointerId,[e.clientX,e.clientY]);if(!arr)return;const w=doMundo(e.clientX,e.clientY);
     if(arr.t==="pinca"){if(P.size===2){const [a,b]=[...P.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pin)zoomEm((a[0]+b[0])/2,(a[1]+b[1])/2,d/pin);pin=d;cam.x+=(e.clientX-ant[0])/2;cam.y+=(e.clientY-ant[1])/2;aplicaCam()}return}
+    if(arr.t==="vponto"){const pts=arr.L.atlas.pts;let x=Math.round(w[0]),y=Math.round(w[1]);
+      // gruda no alinhamento dos vizinhos (fica reto)
+      const g=rotear(D,nos,vis).get(arr.L.id),P=g&&g.P,viz=P?[P[arr.i],P[arr.i+2]]:[];for(const v of viz){if(!v)continue;if(Math.abs(v[0]-x)<10/cam.z)x=Math.round(v[0]);if(Math.abs(v[1]-y)<10/cam.z)y=Math.round(v[1])}
+      pts[arr.i]=[x,y];arr.moveu=true;desenhaLinhas();return}
     if(arr.t==="pan"){cam.x+=e.clientX-ant[0];cam.y+=e.clientY-ant[1];if(Math.hypot(e.clientX-arr.x,e.clientY-arr.y)>4)arr.moveu=true;aplicaCam();return}
     if(arr.t==="mover"){const dx=w[0]-arr.w0[0],dy=w[1]-arr.w0[1];if(!arr.moveu){if(Math.hypot(dx,dy)*cam.z<3)return;arr.moveu=true;marca()}for(const [n,x,y] of arr.ini){n.x=Math.round(x+dx);n.y=Math.round(y+dy);const d=elNo.get(n.id);if(d){d.style.left=n.x+"px";d.style.top=n.y+"px"}}desenhaLinhas();return}
     if(arr.t==="redim"){const n=arr.n;n.width=Math.max(80,Math.round(arr.w+w[0]-arr.w0[0]));n.height=Math.max(50,Math.round(arr.h+w[1]-arr.w0[1]));const d=elNo.get(n.id);d.style.width=n.width+"px";d.style.height=n.height+"px";desenhaLinhas();return}
     if(arr.t==="liga"){const p=ponto(arr.de,arr.lado);camT.remove();const t=sv("path",{d:"M"+p+"L"+w,stroke:corDe(arr.de.color)||"#D4A64A","stroke-width":2.4,"stroke-dasharray":"6 5",fill:"none",class:"qd-tmp"});const old=camL.querySelector(".qd-tmp");if(old)old.remove();camL.append(t);arr.w=w;return}
     if(arr.t==="caixa"){arr.w1=w;let b=vista.querySelector(".qd-caixa");if(!b){b=el("div",{class:"qd-caixa"});mundo.append(b)}const x0=Math.min(arr.w0[0],w[0]),y0=Math.min(arr.w0[1],w[1]);b.style.cssText="left:"+x0+"px;top:"+y0+"px;width:"+Math.abs(w[0]-arr.w0[0])+"px;height:"+Math.abs(w[1]-arr.w0[1])+"px"}});
   const solta=e=>{if(!P.has(e.pointerId))return;P.delete(e.pointerId);pin=0;const a=arr;if(!a)return;if(a.t==="pinca"){if(P.size<2)arr=null;return}arr=null;
+    if(a.t==="vponto"){salva();return}
     if(a.t==="pan"){if(!a.moveu&&a.toque){sel=new Set([a.toque]);selL=null;marcaSel();return}if(!a.moveu&&a.linha){selL=a.linha;sel.clear();tudo();return}if(a.limpa&&!a.moveu&&(sel.size||selL)){sel.clear();selL=null;tudo()}return}
     if(a.t==="mover"){if(a.moveu){if(ctx.mudaArco)for(const [n] of a.ini){if(tipoNo(n)!=="nota")continue;const cx=n.x+n.width/2,cy=n.y+n.height/2,g=D.nodes.find(G=>G.type==="group"&&G.label&&cx>G.x&&cx<G.x+G.width&&cy>G.y&&cy<G.y+G.height);if(g)ctx.mudaArco(tituloArq(n.file),g.label)}salva();desenhaMini()}return}
     if(a.t==="redim"){tudo();salva();return}
@@ -152,7 +169,7 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   vista.addEventListener("contextmenu",e=>{if(e.target.closest(".qd-ed"))return;e.preventDefault();if(Date.now()-menuToque<900)return;clearTimeout(toqueL);arr=null;P.clear();menuAqui(alvoEm(e),e.clientX,e.clientY)});
   // com o ponteiro capturado o navegador entrega o clique para a vista: o alvo de verdade e o que esta sob o cursor
   function alvoEm(e){const x=document.elementFromPoint(e.clientX,e.clientY);return x&&vista.contains(x)?x:e.target}
-  vista.addEventListener("dblclick",e=>{const al=alvoEm(e);if(al.closest(".qd-ed,.qd-abre,input,label"))return;const nd=al.closest(".qd-no");const w=doMundo(e.clientX,e.clientY);if(!nd){if(ctx.tiposNota)menuNovo(e,w);else criaTexto(w[0],w[1],false);return}const n=nos.get(nd.dataset.id),k=tipoNo(n);if(k==="nota"){const t=tituloArq(n.file);if(ctx.resumoNota(t))(ctx.abrirNotaAba||ctx.abrirNota)(t);else ctx.criarNota(t)}else if(k==="mapa"&&n.atlas)ctx.abrirMapa(n.atlas.mapa);else edita(n)});
+  vista.addEventListener("dblclick",e=>{const al=alvoEm(e);{const vp=al.closest&&al.closest(".qd-vp");if(vp){const L=D.edges.find(x=>x.id===vp.dataset.l);if(L&&L.atlas&&L.atlas.pts){marca();L.atlas.pts.splice(+vp.dataset.i,1);if(!L.atlas.pts.length)delete L.atlas.pts;tudo();salva()}return}}if(al.closest(".qd-ed,.qd-abre,input,label"))return;const nd=al.closest(".qd-no");const w=doMundo(e.clientX,e.clientY);if(!nd){if(ctx.tiposNota)menuNovo(e,w);else criaTexto(w[0],w[1],false);return}const n=nos.get(nd.dataset.id),k=tipoNo(n);if(k==="nota"){const t=tituloArq(n.file);if(ctx.resumoNota(t))(ctx.abrirNotaAba||ctx.abrirNota)(t);else ctx.criarNota(t)}else if(k==="mapa"&&n.atlas)ctx.abrirMapa(n.atlas.mapa);else edita(n)});
   vista.addEventListener("wheel",e=>{e.preventDefault();if(e.ctrlKey||!e.shiftKey&&Math.abs(e.deltaY)>0&&!e.deltaX)zoomEm(e.clientX,e.clientY,Math.exp(-e.deltaY*.0015));else{cam.x-=e.deltaX;cam.y-=e.deltaY;aplicaCam()}},{passive:false});
   // arrastar uma nota da lista para o quadro; colar imagem
   vista.addEventListener("dragover",e=>{if([...e.dataTransfer.types].some(t=>t==="text/x-atlas-nota"||t==="text/x-atlas-mapa"||t==="Files")){e.preventDefault();e.dataTransfer.dropEffect="copy"}});
