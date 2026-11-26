@@ -2049,7 +2049,9 @@ async function atualizarAgora(){const T=window.__TAURI__;if(!T||!ATU.url)return;
 async function procuraAtualizacao(avisa){const T=window.__TAURI__;if(!T||!T.app)return false;try{const and=/Android/.test(navigator.userAgent);let v=await T.app.getVersion(),wv=null;
     // 1.50: no Android a interface atualiza sozinha (baixa so os arquivos que mudaram); vale a versao da interface que esta valendo
     if(and&&T.core){try{wv=await T.core.invoke("web_versao");v=wv[1]}catch{}}
-    const r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=1");if(!r.ok)return false;const L=await r.json(),u=L&&L[0];if(!u)return false;
+    const r=await fetch("https://api.github.com/repos/Yamavaki/Atlas/releases?per_page=8");if(!r.ok)return false;const L=await r.json();
+    // 1.56.1: a versao mais nova que ja tem o arquivo deste aparelho (se o Android falhar ou ainda estiver montando, usa a anterior)
+    const temArq=x=>(x.assets||[]).some(a=>and?(a.name==="web.json"||/\.apk$/i.test(a.name)):/setup\.exe$/i.test(a.name)),u=(L||[]).filter(x=>!x.draft).find(temArq);if(!u){if(avisa)toast("A versão nova ainda está sendo preparada. Tente de novo em alguns minutos.");return false}
     const nova=String(u.tag_name||"").replace(/^v/,""),cmp=(a,b)=>{const A=a.split(".").map(Number),B=b.split(".").map(Number);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)-(B[i]||0)}return 0};
     if(cmp(nova,v)<=0){if(avisa)toast("O Atlas já está na versão mais recente ("+v+").");return false}
     if(wv&&(u.assets||[]).some(x=>x.name==="web.json")){try{const n=await T.core.invoke("web_atualizar",{versao:nova});if(n>=0){toast("Atlas "+nova+" baixado"+(n?" ("+n+" arquivo"+(n>1?"s":"")+")":"")+". A versão nova vale na próxima vez que você abrir o app.");return true}}

@@ -83,7 +83,13 @@ jobs:
           cat "$MA"
 
       - name: Montar o app
-        run: npx tauri android build --apk --target aarch64 --target armv7 --ci
+        # o Maven Central as vezes responde 429 (muitos pedidos): tenta de novo ate 3 vezes
+        run: |
+          for i in 1 2 3; do
+            npx tauri android build --apk --target aarch64 --target armv7 --ci && exit 0
+            echo "falhou (tentativa $i), esperando para tentar de novo"; sleep $((i*60))
+          done
+          exit 1
 
       - name: Assinar
         env:
