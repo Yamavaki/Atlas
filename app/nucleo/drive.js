@@ -385,7 +385,9 @@
   // liga o mundo aberto a uma pasta nova no Drive e envia tudo
   async function ligaNovo(nome){const p=await criaPastaDrive(nome),n=cfg();n.pasta=p;n.auto=undefined;salvaCfg(n);ls(kM(K_BASE),null);const e=estado();e.sujo=true;salvaEstado(e);await sincroniza("enviar");return p}
   // baixa um mundo do Drive para uma pasta nova deste aparelho e abre (base: pasta-mãe; no celular, a interna)
-  async function baixaMundo(m,base){const AP=window.AtlasPasta,A=app();if(!AP||!AP.criarEm)throw new Error("Este Atlas não cria pastas.");
+  let baixando=false;
+  async function baixaMundo(m,base){if(baixando){toast("Já estou baixando um mundo. Espere terminar.");return false}baixando=true;try{return await baixaMundo0(m,base)}finally{baixando=false}}
+  async function baixaMundo0(m,base){const AP=window.AtlasPasta,A=app();if(!AP||!AP.criarEm)throw new Error("Este Atlas não cria pastas.");
     const tit=(m.meta&&m.meta.titulo)||m.nome;caixa("Baixando “"+tit+"”","importar",el("div",{class:"gd-espera"},el("span",{class:"gd-giro"}),el("p",{},"Trazendo o mundo do Drive para "+(AP.interno()?"este celular":"este computador")+"…")),null,{preso:true});
     SY.on=true;try{await AP.espera();const r=await AP.criarEm(m.nome,base);ligaEm(r.caminho,{id:m.id,nome:m.nome,caminho:m.onde,pc:m.pc||undefined},true);
       if(m.meta&&AP.gravaMeta)await AP.gravaMeta(m.meta);await A.Store.dePasta(false);

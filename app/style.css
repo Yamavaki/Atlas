@@ -1371,3 +1371,25 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .gd-outros{margin:6px 12px;font-size:12.5px;color:#8fc4e0}
 .mn-drive{margin-top:26px}.mn-dtopo{display:flex;align-items:center;gap:10px;margin-bottom:8px}.mn-h2{font-size:17px;margin:0;display:flex;align-items:center;gap:6px;flex:1}
 .mn-nuvem{color:#5fa8d0;display:inline-flex}.mn-fora{opacity:.92;border-style:dashed}.mn-fora .row{gap:6px;margin-top:2px}
+
+/* 1.56: tela limpa */
+.lay-bt[aria-pressed="false"]{opacity:.75}
+#bFoco[aria-pressed="true"]{background:var(--gold,#d8b45a);color:#1b160e}
+@media (min-width:761px){
+  #app.sem-lista{grid-template-columns:auto 0 minmax(0,1fr)!important}
+  #app.sem-lista>.side,#app.foco>.side{display:none!important}
+  #app.foco{grid-template-columns:0 0 minmax(0,1fr)!important}
+  #app.foco>.rail,#app.foco>.abas,#app.foco>.insp{display:none!important}
+  #app.sem-lista~#sideRes,#app.foco~#sideRes,body.foco #sideRes{display:none!important}
+}
+#app.foco .sumario{display:none!important}
+#app.foco .hintc,#app.foco .mapv .status{display:none!important}
+.hintc,.mapv .status{transition:opacity .6s}
+.hintc.some,.mapv .status.some{opacity:0;pointer-events:none}
+@media (min-width:861px){
+  .mapv2.sem-lado .mbody,.mapv2.sem-lado .mbody.par{grid-template-columns:minmax(0,1fr)!important}
+  .mapv2.sem-lado .mlado{display:none!important}
+}
+.mb-lado[aria-pressed="true"]{color:var(--gold,#d8b45a)}
+.mb-lado{position:relative}.mapv2.sem-lado .mb-lado.tem::after{content:"";position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--gold,#d8b45a)}
+@media (max-width:760px){#bLista{display:none!important}#app.foco>.rail{display:none!important}}
