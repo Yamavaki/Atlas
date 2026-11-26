@@ -301,6 +301,7 @@
       item("nuvem",autoOn(c)?"Automático: ligado":"Automático: desligado",autoOn(c)?"Envia e busca sozinho. Toque para desligar":c.pasta.pc&&!ANDROID?"Pasta já sincronizada pelo Google Drive para computador":"Toque para sincronizar sozinho",()=>{const n=cfg();n.auto=!autoOn(n);salvaCfg(n);atualizaBotao();if(n.auto)sincroniza("tudo");toast(n.auto?"Sincronização automática ligada.":"Sincronização automática desligada.")}),
       item("exportar","Enviar para o Drive","Manda o que mudou aqui",()=>fluxo("enviar"),autoOn(c)?"":"pri"),
       item("importar","Atualizar do Drive","Traz o que mudou lá, inclusive pelo Claude",()=>fluxo("atualizar")),
+      item("apagar","Remover cópias repetidas","Notas e mapas iguais, duplicados por engano",()=>app().removeDuplicados&&app().removeDuplicados()),
       item("ajustes","Configurações","Conta, pasta e o que sincronizar",()=>configuracoes()));
     document.body.append(m);setTimeout(()=>document.addEventListener("pointerdown",fora,true))}
 
@@ -356,7 +357,9 @@
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(()=>vigia(true),600)});
   addEventListener("focus",()=>setTimeout(()=>vigia(false),800));
   // o app trocou de mundo: zera o que era do outro e busca o deste
-  function mundoAberto(){SY.chave=null;SY.arq=new Set();SY.pastas=new Set();SY.outros=[];tPres=0;clearTimeout(SY.tEnv);SY.tIni=0;atualizaBotao();setTimeout(presencaLocal,1500);if(autoOn())setTimeout(()=>sincroniza(estado().sujo?"tudo":"receber"),800)}
+  // 1.55.2: pasta escolhida antes da 1.54 não sabe se é de um computador (Google Drive para computador); descobre pelos pais
+  async function verificaPc(){const c=cfg();if(ANDROID||!conectado()||!c.pasta||c.pasta.pc!==undefined||c.pasta.pcVisto)return;try{if(!raizId)raizId=(await json(API+"/files/root?fields=id")).id;let id=c.pasta.id,pc=false;for(let k=0;k<8;k++){const f=await json(API+"/files/"+id+"?fields="+q("id,parents"));const pai=f.parents&&f.parents[0];if(!pai){pc=f.id!==raizId;break}if(pai===raizId)break;id=pai}const n=cfg();if(!n.pasta||n.pasta.id!==c.pasta.id)return;n.pasta=Object.assign({},n.pasta,{pc:pc||undefined,pcVisto:true});salvaCfg(n);atualizaBotao();if(pc&&n.auto==null)toast("Este mundo está numa pasta do Google Drive para computador: o envio automático pelo Atlas foi desligado neste PC (o Google Drive já sincroniza a pasta).")}catch(e){}}
+  function mundoAberto(){setTimeout(verificaPc,300);SY.chave=null;SY.arq=new Set();SY.pastas=new Set();SY.outros=[];tPres=0;clearTimeout(SY.tEnv);SY.tIni=0;atualizaBotao();setTimeout(presencaLocal,1500);if(autoOn())setTimeout(()=>sincroniza(estado().sujo?"tudo":"receber"),800)}
 
   // todos os mundos do Atlas que estão no Drive: pastas que têm uma .atlas dentro
   async function buscaTodos(qs,campos){const out=[];let tok="";for(let k=0;k<10;k++){const j=await json(API+"/files?pageSize=1000&fields="+q("nextPageToken,files("+campos+")")+"&q="+q(qs)+(tok?"&pageToken="+q(tok):""));out.push(...(j.files||[]));if(!(tok=j.nextPageToken))break}return out}

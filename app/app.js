@@ -2232,6 +2232,18 @@ function drawMundosDrive(sec){const D_=window.AtlasDrive,AP=window.AtlasPasta;se
         aqui?null:h("div",{class:"row"},h("button",{type:"button",class:"primary sm",onclick:e=>{e.stopPropagation();abre()}},icone("importar",14),AP.interno()?"Baixar e abrir":"Baixar para Documentos"),AP.interno()?null:h("button",{type:"button",class:"ghost sm",onclick:lugar},"Escolher lugar…")))}))};
   if(MDRV)pinta(MDRV);else lista.replaceChildren(h("p",{class:"hsub"},"Procurando mundos no Drive…"));{D_.mundosNoDrive().then(L=>{MDRV=L;if(sec.isConnected)pinta(L)}).catch(e=>{lista.replaceChildren(h("p",{class:"hsub"},"Não foi possível ler o Drive: "+e.message))})}}
 // chegaram mudanças pelo Drive: redesenha sem atrapalhar quem está escrevendo
+// 1.55.2: cópias repetidas (mesmo nome, mesma pasta e mesmo conteúdo) que a sincronização dupla criou
+async function removeDuplicados(){const norm=t=>String(t||"").replace(/\s*\(\d+\)$/,"").replace(/\s+\d+$/,"").trim().toLowerCase(),limpo=t=>String(t||"").trim().toLowerCase(),
+    bin=(k,v)=>v instanceof Uint8Array?"u8:"+v.length+":"+v.slice(0,64).join(","):v,ordem=(a,b,ta,tb)=>(norm(ta)===limpo(ta)?0:1)-(norm(tb)===limpo(tb)?0:1)||String(ta).length-String(tb).length||String(a.id).localeCompare(String(b.id));
+  const agrupa=(lista,chave,tit)=>{const G=new Map();for(const x of lista){const k=chave(x);if(!G.has(k))G.set(k,[]);G.get(k).push(x)}const fora=[];for(const L of G.values())if(L.length>1){L.sort((a,b)=>ordem(a,b,tit(a),tit(b)));fora.push(...L.slice(1))}return fora};
+  const nt=agrupa([...S.notes.values()],n=>(n.folder||"")+"|"+norm(n.title)+"|"+(n.kind||"")+"|"+(n.kind==="canvas"?JSON.stringify(n.canvas||{}):String(n.content||"").replace(/\r/g,"").trim()),n=>n.title);
+  const mp=agrupa([...S.maps.values()],m=>norm(m.name)+"|"+JSON.stringify(Object.assign({},m,{id:0,name:0,updated:0,created:0}),bin),m=>m.name||"");
+  let bt=[];try{if(window.AtlasBatalha&&AtlasBatalha.exportarTudo)bt=agrupa(await AtlasBatalha.exportarTudo(),x=>norm(x.nome)+"|"+JSON.stringify(x.mapa,bin),x=>x.nome||"")}catch(e){console.warn(e)}
+  const tot=nt.length+mp.length+bt.length;if(!tot)return toast("Nenhuma cópia repetida neste mundo.");
+  const ex=[...nt.map(n=>n.title),...mp.map(m=>m.name),...bt.map(x=>x.nome)].slice(0,8).join(", ");
+  if(!(await confirma("Remover cópias repetidas?","Achei "+[nt.length?nt.length+" nota(s)":"",mp.length?mp.length+" mapa(s)":"",bt.length?bt.length+" mapa(s) de batalha":""].filter(Boolean).join(", ")+" iguais a outra (mesmo nome e mesmo conteúdo), por exemplo: "+ex+(tot>8?"…":"")+". Fica uma de cada; as cópias vão para a lixeira do mundo"+(window.AtlasDrive&&AtlasDrive.autoOn&&AtlasDrive.autoOn()?" e para a lixeira do Drive":"")+".","Remover "+tot,true)))return;
+  for(const n of nt){S.notes.delete(n.id);Store.remove("notes",n.id)}for(const m of mp){S.maps.delete(m.id);Store.remove("maps",m.id)}for(const x of bt)try{await AtlasBatalha.apagar(x.id)}catch(e){}
+  if(S.note&&!S.notes.has(S.note))S.note=null;if(S.map&&!S.maps.has(S.map))S.map=null;drawAll();if(window.AtlasDrive)AtlasDrive.marca();toast(tot+" cópia(s) removida(s).")}
 function aposSync(mud){const ns=new Set(mud.filter(k=>k[0]==="n").map(k=>k.slice(1))),ms=new Set(mud.filter(k=>k[0]==="m").map(k=>k.slice(1)));
   if(S.quadro&&$("#main .qd"))S.camPend=S.quadro.cam();drawSide();
   if(S.sec==="notes"){if(S.note&&!S.notes.has(S.note)){S.note=null;drawMain()}else if(!S.note||ns.has(S.note)||S.mode!=="edit")drawMain()}
@@ -2272,5 +2284,5 @@ async function vigiaPasta(avisaSempre){const AP=window.AtlasPasta;if(!Store.past
     if(pul)toast(pul+" arquivo(s) mudaram na pasta enquanto você editava; o Atlas manteve a sua versão.")}
   catch(e){console.warn("vigia",e);if(avisaSempre)toast("Não foi possível ler a pasta agora.")}finally{vigiando=false}}
 setInterval(()=>vigiaPasta(false),4000);addEventListener("focus",()=>setTimeout(()=>vigiaPasta(false),300));
-window.AtlasApp={aposSync,S,Store,fm,setProps,findNote,naurenParaNotas,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t),novaNota:(tipo,titulo,conteudo)=>{const n=newNote(tipo,titulo,{content:conteudo});try{drawSide()}catch(e){}return n}};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
+window.AtlasApp={aposSync,removeDuplicados,S,Store,fm,setProps,findNote,naurenParaNotas,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t),novaNota:(tipo,titulo,conteudo)=>{const n=newNote(tipo,titulo,{content:conteudo});try{drawSide()}catch(e){}return n}};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
 })();
