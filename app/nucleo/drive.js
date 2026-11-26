@@ -6,7 +6,7 @@
 (function(){
   "use strict";
   const ESCOPO="https://www.googleapis.com/auth/drive",API="https://www.googleapis.com/drive/v3",UP="https://www.googleapis.com/upload/drive/v3",PASTA_MIME="application/vnd.google-apps.folder";
-  const K_CFG="atlas:drive:cfg",K_TOK="atlas:drive:tok",K_BASE="atlas:drive:base",K_EST="atlas:drive:estado",IDX=".atlas/indice.json",BACKUPS="Backups";
+  const K_CFG="atlas:drive:cfg",K_TOK="atlas:drive:tok",K_BASE="atlas:drive:base",K_EST="atlas:drive:estado",IDX=".atlas/drive.json",IDXV=".atlas/indice.json",BACKUPS="Backups";
   const tauri=()=>window.__TAURI__&&window.__TAURI__.core?window.__TAURI__:null;
   const ls=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||"null");if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
   // cada mundo (pasta) tem a sua pasta no Drive e o seu estado; a conta e o ID do Google Cloud valem para todos
@@ -95,8 +95,10 @@
     for(const o of ns){const p=uniq(junta((o.folder||"").split("/").filter(Boolean).map(safe).join("/"),safe(o.title)+(o.kind==="canvas"?".canvas":".md")));
       const txt=o.kind==="canvas"?JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1):(o.content||"");L.set(p,{tipo:"nota",ref:o,dados:txt});ind.notas[p]={id:o.id,extra:extraNota(o)}}
     for(const m of [...S.maps.values()].sort((a,b)=>String(a.id).localeCompare(String(b.id)))){const p=uniq("Mapas/"+safe(m.name||m.id)+".atlasmapa.json",m.id);L.set(p,{tipo:"mapa",ref:m,dados:JSON.stringify(m)});ind.mapas[p]=m.id}
-    if(c.batalhas&&window.AtlasBatalha&&AtlasBatalha.exportarTudo)for(const x of await AtlasBatalha.exportarTudo()){const p="Mapas/Batalha/"+x.id+".atlasmap";L.set(p,{tipo:"batalha",ref:x,dados:JSON.stringify({id:x.id,nome:x.nome,mapa:x.mapa},(k,v)=>v instanceof Uint8Array?{$b64:B64(v)}:v)})}
-    if(c.imagens&&window.AtlasQuadro&&AtlasQuadro.todasImgs)for(const [k,b] of await AtlasQuadro.todasImgs())L.set("Imagens/"+k+".webp",{tipo:"imagem",ref:k,dados:b});
+    const AP=window.AtlasPasta,emPasta=!!(AP&&AP.atual&&AP.atual()&&app().Store&&app().Store.pasta);let daqui=null;if(emPasta&&AP.listaRel)daqui=new Set((await AP.listaRel(/^Mapas\/Batalha\/[^/]+\.atlasmap$/i)).map(r=>r.slice(14,-9)));
+    if(c.batalhas&&window.AtlasBatalha&&AtlasBatalha.exportarTudo)for(const x of await AtlasBatalha.exportarTudo()){if(daqui&&!daqui.has(x.id))continue;const p="Mapas/Batalha/"+x.id+".atlasmap";L.set(p,{tipo:"batalha",ref:x,dados:JSON.stringify({id:x.id,nome:x.nome,mapa:x.mapa},(k,v)=>v instanceof Uint8Array?{$b64:B64(v)}:v)})}
+    const usadas=emPasta?JSON.stringify([...S.notes.values()].map(n=>[n.canvas||"",n.content||""])):null;
+    if(c.imagens&&window.AtlasQuadro&&AtlasQuadro.todasImgs)for(const [k,b] of await AtlasQuadro.todasImgs())if(!usadas||usadas.includes(k))L.set("Imagens/"+k+".webp",{tipo:"imagem",ref:k,dados:b});
     for(const [p,x] of L)x.md5=md5(await bytes(x.dados));return {L,ind}}
 
   // ---------- comparar os dois lados com o que estava igual na última vez ----------
@@ -137,7 +139,8 @@
   const fila=async(lista,n,fn,prog)=>{let i=0,f=0;const vai=async()=>{while(i<lista.length){const k=i++;await fn(lista[k]);f++;prog&&prog(f,lista.length,lista[k])}};await Promise.all(Array.from({length:Math.min(n,lista.length)},vai))};
   function fechaBase(P,feitos){const base=Object.assign({},P.base);for(const [p,x] of Object.entries(feitos)){if(x===null)delete base[p];else base[p]=x}ls(kM(K_BASE),{pasta:P.c.pasta.id,arq:base})}
   let quieto=false;
-  const indiceRemoto=async P=>{const ix=P.R.arqs.get(IDX);if(ix)try{return JSON.parse(await baixaTexto(ix.id))}catch(e){}return {}};
+  // 1.55.1: o índice do Drive fica em .atlas/drive.json; o antigo (.atlas/indice.json) é o da pasta do PC (id → caminho) ou o nosso antigo (caminho → id)
+  const indiceRemoto=async P=>{const ix=P.R.arqs.get(IDX);if(ix)try{return JSON.parse(await baixaTexto(ix.id))}catch(e){}const iv=P.R.arqs.get(IDXV);if(iv)try{const I=JSON.parse(await baixaTexto(iv.id)),N={},M={};for(const [k,x] of Object.entries(I.notas||{})){if(!x)continue;if(x.caminho)N[x.caminho]={id:k,extra:x.extra||{}};else if(x.id)N[k]=x}for(const [k,x] of Object.entries(I.mapas||{})){if(x&&x.caminho)M[x.caminho]=k;else if(typeof x==="string")M[k]=x}return {notas:N,mapas:M,por:I.por}}catch(e){}return {}};
   // conflito resolvido: "minha" manda a deste computador, "drive" traz a do Drive, "duas" guarda as duas
   async function resolve(P,x,esc,indR,feitos){
     if(esc==="minha"){if(!x.l){await lixeira(x.r.id);feitos[x.p]=null;return}const j=await sobe(P.R.pastas,x.p,x.l.dados,x.r&&x.r.id);feitos[x.p]={r:j.md5Checksum,l:x.l.md5};return}

@@ -2220,6 +2220,8 @@ function drawMundosDrive(sec){const D_=window.AtlasDrive,AP=window.AtlasPasta;se
     if(!L.length){lista.replaceChildren(h("p",{class:"hsub"},ja===1?"O seu mundo do Drive já está neste aparelho e sincronizado (marcado com a nuvem).":"Os seus "+ja+" mundos do Drive já estão neste aparelho e sincronizados (marcados com a nuvem)."));return}
     lista.replaceChildren(...L.map(m=>{const x=lig.get(m.id),me=m.meta||{},cor=me.cor||"",tit=me.titulo||m.nome,aqui=!!x;
       const abre=async()=>{if(x)return abrirMundo(x);
+        // já baixado antes neste aparelho (mesmo que tenha saído da lista)? abre o mesmo em vez de baixar outra cópia
+        if(AP.noApp())for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||!k.startsWith("atlas:drive:cfg@pasta:"))continue;let c;try{c=JSON.parse(localStorage.getItem(k))}catch(e){continue}const cam=k.slice(22);if(c&&c.pasta&&c.pasta.id===m.id&&window.__TAURI__&&await __TAURI__.fs.exists(cam).catch(()=>false))return abrirMundo({nome:cam.split(/[\\/]/).pop(),caminho:cam})}
         if(m.pc&&!AP.interno()&&!(await confirma("Baixar “"+tit+"”?","Este mundo está na pasta de um computador sincronizado pelo Google Drive para computador ("+m.onde+"). Se for ESTE computador, abra a pasta dele em “Abrir pasta de mundo” em vez de baixar uma cópia.","Baixar uma cópia")))return;
         try{await D_.baixaMundo(m,null);MDRV=null;await carregaBib();drawMain()}catch(e){console.warn(e);toast("Não foi possível baixar: "+e.message)}};
       const lugar=async e=>{e.stopPropagation();const b=await AP.escolheLugar();if(!b)return;try{await D_.baixaMundo(m,b);MDRV=null;await carregaBib();drawMain()}catch(er){toast("Não foi possível baixar: "+er.message)}};

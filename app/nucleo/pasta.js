@@ -52,11 +52,14 @@
   const caminhoNota=o=>juntaP((o.folder||"").split("/").filter(x=>x.trim()).map(safe).join("/"),safe(o.title)+(o.kind==="canvas"?".canvas":".md"));
   const caminhoMapa=m=>juntaP(MAPAS,safe(m.name||m.id)+".atlasmapa.json");
   const extraNota=o=>{const e={};for(const k in o)if(k!=="content"&&k!=="canvas")e[k]=o[k];return e};
+  // 1.55.1: o índice do Drive (caminho → {id}) chegou a sobrescrever este (id → {caminho}); aceita os dois
+  const normInd=I=>{const N={},M={};for(const [k,x] of Object.entries(I.notas||{})){if(!x)continue;if(x.caminho)N[k]=x;else if(x.id&&/\.(md|canvas)$/i.test(k))N[x.id]={caminho:k,extra:x.extra||{}}}for(const [k,x] of Object.entries(I.mapas||{})){if(x&&x.caminho)M[k]=x;else if(typeof x==="string")M[x]={caminho:k}}return Object.assign({},I,{notas:N,mapas:M,versao:1})};
   const uidN=()=>"n"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
   const API={
     suporta:()=>{if(tauri())return true;let solto=true;try{solto=window.self===window.top}catch(e){solto=false}return solto&&typeof window.showDirectoryPicker==="function"},
     noApp:()=>!!tauri(),
+    async listaRel(re){if(!D)return [];return (await D.listar(r=>re.test(r),true)).map(a=>a.rel)},
     // 1.54: no celular cada mundo e uma pasta dentro do app (nao ha seletor de pastas); no PC o padrao e Documentos/Atlas
     interno:()=>!!tauri()&&/Android/.test(navigator.userAgent),
     async basePadrao(){const T=tauri();if(!T||!T.path)return null;const j=(a,b)=>a.replace(/[\\/]+$/,"")+"/"+b;if(API.interno())return j(await T.path.appDataDir(),"Mundos");try{return j(await T.path.documentDir(),"Atlas/Mundos")}catch(e){return j(await T.path.homeDir(),"Atlas/Mundos")}},
@@ -93,7 +96,7 @@
     // le tudo: notas (.md e .canvas, inclusive as criadas fora do Atlas) e mapas
     // subpasta do mundo (no Chrome): o Modo Batalha olha a "Assets" para achar os pacotes de arte
     subpasta:async n=>D&&D.sub?D.sub(n):null,
-    async carregar(){if(!D)throw new Error("Nenhuma pasta aberta.");if(!(await D.ler("Assets/LEIA.txt")))D.gravar("Assets/LEIA.txt",LEIA_ASSETS).catch(()=>{});const r=await D.ler(IDX);IND=r?Object.assign({notas:{},mapas:{},versao:1},JSON.parse(r.texto||"{}")):{notas:{},mapas:{},versao:1};
+    async carregar(){if(!D)throw new Error("Nenhuma pasta aberta.");if(!(await D.ler("Assets/LEIA.txt")))D.gravar("Assets/LEIA.txt",LEIA_ASSETS).catch(()=>{});const r=await D.ler(IDX);IND=r?Object.assign({notas:{},mapas:{},versao:1},JSON.parse(r.texto||"{}")):{notas:{},mapas:{},versao:1};IND=normInd(IND);
       const arqs=await D.listar(),porCaminho=new Map();for(const [id,x] of Object.entries(IND.notas))porCaminho.set(x.caminho,id);
       const notas=[],mapas=[],vistos=new Set();
       for(const a of arqs){if(/\.atlasmapa\.json$/i.test(a.rel)){const t=await D.ler(a.rel);try{const m=JSON.parse(t.texto);if(m&&m.id){mapas.push(m);IND.mapas[m.id]={caminho:a.rel}}}catch(e){}continue}
