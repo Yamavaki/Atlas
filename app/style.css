@@ -1397,3 +1397,8 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 @media (max-width:760px){#bFoco{display:none!important}header.top{overflow:hidden;min-width:0}header.top>*{flex-shrink:0}}
 @media (max-width:480px){header.top>.brand{display:none!important}}
 .qd-modo[aria-pressed="true"]{background:rgba(216,180,90,.22);color:var(--gold,#d8b45a);border-radius:8px}.qd-sep{width:1px;height:22px;background:var(--line);margin:0 3px}.qd-mao{cursor:grab}
+/* 1.57.1: teia de missões: a página rola e o quadro ocupa a tela */
+#main:has(.qd-teia){overflow-y:auto!important;overflow-x:hidden;display:block}
+.qwrap.qteia{height:auto}
+.qd-area.qd-teia{height:calc(100vh - 150px);height:calc(100dvh - 150px);min-height:380px}
+@media (max-width:860px){.qd-area.qd-teia{height:calc(100dvh - 56px - 68px - 24px)}}
