@@ -1423,6 +1423,11 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .qd-anda .qd-mundo{will-change:transform}
 .qd-anda .qd-no{box-shadow:none!important;transition:none!important}
 .qd-no:not(.on):not(:hover){content-visibility:auto}
-.qd-longe .qd-no:not(.qd-group)>*{visibility:hidden}
+
 .qd-longe .qd-no{box-shadow:none}
-.qd-longe .qd-l text,.qd-longe .qd-lrot{display:none}
+
+/* 1.59.5: barra de ferramentas do mapa em duas colunas quando não cabe; arrastar nela não rola */
+@media (min-width:861px){.pal{touch-action:none;overscroll-behavior:contain}
+  .pal.duas .pgrp{display:grid;grid-template-columns:repeat(2,auto);gap:2px}
+  .pal.duas>.tbtn{align-self:center}
+  .pal.duas .psep{width:60px;margin:0}.pal.duas{gap:1px;padding:4px}.pal.duas .pgrp{gap:1px}.pal.duas .tbtn{width:34px;height:34px;min-height:0}.pal.rola{touch-action:pan-y}}

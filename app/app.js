@@ -582,6 +582,9 @@ function newCity(){const AC=window.AtlasCity,id=uid("m"),nm=A.NAMES[(Math.random
   const o={id,name,type:"city",params:Object.assign({},AC.DEF,{seed:nm.toLowerCase()+"-"+(1200+((Math.random()*300)|0)),site:AC.SITES[(Math.random()*AC.SITES.length)|0][0]}),updated:now()};S.maps.set(id,o);Store.save("maps",o);return o}
 // mapa de cidade: gerador proprio (city.js), com zoom, arrasto e parametros
 const CAMS=new Map();
+// 1.59.5: barra de ferramentas do mapa: se não cabe na altura, vira duas colunas (em vez de rolar e "fugir" ao arrastar)
+function paleta2(pal){const ve=()=>{if(!pal.isConnected)return;pal.classList.remove("duas","rola");if(matchMedia("(max-width:860px)").matches)return;if(pal.scrollHeight>pal.clientHeight+2){pal.classList.add("duas");if(pal.scrollHeight>pal.clientHeight+2)pal.classList.add("rola")}};
+  const ro=new ResizeObserver(()=>requestAnimationFrame(ve));setTimeout(()=>{if(pal.parentNode)ro.observe(pal.parentNode);ro.observe(pal);ve()},60)}
 // 1.56: tela limpa. Lista, painéis e modo foco lembrados neste aparelho
 const LAYOUT=(()=>{let L={};try{L=JSON.parse(localStorage.getItem("atlas:layout")||"{}")}catch(e){}if(L.semLado==null)L.semLado=innerWidth<1500;return L})(),gravaLayout=()=>{try{localStorage.setItem("atlas:layout",JSON.stringify(LAYOUT))}catch(e){}};
 function aplicaLayout(){const ap=$("#app");if(!ap)return;ap.classList.toggle("sem-lista",!!LAYOUT.semLista);ap.classList.toggle("foco",!!LAYOUT.foco);document.body.classList.toggle("foco",!!LAYOUT.foco);
@@ -838,7 +841,7 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;AC.setMapa(o.params
   // paleta
   const LTC={road:"rgba(201,162,74,.9)",canal:"rgba(63,111,143,.9)",river:"rgba(63,111,143,.9)",bridge:"rgba(150,110,60,.95)"},LTW={road:9,canal:8,river:16,bridge:7};
   const TT=[["move","Navegar"],["sel","Selecionar e editar"],["ward","Editar bairro"],["corner","Mover cantos e muralha"],["gate","Portões"],["lines","Desenhar ruas, canais e rios"],["obj","Colocar objeto"],["text","Textos e nomes"],["terr","Terreno"],["pinc","Pintar o chão"],["border","Fronteiras"],["erase","Apagar"],["anot","Anotações do mestre"]],IC={pinc:"M3 21c3 0 6-1 6-4l10-10-3-3L6 14c-3 0-3 4-3 7",terr:"M3 18c2-5 5-8 9-8s7 3 9 8M3 18h18M8 6l2-2 2 2",text:"M5 6V4h14v2M12 4v16M9 20h6",sel:"M5 3l13 8-6 1.5L9 19z",lines:"M4 19c3 0 3-6 6-6s2 5 5 5 3-9 5-12",border:"M4 7l5-3 6 3 5-2v13l-5 2-6-3-5 3z",ward:"M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",corner:"M4 18L9 6l6 9 5-7M9 6a1.5 1.5 0 1 0 .01 0M15 15a1.5 1.5 0 1 0 .01 0M4 18a1.5 1.5 0 1 0 .01 0",gate:"M4 20V9l8-5 8 5v11M9 20v-6a3 3 0 0 1 6 0v6"};
-  const pal=h("div",{class:"pal",role:"toolbar","aria-label":"Ferramentas da cidade"}),ctx=h("div",{class:"ctx"}),hint=h("div",{class:"hintc"});
+  const pal=h("div",{class:"pal",role:"toolbar","aria-label":"Ferramentas da cidade"}),ctx=h("div",{class:"ctx"}),hint=h("div",{class:"hintc"});paleta2(pal);
   for(const [t,l] of TT)pal.append(h("button",{type:"button",class:"tbtn","data-t":t,"aria-label":l,title:l,onclick:()=>setTool(t)},svgI(ICON[t]||IC[t]),h("span",{class:"tip"},l)));
   const HT={terr:"Pinte para criar terra, água, morros ou baixadas · a cidade se refaz ao soltar",text:"Toque num nome para editar ou arrastar · com nada marcado, toque num lugar vazio para escrever",sel:"Toque em qualquer coisa · arraste para mover · R gira · ] frente · [ trás · Delete apaga · Ctrl+Z desfaz",lines:"Arraste no mapa para desenhar · a cidade se ajusta em volta",border:"Toque numa fronteira para editar · use + Desenhar fronteira para criar outra",corner:"Arraste os pontos para mudar o formato dos bairros e da muralha",gate:"Toque num ponto da muralha para abrir ou fechar um portão",move:"Arraste para mover · toque num lugar para abrir a nota ou criar uma missão",ward:"Toque num bairro para mudar função, cultura e traçado",obj:"Toque no mapa para colocar o objeto escolhido",erase:"Pinte por cima do que quer apagar"};
   document.addEventListener("keydown",function kdAnC(e){if(!document.body.contains(mc)){document.removeEventListener("keydown",kdAnC);return}if(tool!=="anot"||!AN||/INPUT|SELECT|TEXTAREA/.test((document.activeElement||{}).tagName||""))return;if(AN.tecla(e))e.preventDefault()});
@@ -1274,6 +1277,11 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     if(tool==="text"){const w=world(ev);if(!w)return;const L=rlabAt(w.cx,w.cy);
       if(L){rtsel=L.kind==="t"?{kind:"t",ref:L.ref}:{kind:L.kind,i:L.i};drawCtx();rtdrag={L,c0:[w.cx,w.cy],w0:[w.x,w.y],d:[0,0],moved:false};return}
       if(rtsel){rtsel=null;drawCtx();return}snap();o.texts=o.texts||[];const t={x:Math.round(w.x),y:Math.round(w.y),t:"Novo texto",fs:18};o.texts.push(t);rtsel={kind:"t",ref:t};recompose();drawCtx();setTimeout(()=>{const i_=ctx.querySelector("textarea");if(i_){i_.focus();i_.select()}},30);return}
+    // 1.59.5: Selecionar também pega o que está escrito no mapa: anotações (ícones), textos e nomes de povoado, nomes de fronteira
+    if(tool==="sel"&&ev.button===0&&!ev.shiftKey&&ptrs.size===1){
+      if(AN&&AN.acertaEv&&AN.acertaEv(ev)){setTool("anot");if(AN.down(ev)){anotArr=true;ev.preventDefault()}return}
+      {const w=world(ev),L=w&&rlabAt(w.cx,w.cy);if(L){setTool("text");rtsel=L.kind==="t"?{kind:"t",ref:L.ref}:{kind:L.kind,i:L.i};drawCtx();rtdrag={L,c0:[w.cx,w.cy],w0:[w.x,w.y],d:[0,0],moved:false};return}}
+      {const ri=ov.rotuloEm?ov.rotuloEm(ev.clientX,ev.clientY):-1;if(ri>=0){setTool("border");ov.escolhe(ri);drawCtx();return}}}
     if(tool==="sel"&&rv&&rv.kind==="fp"&&!ev.shiftKey){const w=world(ev);if(w){const H_=rvHandles(),u=RHSZ();if(H_.ctr&&Math.hypot(H_.ctr[0]-w.cx,H_.ctr[1]-w.cy)<8*u){rvdrag={move:true,w0:[w.x,w.y],P0:rv.f.poly.map(z=>z.slice()),P:rv.f.poly.map(z=>z.slice())};return}const hi=H_.pts.findIndex(p2=>Math.hypot(p2[0]-w.cx,p2[1]-w.cy)<6*u),mi=hi<0?H_.mids.findIndex(p2=>Math.hypot(p2[0]-w.cx,p2[1]-w.cy)<5*u):-1;
       if(hi>=0||mi>=0){const P_=rv.f.poly.map(v=>v.slice());let i=hi;if(mi>=0){const a=P_[mi],b=P_[(mi+1)%P_.length];P_.splice(mi+1,0,[(a[0]+b[0])/2,(a[1]+b[1])/2]);i=mi+1}rvSelV=i;rvdrag={i,P:P_,changed:mi>=0};rdraw();return}}}
     if(tool==="sel"){const w0=world(ev),q0=w0&&cur&&cur.info.pick?cur.info.pick(w0.cx,w0.cy):null;if(!q0&&w0&&!ev.shiftKey){const v=rpickVec(w0.cx,w0.cy);if(v){rS=[];rsel=null;if(!(rv&&v.kind===rv.kind&&(v.f?v.f===rv.f:v.i===rv.i)))rvSelV=null;rv=v;if(v.kind==="fp")rvdrag={move:true,w0:[w0.x,w0.y],P0:v.f.poly.map(z=>z.slice()),P:v.f.poly.map(z=>z.slice())};drawCtx();rdraw();return}}if(rv){rv=null;rvSelV=null}}
@@ -1317,7 +1325,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const head=h("div",{class:"mhead"},title,h("div",{class:"hact"},h("button",{type:"button",class:"primary",onclick:()=>{if(o.params.frozen){toast("O mapa está congelado. Descongele nos parâmetros para sortear outra região.");return}snap();o.params.ovr={};o.params.seed=A.NAMES[(Math.random()*A.NAMES.length)|0].toLowerCase()+"-"+(1300+((Math.random()*200)|0));o.lock=null;o.vec=null;o.edits=[];o.relevo=null;o.pintura=null;fill();regen()}},"Sortear novo"),bPar,
     h("button",{type:"button",onclick:async()=>{const cv=document.createElement("canvas");cv.width=mc.width;cv.height=mc.height;cv.getContext("2d").drawImage(mc,0,0);await svgOnto(cv,ov.svg);cv.toBlob(b=>saveFile(safe(o.name)+".png",b))}},"Salvar PNG"),del));
   // paleta de ferramentas (flutuante, por grupo)
-  const pal=h("div",{class:"pal",role:"toolbar","aria-label":"Ferramentas"}),ctx=h("div",{class:"ctx"}),hint=h("div",{class:"hintc"});
+  const pal=h("div",{class:"pal",role:"toolbar","aria-label":"Ferramentas"}),ctx=h("div",{class:"ctx"}),hint=h("div",{class:"hintc"});paleta2(pal);
   const tipFor=(l)=>l;
   TOOLGROUPS.forEach(([g,items],gi)=>{const grp=h("div",{class:"pgrp","aria-label":g});if(gi)pal.append(h("span",{class:"psep"}));
     for(const [t,l] of items){const b=h("button",{type:"button",class:"tbtn","data-t":t,"aria-label":l,title:l,onclick:()=>setTool(t)},svgI(ICON[t]),h("span",{class:"tip"},l));grp.append(b)}pal.append(grp)});
@@ -1451,6 +1459,7 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
     down(ev){if(ev.button!==0)return false;const q=pt(ev);return C.down(q[0],q[1],ev)},move(ev){const q=pt(ev);C.move(q[0],q[1])},up(){C.up()},
     dbl(ev){const q=pt(ev);if(C.dbl(q[0],q[1]))return true;return false},
     // fora da ferramenta: duplo clique num ponto com nota abre a nota
+    acertaEv(ev){if(cv.hidden||!acerta())return null;const q=pt(ev);return AN.acerta(o.anot,q[0],q[1],T,kF,8*esc())},
     dblFora(ev){if(cv.hidden)return false;const q=pt(ev),it=AN.acerta(o.anot,q[0],q[1],T,kF,8*esc());if(it&&it.nota){abreNotaDe(it.nota);return true}return false},
     tecla(e){return C.tecla(e)}}}
 function mkOverlay(o,W,H,place){const NS="http://www.w3.org/2000/svg",svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox","0 0 "+W+" "+H);svg.setAttribute("class","ovl");o.realms=o.realms||[];
@@ -1462,7 +1471,7 @@ function mkOverlay(o,W,H,place){const NS="http://www.w3.org/2000/svg",svg=docume
   const inside=(a,x,y)=>{let c=false;for(let i=0,j=a.length-1;i<a.length;j=i++){const p=a[i],q=a[j];if((p[1]>y)!==(q[1]>y)&&x<(q[0]-p[0])*(y-p[1])/(q[1]-p[1])+p[0])c=!c}return c};
   const save=()=>{o.updated=now();Store.save("maps",o)},qsc=()=>(1/Math.max(1,st.k*.6)).toFixed(3),hr=r=>(r/Math.max(1,st.k*.55)).toFixed(2);
   function draw(){svg.replaceChildren();
-    o.realms.forEach((r,i)=>{if(!r.pts||r.pts.length<3)return;const g=el("g",{class:"realm"+(st.on&&st.sel===i?" sel":"")}),P=pts(chaik(r.pts,true,2)),dz=r.kind==="perigo",big=r.kind==="reino";
+    o.realms.forEach((r,i)=>{if(!r.pts||r.pts.length<3)return;const g=el("g",{class:"realm"+(st.on&&st.sel===i?" sel":""),"data-i":i}),P=pts(chaik(r.pts,true,2)),dz=r.kind==="perigo",big=r.kind==="reino";
       el("polygon",{points:P,fill:r.color,"fill-opacity":dz?.16:.07},g);el("polygon",{points:P,fill:"none",stroke:r.color,"stroke-opacity":.3,"stroke-width":big?12:8,"stroke-linejoin":"round"},g);
       el("polygon",{points:P,fill:"none",stroke:r.color,"stroke-width":big?2.6:1.8,"stroke-dasharray":big?"12 4 3 4":dz?"4 4":"9 5","stroke-linejoin":"round"},g);
       if(r.name&&r.lab!==false){const c=st.xf(cent(r.pts)),t=el("text",{x:c[0].toFixed(1),y:c[1].toFixed(1),class:"rlab"+(big?" big":""),"text-anchor":"middle",fill:r.color},g);t.textContent=r.name.toUpperCase()}});
@@ -1504,7 +1513,9 @@ function mkOverlay(o,W,H,place){const NS="http://www.w3.org/2000/svg",svg=docume
       h("button",{type:"button",onclick:()=>{const n=findNote(r.name)||newNote(r.kind==="reino"||r.kind==="ducado"?"faccao":"local",r.name);openNote(n.id)}},note?"Abrir nota":"Criar nota"),
       h("label",{class:"chk"},h("input",{type:"checkbox",checked:r.lab!==false,onchange:e=>set("lab",e.target.checked)}),"Nome no mapa"),h("button",{type:"button",class:"danger ghost",onclick:()=>{st.onSnap();o.realms.splice(st.sel,1);st.sel=-1;save();draw();st.onChange()}},"Apagar"),
       h("button",{type:"button",class:"ghost",onclick:()=>{st.sel=-1;draw();st.onChange()}},"Pronto"),drawNew,h("span",{class:"cf dim"},"Arraste os pontos · toque duas vezes num ponto para removê-lo"))}
-  return {svg,draw,tap,ctxUI,st,setK(k){const old=st.k;st.k=k;const s=qsc();svg.querySelectorAll(".qm").forEach(g=>g.setAttribute("transform","translate("+g.getAttribute("data-x")+","+g.getAttribute("data-y")+") scale("+s+") translate(0,-18)"));svg.querySelectorAll(".pm").forEach(g=>g.setAttribute("transform","translate("+g.getAttribute("data-x")+","+g.getAttribute("data-y")+") scale("+s+") translate(16,-10)"));if(st.on&&Math.abs(old-k)>.05)draw()},setOn(v){st.on=v;if(!v){st.draft=null;st.sel=-1}draw()},flash(x,y){st.flash=[x,y];draw();setTimeout(()=>{st.flash=null;draw()},3200)}}}
+  // 1.59.5: o nome de uma fronteira na tela (para editar direto da ferramenta Selecionar)
+  const rotuloEm=(cx,cy)=>{for(const t of svg.querySelectorAll(".realm text.rlab")){const b=t.getBoundingClientRect();if(cx>=b.left-6&&cx<=b.right+6&&cy>=b.top-6&&cy<=b.bottom+6)return +t.parentNode.getAttribute("data-i")}return -1};
+  return {svg,draw,tap,ctxUI,st,rotuloEm,escolhe(i){st.sel=i;st.draft=null;draw();st.onChange()},setK(k){const old=st.k;st.k=k;const s=qsc();svg.querySelectorAll(".qm").forEach(g=>g.setAttribute("transform","translate("+g.getAttribute("data-x")+","+g.getAttribute("data-y")+") scale("+s+") translate(0,-18)"));svg.querySelectorAll(".pm").forEach(g=>g.setAttribute("transform","translate("+g.getAttribute("data-x")+","+g.getAttribute("data-y")+") scale("+s+") translate(16,-10)"));if(st.on&&Math.abs(old-k)>.05)draw()},setOn(v){st.on=v;if(!v){st.draft=null;st.sel=-1}draw()},flash(x,y){st.flash=[x,y];draw();setTimeout(()=>{st.flash=null;draw()},3200)}}}
 function autoRealmsRegion(o,cur){const W=cur.W,sg=A.sampleGrid,towns=W.towns.filter(t=>t.kind!=="camp");let caps=towns.filter(t=>t.kind==="city");if(caps.length<2)caps=towns.slice().sort((a,b)=>b.size-a.size).slice(0,Math.min(4,towns.length));caps=caps.slice(0,7);if(!caps.length)return null;
   const st=10,gw=Math.ceil(A.WX/st),gh=Math.ceil(A.WY/st),own=new Int16Array(gw*gh).fill(-1);
   for(let j=0;j<gh;j++)for(let i=0;i<gw;i++){const x=i*st,y=j*st;if(sg(W.land,x,y)<0)continue;let bi=-1,bd=1e18;caps.forEach((c,k)=>{const d=Math.hypot(c.x-x,c.y-y)/(1+Math.sqrt(c.size)*.07);if(d<bd){bd=d;bi=k}});own[j*gw+i]=bi}
