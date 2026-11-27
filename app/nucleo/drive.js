@@ -341,10 +341,10 @@
   //   texto novo da nota (pode ter as próprias propriedades)
   async function aplicaEntrada(P){const pedidos=[...P.R.arqs.entries()].filter(([p])=>/^\.atlas\/entrada\/[^/]+\.(md|txt)$/i.test(p)).sort((a,b)=>a[1].name.localeCompare(b[1].name));let n=0;
     for(const [pe,f] of pedidos){try{const st=await json(API+"/files/"+f.id+"?fields=trashed");if(st.trashed)continue;const txt=(await baixaTexto(f.id)).replace(/\r\n/g,"\n"),m=txt.match(/^---\n([\s\S]*?)\n---\n?/);
-        if(!m||!/atlas-entrada\s*:/.test(m[1])){console.warn("entrada sem cabeçalho",pe);continue}
+        if(!m||!/atlas-entrada\s*:/.test(m[1])){console.warn("entrada sem cabeçalho",pe);await lixeira(f.id);continue}
         const cab={};for(const l of m[1].split("\n")){const k=l.match(/^\s*([a-zA-Z-]+)\s*:\s*(.*?)\s*$/);if(k)cab[k[1].toLowerCase()]=k[2].replace(/^["']|["']$/g,"")}
         const rel=(cab.caminho||"").replace(/^\/+/,"").replace(/\\/g,"/"),acao=(cab.acao||"substituir").toLowerCase(),corpo=txt.slice(m[0].length);
-        if(!rel||rel.startsWith(".atlas/")||rel.split("/").includes("..")){console.warn("entrada com caminho ruim",pe);continue}
+        if(!rel||rel.startsWith(".atlas/")||rel.split("/").includes("..")){console.warn("entrada com caminho ruim",pe);await lixeira(f.id);continue}
         await lixeira(f.id);// pega o pedido para si antes de aplicar (outro aparelho não aplica de novo)
         const alvo=P.R.arqs.get(rel);
         if(acao==="apagar"){if(alvo)await lixeira(alvo.id)}
