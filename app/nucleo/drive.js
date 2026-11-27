@@ -329,9 +329,31 @@
     try{await sobe(P.R.pastas,rel,JSON.stringify({nome:a.nome,quando:new Date().toISOString()}),f&&f.id)}catch(e){}}
   // o que o app mostra antes e depois de receber (para redesenhar só o necessário)
   const foto=()=>{const {S}=app(),o={};if(!S)return o;for(const [id,n] of S.notes)o["n"+id]=n.updated||0;for(const [id,m] of S.maps)o["m"+id]=m.updated||0;return o};
+  // 1.59: caixa de entrada. Quem não consegue editar um arquivo no Drive (como o Claude pelo conector do Drive, que só cria
+  // arquivos novos) deixa um pedido em .atlas/entrada/<qualquer-nome>.md; o primeiro aparelho com o Atlas aberto aplica o pedido
+  // na nota de verdade (mesmo arquivo, então o PC vê uma edição normal) e manda o pedido para a lixeira.
+  // Formato: um bloco no topo e depois o texto.
+  //   ---
+  //   atlas-entrada: 1
+  //   caminho: Pasta/Nota.md        (caminho dentro da pasta do mundo)
+  //   acao: substituir              (substituir | anexar | apagar)
+  //   ---
+  //   texto novo da nota (pode ter as próprias propriedades)
+  async function aplicaEntrada(P){const pedidos=[...P.R.arqs.entries()].filter(([p])=>/^\.atlas\/entrada\/[^/]+\.(md|txt)$/i.test(p)).sort((a,b)=>a[1].name.localeCompare(b[1].name));let n=0;
+    for(const [pe,f] of pedidos){try{const st=await json(API+"/files/"+f.id+"?fields=trashed");if(st.trashed)continue;const txt=(await baixaTexto(f.id)).replace(/\r\n/g,"\n"),m=txt.match(/^---\n([\s\S]*?)\n---\n?/);
+        if(!m||!/atlas-entrada\s*:/.test(m[1])){console.warn("entrada sem cabeçalho",pe);continue}
+        const cab={};for(const l of m[1].split("\n")){const k=l.match(/^\s*([a-zA-Z-]+)\s*:\s*(.*?)\s*$/);if(k)cab[k[1].toLowerCase()]=k[2].replace(/^["']|["']$/g,"")}
+        const rel=(cab.caminho||"").replace(/^\/+/,"").replace(/\\/g,"/"),acao=(cab.acao||"substituir").toLowerCase(),corpo=txt.slice(m[0].length);
+        if(!rel||rel.startsWith(".atlas/")||rel.split("/").includes("..")){console.warn("entrada com caminho ruim",pe);continue}
+        await lixeira(f.id);// pega o pedido para si antes de aplicar (outro aparelho não aplica de novo)
+        const alvo=P.R.arqs.get(rel);
+        if(acao==="apagar"){if(alvo)await lixeira(alvo.id)}
+        else{let novo=corpo;if(acao==="anexar"&&alvo){const at=await baixaTexto(alvo.id);novo=at.replace(/\s*$/,"")+"\n\n"+corpo}await sobe(P.R.pastas,rel,novo,alvo&&alvo.id)}
+        n++}catch(e){console.warn("entrada",pe,e)}}
+    return n}
   async function sincroniza(modo){if(!autoOn())return;if(SY.on){SY.pend=!SY.pend||SY.pend===modo?modo:"tudo";return}
     const chave=mk();SY.on=true;atualizaBotao();let rec=0,env=0,conf=0,por=null;
-    try{if(modo!=="enviar"){const P=await prepara("atualizar");lembra(P);if(window.__SYNCLOG)__SYNCLOG.push(["rec",P.itens.filter(x=>x.acao!=="igual").map(x=>x.p+":"+x.acao)]);if(mk()!==chave)return;conf=P.itens.filter(x=>x.acao==="conflito").length;
+    try{if(modo!=="enviar"){let P=await prepara("atualizar");if([...P.R.arqs.keys()].some(p=>p.startsWith(".atlas/entrada/"))){const ne=await aplicaEntrada(P);if(ne){P=await prepara("atualizar");toast(ne===1?"Apliquei 1 mudança pedida pelo Claude.":"Apliquei "+ne+" mudanças pedidas pelo Claude.")}}lembra(P);if(window.__SYNCLOG)__SYNCLOG.push(["rec",P.itens.filter(x=>x.acao!=="igual").map(x=>x.p+":"+x.acao)]);if(mk()!==chave)return;conf=P.itens.filter(x=>x.acao==="conflito").length;
         if(P.itens.some(x=>x.acao==="novo"||x.acao==="alterado"||x.acao==="remover")){const antes=foto(),r=await atualizar(P,{},null,true);rec=r.n-r.erros.length;if(rec){try{por=(await indiceRemoto(P)).por}catch(e){}const depois=foto(),mud=Object.keys(depois).filter(k=>antes[k]!==depois[k]).concat(Object.keys(antes).filter(k=>!(k in depois)));
           if(app().aposSync)app().aposSync(mud);toast((rec===1?"Chegou 1 mudança":"Chegaram "+rec+" mudanças")+(por&&por.nome&&por.id!==aparelho().id?" do "+por.nome:" do Drive")+".")}}
         presenca(P)}
