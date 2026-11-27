@@ -2310,5 +2310,5 @@ async function vigiaPasta(avisaSempre){const AP=window.AtlasPasta;if(!Store.past
     if(pul)toast(pul+" arquivo(s) mudaram na pasta enquanto você editava; o Atlas manteve a sua versão.")}
   catch(e){console.warn("vigia",e);if(avisaSempre)toast("Não foi possível ler a pasta agora.")}finally{vigiando=false}}
 setInterval(()=>vigiaPasta(false),4000);addEventListener("focus",()=>setTimeout(()=>vigiaPasta(false),300));
-window.AtlasApp={aposSync,removeDuplicados,S,Store,fm,setProps,findNote,naurenParaNotas,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t),novaNota:(tipo,titulo,conteudo)=>{const n=newNote(tipo,titulo,{content:conteudo});try{drawSide()}catch(e){}return n}};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
+window.AtlasApp={md,aposSync,removeDuplicados,S,Store,fm,setProps,findNote,naurenParaNotas,openNote,abrirNotaAba,novoMundo,abrirMundo,exportMundo,importMundo,juntaMundo,drawAll:()=>drawAll(),toast:t=>toast(t),novaNota:(tipo,titulo,conteudo)=>{const n=newNote(tipo,titulo,{content:conteudo});try{drawSide()}catch(e){}return n}};if(window.AtlasDrive)AtlasDrive.atualizaBotao();
 })();

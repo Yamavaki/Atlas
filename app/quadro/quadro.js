@@ -55,7 +55,7 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   const tipoNo=n=>n.atlas&&n.atlas.kind?n.atlas.kind:n.type==="file"?(/\.(png|jpe?g|webp|gif)$/i.test(n.file||"")?"imagem":"nota"):n.type;
   const tituloArq=f=>(f||"").split("/").pop().replace(/\.md$/i,"");
   function corpoNo(n){const k=tipoNo(n),c=corDe(n.color);
-    if(k==="text"||k==="adesivo"){const txt=el("div",{class:"qd-txt"});txt.textContent=n.text||"";if(!n.text)txt.append(el("span",{class:"qd-vazio"},k==="adesivo"?"Ideia…":"Duplo clique para escrever"));return [txt]}
+    if(k==="text"||k==="adesivo"){const txt=el("div",{class:"qd-txt"});const MD=window.AtlasApp&&AtlasApp.md;if(n.text&&MD){txt.classList.add("qd-md");txt.innerHTML=MD(n.text)}else txt.textContent=n.text||"";if(!n.text)txt.append(el("span",{class:"qd-vazio"},k==="adesivo"?"Ideia…":"Duplo clique para escrever"));return [txt]}
     if(k==="nota"){const t=tituloArq(n.file),R=ctx.resumoNota(t);if(!R)return [el("div",{class:"qd-nh"},ic("livre",18),el("b",{},t)),el("div",{class:"qd-txt qd-miss"},"Nota não encontrada. Duplo clique cria.")];
       return [el("div",{class:"qd-nh"},el("i",{class:"qd-nic",style:"color:"+R.cor},ic(R.ic,18)),el("b",{},R.titulo),el("button",{type:"button",class:"qd-abre",onpointerdown:e=>e.stopPropagation(),title:"Abrir a nota","aria-label":"Abrir a nota",onclick:e=>{e.stopPropagation();ctx.abrirNota(R.titulo)}},ic("seta",16))),
         R.chips&&R.chips.length?el("div",{class:"qd-chips"},R.chips.map(x=>el("span",{class:"qd-chip",style:x.cor?"color:"+x.cor:null},x.txt))):null,
