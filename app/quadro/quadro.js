@@ -46,7 +46,12 @@ export function abrirQuadro(raiz,ctx){const D=ctx.dados&&ctx.dados.nodes?ctx.dad
   const volta=(de,para)=>{if(!de.length)return;para.push(foto());const s=JSON.parse(de.pop());D.nodes=s.nodes;D.edges=s.edges;sel.clear();selL=null;tudo();salva()};
   const salva=()=>{clearTimeout(tSalvar);tSalvar=setTimeout(()=>ctx.salvar(D),400)};
   // ---- camera ----
-  const aplicaCam=()=>{mundo.style.transform="translate("+cam.x+"px,"+cam.y+"px) scale("+cam.z+")";zoomTxt.textContent=Math.round(cam.z*100)+"%";desenhaMini()};
+  // 1.59.4: quadro grande sem travar. Move a câmera uma vez por quadro de tela; enquanto mexe, o navegador só escala a imagem
+  // (sem sombras); longe demais para ler, o texto dos cartões nem é desenhado
+  let camRaf=0,camAnda=0,miniT=0;
+  const aplicaCam=()=>{if(camRaf)return;camRaf=requestAnimationFrame(()=>{camRaf=0;mundo.style.transform="translate("+cam.x+"px,"+cam.y+"px) scale("+cam.z+")";zoomTxt.textContent=Math.round(cam.z*100)+"%";
+    vista.classList.add("qd-anda");vista.classList.toggle("qd-longe",cam.z<.34);clearTimeout(camAnda);camAnda=setTimeout(()=>vista.classList.remove("qd-anda"),180);
+    const ag=performance.now();if(ag-miniT>90){miniT=ag;desenhaMini()}else{clearTimeout(desenhaMini._t);desenhaMini._t=setTimeout(desenhaMini,100)}})};
   const doMundo=(cx,cy)=>{const r=vista.getBoundingClientRect();return [(cx-r.left-cam.x)/cam.z,(cy-r.top-cam.y)/cam.z]};
   const zoomEm=(cx,cy,f)=>{const r=vista.getBoundingClientRect(),px=cx-r.left,py=cy-r.top,wx=(px-cam.x)/cam.z,wy=(py-cam.y)/cam.z;cam.z=Math.max(.1,Math.min(3,cam.z*f));cam.x=px-wx*cam.z;cam.y=py-wy*cam.z;aplicaCam()};
   const enquadra=()=>{const r=vista.getBoundingClientRect();if(!D.nodes.length){cam={x:r.width/2,y:r.height/2,z:1};aplicaCam();return}let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const n of D.nodes){x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+n.width);y1=Math.max(y1,n.y+n.height)}

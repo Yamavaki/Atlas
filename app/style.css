@@ -1419,3 +1419,10 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .qd-md strong,.qd-md b{color:#f3e9d2;font-weight:700}.qd-md a{color:#d8b45a}
 .qd-no[style*="--cor"]:not(.qd-group):not(.qd-adesivo){background:color-mix(in srgb,var(--cor) 12%,#1d1913);border-color:color-mix(in srgb,var(--cor) 60%,#3A3024)}
 .qd-no[style*="--cor"]:not(.qd-group)::before{display:none}
+/* 1.59.4: desempenho de quadros grandes */
+.qd-anda .qd-mundo{will-change:transform}
+.qd-anda .qd-no{box-shadow:none!important;transition:none!important}
+.qd-no:not(.on):not(:hover){content-visibility:auto}
+.qd-longe .qd-no:not(.qd-group)>*{visibility:hidden}
+.qd-longe .qd-no{box-shadow:none}
+.qd-longe .qd-l text,.qd-longe .qd-lrot{display:none}
