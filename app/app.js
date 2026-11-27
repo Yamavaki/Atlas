@@ -1857,6 +1857,8 @@ function listaMissoes(qs,mostraCamp){const F=S.qf||(S.qf={st:"",peso:"",arco:"",
 const LEGENDA_CAMP=[{cor:"3",txt:"Campanha e história principal",grossa:true},{cor:"2",txt:"Missão paralela"},{cor:"1",estilo:"tracejada",txt:"Precisa de"},{cor:"5",txt:"Acontece em"},{cor:"1",estilo:"pontilhada",txt:"Personagem envolvido"},{cor:"4",txt:"Item ou recompensa"},{cor:"6",estilo:"pontilhada",txt:"Facção"},{cor:"2",estilo:"pontilhada",txt:"Criatura ou inimigo"},{cor:"1",txt:"Se falhar"}];
 const tipoDe=n=>fm(n.content).props.tipo||"livre";
 function quadroCamp(co){let q=[...S.notes.values()].find(n=>n.kind==="canvas"&&n.campanha&&norm(n.campanha)===norm(co.title));
+  // 1.59.2: a marca "campanha" pode se perder ao vir de outro aparelho; acha pelo nome (e não cria outro quadro repetido)
+  if(!q){const alvo=norm("Quadro · "+co.title),cands=[...S.notes.values()].filter(n=>n.kind==="canvas"&&norm(String(n.title||"").replace(/\s*\(\d+\)$/,"").replace(/\s+\d+$/,""))===alvo).sort((a,b)=>((b.canvas&&b.canvas.nodes||[]).length-(a.canvas&&a.canvas.nodes||[]).length)||String(a.title).length-String(b.title).length);q=cands[0];if(q){q.campanha=co.title;Store.save("notes",q)}}
   if(!q){q=newNote("livre","Quadro · "+co.title,{content:""});q.kind="canvas";q.campanha=co.title;q.canvas={nodes:[],edges:[]};q.folder="Quadros";Store.save("notes",q);drawSide()}return q}
 function quadroDaCampanha(co){S.camp=co.title;S.campEsc=true;S.sec="notes";S.view="quests";S.qv="teia";drawAll()}
 // monta (ou completa) o quadro a partir das ligacoes; nunca move o que ja existe, nunca apaga cartao
@@ -2265,7 +2267,8 @@ async function removeDuplicados(){const norm=t=>String(t||"").replace(/\s*\(\d+\
   const tot=nt.length+mp.length+bt.length;if(!tot)return toast("Nenhuma cópia repetida neste mundo.");
   const ex=[...nt.map(n=>n.title),...mp.map(m=>m.name),...bt.map(x=>x.nome)].slice(0,8).join(", ");
   if(!(await confirma("Remover cópias repetidas?","Achei "+[nt.length?nt.length+" nota(s)":"",mp.length?mp.length+" mapa(s)":"",bt.length?bt.length+" mapa(s) de batalha":""].filter(Boolean).join(", ")+" iguais a outra (mesmo nome e mesmo conteúdo), por exemplo: "+ex+(tot>8?"…":"")+". Fica uma de cada; as cópias vão para a lixeira do mundo"+(window.AtlasDrive&&AtlasDrive.autoOn&&AtlasDrive.autoOn()?" e para a lixeira do Drive":"")+".","Remover "+tot,true)))return;
-  for(const n of nt){S.notes.delete(n.id);Store.remove("notes",n.id)}for(const m of mp){S.maps.delete(m.id);Store.remove("maps",m.id)}for(const x of bt)try{await AtlasBatalha.apagar(x.id)}catch(e){}
+  const AP=window.AtlasPasta;if(AP)AP.semLixo=true;// cópias iguais: não precisa guardar na lixeira do Atlas
+  try{for(const n of nt){Store.remove("notes",n.id);S.notes.delete(n.id)}for(const m of mp){Store.remove("maps",m.id);S.maps.delete(m.id)}}finally{if(AP)AP.semLixo=false}for(const x of bt)try{await AtlasBatalha.apagar(x.id)}catch(e){}
   if(S.note&&!S.notes.has(S.note))S.note=null;if(S.map&&!S.maps.has(S.map))S.map=null;drawAll();if(window.AtlasDrive)AtlasDrive.marca();toast(tot+" cópia(s) removida(s).")}
 function aposSync(mud){const ns=new Set(mud.filter(k=>k[0]==="n").map(k=>k.slice(1))),ms=new Set(mud.filter(k=>k[0]==="m").map(k=>k.slice(1)));
   if(S.quadro&&$("#main .qd"))S.camPend=S.quadro.cam();drawSide();

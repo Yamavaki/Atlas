@@ -23,6 +23,7 @@
       async quando(rel){try{const [ps,n]=separa(rel),d=await dir(ps,false);return (await (await d.getFileHandle(n)).getFile()).lastModified||0}catch(e){return null}},
       async gravar(rel,dados){const [ps,n]=separa(rel),d=await dir(ps,true),h=await d.getFileHandle(n,{create:true}),w=await h.createWritable();await w.write(dados);await w.close()},
       async apagar(rel){try{const [ps,n]=separa(rel),d=await dir(ps,false);await d.removeEntry(n)}catch(e){}},
+      async nomes(rel){const o=[];try{const d=await dir(rel.split("/").filter(Boolean),false);for await(const [n,h] of d.entries())if(h.kind==="file")o.push(n)}catch(e){}return o},
       async listar(filtro,semStat){const out=[];const anda=async(d,pre)=>{for await(const [n,h] of d.entries()){if(n.startsWith(".")&&n!==".atlas")continue;if(h.kind==="directory"){if(n===".atlas"||filtro&&!pre&&PESADAS.has(n))continue;await anda(h,pre+n+"/")}else{if(filtro&&!filtro(pre+n))continue;const f=semStat?null:await h.getFile();out.push({rel:pre+n,quando:f?f.lastModified:0})}}};await anda(raiz,"");return out},
       async permissao(pedir){const o={mode:"readwrite"};if((await raiz.queryPermission(o))==="granted")return true;return pedir?(await raiz.requestPermission(o))==="granted":false}}}
 
@@ -35,6 +36,7 @@
       async quando(rel){try{const p=abs(rel);if(!(await fs.exists(p)))return null;const st=await fs.stat(p);return st.mtime?+new Date(st.mtime):0}catch(e){return null}},
       async gravar(rel,dados){const p=abs(rel),d=p.slice(0,p.lastIndexOf("/"));await fs.mkdir(d,{recursive:true}).catch(()=>{});if(typeof dados==="string")await fs.writeTextFile(p,dados);else await fs.writeFile(p,new Uint8Array(await new Blob([dados]).arrayBuffer()))},
       async apagar(rel){try{await fs.remove(abs(rel))}catch(e){}},
+      async nomes(rel){try{return (await fs.readDir(abs(rel))).filter(x=>!x.isDirectory).map(x=>x.name)}catch(e){return []}},
       async listar(filtro,semStat){const out=[];const anda=async(rel)=>{let L=[];try{L=await fs.readDir(rel?abs(rel):base)}catch(e){return}for(const x of L){const n=x.name;if(n.startsWith("."))continue;const r=rel?rel+"/"+n:n;if(x.isDirectory){if(filtro&&!rel&&PESADAS.has(n))continue;await anda(r)}else{if(filtro&&!filtro(r))continue;let q=0;if(!semStat)try{const st=await fs.stat(abs(r));q=st.mtime?+new Date(st.mtime):0}catch(e){}out.push({rel:r,quando:q})}}};await anda("");return out},
       async permissao(){return true}}}
 
@@ -96,7 +98,9 @@
     // le tudo: notas (.md e .canvas, inclusive as criadas fora do Atlas) e mapas
     // subpasta do mundo (no Chrome): o Modo Batalha olha a "Assets" para achar os pacotes de arte
     subpasta:async n=>D&&D.sub?D.sub(n):null,
-    async carregar(){if(!D)throw new Error("Nenhuma pasta aberta.");if(!(await D.ler("Assets/LEIA.txt")))D.gravar("Assets/LEIA.txt",LEIA_ASSETS).catch(()=>{});const r=await D.ler(IDX);IND=r?Object.assign({notas:{},mapas:{},versao:1},JSON.parse(r.texto||"{}")):{notas:{},mapas:{},versao:1};IND=normInd(IND);
+    // 1.59.2: a lixeira do Atlas (.atlas/lixeira) guarda o que foi apagado só por 7 dias (no Drive ela aparecia como arquivos repetidos)
+    async limpaLixeira(dias){if(!D||!D.nomes)return 0;const lim=Date.now()-(dias==null?7:dias)*864e5;let n=0;for(const nm of await D.nomes(LIXO)){const m=nm.match(/^(\d{12,14})-/);if(m&&+m[1]<lim||dias===0){await D.apagar(juntaP(LIXO,nm));n++}}return n},
+    async carregar(){if(!D)throw new Error("Nenhuma pasta aberta.");setTimeout(()=>API.limpaLixeira().catch(()=>{}),4000);if(!(await D.ler("Assets/LEIA.txt")))D.gravar("Assets/LEIA.txt",LEIA_ASSETS).catch(()=>{});const r=await D.ler(IDX);IND=r?Object.assign({notas:{},mapas:{},versao:1},JSON.parse(r.texto||"{}")):{notas:{},mapas:{},versao:1};IND=normInd(IND);
       const arqs=await D.listar(),porCaminho=new Map();for(const [id,x] of Object.entries(IND.notas))porCaminho.set(x.caminho,id);
       const notas=[],mapas=[],vistos=new Set();
       for(const a of arqs){if(/\.atlasmapa\.json$/i.test(a.rel)){const t=await D.ler(a.rel);try{const m=JSON.parse(t.texto);if(m&&m.id){mapas.push(m);IND.mapas[m.id]={caminho:a.rel}}}catch(e){}continue}
@@ -125,11 +129,11 @@
       const txt=o.kind==="canvas"?JSON.stringify(o.canvas||{nodes:[],edges:[]},null,1):(o.content||"");
       return fila=fila.then(async()=>{const ok=await gravaSeguro(velho&&velho!==novo?velho:novo,txt,"nota",o.id);if(!ok)return;if(velho&&velho!==novo){await D.gravar(novo,txt);TXT.set(novo,txt);const q=D.quando?await D.quando(novo):null;if(q)VISTO.set(novo,q);await D.apagar(velho);VISTO.delete(velho);TXT.delete(velho)}})},
     apagaNota(o){if(!D)return Promise.resolve();const x=IND.notas[o.id];delete IND.notas[o.id];salvaIndice();if(!x)return Promise.resolve();
-      return fila=fila.then(async()=>{const t=await D.ler(x.caminho);if(t)await D.gravar(juntaP(LIXO,Date.now()+"-"+x.caminho.split("/").pop()),t.texto);await D.apagar(x.caminho)})},
+      const guarda=!API.semLixo;return fila=fila.then(async()=>{const t=guarda&&await D.ler(x.caminho);if(t)await D.gravar(juntaP(LIXO,Date.now()+"-"+x.caminho.split("/").pop()),t.texto);await D.apagar(x.caminho)})},
     gravaMapa(m){if(!D)return Promise.resolve();const novo=caminhoMapa(m),velho=IND.mapas[m.id]&&IND.mapas[m.id].caminho;IND.mapas[m.id]={caminho:novo};salvaIndice();
       const txtM=JSON.stringify(m);return fila=fila.then(async()=>{const ok=await gravaSeguro(velho&&velho!==novo?velho:novo,txtM,"mapa",m.id);if(!ok)return;if(velho&&velho!==novo){await D.gravar(novo,txtM);TXT.set(novo,txtM);await D.apagar(velho);VISTO.delete(velho);TXT.delete(velho)}})},
     apagaMapa(m){if(!D)return Promise.resolve();const x=IND.mapas[m.id];delete IND.mapas[m.id];salvaIndice();if(!x)return Promise.resolve();
-      return fila=fila.then(async()=>{const t=await D.ler(x.caminho);if(t)await D.gravar(juntaP(LIXO,Date.now()+"-"+x.caminho.split("/").pop()),t.texto);await D.apagar(x.caminho)})},
+      const guarda=!API.semLixo;return fila=fila.then(async()=>{const t=guarda&&await D.ler(x.caminho);if(t)await D.gravar(juntaP(LIXO,Date.now()+"-"+x.caminho.split("/").pop()),t.texto);await D.apagar(x.caminho)})},
     // arquivos soltos (imagens, mapas de batalha): caminho relativo dentro do mundo
     gravaArquivo:(rel,dados)=>D?(fila=fila.then(()=>D.gravar(rel,dados))):Promise.resolve(),
     leArquivo:rel=>D?D.lerBin(rel):Promise.resolve(null),
