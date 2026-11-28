@@ -1431,3 +1431,10 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
   .pal.duas .pgrp{display:grid;grid-template-columns:repeat(2,auto);gap:2px}
   .pal.duas>.tbtn{align-self:center}
   .pal.duas .psep{width:60px;margin:0}.pal.duas{gap:1px;padding:4px}.pal.duas .pgrp{gap:1px}.pal.duas .tbtn{width:34px;height:34px;min-height:0}.pal.rola{touch-action:pan-y}.pal:not(.rola){overflow:visible}}
+/* 1.60: balão do ponto do mapa e listas automáticas da nota de lugar */
+.balao{position:fixed;z-index:60;width:min(360px,calc(100vw - 16px));max-height:min(70vh,520px);overflow:auto;background:var(--panel,#1b1711);border:1px solid var(--line-2,#4a3e2c);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.55);padding:12px 14px;font-size:14px;line-height:1.45}
+.balao .bl-t{font-family:var(--serif);font-size:19px;margin-bottom:6px;color:#f3e9d2}
+.balao .bl-s{margin-top:8px}.balao .bl-s>b{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold,#d8b45a);margin-bottom:2px}
+.balao .md p{margin:0 0 .4em}.balao .md ul{margin:0 0 .4em;padding-left:1.1em}
+.balao .bl-b{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
+.auto-l{list-style:none;padding:0;margin:.2em 0 .8em}.auto-l li{margin:.15em 0}.auto-l .plk{background:none;border:0;padding:0;color:var(--gold,#d8b45a);cursor:pointer;font:inherit;text-decoration:underline dotted}.auto-l small{color:var(--muted)}

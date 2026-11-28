@@ -21,14 +21,14 @@ const S={notes:new Map(),maps:new Map(),sec:"home",note:null,map:null,mode:"read
 const TYPES={livre:"Nota livre",local:"Lugar",personagem:"Personagem",criatura:"Criatura",faccao:"Facção",item:"Item",missao:"Missão",sessao:"Sessão",campanha:"Campanha",relogio:"Relógio",pista:"Pista",escrito:"Escrito"};
 const TPL={
   livre:"",
-  local:"---\ntipo: local\n---\n\n## Descrição\n\n\n## Quem vive aqui\n\n\n## Ganchos\n\n- [ ] \n\n> [!segredo] Só para o mestre\n> \n",
-  personagem:"---\ntipo: personagem\n---\n\n## Aparência\n\n\n## O que quer\n\n\n## O que esconde\n\n\n## Ligações\n\n",
+  local:"---\ntipo: local\n---\n\n## Ao chegar\n\n\n## Quem está aqui\n\n\n## O que dá para descobrir\n\n- Pista → leva a [[ ]]\n\n## Se…\n\n- Se \n\n## Missões que passam aqui\n\n\n> [!segredo] Só para o mestre\n> \n",
+  personagem:"---\ntipo: personagem\n---\n\n## Quer\n\n\n## Esconde\n\n\n## Como fala\n\n> \"\"\n\n## Se os jogadores…\n\n- Se \n\n## Aparência\n\n",
   faccao:"---\ntipo: faccao\n---\n\n## Objetivo\n\n\n## Membros\n\n\n## Recursos\n\n\n## Inimigos e aliados\n\n",
   item:"---\ntipo: item\n---\n\n## Descrição\n\n\n## Efeito\n\n\n## História\n\n",
   criatura:"---\ntipo: criatura\n---\n\n## Aparência\n\n\n## Comportamento\n\n\n## Ataques e habilidades\n\n\n## Pontos fracos\n\n\n## O que deixa para trás\n\n",
-  missao:"---\ntipo: missao\nstatus: aberta\npeso: principal\n---\n\n## Objetivo\n\n\n## Objetivos\n\n- [ ] \n\n## Complicações\n\n\n## Recompensas\n\n\n## Consequências\n\n- Se der certo: \n- Se der errado: \n\n> [!segredo] O que realmente está acontecendo\n> \n",
+  missao:"---\ntipo: missao\nstatus: aberta\npeso: principal\n---\n\n## Trilha\n\n1. [[ ]]\n2. [[ ]]\n3. [[ ]]\n\n## Objetivo\n\n\n## Objetivos\n\n- [ ] \n\n## Complicações\n\n\n## Recompensas\n\n\n## Consequências\n\n- Se der certo: \n- Se der errado: \n\n> [!segredo] O que realmente está acontecendo\n> \n",
   campanha:"---\ntipo: campanha\nestado: andamento\n---\n\n## Resumo\n\n\n## Arcos\n\n1. \n\n## Ganchos para os jogadores\n\n- \n\n> [!segredo] O que só o mestre sabe\n> \n",
-  sessao:"---\ntipo: sessao\n---\n\n## Onde paramos\n\n\n## Cenas previstas\n\n- [ ] \n\n## NPCs em jogo\n\n\n## Anotações\n\n",
+  sessao:"---\ntipo: sessao\n---\n\n## Onde paramos\n\n\n## Lugares prováveis\n\n- [[ ]]\n\n## NPCs em jogo\n\n- [[ ]]\n\n## Não esquecer\n\n- [ ] \n\n## Anotações\n\n",
   relogio:"---\ntipo: relogio\nsegmentos: 6\ncheios: 0\nestado: andamento\n---\n\n## O que enche\n\n\n## Etapas\n\n1. \n\n## Quando enche\n\n",
   pista:"---\ntipo: pista\nnivel: 1\nstatus: guardada\n---\n\n## A pista\n\n\n## Como encontram\n\n",
   escrito:"---\ntipo: escrito\nformato: carta\nera: classico\n---\n\nTexto da primeira página.\n\n---\n\nTexto da segunda página.\n"};
@@ -267,6 +267,19 @@ function pizza(n,size,mexe){const p=fm(n.content).props,N=Math.max(2,Math.min(24
   return svg}
 function cartaoRelogio(n,mexe){const p=fm(n.content).props,N=parseInt(p.segmentos)||6,C=parseInt(p.cheios)||0;return h("div",{class:"relc"},pizza(n,64,mexe),h("button",{type:"button",class:"relt",onclick:()=>openNote(n.id)},h("b",{},n.title),h("small",{},C+" de "+N+(p.estado==="parado"?" · parado":p.estado==="cheio"||C>=N?" · cheio":""))))}
 // secoes automaticas no fim da nota: relogios do dono, escada de pistas do segredo, pistas guardadas neste lugar ou sessao
+// 1.60: nota de lugar para a mesa: "Quem está aqui" e "Missões que passam aqui" se montam sozinhos
+function trilhaDe(n){const b=fm(n.content).body,m=/^##\s*Trilha\s*$([\s\S]*?)(?=^##\s|$(?![\s\S]))/m.exec(b);const src=m?m[1]:"";const L=[];src.replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]*)?\]\]/g,(_,a)=>{if(a.trim())L.push(norm(a.trim()))});return L}
+function listasLugar(o){const ns=new Set(nomesDe(o)),liga=(n,k)=>splitL(fm(n.content).props[k]).some(x=>ns.has(norm(semSecao(x)))),all=[...S.notes.values()].filter(n=>n.kind!=="canvas"&&n!==o);
+  const gente=all.filter(n=>["personagem","criatura","faccao"].includes(tipoDe(n))&&(liga(n,"local")||liga(n,"habitat")||liga(n,"onde")||liga(n,"sede")));
+  const miss=[];for(const n of all){if(tipoDe(n)!=="missao")continue;const T=trilhaDe(n),i=T.findIndex(x=>ns.has(x));if(i>=0)miss.push([n,"passo "+(i+1)]);else if(liga(n,"local"))miss.push([n,""])}
+  const btn=n=>h("button",{type:"button",class:"plk",onclick:()=>openNote(n.id)},n.title);
+  const ul1=gente.length?h("ul",{class:"auto-l"},gente.map(n=>{const p=fm(n.content).props;return h("li",{},btn(n),h("small",{}," "+[p.papel,p.situacao&&p.situacao!=="vivo"?p.situacao:""].filter(Boolean).join(" · ")))})):h("p",{class:"empty"},"Ninguém ainda. Na nota da pessoa, preencha “Onde vive” com este lugar.");
+  const ul2=miss.length?h("ul",{class:"auto-l"},miss.map(([n,t])=>h("li",{},btn(n),t?h("small",{}," "+t):""))):h("p",{class:"empty"},"Nenhuma missão ainda. Na missão, ponha este lugar na “Trilha”.");
+  return {gente:ul1,miss:ul2}}
+function encaixaLugar(o,v){if(tipoDe(o)!=="local")return;const L=listasLugar(o);let g=false,m=false;
+  for(const hh of v.querySelectorAll("h2")){const t=hh.textContent.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();let alvo=null;if(/^quem (esta|vive) aqui/.test(t)&&!g){alvo=L.gente;g=true}else if(/^missoes que passam aqui/.test(t)&&!m){alvo=L.miss;m=true}
+    if(alvo){alvo.classList.add("auto-lugar");let nx=hh.nextElementSibling;hh.after(alvo)}}
+  if(!g)v.append(h("h2",{},"Quem está aqui"),L.gente);if(!m)v.append(h("h2",{},"Missões que passam aqui"),L.miss)}
 function secoesAuto(o){const ns=new Set(nomesDe(o)),liga=(n,k)=>splitL(fm(n.content).props[k]).some(x=>ns.has(norm(semSecao(x)))),out=[],all=[...S.notes.values()].filter(n=>n.kind!=="canvas"&&n!==o);
   const rel=all.filter(n=>tipoDe(n)==="relogio"&&liga(n,"dono"));if(rel.length)out.push(h("section",{class:"auto"},h("h3",{},"Relógios"),h("div",{class:"relgrid"},rel.map(n=>cartaoRelogio(n,true)))));
   const pis=all.filter(n=>tipoDe(n)==="pista"&&liga(n,"revela")).sort((a,b)=>(parseInt(fm(a.content).props.nivel)||1)-(parseInt(fm(b.content).props.nivel)||1));
@@ -512,7 +525,7 @@ function drawNote(){const o=S.notes.get(S.note),main=$("#main");main.replaceChil
     const tb=h("div",{class:"tbar",role:"toolbar","aria-label":"Formatação"},[["B","Negrito (Ctrl+B)",()=>wrapSel("**","**","negrito")],["I","Itálico (Ctrl+I)",()=>wrapSel("*","*","itálico")],["[[ ]]","Ligar a nota ou lugar (Ctrl+K)",()=>wrapSel("[[","]]","")],["Título","Título",()=>linePre("## ")],["Lista","Lista",()=>linePre("- ")],["Tarefa","Caixa de marcar",()=>linePre("- [ ] ")],["#","Etiqueta",()=>wrapSel("#","","etiqueta")],["Segredo","Só o mestre vê (Ctrl+Shift+S)",()=>wrapSel("%%","%%","segredo")],["Imagem","Inserir imagem",()=>ifile.click()],["Lista auto","Lista que se monta sozinha pelas fichas",()=>{ta.setRangeText(blocoLista(type),ta.selectionStart,ta.selectionEnd,"end");save()}]].map(([t,ti,fn])=>h("button",{type:"button",title:ti,onclick:fn},t)),ifile);
     wrap.append(tb,sugg,ta);setTimeout(()=>ta.focus({preventScroll:true}),0)}
   else if(type==="escrito"){const v=vistaEscrito(o);v.addEventListener("dblclick",e=>{if(!e.target.closest("a,button")){S.mode="edit";drawNote()}});wrap.append(v)}
-  else{const v=mdView(o.content,o);v.title="Clique duas vezes para editar";v.addEventListener("dblclick",e=>{if(!e.target.closest("a")){S.mode="edit";drawNote()}});if(!fm(o.content).body.trim())v.append(h("p",{class:"empty"},"Sem texto ainda. Clique duas vezes aqui ou em Editar."));wrap.append(v)}
+  else{const v=mdView(o.content,o);encaixaLugar(o,v);v.title="Clique duas vezes para editar";v.addEventListener("dblclick",e=>{if(!e.target.closest("a")){S.mode="edit";drawNote()}});if(!fm(o.content).body.trim())v.append(h("p",{class:"empty"},"Sem texto ainda. Clique duas vezes aqui ou em Editar."));wrap.append(v)}
   wrap.append(...secoesAuto(o));
   const bl=backlinks(o);if(bl.length)wrap.append(h("section",{class:"back"},h("h3",{},"Mencionada em"),h("div",{class:"list"},bl.map(n=>h("button",{class:"item",type:"button",onclick:()=>openNote(n.id)},n.title)))));
   const lay=h("div",{class:"nota-lay"},wrap);main.append(lay);const md0=wrap.querySelector(":scope>.md");if(md0&&S.mode!=="edit")montaDobras(md0,o.id);
@@ -614,7 +627,7 @@ function drawCityMap(o,main,flash){const AC=window.AtlasCity;AC.setMapa(o.params
   let C=null,info=null,tool="move",sel=-1,brush=40,cSel="b_town",cSize=1,cRot=20,cRace=o.params.culture,cSpread=1;const undo=[];
   const snap=()=>{undo.push(JSON.stringify({params:o.params,objs:o.objs,erase:o.erase,realms:o.realms,pinturaC:o.pinturaC||null,anot:o.anot||[]}));if(undo.length>30)undo.shift()};
   // 1.35: anotacoes do mestre na cidade
-  const AN=anotMapa({o,mc,stage,CW:()=>AC.CW,CH:()=>AC.CH,snap:()=>snap(),cols:12,dims:()=>[AC.CW-92,AC.CH-110],proj:(x,y)=>info?info.project(x,y):null,unproj:(cx,cy)=>info?info.unproject(cx,cy):null,
+  const AN=anotMapa({o,mc,stage,ferramenta:()=>tool,CW:()=>AC.CW,CH:()=>AC.CH,snap:()=>snap(),cols:12,dims:()=>[AC.CW-92,AC.CH-110],proj:(x,y)=>info?info.project(x,y):null,unproj:(cx,cy)=>info?info.unproject(cx,cy):null,
     lugares:()=>{if(!C)return [];const L=[],NM=(window.AtlasAssets||{}).NAME||{};for(const q of C.SPB)if(q.x!=null&&(q.id||q.k))L.push({x:q.x,y:q.y+10,tipo:/porto|crane|lighthouse|ship|m_portico|m_conteiner/.test(q.id||"")?"porto":"especial",nome:null,dist:60});for(const z of C.squares||[])if(z.poly){const c=z.poly.reduce((a,v)=>[a[0]+v[0]/z.poly.length,a[1]+v[1]/z.poly.length],[0,0]);L.push({x:c[0],y:c[1],tipo:"praca",dist:60})}
       const B=C.B.filter(b=>!b.k&&b.x!=null);for(let k=0;k<Math.min(40,B.length);k++){const b=B[(k*9973)%B.length];L.push({x:b.x,y:b.y+6,tipo:"casa",dist:50})}return L},
     lugar:(x,y)=>{let b="",bd=220;for(const pl of o.places||[]){if(pl.x==null)continue;const d=Math.hypot(pl.x-x,pl.y-y);if(d<bd){bd=d;b=pl.name}}return b}});let anotArrC=false;
@@ -1067,7 +1080,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const snap=()=>{undo.push(JSON.stringify({params:o.params,edits:o.edits,lock:o.lock,pins:o.pins,objs:o.objs,vec:o.vec||null,realms:o.realms,relevo:o.relevo||null,pintura:o.pintura||null,tracos:o.tracos||null,anot:o.anot||[]}));if(undo.length>30)undo.shift()};
   S.snap=snap;
   // 1.35: anotacoes do mestre (camada propria por cima do mapa)
-  const AN=anotMapa({o,mc,stage,CW:()=>A.CW,CH:()=>A.CH,snap:()=>snap(),cols:16,dims:()=>[A.MW,A.MH],proj:(x,y)=>cur?cur.info.project(x,y):null,plano:(x,y)=>cur&&cur.info.plano?cur.info.plano(x,y):null,gdims:()=>cur&&cur.info.WY?[A.MW,Math.min(cur.info.WY,Math.round(A.MH/0.7))]:[A.MW,A.MH],
+  const AN=anotMapa({o,mc,stage,ferramenta:()=>tool,CW:()=>A.CW,CH:()=>A.CH,snap:()=>snap(),cols:16,dims:()=>[A.MW,A.MH],proj:(x,y)=>cur?cur.info.project(x,y):null,plano:(x,y)=>cur&&cur.info.plano?cur.info.plano(x,y):null,gdims:()=>cur&&cur.info.WY?[A.MW,Math.min(cur.info.WY,Math.round(A.MH/0.7))]:[A.MW,A.MH],
     unproj:(cx,cy)=>{const sx=Math.round(cx-A.MX),sy=Math.round(cy-A.MY);if(!cur||sx<0||sy<0||sx>=A.MW||sy>=A.MH)return null;return [sx,cur.info.YB[sy*A.MW+sx]||sy/A.TILT]},
     lugares:()=>{if(!cur)return [];const L=[];for(const t of o.lock||[])L.push({x:t.x,y:t.y+18,tipo:"povoado",nome:null,dist:80});for(const pn of o.pins||[])L.push({x:pn.x,y:pn.y,tipo:"fora",nome:pn.label,dist:80});const r=A.mulberry((Date.now()>>>0));for(let k=0;k<60;k++){const x=A.MW*(.08+r()*.84),y=(cur.info.YB?A.MH/A.TILT:A.MH)*(.1+r()*.8);L.push({x:Math.round(x),y:Math.round(y),tipo:"mato",dist:120})}return L},
     lugar:(x,y)=>{if(!cur)return "";let b="",bd=260;for(const t of o.lock||[]){const d=Math.hypot(t.x-x,t.y-y);if(d<bd){bd=d;b=t.name}}for(const pn of o.pins||[]){const d=Math.hypot(pn.x-x,pn.y-y);if(d<bd){bd=d;b=pn.label}}return b}});S.anotDraw=()=>AN&&AN.desenha();
@@ -1455,6 +1468,25 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   const grade=()=>{const d=cfg.gdims?cfg.gdims():cfg.dims();return {x0:0,y0:0,x1:d[0],y1:d[1],cols:o.anotCols||cfg.cols||16,T:cfg.plano?((x,y)=>cfg.plano(x,y)||T(x,y)):null,k:Math.max(1,esc()*1.15)}};
   const kF0=Math.max(1,cfg.CW()/700),zkA=()=>{const m=/scale\(([\d.]+)\)/.exec(cfg.stage.style.transform||"");return m?+m[1]:1},kA=()=>kF0*Math.max(.4,Math.min(1,zkA()*.5)),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome)=>{cfg.snap();o.anot=L;Store.save("maps",o)},T,inv,k:()=>kA(),tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
     desenha:()=>desenha(),painel:()=>{if(ativo&&host)painel(host)},abreNota:t=>abreNotaDe(t)});
+  // 1.60: um toque num ponto (com a ferramenta Navegar) abre um balão com o resumo e o essencial da nota do lugar
+  let balao=null;const fechaBalao=()=>{if(balao){balao.remove();balao=null}};
+  const secaoDe=(body,re)=>{const m=new RegExp("^##\\s*(?:"+re+")[^\\n]*\\n([\\s\\S]*?)(?=^##\\s|(?![\\s\\S]))","im").exec(body);return m?m[1].trim():""};
+  function mostraBalao(it,ev){fechaBalao();const nm=it.nota?String(it.nota).replace(/^\[\[|\]\]$/g,""):"",n=nm?findNote(nm):null;
+    const b=h("div",{class:"balao",role:"dialog","aria-label":it.titulo||"Ponto"});b.append(h("div",{class:"bl-t"},it.titulo||(n&&n.title)||"Ponto"));
+    if(it.texto)b.append(h("div",{class:"bl-x md",html:md(String(it.texto))}));
+    if(n){const body=fm(n.content).body,ch=secaoDe(body,"Ao chegar"),pi=secaoDe(body,"O que d[aá] para descobrir");
+      if(ch)b.append(h("div",{class:"bl-s"},h("b",{},"Ao chegar"),h("div",{class:"md",html:md(ch)})));
+      if(pi)b.append(h("div",{class:"bl-s"},h("b",{},"O que dá para descobrir"),h("div",{class:"md",html:md(pi)})));
+      if(tipoDe(n)==="local"){const L=listasLugar(n);if(L.gente.tagName==="UL")b.append(h("div",{class:"bl-s"},h("b",{},"Quem está aqui"),L.gente))}
+      if(!ch&&!pi&&!it.texto){const t=body.replace(/^#.*$/gm,"").trim().slice(0,320);if(t)b.append(h("div",{class:"bl-x md",html:md(t)}))}}
+    b.append(h("div",{class:"bl-b"},n?h("button",{type:"button",class:"primary sm",onclick:()=>{fechaBalao();openNote(n.id)}},"Abrir a nota"):nm?h("button",{type:"button",class:"sm",onclick:()=>{fechaBalao();abreNotaDe(nm)}},"Criar a nota"):"",h("button",{type:"button",class:"ghost sm",onclick:fechaBalao},"Fechar")));
+    b.addEventListener("pointerdown",e=>e.stopPropagation());document.body.append(b);balao=b;
+    const W=b.offsetWidth,H=b.offsetHeight;let x=ev.clientX+14,y=ev.clientY-20;if(x+W>innerWidth-8)x=ev.clientX-W-14;if(x<8)x=8;if(y+H>innerHeight-8)y=innerHeight-H-8;if(y<8)y=8;b.style.left=x+"px";b.style.top=y+"px"}
+  {const vw=cfg.stage.parentNode;let dn=null;
+    if(vw){vw.addEventListener("pointerdown",e=>{dn=[e.clientX,e.clientY];if(balao&&!e.target.closest(".balao"))fechaBalao()},true);
+      vw.addEventListener("click",e=>{if(!dn||Math.hypot(e.clientX-dn[0],e.clientY-dn[1])>6)return;if(ativo||cv.hidden||e.target.closest("button"))return;if(cfg.ferramenta&&cfg.ferramenta()!=="move")return;if(!acerta())return;
+        const q=pt(e),it=AN.acerta(o.anot,q[0],q[1],T,kA(),8*esc());if(it&&(it.tipo==="ponto"||it.titulo||it.nota))mostraBalao(it,e)})}
+    addEventListener("keydown",e=>{if(e.key==="Escape")fechaBalao()});new MutationObserver(()=>{if(!document.body.contains(cfg.mc))fechaBalao()}).observe(document.body,{childList:true,subtree:false})}
   const abreNotaDe=t=>{const n=findNote(String(t).replace(/^\[\[|\]\]$/g,""));if(n)openNote(n.id);else toast("A nota “"+String(t).replace(/^\[\[|\]\]$/g,"")+"” não existe ainda.")};
   // 1.59.8: ícones das anotações menores com o mapa afastado (acompanham o zoom)
   {let zk0=zkA(),t_=0;new MutationObserver(()=>{const z=zkA();if(Math.abs(z-zk0)<.02)return;zk0=z;clearTimeout(t_);t_=setTimeout(()=>{if(document.body.contains(cfg.mc))desenha()},120)}).observe(cfg.stage,{attributes:true,attributeFilter:["style"]})}
