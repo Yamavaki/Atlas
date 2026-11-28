@@ -1430,4 +1430,4 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 @media (min-width:861px){.pal{touch-action:none;overscroll-behavior:contain}
   .pal.duas .pgrp{display:grid;grid-template-columns:repeat(2,auto);gap:2px}
   .pal.duas>.tbtn{align-self:center}
-  .pal.duas .psep{width:60px;margin:0}.pal.duas{gap:1px;padding:4px}.pal.duas .pgrp{gap:1px}.pal.duas .tbtn{width:34px;height:34px;min-height:0}.pal.rola{touch-action:pan-y}}
+  .pal.duas .psep{width:60px;margin:0}.pal.duas{gap:1px;padding:4px}.pal.duas .pgrp{gap:1px}.pal.duas .tbtn{width:34px;height:34px;min-height:0}.pal.rola{touch-action:pan-y}.pal:not(.rola){overflow:visible}}
