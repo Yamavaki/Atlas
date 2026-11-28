@@ -118,12 +118,20 @@ function montaMapa(main,{head,barra,body,ctx,par,area}){barra.classList.add("mba
   // no celular os parametros viram uma folha que sobe de baixo: comeca fechada (o mapa fica inteiro) e tem um botao de fechar
   const bParH=()=>[...head.querySelectorAll("button")].find(x=>x.textContent.trim()==="Parâmetros");
   lado.append(h("button",{type:"button",class:"fecha-par","aria-label":"Fechar os parâmetros",onclick:()=>{const b=bParH();if(b&&!par.hidden)b.click();else par.hidden=true}},icone("fechar")));
-  body.append(area,lado);const mv=h("div",{class:"mapv mapv2"+(LAYOUT.semLado?" sem-lado":"")},head,barra,body);main.append(mv);
-  const bLado=h("button",{type:"button",class:"ghost sm mb-lado","aria-pressed":String(!LAYOUT.semLado),title:"Mostrar ou esconder o painel de opções (o mapa ocupa a tela toda)",onclick:()=>{LAYOUT.semLado=!LAYOUT.semLado;gravaLayout();mv.classList.toggle("sem-lado",LAYOUT.semLado);bLado.setAttribute("aria-pressed",String(!LAYOUT.semLado));setTimeout(()=>window.dispatchEvent(new Event("resize")),30)}},icone("colunas",16),"Painel");barra.append(bLado);if(ctx){const ve=()=>{bLado.classList.toggle("tem",ctx.childElementCount>0);
-      // 1.59.7: com o painel escondido, escolher algo no mapa (aparece "Apagar") abre o painel; soltar fecha de novo
-      const esc=!!ctx.querySelector("button.danger");if(esc&&mv.classList.contains("sem-lado")){mv.classList.remove("sem-lado");mv._tmpC=1;window.dispatchEvent(new Event("resize"))}else if(!esc&&mv._tmpC){mv._tmpC=0;if(LAYOUT.semLado&&!mv._tmp){mv.classList.add("sem-lado");window.dispatchEvent(new Event("resize"))}}};
-    new MutationObserver(ve).observe(ctx,{childList:true,subtree:true});ve()}if(par)new MutationObserver(()=>{if(!par.hidden&&mv.classList.contains("sem-lado")){mv.classList.remove("sem-lado");mv._tmp=1;window.dispatchEvent(new Event("resize"))}else if(par.hidden&&mv._tmp){mv._tmp=0;if(LAYOUT.semLado){mv.classList.add("sem-lado");window.dispatchEvent(new Event("resize"))}}}).observe(par,{attributes:true,attributeFilter:["hidden"]});
-  if((window.AtlasCompacto()&&!matchMedia("(min-width:861px) and (min-height:521px)").matches||matchMedia("(max-width:760px)").matches)&&par&&!par.hidden){const b=bParH();if(b)b.click();if(!par.hidden)par.hidden=true}
+  body.append(area,lado);const mv=h("div",{class:"mapv mapv2 sem-lado"},head,barra,body);main.append(mv);
+  // 1.61: o painel é um cartão por cima do mapa (não encolhe o mapa, então a câmera não mexe). Abre sozinho quando a
+  // ferramenta tem opções ou algo foi escolhido; o × fecha até trocar de ferramenta; o botão Painel abre e fecha
+  let fechou=false,forca=false,chave="";
+  const ferr=()=>{const b=mv.querySelector(".pal [aria-pressed=true]");return b?b.dataset.t||"":""};
+  const temOpc=()=>!!(ctx&&ctx.querySelector("button,input,select,textarea"));
+  const ve=()=>{const k=ferr();if(k!==chave){chave=k;fechou=false;forca=false}const parV=par&&!par.hidden;const mostra=parV||forca||(!fechou&&temOpc());mv.classList.toggle("sem-lado",!mostra);bLado.setAttribute("aria-pressed",String(mostra));bLado.classList.toggle("tem",!mostra&&temOpc())};
+  const bLado=h("button",{type:"button",class:"ghost sm mb-lado",title:"Mostrar ou esconder o painel de opções",onclick:()=>{if(mv.classList.contains("sem-lado")){fechou=false;forca=true}else{fechou=true;forca=false;if(par&&!par.hidden){const b=bParH();if(b)b.click()}}ve()}},icone("colunas",16),"Painel");barra.append(bLado);
+  lado.prepend(h("button",{type:"button",class:"mlado-x","aria-label":"Fechar o painel",title:"Fechar o painel",onclick:()=>{fechou=true;forca=false;if(par&&!par.hidden){const b=bParH();if(b)b.click()}ve()}},icone("fechar",16)));
+  if(ctx)new MutationObserver(()=>requestAnimationFrame(ve)).observe(ctx,{childList:true,subtree:true});
+  if(par)new MutationObserver(ve).observe(par,{attributes:true,attributeFilter:["hidden"]});
+  setTimeout(()=>{const pal=mv.querySelector(".pal");if(pal)new MutationObserver(ve).observe(pal,{subtree:true,attributes:true,attributeFilter:["aria-pressed"]});ve()},80);
+  // 1.61: os parâmetros do gerador começam fechados em toda tela (abre no botão Parâmetros)
+  if(par&&!par.hidden){const b=bParH();if(b)b.click();if(!par.hidden)par.hidden=true}
   // o mapa termina de gerar depois que a tela monta: reajusta quando ele chega (e se a janela ainda estava se arrumando)
   for(const t of [300,1200,3000])setTimeout(()=>{if(area.isConnected)window.dispatchEvent(new Event("resize"))},t)}
 function fitTall(view,stage,cv){if(!view._ro&&window.ResizeObserver){let lw=0;view._ro=new ResizeObserver(()=>{if(!view.isConnected){view._ro.disconnect();return}const w=view.clientWidth,bw0=view._bw;if(!w)return;const wh=view.parentNode?view.parentNode.clientHeight:0;if(Math.abs(w-lw)>2||Math.abs(wh-(view._lh||0))>2||!bw0||bw0+2<w){lw=w;view._lh=wh;fitTall(view,stage,cv);if(view._aoAjustar)view._aoAjustar()}});view._ro.observe(view);if(view.closest(".mapv")&&view.parentNode)view._ro.observe(view.parentNode)}const vw=view.clientWidth;if(!vw||!cv.width)return;const ar=cv.width/cv.height,nat=vw/ar,r=view.getBoundingClientRect(),wrap=view.parentNode,below=wrap?Math.max(0,wrap.getBoundingClientRect().bottom-r.bottom):0;
@@ -228,7 +236,14 @@ function findPlace(t){const n=norm(t);if(!n)return null;const ms=[...S.maps.valu
 // ---------- notas ----------
 function newNote(type,title,extra){const id=uid("n");let t=title||"Sem título",k=2;while(findNote(t))t=(title||"Sem título")+" "+(k++);
   const o={id,title:t,folder:FOLD[type]||"",content:(extra&&extra.content)!=null?extra.content:TPL[type]||"",updated:now()};S.notes.set(id,o);Store.save("notes",o);return o}
-function openNote(id,mode){S.sec="notes";S.view=null;S.note=id;const o=S.notes.get(id);S.mode=mode||(o&&fm(o.content).body.trim()?"read":"edit");closePlace();drawAll();$("#side").classList.remove("open");
+// 1.61: com um mapa aberto, a nota abre numa folha por cima do mapa (fechar volta ao mapa do jeito que estava)
+function notaFolha(id){const o=S.notes.get(id);if(!o)return false;let f=$("#nfolha");if(!f){f=h("div",{id:"nfolha",class:"nfolha",role:"dialog"});document.body.append(f);addEventListener("keydown",e=>{if(e.key==="Escape"&&f.isConnected&&!f.hidden&&!e.target.closest("textarea,input")){f.hidden=true}})}
+  f.hidden=false;f.replaceChildren();let edita=false;const corpo=h("div",{class:"nf-corpo"});
+  const mostra=()=>{corpo.replaceChildren();if(edita){const ta=h("textarea",{class:"nf-ta"},o.content||"");ta.value=o.content||"";ta.addEventListener("input",()=>{o.content=ta.value;o.updated=Date.now();Store.save("notes",o)});corpo.append(ta);setTimeout(()=>ta.focus(),0)}
+    else{const v=mdView(o.content,o);encaixaLugar(o,v);corpo.append(v,...secoesAuto(o));if(!fm(o.content).body.trim())corpo.append(h("p",{class:"empty"},"Sem texto ainda. Toque em Editar."))}};
+  const bEd=h("button",{type:"button",class:"sm",onclick:()=>{edita=!edita;bEd.textContent=edita?"Pronto":"Editar";mostra();if(!edita)drawSide()}},"Editar");
+  f.append(h("div",{class:"nf-cab"},h("div",{class:"nf-t"},o.title),bEd,h("button",{type:"button",class:"ghost sm",title:"Abrir como página inteira (o botão Voltar traz de volta ao mapa)",onclick:()=>{f.hidden=true;openNote(id,"pagina")}},"Página"),h("button",{type:"button",class:"ghost sm nf-x","aria-label":"Fechar e voltar ao mapa",onclick:()=>{f.hidden=true}},icone("fechar",16))),corpo);mostra();return true}
+function openNote(id,mode){if(mode!=="pagina"&&S.sec==="maps"&&document.querySelector(".mapv2")&&notaFolha(id))return;if(mode==="pagina")mode=undefined;{const f=$("#nfolha");if(f)f.hidden=true}S.sec="notes";S.view=null;S.note=id;const o=S.notes.get(id);S.mode=mode||(o&&fm(o.content).body.trim()?"read":"edit");closePlace();drawAll();$("#side").classList.remove("open");
   // 1.35.1: se o arquivo mudou por fora desde a ultima leitura, mostra a versao do disco
   if(o&&Store.pasta&&window.AtlasPasta&&AtlasPasta.releNota&&o.kind!=="canvas")AtlasPasta.releNota(id).then(r=>{if(r&&aplicaDisco(o,r)&&S.note===id&&S.sec==="notes")drawMain()}).catch(()=>{})}
 // poe na nota o texto lido do disco (o disco ganha da memoria); cancela a gravacao pendente
@@ -1138,6 +1153,12 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const TR_TIPOS=[["estrada","Estrada"],["pavimentada","Pavimentada"],["areia","Areia"],["trilha","Trilha"],["rua","Rua"],["rio","Rio"],["riacho","Riacho"],["muralha","Muralha"],["palicada","Paliçada"],["sebe","Cerca viva"]],trEhRio=t=>t==="rio"||t==="riacho",trEhMuro=t=>t==="muralha"||t==="palicada"||t==="sebe";
   const trUne=(a,b)=>!a?b:!b?a:[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[2],b[2]),Math.max(a[3],b[3])];
   const trBox=t=>{if(!t||!t.pts||!t.pts.length)return null;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const q of t.pts){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}return [x0,y0,x1,y1]};
+  const desfazRascunho=()=>{
+    if(trDraft&&trDraft.pts){const b=trBox(trDraft);trDraft.pts.pop();if(trDraft.pts.length<1)trDraft=null;trAtual(b);trOver&&trOver();drawCtx();return true}
+    if(typeof draft!=="undefined"&&draft&&draft.length){draft.pop();drawDraft();return true}
+    if(ov&&ov.st&&ov.st.draft&&ov.st.draft.length){ov.st.draft.pop();if(!ov.st.draft.length)ov.st.draft=null;ov.draw();drawCtx();return true}
+    if(AN&&AN.C&&AN.C.st.rasc){if(AN.C.desfazPonto&&AN.C.desfazPonto())return true;AN.C.st.rasc=null;AN.desenha();return true}
+    return false};
   const trLista=()=>(o.tracos||[]).concat(trDraft&&trDraft.pts.length>1?[trDraft]:[]);
   const trAtual=b=>{if(!cur||!cur.info.tracos||!b)return;trPend=trUne(trPend,b);if(trRaf)return;trRaf=requestAnimationFrame(()=>{trRaf=0;const bb=cur.info.tracos.poe(trLista(),trPend);trPend=null;if(bb)try{escComp([bb[0]-24,bb[2]+24])}catch(e){console.error(e)}trOver()})};
   const trOver=()=>{octx.clearRect(0,0,A.CW,A.CH);if(tool!=="tra"||!cur||!trDraft)return;const P=trDraft.pts.map(q=>cur.info.project(q[0],q[1]));octx.lineWidth=2;octx.strokeStyle="rgba(255,240,200,.95)";octx.setLineDash([6,5]);
@@ -1389,7 +1410,10 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     else if(tool==="city")ctx.append(B_("Remover ponto",rmPoint),B_("Remover rua",rmLine),B_("Restaurar cidade",restore,"ghost"));
     ctx.hidden=tool==="move";hint.textContent=HINT[tool]||"Pinte arrastando sobre o mapa"}
   const setTool=t=>{if(AN)AN.ativa(t==="anot",ctx);ov.setOn(t==="border");if(!(t==="city"||t==="street")||!(tool==="city"||tool==="street"))cityI=-1;tool=t;draft=[];sel=null;drawDraft();stage.classList.toggle("draw",!["move","lines","city"].includes(t));view.classList.toggle("grab",["move","lines","city"].includes(t));for(const b of pal.querySelectorAll("button[data-t]"))b.setAttribute("aria-pressed",String(b.dataset.t===t));drawCtx();drawPins()};
-  const undoB=h("button",{type:"button",class:"icb",title:"Desfazer (Ctrl+Z)","aria-label":"Desfazer",onclick:()=>{const u=undo.pop();if(!u){toast("Nada para desfazer.");return}const nu=JSON.parse(u),J=JSON.stringify;{const sem=x=>J(Object.assign({},x,{anot:0}));const at={};for(const k in nu)at[k]=o[k];if(sem(nu)===sem(at)){o.anot=nu.anot||[];Store.save("maps",o);if(AN){AN.C.st.sel=null;AN.desenha();if(tool==="anot")drawCtx()}return}}const ne=a=>J((a||[]).filter(e=>e.t!=="erase")),te=a=>J((a||[]).filter(m=>OBJTERR.has(m.v)));const PJ=p=>J(Object.assign({},p,{ovr:0,layers:0,lyAct:0,tlab:0,deco:0,grid:0,fov:0,rov:0})),VJ=p=>J([p.fov||{},p.rov||{}]),vecCh=VJ(nu.params)!==VJ(o.params),fast=cur&&PJ(nu.params)===PJ(o.params)&&J(nu.lock)===J(o.lock)&&J(nu.vec||null)===J(o.vec||null)&&ne(nu.edits)===ne(o.edits)&&te(nu.objs)===te(o.objs)&&J(nu.relevo||null)===J(o.relevo||null)&&J(nu.pintura||null)===J(o.pintura||null)&&J(nu.tracos||null)===J(o.tracos||null);Object.assign(o,nu);sel=null;rsel=null;rS=[];rv=null;fill();ov.draw();fast?(drawPins(),vecCh?rfull():recompose()):regen()}},svgI("M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"));
+  const undoB=h("button",{type:"button",class:"icb",title:"Desfazer (Ctrl+Z)","aria-label":"Desfazer",onclick:()=>{
+      // 1.61: desenhando uma linha (traçado, estrada, rio, rua, fronteira, anotação)? desfaz o último ponto dela primeiro
+      if(desfazRascunho())return;
+      const u=undo.pop();if(!u){toast("Nada para desfazer.");return}const nu=JSON.parse(u),J=JSON.stringify;{const sem=x=>J(Object.assign({},x,{anot:0}));const at={};for(const k in nu)at[k]=o[k];if(sem(nu)===sem(at)){o.anot=nu.anot||[];Store.save("maps",o);if(AN){AN.C.st.sel=null;AN.desenha();if(tool==="anot")drawCtx()}return}}const ne=a=>J((a||[]).filter(e=>e.t!=="erase")),te=a=>J((a||[]).filter(m=>OBJTERR.has(m.v)));const PJ=p=>J(Object.assign({},p,{ovr:0,layers:0,lyAct:0,tlab:0,deco:0,grid:0,fov:0,rov:0})),VJ=p=>J([p.fov||{},p.rov||{}]),vecCh=VJ(nu.params)!==VJ(o.params),fast=cur&&PJ(nu.params)===PJ(o.params)&&J(nu.lock)===J(o.lock)&&J(nu.vec||null)===J(o.vec||null)&&ne(nu.edits)===ne(o.edits)&&te(nu.objs)===te(o.objs)&&J(nu.relevo||null)===J(o.relevo||null)&&J(nu.pintura||null)===J(o.pintura||null)&&J(nu.tracos||null)===J(o.tracos||null);Object.assign(o,nu);sel=null;rsel=null;rS=[];rv=null;fill();ov.draw();fast?(drawPins(),vecCh?rfull():recompose()):regen()}},svgI("M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"));
   // grade do mundo na regiao (0.61): mesma ideia da cidade; o desenho da regiao ja traz a projecao (info.project)
   const gradeR=(()=>{const AMr=window.AtlasMundo;let G=null,on=false,modo="uso",so=false;const pan=h("div",{class:"gpan",hidden:true}),tip=h("div",{class:"gtip",hidden:true});
     const calc=()=>{G=AMr&&cur?AMr.deRegiao(cur.W,window.AtlasAssets):null};
@@ -1467,7 +1491,37 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   // 1.59.9: a grade cobre o mapa todo (cfg.gdims) e é desenhada reta, sem seguir o relevo (cfg.plano)
   const grade=()=>{const d=cfg.gdims?cfg.gdims():cfg.dims();return {x0:0,y0:0,x1:d[0],y1:d[1],cols:o.anotCols||cfg.cols||16,T:cfg.plano?((x,y)=>cfg.plano(x,y)||T(x,y)):null,k:Math.max(1,esc()*1.15)}};
   const kF0=Math.max(1,cfg.CW()/700),zkA=()=>{const m=/scale\(([\d.]+)\)/.exec(cfg.stage.style.transform||"");return m?+m[1]:1},kA=()=>kF0*Math.max(.4,Math.min(1,zkA()*.5)),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome)=>{cfg.snap();o.anot=L;Store.save("maps",o)},T,inv,k:()=>kA(),tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
-    desenha:()=>desenha(),painel:()=>{if(ativo&&host)painel(host)},abreNota:t=>abreNotaDe(t)});
+    desenha:()=>desenha(),painel:()=>{if(ativo&&host)painel(host)},abreNota:t=>abreNotaDe(t),aoCriar:it=>{if(it.tipo==="ponto")setTimeout(()=>dialogoPonto(it,true),30)}});
+  document.addEventListener("atlas-fa",()=>{if(document.body.contains(cfg.mc))desenha()});
+  // 1.61: uma janela só para criar ou editar um ponto: nome, resumo, ícone (Font Awesome), cor e nota (nenhuma, existente ou nova)
+  const FA_RPG="location-dot flag skull skull-crossbones dragon dungeon chess-rook crown khanda shield-halved gem coins sack-dollar key door-open lock scroll book-open hat-wizard wand-magic-sparkles flask fire water mountain-sun tree tent house-chimney city church place-of-worship torii-gate anchor ship bridge horse paw spider ghost crow eye user-secret mask circle-question triangle-exclamation star moon sun bolt snowflake house-crack cross hourglass bell lightbulb tower-observation store beer-mug-empty utensils hammer wheat-awn road shoe-prints map compass bullseye burst bomb heart-pulse users person handshake scale-balanced gavel feather envelope ring masks-theater dice-d20".split(" ");
+  function dialogoPonto(it0,novo){const AT=window.AtlasAnot;C.st.sel=it0.id;const ed={titulo:it0.titulo||"",texto:it0.texto||"",icone:it0.icone||"fa:location-dot",cor:it0.cor||AT.CORES[0],notaModo:it0.nota?"existe":"nenhuma",nota:it0.nota?String(it0.nota).replace(/^\[\[|\]\]$/g,""):"",tipoNova:"local"};
+    const fundo=h("div",{class:"dlg-fundo"}),d=h("div",{class:"dlg dlg-ponto",role:"dialog","aria-label":novo?"Novo ponto":"Editar ponto"});fundo.append(d);
+    const fecha=()=>{fundo.remove();removeEventListener("keydown",esc)};const esc=e=>{if(e.key==="Escape"){e.stopPropagation();cancela()}};addEventListener("keydown",esc);
+    const cancela=()=>{if(novo){C.st.sel=it0.id;C.apaga()}fecha()};
+    const prev=h("span",{class:"dp-prev"}),pinta=()=>{prev.replaceChildren(AT.iconeSvg(ed.icone,28));prev.style.background=ed.cor};
+    const nome=h("input",{type:"text",value:ed.titulo,placeholder:"Ex.: Travessia da Dama",oninput:e=>{ed.titulo=e.target.value}}),resumo=h("textarea",{rows:2,placeholder:"O essencial para a mesa: quem está ali, a pista e para onde leva",oninput:e=>{ed.texto=e.target.value}});resumo.value=ed.texto;
+    const grade=h("div",{class:"dp-grade",role:"listbox","aria-label":"Ícones"}),busca=h("input",{type:"search",placeholder:"Buscar ícone (ex.: castelo, espada, navio, caveira)","aria-label":"Buscar ícone"});
+    const mostraIcones=()=>{const q=busca.value.trim();const L=q?AT.faBusca(q,160):FA_RPG;grade.replaceChildren(...L.map(n=>{const id="fa:"+n;return h("button",{type:"button",class:"dp-ic"+(ed.icone===id?" on":""),title:n,"aria-label":n,onclick:()=>{ed.icone=id;pinta();mostraIcones()}},AT.iconeSvg(id,22))}));if(q&&!L.length)grade.append(h("p",{class:"empty"},"Nenhum ícone com esse nome. Tente em inglês também (ex.: castle, sword)."))};
+    busca.addEventListener("input",()=>{clearTimeout(busca._t);busca._t=setTimeout(mostraIcones,120)});
+    grade.append(h("p",{class:"empty"},"Carregando ícones…"));AT.carregaFA().then(()=>{pinta();mostraIcones()}).catch(()=>grade.replaceChildren(h("p",{class:"empty"},"Não consegui carregar os ícones.")));
+    const cores=h("div",{class:"dp-cores"},...AT.CORES.map(c=>h("button",{type:"button",class:"anp-cor",style:"background:"+c,"aria-label":"Cor "+c,onclick:()=>{ed.cor=c;pinta()}})),h("input",{type:"color",value:ed.cor,"aria-label":"Outra cor",oninput:e=>{ed.cor=e.target.value;pinta()}}));
+    const titulos=[...S.notes.values()].filter(n=>n.kind!=="canvas").map(n=>n.title).sort((a,b)=>a.localeCompare(b,"pt")),dl=h("datalist",{id:"dp-notas"},...titulos.map(t=>h("option",{value:t})));
+    const caixaNota=h("div",{class:"dp-nota"}),segN=h("div",{class:"anp-seg"});
+    const desenhaNota=()=>{segN.replaceChildren(...[["nenhuma","Sem nota"],["existe","Nota que já existe"],["nova","Criar nota"]].map(([k,t])=>h("button",{type:"button",class:ed.notaModo===k?"on":"",onclick:()=>{ed.notaModo=k;desenhaNota()}},t)));caixaNota.replaceChildren();
+      if(ed.notaModo==="existe")caixaNota.append(h("input",{type:"text",list:"dp-notas",value:ed.nota,placeholder:"Nome da nota",oninput:e=>{ed.nota=e.target.value}}),dl);
+      if(ed.notaModo==="nova")caixaNota.append(h("div",{class:"anp-seg"},...[["local","Lugar"],["missao","Missão"],["personagem","Personagem"],["livre","Livre"]].map(([k,t])=>h("button",{type:"button",class:ed.tipoNova===k?"on":"",onclick:()=>{ed.tipoNova=k;desenhaNota()}},t))),h("small",{class:"dp-dica"},"A nota nasce com o nome do ponto e já no molde do tipo escolhido."))};desenhaNota();
+    const pronto=()=>{if(!ed.titulo.trim()&&ed.notaModo!=="existe"){nome.focus();toast("Dê um nome ao ponto.");return}
+      let nota=null;if(ed.notaModo==="existe"&&ed.nota.trim()){const n=findNote(ed.nota.trim());nota=n?n.title:ed.nota.trim()}
+      if(ed.notaModo==="nova"){const n=newNote(ed.tipoNova,ed.titulo.trim()||"Ponto do mapa");nota=n.title;drawSide&&drawSide();toast("Nota “"+n.title+"” criada.")}
+      C.st.sel=it0.id;C.muda(x=>{x.titulo=ed.titulo.trim()||(nota||"");if(ed.texto.trim())x.texto=ed.texto.trim();else delete x.texto;x.icone=ed.icone;x.cor=ed.cor;if(nota)x.nota="[["+nota+"]]";else delete x.nota},novo?"Novo ponto":"Editar ponto");fecha()};
+    d.append(h("div",{class:"dp-cab"},prev,h("h3",{},novo?"Novo ponto":"Editar ponto")),
+      h("label",{class:"anp-c"},h("span",{},"Nome"),nome),h("label",{class:"anp-c"},h("span",{},"Resumo (aparece ao tocar no ponto)"),resumo),
+      h("div",{class:"dp-sec"},h("span",{class:"dp-k"},"Ícone"),busca,grade,h("small",{class:"dp-cred"},"Ícones: Font Awesome Free (CC BY 4.0)")),
+      h("div",{class:"dp-sec"},h("span",{class:"dp-k"},"Cor"),cores),
+      h("div",{class:"dp-sec"},h("span",{class:"dp-k"},"Nota ligada"),segN,caixaNota),
+      h("div",{class:"dp-bts"},novo?"":h("button",{type:"button",class:"danger ghost",onclick:()=>{C.st.sel=it0.id;C.apaga();fecha()}},"Apagar ponto"),h("span",{style:"flex:1"}),h("button",{type:"button",class:"ghost",onclick:cancela},novo?"Cancelar":"Fechar"),h("button",{type:"button",class:"primary",onclick:pronto},novo?"Criar ponto":"Salvar")));
+    fundo.addEventListener("pointerdown",e=>{if(e.target===fundo)cancela()});document.body.append(fundo);pinta();setTimeout(()=>nome.focus(),30)}
   // 1.60: um toque num ponto (com a ferramenta Navegar) abre um balão com o resumo e o essencial da nota do lugar
   let balao=null;const fechaBalao=()=>{if(balao){balao.remove();balao=null}};
   const secaoDe=(body,re)=>{const m=new RegExp("^##\\s*(?:"+re+")[^\\n]*\\n([\\s\\S]*?)(?=^##\\s|(?![\\s\\S]))","im").exec(body);return m?m[1].trim():""};
@@ -1479,7 +1533,7 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
       if(pi)b.append(h("div",{class:"bl-s"},h("b",{},"O que dá para descobrir"),h("div",{class:"md",html:md(pi)})));
       if(tipoDe(n)==="local"){const L=listasLugar(n);if(L.gente.tagName==="UL")b.append(h("div",{class:"bl-s"},h("b",{},"Quem está aqui"),L.gente))}
       if(!ch&&!pi&&!it.texto){const t=body.replace(/^#.*$/gm,"").trim().slice(0,320);if(t)b.append(h("div",{class:"bl-x md",html:md(t)}))}}
-    b.append(h("div",{class:"bl-b"},n?h("button",{type:"button",class:"primary sm",onclick:()=>{fechaBalao();openNote(n.id)}},"Abrir a nota"):nm?h("button",{type:"button",class:"sm",onclick:()=>{fechaBalao();abreNotaDe(nm)}},"Criar a nota"):"",h("button",{type:"button",class:"ghost sm",onclick:fechaBalao},"Fechar")));
+    b.append(h("div",{class:"bl-b"},n?h("button",{type:"button",class:"primary sm",onclick:()=>{fechaBalao();openNote(n.id)}},"Abrir a nota"):nm?h("button",{type:"button",class:"sm",onclick:()=>{fechaBalao();abreNotaDe(nm)}},"Criar a nota"):"",h("button",{type:"button",class:"ghost sm",onclick:()=>{fechaBalao();dialogoPonto(it,false)}},"Editar"),h("button",{type:"button",class:"ghost sm",onclick:fechaBalao},"Fechar")));
     b.addEventListener("pointerdown",e=>e.stopPropagation());document.body.append(b);balao=b;
     const W=b.offsetWidth,H=b.offsetHeight;let x=ev.clientX+14,y=ev.clientY-20;if(x+W>innerWidth-8)x=ev.clientX-W-14;if(x<8)x=8;if(y+H>innerHeight-8)y=innerHeight-H-8;if(y<8)y=8;b.style.left=x+"px";b.style.top=y+"px"}
   {const vw=cfg.stage.parentNode;let dn=null;
@@ -1492,7 +1546,7 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   {let zk0=zkA(),t_=0;new MutationObserver(()=>{const z=zkA();if(Math.abs(z-zk0)<.02)return;zk0=z;clearTimeout(t_);t_=setTimeout(()=>{if(document.body.contains(cfg.mc))desenha()},120)}).observe(cfg.stage,{attributes:true,attributeFilter:["style"]})}
   function desenha(){if(cv.width!==cfg.CW()||cv.height!==cfg.CH()){cv.width=cfg.CW();cv.height=cfg.CH()}g.clearRect(0,0,cv.width,cv.height);cv.hidden=!!o.anotOculto;if(cv.hidden)return;if(!acerta())return;AN.desenha(g,o.anot,T,{k:kA(),sel:ativo?C.st.sel:null,hov:C.st.hov,grade:ativo&&C.st.mostraGrade?grade():null,rascunho:ativo?C.rascunho():null})}
   const pt=ev=>{const r=cfg.mc.getBoundingClientRect();return [(ev.clientX-r.left)*cfg.CW()/r.width,(ev.clientY-r.top)*cfg.CH()/r.height]};
-  function painel(box){host=box;const ant=box.querySelector(".anp");const p=AN.painel(C,{itens:()=>o.anot,notas:()=>[...S.notes.values()].map(n=>n.title).sort((a,b)=>a.localeCompare(b,"pt")),abreNota:abreNotaDe,tipoNota:t=>{const n=findNote(t);return n?tipoDe(n):"livre"},aviso:t=>toast(t),sortear:cfg.lugares?(n=>{if(!n){C.tiraSorteados();return}const L=cfg.lugares();if(!L.length){toast("O mapa ainda não terminou de gerar.");return}C.adiciona(AN.sorteiaPOI(L,n,(Date.now()^o.anot.length*7919)>>>0),"Pontos de interesse");toast(n+" pontos de interesse sorteados. Clique num ponto para ler o gancho.")}):null,
+  function painel(box){host=box;const ant=box.querySelector(".anp");const p=AN.painel(C,{editaPonto:it=>dialogoPonto(it,false),itens:()=>o.anot,notas:()=>[...S.notes.values()].map(n=>n.title).sort((a,b)=>a.localeCompare(b,"pt")),abreNota:abreNotaDe,tipoNota:t=>{const n=findNote(t);return n?tipoDe(n):"livre"},aviso:t=>toast(t),sortear:cfg.lugares?(n=>{if(!n){C.tiraSorteados();return}const L=cfg.lugares();if(!L.length){toast("O mapa ainda não terminou de gerar.");return}C.adiciona(AN.sorteiaPOI(L,n,(Date.now()^o.anot.length*7919)>>>0),"Pontos de interesse");toast(n+" pontos de interesse sorteados. Clique num ponto para ler o gancho.")}):null,
       criaNota:it=>{const n=newNote("local",it.titulo||"Lugar do mapa",{content:"---\ntipo: local\n---\n\n"+(it.texto||"")+"\n\nNo mapa [["+o.name+"]]"+(it.celula?", célula "+it.celula:"")+".\n"});toast("Nota “"+n.title+"” criada.");drawSide&&drawSide();return n.title},
       redesenha:desenha,redesenhaPainel:()=>painel(host),foca:()=>{}});
     p.append(h("div",{class:"anp-bts"},h("label",{class:"anp-k"},h("input",{type:"checkbox",checked:!o.anotOculto,onchange:e=>{o.anotOculto=!e.target.checked||undefined;Store.save("maps",o);poeEsb();desenha()}})," Mostrar as anotações (botão Esboço na barra)"),
@@ -1505,7 +1559,10 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   // 1.60.1: botão "Esboço" na barra do mapa: mostra e esconde as anotações e rabiscos com um toque
   let bEsb=null;const poeEsb=()=>{if(bEsb){bEsb.setAttribute("aria-pressed",String(!o.anotOculto));bEsb.title=o.anotOculto?"Mostrar as anotações e rabiscos":"Esconder as anotações e rabiscos (ver só o mapa)"}};
   const alternaEsb=()=>{o.anotOculto=!o.anotOculto||undefined;Store.save("maps",o);poeEsb();desenha();if(host&&typeof painel==="function")painel(host)};
-  setTimeout(()=>{const mv=cfg.mc.closest(".mapv"),zb=mv&&mv.querySelector(".zbox");if(!zb||zb.querySelector(".b-esb"))return;bEsb=h("button",{type:"button",class:"ghost sm b-esb",onclick:alternaEsb},icone("olho",16),"Esboço");zb.append(bEsb);poeEsb()},50);
+  setTimeout(()=>{const mv=cfg.mc.closest(".mapv"),zb=mv&&mv.querySelector(".zbox");if(!zb||zb.querySelector(".b-esb"))return;bEsb=h("button",{type:"button",class:"ghost sm b-esb",onclick:alternaEsb},icone("olho",16),"Rabiscos");
+    // 1.61: "Desenhar" vai direto para o pincel das anotações
+    const bDes=h("button",{type:"button",class:"ghost sm b-des",title:"Desenhar à mão livre por cima do mapa",onclick:()=>{const t=mv.querySelector('.pal button[data-t=anot]');if(t&&!ativo)t.click();C.st.modo="pincel";if(o.anotOculto){o.anotOculto=undefined;Store.save("maps",o);poeEsb()}if(host)painel(host);desenha()}},icone("pincel",16),"Desenhar");
+    zb.append(bDes,bEsb);poeEsb()},50);
   return {C,desenha,painel,alternaEsb,ativa(v,box){ativo=v;if(v&&o.anotOculto){o.anotOculto=undefined;Store.save("maps",o);poeEsb()}if(!v){if(C.st.rasc)C.fim();C.st.sel=null;host=null}else host=box;desenha()},
     down(ev){if(ev.button!==0)return false;const q=pt(ev);return C.down(q[0],q[1],ev)},move(ev){const q=pt(ev);C.move(q[0],q[1])},up(){C.up()},
     dbl(ev){const q=pt(ev);if(C.dbl(q[0],q[1]))return true;return false},
@@ -1585,8 +1642,8 @@ function svgOnto(canvas,svg,S2){return new Promise(res=>{const cl=svg.cloneNode(
   const sty=document.createElementNS("http://www.w3.org/2000/svg","style");sty.textContent=css;cl.prepend(sty);const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(cl)],{type:"image/svg+xml"})),im=new Image();im.onload=()=>{canvas.getContext("2d").setTransform(1,0,0,1,0,0);canvas.getContext("2d").drawImage(im,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);res()};im.onerror=()=>{URL.revokeObjectURL(url);res()};im.src=url})}
 
 // ---------- painel do lugar ----------
-function closePlace(){S.place=null;$("#insp").hidden=true;$("#app").classList.remove("with-insp")}
-function openPlace(pl){S.place=pl;S.placeEdit=false;$("#insp").hidden=false;$("#app").classList.add("with-insp");drawPlace()}
+function closePlace(){S.place=null;$("#insp").hidden=true;$("#app").classList.remove("with-insp","insp-sobre")}
+function openPlace(pl){S.place=pl;S.placeEdit=false;$("#insp").hidden=false;$("#app").classList.add(matchMedia("(min-width:861px)").matches?"insp-sobre":"with-insp");drawPlace()}
 function drawPlace(){const box=$("#insp"),o=S.maps.get(S.map),pl=S.place;if(!o||!pl){closePlace();return}box.replaceChildren();
   const town=pl.kind==="town"?(o.lock||[]).find(t=>t.name===pl.name):null,pin=pl.kind==="pin"?o.pins.find(p=>p.id===pl.id):null;if(!town&&!pin){closePlace();return}
   const name=town?town.name:pin.label,note=findNote(name);
@@ -1801,7 +1858,14 @@ function sample(){const m=newMap();m.name="Vale do Sasau";m.params=Object.assign
 const chaveTela=()=>[S.sec,S.note,S.map,S.view,S.mode,S.quadro?1:0].join("|");
 function rolagens(){const m=$("#main"),L=[];if(!m)return L;L.push(["#main",0,m.scrollTop]);const cont={};for(const e of m.querySelectorAll("*")){if(e.scrollTop>0||e.scrollLeft>0){const k=e.tagName+"."+(typeof e.className==="string"?e.className.trim().split(/\s+/).sort().join("."):"");const all=[...m.querySelectorAll(e.tagName)].filter(x=>(typeof x.className==="string"?x.className.trim().split(/\s+/).sort().join("."):"")===k.slice(e.tagName.length+1));L.push([k,all.indexOf(e),e.scrollTop,e.scrollLeft])}}return L}
 function voltaRolagens(L){const m=$("#main");if(!m)return;const vai=()=>{for(const [k,i,t,l] of L){if(k==="#main"){m.scrollTop=t;continue}const tag=k.split(".")[0],cls=k.slice(tag.length+1);const all=[...m.querySelectorAll(tag)].filter(x=>(typeof x.className==="string"?x.className.trim().split(/\s+/).sort().join("."):"")===cls);const e=all[i];if(e){e.scrollTop=t;if(l)e.scrollLeft=l}}};vai();requestAnimationFrame(vai);setTimeout(vai,120)}
-function drawMain(flash){const k=chaveTela(),mesma=drawMain._k===k,R=mesma?rolagens():null;drawMain0(flash);drawMain._k=chaveTela();if(R&&R.length)voltaRolagens(R)}
+// 1.61: Voltar: cada troca de tela guarda a anterior (botão na barra de cima e o voltar do Android)
+const HIST=[];let voltando=false;
+const fotoTela=()=>({sec:S.sec,note:S.note,map:S.map,view:S.view,mode:S.mode});
+function poeVoltar(){let b=$("#bVoltar");if(!b){const top=document.querySelector("header.top");if(!top)return;b=h("button",{type:"button",id:"bVoltar",class:"ib","aria-label":"Voltar",title:"Voltar para a tela anterior",onclick:()=>{if(HIST.length)history.back()}},icone("voltar",19));const m=$("#menu");if(m)m.after(b);else top.prepend(b)}b.hidden=!HIST.length}
+function voltarTela(){const t=HIST.pop();if(!t){poeVoltar();return}voltando=true;closePlace();Object.assign(S,t);drawAll();voltando=false;poeVoltar()}
+addEventListener("popstate",()=>{const f=$("#nfolha");if(f&&!f.hidden){f.hidden=true;history.pushState({atlas:1},"");return}voltarTela()});
+function drawMain(flash){const k=chaveTela(),mesma=drawMain._k===k,R=mesma?rolagens():null;
+  if(!mesma&&drawMain._k&&!voltando&&drawMain._foto){HIST.push(drawMain._foto);if(HIST.length>40)HIST.shift();try{history.pushState({atlas:HIST.length},"")}catch(e){}setTimeout(poeVoltar,0)}drawMain0(flash);drawMain._k=chaveTela();drawMain._foto=fotoTela();if(R&&R.length)voltaRolagens(R)}
 function drawMain0(flash){hoverCard(null);$("#main").classList.remove("dividido");if(S.sec!=="notes"||S.view){const ab=$("#achar");if(ab){achaLimpa();ab.remove();ACH.q=""}}if(S.sec==="home")drawHome();else if(S.sec==="mundos")drawMundos();else if(S.sec==="notes"){if(S.view==="graph")drawGraph();else if(S.view==="time")drawTime();else if(S.view==="quests")drawQuests();else if(S.view==="tabela")drawTabela();else drawNote()}else drawMap(flash);abaDesenha();marcaMundo()}
 function drawAll(flash){drawSide();drawMain(flash)}
 
