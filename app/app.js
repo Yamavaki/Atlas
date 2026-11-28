@@ -1124,7 +1124,9 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
           if(j<n-1||closed){const q=c[(j+1)%n],mx=Math.round((p[0]+q[0])/2),my=Math.round((p[1]+q[1])/2);pins.append(h("button",{class:"hdl mid",type:"button","aria-label":"Adicionar ponto aqui",style:pos(cur.info.project(mx,my)),onclick:()=>{snap();matCity(cityI);lineOf(kind,cityI,k).splice(j+1,0,[mx,my]);sel={kind,i:cityI,j:j+1,k};regen()}},"+"))}})};
       mk("o",0,true);(o.lock[cityI].st||T.ctrlStreets).forEach((_,k)=>mk("s",k,false));return}
     for(const t of o.lock||[]){const p=cur.info.project(t.x,t.y);const cm=[...S.maps.values()].find(m=>m.type==="city"&&m.src&&m.src.map===o.id&&m.src.town===t.name),b=h("button",{class:"hit"+(cm?" hascity":""),type:"button",title:t.name+(cm?" · duplo clique abre o mapa da cidade":""),"aria-label":t.name,style:pos(p),onclick:()=>openPlace({kind:"town",name:t.name}),ondblclick:()=>{if(cm)openMap(cm.id)}});if(fl&&norm(fl)===norm(t.name))b.classList.add("flash");pins.append(b)}
-    for(const pn of o.pins){const p=cur.info.project(pn.x,pn.y);pins.append(h("button",{class:"pin",type:"button",style:pos(p),onclick:()=>openPlace({kind:"pin",id:pn.id})},h("span",{},pn.label),h("i")))}}
+    for(const pn of o.pins){const p=cur.info.project(pn.x,pn.y);pins.append(h("button",{class:"pin",type:"button",title:pn.label+" · toque para editar",style:pos(p),onclick:()=>{
+      // 1.61.1: pino antigo vira um ponto de anotação (com ícone, cor e nota), que dá para editar
+      if(AN&&AN.novoPonto){const n=findNote(pn.label);snap();o.pins=o.pins.filter(x=>x!==pn);Store.save("maps",o);drawPins();AN.novoPonto(pn.x,pn.y,{titulo:pn.label,nota:n?"[["+n.title+"]]":undefined},false)}else openPlace({kind:"pin",id:pn.id})}},h("span",{},pn.label),h("i")))}}
   function drag(b,kind,i,j,k){let st=null,moved=false;b.addEventListener("pointerdown",ev=>{ev.stopPropagation();b.setPointerCapture(ev.pointerId);st=[ev.clientX,ev.clientY];moved=false});
     b.addEventListener("pointermove",ev=>{if(!st)return;if(Math.hypot(ev.clientX-st[0],ev.clientY-st[1])>4)moved=true;if(moved){const r=mc.getBoundingClientRect();b.style.left=((ev.clientX-r.left)/r.width*100)+"%";b.style.top=((ev.clientY-r.top)/r.height*100)+"%"}});
     b.addEventListener("pointerup",ev=>{if(!st)return;st=null;sel={kind,i,j,k};if(moved){const w=world(ev);if(w){snap();if(kind==="o"||kind==="s")matCity(i);const old=lineOf(kind,i,k)[j],nw=[Math.round(w.x),Math.round(w.y)];if(kind==="s")for(const z of o.lock[i].st)for(let q=0;q<z.c.length;q++){if(Math.abs(z.c[q][0]-old[0])<1.5&&Math.abs(z.c[q][1]-old[1])<1.5)z.c[q]=nw.slice()}if(kind==="d")for(const r of o.vec.roads)for(let k=0;k<r.length;k++){if(Math.abs(r[k][0]-old[0])<1.5&&Math.abs(r[k][1]-old[1])<1.5)r[k]=nw.slice()}lineOf(kind,i,k)[j]=nw;regen();return}}drawPins()})}
@@ -1305,7 +1307,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     if(tool==="town"){snap();o.lock=(o.lock||[]).concat({x:Math.round(w.x/A.G)*A.G,y:Math.round(w.y/A.G)*A.G,size:8,kind:"village",planned:false,name:""});regen()}
     else if(tool==="untown"){let bi=-1,bd=110;(o.lock||[]).forEach((t,i)=>{const d=Math.hypot(t.x-w.x,t.y-w.y);if(d<bd){bd=d;bi=i}});if(bi<0){toast("Toque mais perto de um povoado.");return}snap();o.lock.splice(bi,1);regen()}
     else if(tool==="obj"){snap();const n=OBJTREE.has(objSel)?objSpread:1;for(let i=0;i<n;i++){const a=Math.random()*6.28,d=i?Math.sqrt(Math.random())*(14+n*3):0;o.objs.push({v:objSel,x:Math.round(w.x+Math.cos(a)*d),y:Math.round(w.y+Math.sin(a)*d*.8),s:+(objSize*(i?.85+Math.random()*.3:1)).toFixed(2)});if(isB(objSel)){const m=o.objs[o.objs.length-1];m.c=objRace;m.a=objRot}if(o.params.lyAct&&o.params.lyAct!=="base"&&RLYS().some(l=>l.id===o.params.lyAct))o.objs[o.objs.length-1].ly=o.params.lyAct}if(OBJTERR.has(objSel))regen();else recompose()}
-    else if(tool==="pin"){snap();const pn={id:uid("p"),x:w.x,y:w.y,label:"Novo local "+(o.pins.length+1)};o.pins.push(pn);Store.save("maps",o);drawPins();openPlace({kind:"pin",id:pn.id})}
+    else if(tool==="pin"){if(AN&&AN.novoPonto)AN.novoPonto(w.x,w.y,{});else{snap();const pn={id:uid("p"),x:w.x,y:w.y,label:"Novo local "+(o.pins.length+1)};o.pins.push(pn);Store.save("maps",o);drawPins();openPlace({kind:"pin",id:pn.id})}}
     else if(tool==="road"||tool==="river"||(tool==="street"&&cityI>=0)){draft.push(w);drawDraft()}
     else if(tool==="tra")trClick(w)
     else if(tool==="border"){const r=mc.getBoundingClientRect();ov.tap(w.cx,w.cy,16*A.CW/r.width)}}
@@ -1318,12 +1320,12 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
     if(tool==="text"){const w=world(ev);if(!w)return;const L=rlabAt(w.cx,w.cy);
       if(L){rtsel=L.kind==="t"?{kind:"t",ref:L.ref}:{kind:L.kind,i:L.i};drawCtx();rtdrag={L,c0:[w.cx,w.cy],w0:[w.x,w.y],d:[0,0],moved:false};return}
       {const perto=(o.texts||[]).find(t=>Math.hypot(t.x-w.x,t.y-w.y)<Math.max(24,(t.fs||18)*2));if(perto){rtsel={kind:"t",ref:perto};drawCtx();return}}
-      if(AN&&AN.acertaEv&&AN.acertaEv(ev)){setTool("anot");if(AN.down(ev))anotArr=true;return}
+      if(AN&&AN.acertaEv&&AN.acertaEv(ev)){setTool("anot");AN.C.st.modo="sel";if(AN.down(ev))anotArr=true;return}
       {const ri=ov.rotuloEm?ov.rotuloEm(ev.clientX,ev.clientY):-1;if(ri>=0){setTool("border");ov.escolhe(ri);drawCtx();return}}
       if(rtsel){rtsel=null;drawCtx();return}snap();o.texts=o.texts||[];const t={x:Math.round(w.x),y:Math.round(w.y),t:"Novo texto",fs:18};o.texts.push(t);rtsel={kind:"t",ref:t};recompose();drawCtx();setTimeout(()=>{const i_=ctx.querySelector("textarea");if(i_){i_.focus();i_.select()}},30);return}
     // 1.59.5: Selecionar também pega o que está escrito no mapa: anotações (ícones), textos e nomes de povoado, nomes de fronteira
     if(tool==="sel"&&ev.button===0&&!ev.shiftKey&&ptrs.size===1){
-      if(AN&&AN.acertaEv&&AN.acertaEv(ev)){setTool("anot");if(AN.down(ev)){anotArr=true;ev.preventDefault()}return}
+      if(AN&&AN.acertaEv&&AN.acertaEv(ev)){setTool("anot");AN.C.st.modo="sel";if(AN.down(ev)){anotArr=true;ev.preventDefault()}return}
       {const w=world(ev),L=w&&rlabAt(w.cx,w.cy);if(L){setTool("text");rtsel=L.kind==="t"?{kind:"t",ref:L.ref}:{kind:L.kind,i:L.i};drawCtx();rtdrag={L,c0:[w.cx,w.cy],w0:[w.x,w.y],d:[0,0],moved:false};return}}
       {const ri=ov.rotuloEm?ov.rotuloEm(ev.clientX,ev.clientY):-1;if(ri>=0){setTool("border");ov.escolhe(ri);drawCtx();return}}
       {const w=world(ev),ti=w&&cur&&cur.info.tracos?trPerto(w.x,w.y):-1;if(ti>=0){setTool("tra");trSel=ti;drawPins();drawCtx();return}}
@@ -1490,7 +1492,7 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
     const d=cfg.dims(),r=o.anotRef||d;if(r[0]!==d[0]||r[1]!==d[1]){const fx=d[0]/r[0],fy=d[1]/r[1];o.anot=o.anot.map(it=>Object.assign({},it,{pts:it.pts.map(q=>[Math.round(q[0]*fx),Math.round(q[1]*fy)])}));o.anotRef=d;Store.save("maps",o)}return true};
   // 1.59.9: a grade cobre o mapa todo (cfg.gdims) e é desenhada reta, sem seguir o relevo (cfg.plano)
   const grade=()=>{const d=cfg.gdims?cfg.gdims():cfg.dims();return {x0:0,y0:0,x1:d[0],y1:d[1],cols:o.anotCols||cfg.cols||16,T:cfg.plano?((x,y)=>cfg.plano(x,y)||T(x,y)):null,k:Math.max(1,esc()*1.15)}};
-  const kF0=Math.max(1,cfg.CW()/700),zkA=()=>{const m=/scale\(([\d.]+)\)/.exec(cfg.stage.style.transform||"");return m?+m[1]:1},kA=()=>kF0*Math.max(.4,Math.min(1,zkA()*.5)),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome)=>{cfg.snap();o.anot=L;Store.save("maps",o)},T,inv,k:()=>kA(),tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
+  const kF0=Math.max(1,cfg.CW()/700),zkA=()=>{const m=/scale\(([\d.]+)\)/.exec(cfg.stage.style.transform||"");return m?+m[1]:1},kA=()=>kF0*Math.max(.4,Math.min(1,zkA()*.5)),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome,sem)=>{if(!sem)cfg.snap();o.anot=L;Store.save("maps",o)},aoEditar:it=>dialogoPonto(it,false),T,inv,k:()=>kA(),tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
     desenha:()=>desenha(),painel:()=>{if(ativo&&host)painel(host)},abreNota:t=>abreNotaDe(t),aoCriar:it=>{if(it.tipo==="ponto")setTimeout(()=>dialogoPonto(it,true),30)}});
   document.addEventListener("atlas-fa",()=>{if(document.body.contains(cfg.mc))desenha()});
   // 1.61: uma janela só para criar ou editar um ponto: nome, resumo, ícone (Font Awesome), cor e nota (nenhuma, existente ou nova)
@@ -1562,8 +1564,11 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   setTimeout(()=>{const mv=cfg.mc.closest(".mapv"),zb=mv&&mv.querySelector(".zbox");if(!zb||zb.querySelector(".b-esb"))return;bEsb=h("button",{type:"button",class:"ghost sm b-esb",onclick:alternaEsb},icone("olho",16),"Rabiscos");
     // 1.61: "Desenhar" vai direto para o pincel das anotações
     const bDes=h("button",{type:"button",class:"ghost sm b-des",title:"Desenhar à mão livre por cima do mapa",onclick:()=>{const t=mv.querySelector('.pal button[data-t=anot]');if(t&&!ativo)t.click();C.st.modo="pincel";if(o.anotOculto){o.anotOculto=undefined;Store.save("maps",o);poeEsb()}if(host)painel(host);desenha()}},icone("pincel",16),"Desenhar");
-    zb.append(bDes,bEsb);poeEsb()},50);
-  return {C,desenha,painel,alternaEsb,ativa(v,box){ativo=v;if(v&&o.anotOculto){o.anotOculto=undefined;Store.save("maps",o);poeEsb()}if(!v){if(C.st.rasc)C.fim();C.st.sel=null;host=null}else host=box;desenha()},
+    const bBor=h("button",{type:"button",class:"ghost sm b-bor",title:"Borracha: passe o dedo por cima do rabisco para apagar",onclick:()=>{const t=mv.querySelector('.pal button[data-t=anot]');if(t&&!ativo)t.click();C.st.modo="borracha";if(o.anotOculto){o.anotOculto=undefined;Store.save("maps",o);poeEsb()}if(host)painel(host);desenha()}},icone("apagar",16),"Borracha");
+    zb.append(bDes,bBor,bEsb);poeEsb()},50);
+  // 1.61.1: ponto novo direto (ferramenta Pino) e conversão dos pinos antigos em pontos editáveis
+  const novoPonto=(x,y,extra,ehNovo)=>{cfg.snap();const it=Object.assign({id:"an"+Math.random().toString(36).slice(2,10),tipo:"ponto",pts:[[Math.round(x),Math.round(y)]],cor:C.st.cor||AN.CORES[0],icone:"fa:location-dot",titulo:""},extra||{});o.anot=(o.anot||[]).concat(it);if(o.anotOculto)o.anotOculto=undefined;Store.save("maps",o);desenha();setTimeout(()=>dialogoPonto(it,ehNovo!==false),30);return it};
+  return {C,desenha,painel,alternaEsb,novoPonto,ativa(v,box){ativo=v;if(v&&o.anotOculto){o.anotOculto=undefined;Store.save("maps",o);poeEsb()}if(!v){if(C.st.rasc)C.fim();C.st.sel=null;host=null}else host=box;desenha()},
     down(ev){if(ev.button!==0)return false;const q=pt(ev);return C.down(q[0],q[1],ev)},move(ev){const q=pt(ev);C.move(q[0],q[1])},up(){C.up()},
     dbl(ev){const q=pt(ev);if(C.dbl(q[0],q[1]))return true;return false},
     // fora da ferramenta: duplo clique num ponto com nota abre a nota

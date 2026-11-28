@@ -105,21 +105,28 @@ function ferramenta(cfg){const st={modo:"sel",cor:CORES[0],larg:3,estilo:"solido
   const C={st,atual,
     down(sx,sy,ev){const w=cfg.inv(sx,sy);if(!w)return false;const tol=cfg.tol?cfg.tol():8;
       if(st.pend){const p=st.pend;st.pend=null;C.largaNota(sx,sy,p.titulo,p.tipo);return true}
-      if(st.modo==="sel"){const it=acerta(cfg.itens(),sx,sy,cfg.T,cfg.k(),tol);st.sel=it?it.id:null;cfg.painel();cfg.desenha();if(it)st.arr={tipo:"mover",w0:w,pts0:it.pts.map(q=>q.slice()),it:JSON.parse(JSON.stringify(it)),moveu:false};return true}
+      if(st.modo==="sel"){const it=acerta(cfg.itens(),sx,sy,cfg.T,cfg.k(),tol);st.sel=it?it.id:null;cfg.painel();cfg.desenha();if(it)st.arr={tipo:"mover",w0:w,pts0:it.pts.map(q=>q.slice()),it:JSON.parse(JSON.stringify(it)),moveu:false,abre:it.tipo==="ponto"};return true}
+      // 1.61.1: borracha: arrastar por cima apaga os rabiscos e anotações que tocar
+      if(st.modo==="borracha"){st.arr={tipo:"borracha",apagou:false};C.apagaEm(sx,sy);return true}
+      // tocar num ponto ou texto que já existe escolhe (e arrastar move) em vez de criar outro
+      if(st.modo==="ponto"||st.modo==="texto"){const ja=acerta(cfg.itens(),sx,sy,cfg.T,cfg.k(),tol);if(ja&&(ja.tipo==="ponto"||ja.tipo==="texto")){st.sel=ja.id;cfg.painel();cfg.desenha();st.arr={tipo:"mover",w0:w,pts0:ja.pts.map(q=>q.slice()),it:JSON.parse(JSON.stringify(ja)),moveu:false,abre:ja.tipo==="ponto"};return true}}
       if(st.modo==="ponto"||st.modo==="texto"){const it={id:novoId(),tipo:st.modo,pts:[[R(w[0]),R(w[1])]],cor:st.modo==="texto"?"#fff7e6":st.cor,icone:st.icone,titulo:st.modo==="texto"?"Texto":""};salvaItem(it,st.modo==="texto"?"Texto no mapa":"Ponto no mapa");if(cfg.aoCriar)cfg.aoCriar(it);return true}
       if(st.modo==="pincel"||st.modo==="laco"){st.rasc={id:novoId(),tipo:st.modo==="laco"?"area":"traco",pts:[[R(w[0]),R(w[1])]],cor:st.cor,larg:st.larg,estilo:st.estilo,preench:st.preench,suave:true};st.arr={tipo:"pincel"};cfg.desenha();return true}
       if(st.modo==="linha"||st.modo==="area"){if(!st.rasc)st.rasc={id:novoId(),tipo:st.modo==="area"?"area":"linha",pts:[],cor:st.cor,larg:st.larg,estilo:st.estilo,preench:st.preench};const P=st.rasc.pts;
         if(P.length>=3&&st.modo==="area"){const f=cfg.T(P[0][0],P[0][1]);if(Math.hypot(f[0]-sx,f[1]-sy)<12){C.fim();return true}}
         if(P.length){const u=cfg.T(P[P.length-1][0],P[P.length-1][1]);if(Math.hypot(u[0]-sx,u[1]-sy)<6){C.fim();return true}}P.push([R(w[0]),R(w[1])]);cfg.desenha();cfg.painel();return true}
       return false},
+    apagaEm(sx,sy){const tol=(cfg.tol?cfg.tol():8)*1.6,it=acerta(cfg.itens(),sx,sy,cfg.T,cfg.k(),tol);if(!it)return false;const L=cfg.itens().filter(x=>x!==it);cfg.muda(L,"Apagar com a borracha",!!(st.arr&&st.arr.apagou));if(st.arr)st.arr.apagou=true;if(st.sel===it.id)st.sel=null;cfg.desenha();return true},
     move(sx,sy){const w=cfg.inv(sx,sy);if(!w)return;
+      if(st.arr&&st.arr.tipo==="borracha"){C.apagaEm(sx,sy);return}
       if(st.arr&&st.arr.tipo==="pincel"&&st.rasc){const P=st.rasc.pts,u=cfg.T(P[P.length-1][0],P[P.length-1][1]);if(Math.hypot(u[0]-sx,u[1]-sy)>=3){P.push([R(w[0]),R(w[1])]);cfg.desenha()}return}
       if(st.arr&&st.arr.tipo==="mover"){const a=st.arr,dx=w[0]-a.w0[0],dy=w[1]-a.w0[1],it=atual();if(!it)return;if(!a.moveu&&Math.hypot(...[cfg.T(a.w0[0],a.w0[1])].map(p=>[p[0]-sx,p[1]-sy])[0])<4)return;a.moveu=true;it.pts=a.pts0.map(q=>[R(q[0]+dx),R(q[1]+dy)]);cfg.desenha();return}
       if(st.modo==="sel"){const it=acerta(cfg.itens(),sx,sy,cfg.T,cfg.k(),cfg.tol?cfg.tol():8),h=it?it.id:null;if(h!==st.hov){st.hov=h;cfg.desenha()}}
       if((st.modo==="linha"||st.modo==="area")&&st.rasc){st.cursor=[R(w[0]),R(w[1])];cfg.desenha()}},
     up(){const a=st.arr;st.arr=null;if(!a)return;
       if(a.tipo==="pincel"&&st.rasc){const r=st.rasc;st.rasc=null;const eps=(cfg.unidade?1/cfg.unidade:.01)*2;r.pts=simplifica(r.pts,Math.max(eps,(cfg.simplifica||1.2)));if(r.pts.length<2||(r.tipo==="area"&&r.pts.length<3)){cfg.desenha();return}salvaItem(r,r.tipo==="area"?"Área no mapa":"Traço no mapa");return}
-      if(a.tipo==="mover"){const it=atual();if(!it)return;if(a.moveu){const L=cfg.itens(),i=L.findIndex(x=>x.id===it.id);const novo=it;L[i]=a.it;salvaItem(novo,"Mover anotação")}}},
+      if(a.tipo==="borracha"){cfg.painel();return}
+      if(a.tipo==="mover"){const it=atual();if(!it)return;if(!a.moveu&&a.abre&&cfg.aoEditar){cfg.aoEditar(it);return}if(a.moveu){const L=cfg.itens(),i=L.findIndex(x=>x.id===it.id);const novo=it;L[i]=a.it;salvaItem(novo,"Mover anotação")}}},
     dbl(sx,sy){const it=acerta(cfg.itens(),sx,sy,cfg.T,cfg.k(),cfg.tol?cfg.tol():8);if(it&&it.nota&&cfg.abreNota){cfg.abreNota(it.nota);return true}if(st.rasc&&(st.modo==="linha"||st.modo==="area")){C.fim();return true}return false},
     fim(){const r=st.rasc;st.rasc=null;st.cursor=null;if(!r){cfg.desenha();return}if(r.pts.length<2||(r.tipo==="area"&&r.pts.length<3)){cfg.desenha();cfg.painel();return}salvaItem(r,r.tipo==="area"?"Área no mapa":"Linha no mapa")},
     desfazPonto(){if(!st.rasc)return false;if(st.rasc.tipo!=="traco"&&st.rasc.pts.length>1){st.rasc.pts.pop();cfg.desenha();return true}st.rasc=null;st.cursor=null;cfg.desenha();cfg.painel();return true},
@@ -140,7 +147,7 @@ function h(tag,attrs,...kids){const e=document.createElement(tag);for(const k in
 function iconeSvg(n,size){if(n&&String(n).startsWith("fa:"))return faSvg(String(n).slice(3),size);const s=document.createElementNS("http://www.w3.org/2000/svg","svg");s.setAttribute("viewBox","0 0 24 24");s.setAttribute("width",size||18);s.setAttribute("height",size||18);s.setAttribute("aria-hidden","true");const p=document.createElementNS("http://www.w3.org/2000/svg","path");p.setAttribute("d",NS_ICON[n]||NS_ICON.alfinete);p.setAttribute("fill","none");p.setAttribute("stroke","currentColor");p.setAttribute("stroke-width","2");p.setAttribute("stroke-linecap","round");p.setAttribute("stroke-linejoin","round");s.append(p);return s}
 // opts: {notas:()=>[titulos], abreNota(t), criaNota(it)->titulo, lista:true}
 function painel(C,opts){opts=opts||{};const st=C.st,it=C.atual(),wrap=h("div",{class:"anp"}),ap=wrap.append.bind(wrap);wrap.append=(...a)=>ap(...a.filter(x=>x!=null&&x!==false));
-  const MODOS=[["sel","Selecionar"],["pincel","Pincel"],["linha","Linha"],["area","Área"],["laco","Área à mão"],["ponto","Ponto"],["texto","Texto"]];
+  const MODOS=[["sel","Selecionar"],["pincel","Pincel"],["linha","Linha"],["area","Área"],["laco","Área à mão"],["ponto","Ponto"],["texto","Texto"],["borracha","Borracha"]];
   wrap.append(h("div",{class:"anp-modos",role:"group","aria-label":"Ferramenta de anotação"},MODOS.map(([k,n])=>h("button",{type:"button",class:st.modo===k?"on":"","aria-pressed":String(st.modo===k),onclick:()=>C.modo(k)},n))));
   const alvo=it||null,val=(k,d)=>alvo?(alvo[k]==null?d:alvo[k]):(st[k]==null?d:st[k]),poe=(k,v,nome)=>{if(alvo)C.muda(x=>{if(v==null)delete x[k];else x[k]=v},nome);else{st[k]=v;C.salvaPref();painelDe(C)}};
   const painelDe=()=>{if(opts.redesenhaPainel)opts.redesenhaPainel()};
