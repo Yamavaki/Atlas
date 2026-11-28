@@ -1422,7 +1422,7 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 /* 1.59.4: desempenho de quadros grandes */
 .qd-anda .qd-mundo{will-change:transform}
 .qd-anda .qd-no{box-shadow:none!important;transition:none!important}
-.qd-no:not(.on):not(:hover){content-visibility:auto}
+.qd-no.qd-text:not(.on):not(:hover){content-visibility:auto}
 
 .qd-longe .qd-no{box-shadow:none}
 
