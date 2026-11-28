@@ -1452,10 +1452,12 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   const acerta=()=>{if(!o.anot.length){o.anotRef=cfg.dims();o.anotUn="mundo";return true}if(o.anotUn!=="mundo"){const N=[];for(const it of o.anot){const P=it.pts.map(q=>cfg.unproj(q[0],q[1]));if(P.some(q=>!q))return false;N.push(Object.assign({},it,{pts:P.map(q=>[Math.round(q[0]),Math.round(q[1])])}))}o.anot=N;o.anotUn="mundo";o.anotRef=cfg.dims();Store.save("maps",o);return true}
     const d=cfg.dims(),r=o.anotRef||d;if(r[0]!==d[0]||r[1]!==d[1]){const fx=d[0]/r[0],fy=d[1]/r[1];o.anot=o.anot.map(it=>Object.assign({},it,{pts:it.pts.map(q=>[Math.round(q[0]*fx),Math.round(q[1]*fy)])}));o.anotRef=d;Store.save("maps",o)}return true};
   const grade=()=>({x0:0,y0:0,x1:cfg.dims()[0],y1:cfg.dims()[1],cols:o.anotCols||cfg.cols||16});
-  const kF=Math.max(1,cfg.CW()/700),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome)=>{cfg.snap();o.anot=L;Store.save("maps",o)},T,inv,k:()=>kF,tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
+  const kF0=Math.max(1,cfg.CW()/700),zkA=()=>{const m=/scale\(([\d.]+)\)/.exec(cfg.stage.style.transform||"");return m?+m[1]:1},kA=()=>kF0*Math.max(.4,Math.min(1,zkA()*.5)),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome)=>{cfg.snap();o.anot=L;Store.save("maps",o)},T,inv,k:()=>kA(),tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
     desenha:()=>desenha(),painel:()=>{if(ativo&&host)painel(host)},abreNota:t=>abreNotaDe(t)});
   const abreNotaDe=t=>{const n=findNote(String(t).replace(/^\[\[|\]\]$/g,""));if(n)openNote(n.id);else toast("A nota “"+String(t).replace(/^\[\[|\]\]$/g,"")+"” não existe ainda.")};
-  function desenha(){if(cv.width!==cfg.CW()||cv.height!==cfg.CH()){cv.width=cfg.CW();cv.height=cfg.CH()}g.clearRect(0,0,cv.width,cv.height);cv.hidden=!!o.anotOculto&&!ativo;if(cv.hidden)return;if(!acerta())return;AN.desenha(g,o.anot,T,{k:kF,sel:ativo?C.st.sel:null,hov:C.st.hov,grade:ativo&&C.st.mostraGrade?grade():null,rascunho:ativo?C.rascunho():null})}
+  // 1.59.8: ícones das anotações menores com o mapa afastado (acompanham o zoom)
+  {let zk0=zkA(),t_=0;new MutationObserver(()=>{const z=zkA();if(Math.abs(z-zk0)<.02)return;zk0=z;clearTimeout(t_);t_=setTimeout(()=>{if(document.body.contains(cfg.mc))desenha()},120)}).observe(cfg.stage,{attributes:true,attributeFilter:["style"]})}
+  function desenha(){if(cv.width!==cfg.CW()||cv.height!==cfg.CH()){cv.width=cfg.CW();cv.height=cfg.CH()}g.clearRect(0,0,cv.width,cv.height);cv.hidden=!!o.anotOculto&&!ativo;if(cv.hidden)return;if(!acerta())return;AN.desenha(g,o.anot,T,{k:kA(),sel:ativo?C.st.sel:null,hov:C.st.hov,grade:ativo&&C.st.mostraGrade?grade():null,rascunho:ativo?C.rascunho():null})}
   const pt=ev=>{const r=cfg.mc.getBoundingClientRect();return [(ev.clientX-r.left)*cfg.CW()/r.width,(ev.clientY-r.top)*cfg.CH()/r.height]};
   function painel(box){host=box;const ant=box.querySelector(".anp");const p=AN.painel(C,{itens:()=>o.anot,notas:()=>[...S.notes.values()].map(n=>n.title).sort((a,b)=>a.localeCompare(b,"pt")),abreNota:abreNotaDe,tipoNota:t=>{const n=findNote(t);return n?tipoDe(n):"livre"},aviso:t=>toast(t),sortear:cfg.lugares?(n=>{if(!n){C.tiraSorteados();return}const L=cfg.lugares();if(!L.length){toast("O mapa ainda não terminou de gerar.");return}C.adiciona(AN.sorteiaPOI(L,n,(Date.now()^o.anot.length*7919)>>>0),"Pontos de interesse");toast(n+" pontos de interesse sorteados. Clique num ponto para ler o gancho.")}):null,
       criaNota:it=>{const n=newNote("local",it.titulo||"Lugar do mapa",{content:"---\ntipo: local\n---\n\n"+(it.texto||"")+"\n\nNo mapa [["+o.name+"]]"+(it.celula?", célula "+it.celula:"")+".\n"});toast("Nota “"+n.title+"” criada.");drawSide&&drawSide();return n.title},
@@ -1471,8 +1473,8 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
     down(ev){if(ev.button!==0)return false;const q=pt(ev);return C.down(q[0],q[1],ev)},move(ev){const q=pt(ev);C.move(q[0],q[1])},up(){C.up()},
     dbl(ev){const q=pt(ev);if(C.dbl(q[0],q[1]))return true;return false},
     // fora da ferramenta: duplo clique num ponto com nota abre a nota
-    acertaEv(ev){if(cv.hidden||!acerta())return null;const q=pt(ev);return AN.acerta(o.anot,q[0],q[1],T,kF,8*esc())},
-    dblFora(ev){if(cv.hidden)return false;const q=pt(ev),it=AN.acerta(o.anot,q[0],q[1],T,kF,8*esc());if(it&&it.nota){abreNotaDe(it.nota);return true}return false},
+    acertaEv(ev){if(cv.hidden||!acerta())return null;const q=pt(ev);return AN.acerta(o.anot,q[0],q[1],T,kA(),8*esc())},
+    dblFora(ev){if(cv.hidden)return false;const q=pt(ev),it=AN.acerta(o.anot,q[0],q[1],T,kA(),8*esc());if(it&&it.nota){abreNotaDe(it.nota);return true}return false},
     tecla(e){return C.tecla(e)}}}
 function mkOverlay(o,W,H,place){const NS="http://www.w3.org/2000/svg",svg=document.createElementNS(NS,"svg");svg.setAttribute("viewBox","0 0 "+W+" "+H);svg.setAttribute("class","ovl");o.realms=o.realms||[];
   const st={k:1,on:false,sel:-1,draft:null,armed:false,flash:null,onChange:()=>{},onSnap:()=>{},xf:p=>p,inv:p=>p};
