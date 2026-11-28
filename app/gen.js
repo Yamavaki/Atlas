@@ -1627,7 +1627,7 @@ function render(W,canvas,stamps){
     canvas:()=>PNT,
     limpa(){PNT=null;PD=null}};
   const n=compose(P.objs,(P.edits||[]).filter(e=>e.t==="erase"),{ovr:P.ovr,layers:P.layers,labs:P.tlab,deco:P.deco,texts:P.texts,uimg:P.uimg});
-  return Object.assign(API,{n,compose,b:W.B.filter(b=>b.k===1).length,YB,project:(x,y)=>[x+MX,y*TILT-E[clamp(y|0,0,WY-1)*WX+clamp(x|0,0,WX-1)]*K+MY]});
+  return Object.assign(API,{n,compose,b:W.B.filter(b=>b.k===1).length,YB,WY,plano:(x,y)=>[x+MX,y*TILT+MY],project:(x,y)=>[x+MX,y*TILT-E[clamp(y|0,0,WY-1)*WX+clamp(x|0,0,WX-1)]*K+MY]});
 }
 
 // miniatura de um objeto para o catalogo (desenhada com as mesmas funcoes do mapa)

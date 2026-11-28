@@ -1067,7 +1067,7 @@ function drawMap(flash){const o=S.maps.get(S.map),main=$("#main");main.replaceCh
   const snap=()=>{undo.push(JSON.stringify({params:o.params,edits:o.edits,lock:o.lock,pins:o.pins,objs:o.objs,vec:o.vec||null,realms:o.realms,relevo:o.relevo||null,pintura:o.pintura||null,tracos:o.tracos||null,anot:o.anot||[]}));if(undo.length>30)undo.shift()};
   S.snap=snap;
   // 1.35: anotacoes do mestre (camada propria por cima do mapa)
-  const AN=anotMapa({o,mc,stage,CW:()=>A.CW,CH:()=>A.CH,snap:()=>snap(),cols:16,dims:()=>[A.MW,A.MH],proj:(x,y)=>cur?cur.info.project(x,y):null,
+  const AN=anotMapa({o,mc,stage,CW:()=>A.CW,CH:()=>A.CH,snap:()=>snap(),cols:16,dims:()=>[A.MW,A.MH],proj:(x,y)=>cur?cur.info.project(x,y):null,plano:(x,y)=>cur&&cur.info.plano?cur.info.plano(x,y):null,gdims:()=>cur&&cur.info.WY?[A.MW,Math.min(cur.info.WY,Math.round(A.MH/0.7))]:[A.MW,A.MH],
     unproj:(cx,cy)=>{const sx=Math.round(cx-A.MX),sy=Math.round(cy-A.MY);if(!cur||sx<0||sy<0||sx>=A.MW||sy>=A.MH)return null;return [sx,cur.info.YB[sy*A.MW+sx]||sy/A.TILT]},
     lugares:()=>{if(!cur)return [];const L=[];for(const t of o.lock||[])L.push({x:t.x,y:t.y+18,tipo:"povoado",nome:null,dist:80});for(const pn of o.pins||[])L.push({x:pn.x,y:pn.y,tipo:"fora",nome:pn.label,dist:80});const r=A.mulberry((Date.now()>>>0));for(let k=0;k<60;k++){const x=A.MW*(.08+r()*.84),y=(cur.info.YB?A.MH/A.TILT:A.MH)*(.1+r()*.8);L.push({x:Math.round(x),y:Math.round(y),tipo:"mato",dist:120})}return L},
     lugar:(x,y)=>{if(!cur)return "";let b="",bd=260;for(const t of o.lock||[]){const d=Math.hypot(t.x-x,t.y-y);if(d<bd){bd=d;b=t.name}}for(const pn of o.pins||[]){const d=Math.hypot(pn.x-x,pn.y-y);if(d<bd){bd=d;b=pn.label}}return b}});S.anotDraw=()=>AN&&AN.desenha();
@@ -1451,7 +1451,8 @@ function anotMapa(cfg){const AN=window.AtlasAnot,o=cfg.o;if(!AN)return null;o.an
   // anotacoes da 1.35 (em pixels do desenho) passam para o mundo; mapa com outro tamanho escala tudo
   const acerta=()=>{if(!o.anot.length){o.anotRef=cfg.dims();o.anotUn="mundo";return true}if(o.anotUn!=="mundo"){const N=[];for(const it of o.anot){const P=it.pts.map(q=>cfg.unproj(q[0],q[1]));if(P.some(q=>!q))return false;N.push(Object.assign({},it,{pts:P.map(q=>[Math.round(q[0]),Math.round(q[1])])}))}o.anot=N;o.anotUn="mundo";o.anotRef=cfg.dims();Store.save("maps",o);return true}
     const d=cfg.dims(),r=o.anotRef||d;if(r[0]!==d[0]||r[1]!==d[1]){const fx=d[0]/r[0],fy=d[1]/r[1];o.anot=o.anot.map(it=>Object.assign({},it,{pts:it.pts.map(q=>[Math.round(q[0]*fx),Math.round(q[1]*fy)])}));o.anotRef=d;Store.save("maps",o)}return true};
-  const grade=()=>({x0:0,y0:0,x1:cfg.dims()[0],y1:cfg.dims()[1],cols:o.anotCols||cfg.cols||16});
+  // 1.59.9: a grade cobre o mapa todo (cfg.gdims) e é desenhada reta, sem seguir o relevo (cfg.plano)
+  const grade=()=>{const d=cfg.gdims?cfg.gdims():cfg.dims();return {x0:0,y0:0,x1:d[0],y1:d[1],cols:o.anotCols||cfg.cols||16,T:cfg.plano?((x,y)=>cfg.plano(x,y)||T(x,y)):null,k:Math.max(1,esc()*1.15)}};
   const kF0=Math.max(1,cfg.CW()/700),zkA=()=>{const m=/scale\(([\d.]+)\)/.exec(cfg.stage.style.transform||"");return m?+m[1]:1},kA=()=>kF0*Math.max(.4,Math.min(1,zkA()*.5)),C=AN.ferramenta({itens:()=>o.anot,muda:(L,nome)=>{cfg.snap();o.anot=L;Store.save("maps",o)},T,inv,k:()=>kA(),tol:()=>8*esc(),unidade:1,simplifica:1.5,grade,lugar:cfg.lugar,preferencias:S.anotPref,
     desenha:()=>desenha(),painel:()=>{if(ativo&&host)painel(host)},abreNota:t=>abreNotaDe(t)});
   const abreNotaDe=t=>{const n=findNote(String(t).replace(/^\[\[|\]\]$/g,""));if(n)openNote(n.id);else toast("A nota “"+String(t).replace(/^\[\[|\]\]$/g,"")+"” não existe ainda.")};
