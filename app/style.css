@@ -1438,3 +1438,4 @@ mark.achado.atual{background:var(--gold);color:var(--on-gold)}
 .balao .md p{margin:0 0 .4em}.balao .md ul{margin:0 0 .4em;padding-left:1.1em}
 .balao .bl-b{display:flex;gap:6px;justify-content:flex-end;margin-top:10px}
 .auto-l{list-style:none;padding:0;margin:.2em 0 .8em}.auto-l li{margin:.15em 0}.auto-l .plk{background:none;border:0;padding:0;color:var(--gold,#d8b45a);cursor:pointer;font:inherit;text-decoration:underline dotted}.auto-l small{color:var(--muted)}
+.b-esb[aria-pressed="false"]{opacity:.6;text-decoration:line-through}.b-esb[aria-pressed="true"]{color:var(--gold,#d8b45a)}
